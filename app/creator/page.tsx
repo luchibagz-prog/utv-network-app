@@ -1,20 +1,23 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../../lib/supabaseClient';
 
 const freeEndDate = process.env.NEXT_PUBLIC_FREE_UPLOAD_END_DATE;
 
 export default function CreatorPage() {
   const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
     category: 'show',
     city: '',
     video_url: '',
-    cover_url: ''
+    cover_url: '',
+    creator_name: "",
+    creator_email: "",
   });
 
   const freeWindow = freeEndDate ? new Date() <= new Date(freeEndDate + 'T23:59:59') : false;
@@ -24,10 +27,10 @@ export default function CreatorPage() {
   }, []);
 
   async function submitContent() {
-    if (!user) {
-      window.location.href = '/login';
-      return;
-    }
+  // if (!user) {
+//   window.location.href = '/login';
+//   return;
+// }
 
     if (!freeWindow) {
       const res = await fetch('/api/checkout', { method: 'POST' });
@@ -36,11 +39,9 @@ export default function CreatorPage() {
       return;
     }
 
-    const { error } = await supabase.from('submissions').insert({
+    const { error } = await supabase.from('uploads').insert({
       ...form,
-      user_id: user.id,
-      is_paid: false,
-      status: 'pending'
+      approved: false
     });
 
     setMessage(error ? error.message : 'Submitted! UTV will review and approve it soon.');
@@ -49,15 +50,23 @@ export default function CreatorPage() {
   return (
     <main className="container">
       <nav className="nav">
-        <Link href="/" className="logo">U<span>TV</span></Link>
         <Link className="btn secondary" href="/watch">Watch</Link>
-      </nav>
+</nav>
 
-      <h1>Submit Content to UTV</h1>
-      <p style={{color:'var(--muted)'}}>
-        Submit shows, podcasts, movies, trailers, music videos, or event footage.
-        {freeWindow ? ' Launch special: submissions are free this week.' : ' Upload submissions now require payment.'}
-      </p>
+<img
+  src="/utv-logo.png"
+  alt="UTV"
+  style={{
+    width: 240,
+    marginBottom: 30
+  }}
+/>
+
+<h1>Submit Content to UTV</h1>
+
+<p>
+Upload your TV show, podcast, movie, documentary, music video, trailer or live event. UTV will review and approve your content for streaming.
+</p>
 
       <div className="card" style={{maxWidth:760}}>
         <label>Title</label>
@@ -81,15 +90,73 @@ export default function CreatorPage() {
 
         <label>Video URL</label>
         <input className="input" placeholder="YouTube, Vimeo, Supabase Storage, etc." value={form.video_url} onChange={e=>setForm({...form, video_url:e.target.value})} />
+        <label>Creator Name</label>
+<input
+  className="input"
+  value={form.creator_name}
+  onChange={(e) =>
+    setForm({ ...form, creator_name: e.target.value })
+  }
+/>
 
-        <label>Cover Image URL</label>
-        <input className="input" value={form.cover_url} onChange={e=>setForm({...form, cover_url:e.target.value})} />
+<label>Creator Email</label>
+<input
+  className="input"
+  type="email"
+  value={form.creator_email}
+  onChange={(e) =>
+    setForm({ ...form, creator_email: e.target.value })
+  }
+/>
+<label>Cover Image</label>
+<input
+  className="input"
+  type="file"
+  accept="image/*"
+  disabled={uploadingCover}
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-        <button className="btn" onClick={submitContent}>
-          {freeWindow ? 'Submit Free' : 'Pay & Submit'}
-        </button>
+    setUploadingCover(true);
+    setMessage('Uploading cover...');
 
-        <p>{message}</p>
+    const filePath = `${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from('thumbnails')
+      .upload(filePath, file);
+
+    if (error) {
+      setMessage(error.message);
+      setUploadingCover(false);
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from('thumbnails')
+      .getPublicUrl(filePath);
+
+    setForm({ ...form, cover_url: data.publicUrl });
+    setMessage('Cover uploaded!');
+    setUploadingCover(false);
+  }}
+/>
+
+{form.cover_url && (
+  <img
+    src={form.cover_url}
+    alt="Cover preview"
+    style={{ width: '180px', borderRadius: 18, marginTop: 12 }}
+  />
+)}
+       
+<button className="btn" onClick={submitContent}>
+  Submit To UTV
+</button>
+
+<p>{message}</p>
+
       </div>
     </main>
   );

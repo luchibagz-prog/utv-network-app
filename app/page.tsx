@@ -1,57 +1,266 @@
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import Link from "next/link";
+import { supabase } from "../lib/supabaseClient";
 
-export default async function HomePage() {
-  const { data: shows } = await supabase
-    .from('submissions')
-    .select('*')
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(8);
+type Show = {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  city?: string;
+  cover_url?: string;
+  featured?: boolean;
+  views?: number;
+};
+
+function cleanCategory(category?: string) {
+  if (!category) return "Show";
+  return category.replaceAll("_", " ");
+}
+
+function Row({
+  title,
+  items,
+}: {
+  title: string;
+  items: Show[];
+}) {
+  if (!items?.length) return null;
 
   return (
-    <main className="container">
-      <nav className="nav">
-        <Link href="/" className="logo">U<span>TV</span></Link>
-        <div style={{display:'flex', gap:10}}>
-          <Link className="btn secondary" href="/watch">Watch</Link>
-          <Link className="btn" href="/creator">Upload Content</Link>
-        </div>
-      </nav>
+    <section className="utvRow">
+      <h2>{title}</h2>
 
-      <section className="hero">
-        <div className="badge">Where The Culture Streams</div>
-        <h1>Independent TV. Reality. Music. Culture.</h1>
-        <p>
-          UTV is the home for Bad & Boujee, original shows, podcasts, movies,
-          trailers, music videos, and the next wave of creators.
-        </p>
-        <div style={{display:'flex', gap:12, flexWrap:'wrap', marginTop:24}}>
-          <Link href="/watch" className="btn">Start Watching</Link>
-          <Link href="/creator" className="btn secondary">Submit Your Show</Link>
-        </div>
-      </section>
+      <div className="utvScrollRow">
+        {items.map((show, index) => (
+          <Link
+            href={`/watch/${show.id}`}
+            key={show.id}
+            className="utvCard"
+          >
+            <div
+              className="utvPoster"
+              style={{ position: "relative" }}
+            >
+              {title === "Top 10 On UTV" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    background: "#00ff88",
+                    color: "#000",
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    fontWeight: "bold",
+                    zIndex: 10,
+                  }}
+                >
+                  #{index + 1}
+                </div>
+              )}
 
-      <section className="grid">
-        <div className="card"><div className="badge">Flagship Original</div><h3>Bad & Boujee</h3><p>Season 1, trailers, cast moments, behind the scenes, and new era updates.</p></div>
-        <div className="card"><div className="badge">For Creators</div><h3>Upload Your Content</h3><p>Shows, podcasts, movies, trailers, music videos, and live event footage.</p></div>
-        <div className="card"><div className="badge">Launch Offer</div><h3>First Week Free</h3><p>Creators can submit content during the launch window before upload fees begin.</p></div>
-      </section>
+              {show.featured && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    background: "#ffd700",
+                    color: "#000",
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    fontWeight: "bold",
+                    zIndex: 10,
+                  }}
+                >
+                  UTV ORIGINAL
+                </div>
+              )}
 
-      <h2>Recently Added</h2>
-      <section className="grid">
-        {(shows || []).map((show:any) => (
-          <Link href={`/watch/${show.id}`} className="card video-card" key={show.id}>
-            <div className="poster">{show.title}</div>
-            <div className="content">
-              <div className="badge">{show.category}</div>
-              <p>{show.description}</p>
+              {show.cover_url ? (
+                <img
+                  src={show.cover_url}
+                  alt={show.title}
+                />
+              ) : (
+                <div className="posterFallback">
+                  UTV
+                </div>
+              )}
             </div>
+
+            <h3>{show.title}</h3>
+
+            <p>{cleanCategory(show.category)}</p>
+
+            <p
+              style={{
+                color: "#00ff88",
+                fontSize: 13,
+              }}
+            >
+              👁 {show.views || 0} Views
+            </p>
           </Link>
         ))}
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      <footer className="footer">© UTV. More Than TV. It's A Movement.</footer>
+export default async function HomePage() {
+  const { data } = await supabase
+    .from("uploads")
+    .select("*")
+    .eq("approved", true)
+    .order("created_at", { ascending: false });
+
+  const allShows: Show[] = data || [];
+
+  const featuredShows = allShows.filter(
+    (show) => show.featured
+  );
+
+  const trendingShows = [...allShows]
+    .sort(
+      (a, b) =>
+        (b.views || 0) - (a.views || 0)
+    )
+    .slice(0, 10);
+
+  const showsOnly = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() === "show"
+  );
+
+  const podcasts = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() === "podcast"
+  );
+
+  const musicVideos = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() ===
+      "music_video"
+  );
+
+  const movies = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() === "movie"
+  );
+
+  const documentaries = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() ===
+      "documentary"
+  );
+
+  const liveEvents = allShows.filter(
+    (show) =>
+      show.category?.toLowerCase() ===
+      "live_event"
+  );
+
+return (
+  <main className="utvPage">
+    <nav className="nav premiumNav">
+      <Link href="/" className="logo">
+        <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+      </Link>
+
+      <div className="navLinks">
+        <Link href="/watch">Browse</Link>
+        <Link href="/creator" className="btn secondary">
+          Submit Your Show
+        </Link>
+      </div>
+    </nav>
+
+    <section
+      className="cinematicHero"
+      style={{
+        backgroundImage: featuredShows[0]?.cover_url
+          ? `linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.65) 45%, rgba(0,0,0,.25) 100%), url(${featuredShows[0].cover_url})`
+          : undefined,
+      }}
+    >
+      <div className="heroContent">
+        <p className="eyebrow">NEW WAVE STREAMING PLATFORM</p>
+
+        <h1>{featuredShows[0]?.title || "Urban Television"}</h1>
+
+        <p className="heroDescription">
+          The home for independent shows, podcasts, movies, documentaries,
+          music videos, and live events. Stream culture from everywhere.
+        </p>
+
+        <div className="heroButtons">
+          {featuredShows[0] && (
+            <Link href={`/watch/${featuredShows[0].id}`} className="btn">
+              ▶ Watch Now
+            </Link>
+          )}
+
+          <Link href="/creator" className="btn secondary">
+            Submit Content
+          </Link>
+        </div>
+
+        <div className="heroBadges">
+          <span>Creator Powered</span>
+          <span>Independent Content</span>
+          <span>Shows • Music • Live Events</span>
+        </div>
+      </div>
+    </section>
+      <Row
+        title="Featured on UTV"
+        items={
+          featuredShows.length
+            ? featuredShows
+            : allShows
+        }
+      />
+
+      <Row
+        title="Top 10 On UTV"
+        items={trendingShows}
+      />
+
+      <Row
+        title="Recently Added"
+        items={allShows.slice(0, 10)}
+      />
+
+      <Row
+        title="UTV Originals & Shows"
+        items={showsOnly}
+      />
+
+      <Row
+        title="Podcasts"
+        items={podcasts}
+      />
+
+      <Row
+        title="Music Videos"
+        items={musicVideos}
+      />
+
+      <Row
+        title="Movies"
+        items={movies}
+      />
+
+      <Row
+        title="Documentaries"
+        items={documentaries}
+      />
+
+      <Row
+        title="Live Events"
+        items={liveEvents}
+      />
     </main>
   );
 }

@@ -1,34 +1,233 @@
-import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
 
-export default async function WatchPage() {
-  const { data: shows } = await supabase
-    .from('submissions')
-    .select('*')
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false });
+type Show = {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  city?: string;
+  cover_url?: string;
+  creator_name?: string;
+  featured?: boolean;
+  views?: number;
+};
+
+function cleanCategory(category?: string) {
+  if (!category) return "Show";
+  return category.replaceAll("_", " ");
+}
+
+function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
+  if (!shows.length) return null;
 
   return (
-    <main className="container">
-      <nav className="nav">
-        <Link href="/" className="logo">U<span>TV</span></Link>
-        <Link className="btn" href="/creator">Upload Content</Link>
-      </nav>
+    <section className="utvRow">
+      <h2>{title}</h2>
 
-      <h1>Watch UTV</h1>
-      <p style={{color:'var(--muted)'}}>Reality shows, podcasts, movies, trailers, music videos, and originals.</p>
+      <div className="utvScrollRow">
+      {shows.map((show, index) => (
+          <Link href={`/watch/${show.id}`} className="utvCard" key={show.id}>
+<div className="utvPoster">
+  {title === "Top 10 On UTV" && (
+    <div className="rankBadge">#{index + 1}</div>
+  )}
 
-      <section className="grid">
-        {(shows || []).map((show:any) => (
-          <Link href={`/watch/${show.id}`} className="card video-card" key={show.id}>
-            <div className="poster">{show.title}</div>
-            <div className="content">
-              <div className="badge">{show.category}</div>
-              <p>{show.description}</p>
-            </div>
+  {show.cover_url ? (
+    <img src={show.cover_url} alt={show.title} />
+  ) : (
+    <div className="posterFallback">UTV</div>
+  )}
+</div>
+
+            <h3>{show.title}</h3>
+            <p style={{ color: "#8b8b8b", fontSize: "14px" }}>
+  By {show.creator_name || "UTV Creator"}
+</p>
+            <p>{cleanCategory(show.category)}</p>
           </Link>
         ))}
+      </div>
+    </section>
+  );
+}
+
+export default async function WatchPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string; category?: string }>;
+}) {
+  const params = await searchParams;
+  const q = params?.q?.trim().toLowerCase() || "";
+  const category = params?.category?.trim().toLowerCase() || "";
+
+  const { data: shows } = await supabase
+    .from("uploads")
+    .select("*")
+    .eq("approved", true)
+    .order("created_at", { ascending: false });
+
+  const allShows: Show[] = shows || [];
+
+  const filteredShows = allShows.filter((show) => {
+    const text = `
+      ${show.title || ""}
+      ${show.description || ""}
+      ${show.category || ""}
+      ${show.city || ""}
+    `.toLowerCase();
+
+    const matchesSearch = text.includes(q);
+    const matchesCategory =
+      !category ||
+      show.category?.toLowerCase() === category ||
+      (category === "music" &&
+        ["music", "music_video"].includes(show.category?.toLowerCase() || "")) ||
+      (category === "live" &&
+        ["live", "live_event"].includes(show.category?.toLowerCase() || ""));
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const featuredShows = filteredShows.filter((show) => show.featured);
+
+  const popularShows = [...filteredShows]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 10);
+
+  const heroShow = featuredShows[0] || popularShows[0] || filteredShows[0];
+
+  return (
+    <main className="utvPage">
+      <nav className="nav premiumNav">
+        <Link href="/" className="logo">
+          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+        </Link>
+
+        <div className="navLinks">
+          <Link href="/">Home</Link>
+          <Link href="/creator" className="btn secondary">
+            Submit Your Show
+          </Link>
+        </div>
+      </nav>
+
+<section
+  className="cinematicHero"
+  style={{
+    backgroundImage:
+      "linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.45) 45%, rgba(0,0,0,.15) 100%), url('/utv-banner.png')",
+  }}
+>
+  <div className="heroContent">
+    <p className="eyebrow">UTV ORIGINAL SERIES</p>
+
+    <h1>Bad & Boujee</h1>
+
+    <p className="heroDescription">
+      Beauty. Ambition. Loyalty. Drama. Stream Season 1 now on UTV.
+    </p>
+
+    <div className="heroButtons">
+      <Link href="/watch" className="btn">
+        ▶ Watch Now
+      </Link>
+
+      <Link href="/creator" className="btn secondary">
+        Submit Content
+      </Link>
+    </div>
+
+    <div className="heroBadges">
+      <span>Creator Powered</span>
+      <span>Independent Content</span>
+      <span>Shows • Music • Live Events</span>
+    </div>
+  </div>
+</section>
+
+      <section className="utvRow">
+        <form action="/watch" className="searchWrap">
+          <input
+            name="q"
+            className="searchBar"
+            placeholder="Search UTV..."
+            defaultValue={params?.q || ""}
+          />
+          <button className="btn" type="submit">
+            Search
+          </button>
+        </form>
+
+        <div className="filterButtons">
+          <Link href="/watch" className="filterBtn">All</Link>
+          <Link href="/watch?category=show" className="filterBtn">Shows</Link>
+          <Link href="/watch?category=movie" className="filterBtn">Movies</Link>
+          <Link href="/watch?category=podcast" className="filterBtn">Podcasts</Link>
+          <Link href="/watch?category=music" className="filterBtn">Music Videos</Link>
+          <Link href="/watch?category=documentary" className="filterBtn">Documentaries</Link>
+          <Link href="/watch?category=live" className="filterBtn">Live Events</Link>
+        </div>
+
+        {q && (
+          <p className="searchNote">
+            Showing results for: <strong>{q}</strong>
+          </p>
+        )}
       </section>
+
+      {filteredShows.length === 0 ? (
+        <section className="utvRow">
+          <h2>No results found</h2>
+          <p>Try searching another title, category, or creator.</p>
+        </section>
+      ) : (
+        <>
+          <CategoryRow title="Top 10 On UTV" shows={popularShows} />
+          <CategoryRow title="Featured" shows={featuredShows} />
+          <CategoryRow title="All Content" shows={filteredShows} />
+          <CategoryRow
+            title="Shows"
+            shows={filteredShows.filter(
+              (show) => show.category?.toLowerCase() === "show"
+            )}
+          />
+          <CategoryRow
+            title="Movies"
+            shows={filteredShows.filter(
+              (show) => show.category?.toLowerCase() === "movie"
+            )}
+          />
+          <CategoryRow
+            title="Podcasts"
+            shows={filteredShows.filter(
+              (show) => show.category?.toLowerCase() === "podcast"
+            )}
+          />
+          <CategoryRow
+            title="Music Videos"
+            shows={filteredShows.filter((show) =>
+              ["music", "music_video"].includes(
+                show.category?.toLowerCase() || ""
+              )
+            )}
+          />
+          <CategoryRow
+            title="Documentaries"
+            shows={filteredShows.filter(
+              (show) => show.category?.toLowerCase() === "documentary"
+            )}
+          />
+          <CategoryRow
+            title="Live Events"
+            shows={filteredShows.filter((show) =>
+              ["live", "live_event"].includes(
+                show.category?.toLowerCase() || ""
+              )
+            )}
+          />
+        </>
+      )}
     </main>
   );
 }
