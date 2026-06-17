@@ -1508,3 +1508,16 @@ label { color: var(--muted); font-size: 14px; }
     margin-top: -18px !important;
   }
 }
+/* UTV sticky floating header */
+.premiumNav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(0,0,0,.86) !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+.utvLogo {
+  width: 88px !important;
+  height: auto !important;
+}
