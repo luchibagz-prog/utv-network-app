@@ -1263,3 +1263,43 @@ label { color: var(--muted); font-size: 14px; }
     margin-top: 0;
   }
 }
+
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 860px;
+    padding: 330px 28px 70px;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center top;
+  }
+
+  .cinematicHero::before {
+    opacity: 0.22;
+  }
+
+  .cinematicHero::after {
+    opacity: 0.38;
+    background: linear-gradient(
+      180deg,
+      rgba(0,0,0,.10) 0%,
+      rgba(0,0,0,.18) 28%,
+      rgba(0,0,0,.55) 58%,
+      rgba(0,0,0,.95) 100%
+    );
+  }
+
+  .heroContent {
+    padding-top: 0;
+    transform: translateY(-35px);
+  }
+
+  .heroDescription {
+    max-width: 350px;
+    font-size: 20px;
+    line-height: 1.15;
+  }
+
+  .heroButtons {
+    margin-top: 18px;
+  }
+}
