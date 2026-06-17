@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 
 export default function AdminPage() {
   const [uploads, setUploads] = useState<any[]>([]);
-
+const [authorized, setAuthorized] = useState(false);
   const totalUploads = uploads.length;
 const featuredUploads = uploads.filter(item => item.featured).length;
 const approvedUploads = uploads.filter(item => item.approved).length;
@@ -43,10 +43,24 @@ async function deleteUpload(id: string) {
 
   loadUploads();
 }
+useEffect(() => {
+  const pass = prompt("Admin Password");
 
-  useEffect(() => {
+  if (
+    pass ===
+    process.env.NEXT_PUBLIC_ADMIN_PASSWORD
+  ) {
+    setAuthorized(true);
     loadUploads();
-  }, []);
+  } else {
+    alert("Wrong Password");
+    window.location.href = "/watch";
+  }
+}, []);
+
+if (!authorized) {
+  return <div>Loading...</div>;
+}
 
   return (
     <main className="container">

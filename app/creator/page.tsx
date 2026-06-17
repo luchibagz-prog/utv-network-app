@@ -31,7 +31,16 @@ export default function CreatorPage() {
 //   window.location.href = '/login';
 //   return;
 // }
-
+if (
+  !form.title ||
+  !form.description ||
+  !form.video_url ||
+  !form.creator_name ||
+  !form.creator_email
+) {
+  setMessage('Please fill out all required fields.');
+  return;
+}
     if (!freeWindow) {
       const res = await fetch('/api/checkout', { method: 'POST' });
       const data = await res.json();
@@ -43,6 +52,8 @@ export default function CreatorPage() {
       ...form,
       approved: false
     });
+
+
 
     setMessage(error ? error.message : 'Submitted! UTV will review and approve it soon.');
   }
