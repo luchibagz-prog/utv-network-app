@@ -176,35 +176,42 @@ return (
       </div>
     </nav>
 
-    <section
-      className="cinematicHero"
-      style={{
-        backgroundImage: featuredShows[0]?.cover_url
-          ? `linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.65) 45%, rgba(0,0,0,.25) 100%), url(${featuredShows[0].cover_url})`
-          : undefined,
-      }}
-    >
-      <div className="heroContent">
-       
+<section
+  className="cinematicHero"
+  style={{
+    backgroundImage: featuredShows[0]?.cover_url
+      ? `linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.65) 45%, rgba(0,0,0,.25) 100%), url(${featuredShows[0].cover_url})`
+      : undefined,
+  }}
+>
+  <div className="heroContent">
+    <div className="heroButtons">
+      {featuredShows[0] && (
+        <Link
+          href={`/watch/${featuredShows[0].id}`}
+          className="btn"
+        >
+          ▶ Watch Now
+        </Link>
+      )}
 
-        <div className="heroButtons">
-          {featuredShows[0] && (
-            <Link href={`/watch/${featuredShows[0].id}`} className="btn">
-              ▶ Watch Now
-            </Link>
-          )}
+      <Link
+        href="/creator"
+        className="btn secondary"
+      >
+        Submit Content
+      </Link>
 
-          <Link href="/creator" className="btn secondary">
-            Submit Content
-          </Link>
+      <a
+        href="#install"
+        className="btn secondary"
+      >
+        Install UTV
+      </a>
+    </div>
+  </div>
+</section>
 
-<a href="#install" className="btn secondary">
-  Install UTV
-</a>
-
-        </div>
-        
-  
 <div className="categoryBar">
   <a href="#shows">Shows</a>
   <a href="#podcasts">Podcasts</a>
@@ -214,7 +221,7 @@ return (
   <a href="#live">Live</a>
 </div>
 
-    </section>
+
       <Row
         title="Featured on UTV"
         items={
