@@ -896,3 +896,97 @@ label { color: var(--muted); font-size: 14px; }
     font-size: 14px;
   }
 }
+
+@media (max-width: 600px) {
+  .nav {
+    position: relative;
+    padding: 28px 18px 18px;
+    gap: 14px;
+  }
+
+  .nav .logo img,
+  .logo img {
+    width: 120px;
+    height: auto;
+  }
+
+  .nav a:not(.logo),
+  .nav .btn {
+    font-size: 15px;
+    padding: 11px 18px;
+    border-radius: 999px;
+  }
+
+  .hero {
+    min-height: 720px;
+    padding: 220px 24px 70px;
+    background-position: center top;
+  }
+
+  .hero h1 {
+    font-size: 64px;
+    line-height: 0.95;
+    letter-spacing: -2px;
+  }
+
+  .heroDescription {
+    font-size: 22px;
+    line-height: 1.25;
+    max-width: 100%;
+  }
+
+  .heroButtons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .heroButtons .btn {
+    flex: 1;
+    font-size: 16px;
+    padding: 14px 10px;
+    white-space: nowrap;
+  }
+
+  section h2 {
+    font-size: 38px;
+    line-height: 1;
+    margin-bottom: 24px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 18px;
+  }
+
+  .card {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .card img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  .card h2,
+  .card h3 {
+    font-size: 20px;
+    line-height: 1.05;
+    margin-top: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card p {
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
