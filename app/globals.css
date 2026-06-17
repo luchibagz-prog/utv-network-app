@@ -1079,4 +1079,32 @@ label { color: var(--muted); font-size: 14px; }
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .categoryBar {
+  position: sticky;
+  top: 78px;
+  z-index: 40;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px 24px;
+  background: rgba(0,0,0,.78);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.categoryBar a {
+  flex: 0 0 auto;
+  color: white;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+}
+}
+.categoryBar a:hover {
+  background: rgba(57,255,136,.18);
+  border-color: rgba(57,255,136,.45);
 }
