@@ -990,3 +990,32 @@ label { color: var(--muted); font-size: 14px; }
     text-overflow: ellipsis;
   }
 }
+
+@media (max-width: 600px) {
+  .heroButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .heroButtons .btn {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-size: 58px;
+  }
+
+  .heroDescription {
+    font-size: 21px;
+  }
+
+  .eyebrow {
+    font-size: 22px;
+    line-height: 1.05;
+  }
+}
