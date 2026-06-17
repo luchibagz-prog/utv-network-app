@@ -199,7 +199,10 @@ label { color: var(--muted); font-size: 14px; }
 @media (max-width: 800px) {
   .streamHero {
     grid-template-columns: 1fr;
-    padding: 28px;
+    padding: 18px;
+    min-height: 520px;
+    align-items: end;
+    background-position: center top;
   }
 }
 .streamHero {
@@ -1301,5 +1304,30 @@ label { color: var(--muted); font-size: 14px; }
 
   .heroButtons {
     margin-top: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 760px;
+    padding: 270px 28px 60px;
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    background-position: center top;
+  }
+
+  .heroContent {
+    padding-top: 0;
+    transform: none;
+  }
+
+  .heroDescription {
+    max-width: 330px;
+    font-size: 20px;
+    line-height: 1.16;
+  }
+
+  .heroButtons {
+    margin-top: 16px;
   }
 }
