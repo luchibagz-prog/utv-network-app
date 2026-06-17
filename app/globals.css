@@ -1043,9 +1043,21 @@ label { color: var(--muted); font-size: 14px; }
     width:80px;
   }
 
-  .navLinks{
-    gap:10px;
-  }
+.navLinks {
+  gap: 10px;
+}
+
+.navLinks a {
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+}
+
+.navLinks a {
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+}
 
   .navLinks .btn{
     padding:10px 16px;
