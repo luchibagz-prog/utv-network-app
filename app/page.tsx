@@ -179,9 +179,9 @@ return (
 <section
   className="cinematicHero"
   style={{
-    backgroundImage: featuredShows[0]?.cover_url
-      ? `linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.65) 45%, rgba(0,0,0,.25) 100%), url(${featuredShows[0].cover_url})`
-      : undefined,
+ backgroundImage: featuredShows[0]?.cover_url
+  ? `url(${featuredShows[0].cover_url})`
+  : undefined,
   }}
 >
   <div className="heroContent">
