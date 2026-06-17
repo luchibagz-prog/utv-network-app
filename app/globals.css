@@ -1521,3 +1521,25 @@ label { color: var(--muted); font-size: 14px; }
   width: 88px !important;
   height: auto !important;
 }
+.creatorStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.creatorStats .card {
+  min-height: 120px;
+  padding: 20px;
+  text-align: center;
+}
+
+.creatorStats .card h3 {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.creatorStats .card p {
+  font-size: 14px;
+  white-space: normal;
+}
