@@ -217,6 +217,16 @@ return (
           <span>Shows • Music • Live Events</span>
         </div>
       </div>
+
+<div className="categoryBar">
+  <a href="#shows">Shows</a>
+  <a href="#podcasts">Podcasts</a>
+  <a href="#music">Music Videos</a>
+  <a href="#movies">Movies</a>
+  <a href="#docs">Docs</a>
+  <a href="#live">Live</a>
+</div>
+
     </section>
       <Row
         title="Featured on UTV"
@@ -226,7 +236,6 @@ return (
             : allShows
         }
       />
-
       <Row
         title="Top 10 On UTV"
         items={trendingShows}
@@ -237,36 +246,47 @@ return (
         items={allShows.slice(0, 10)}
       />
 
-      <Row
-        title="UTV Originals & Shows"
-        items={showsOnly}
-      />
+  <div id="shows">
+  <Row
+    title="UTV Originals & Shows"
+    items={showsOnly}
+  />
+</div>
 
-      <Row
-        title="Podcasts"
-        items={podcasts}
-      />
+<div id="podcasts">
+  <Row
+    title="Podcasts"
+    items={podcasts}
+  />
+</div>
 
-      <Row
-        title="Music Videos"
-        items={musicVideos}
-      />
+<div id="music">
+  <Row
+    title="Music Videos"
+    items={musicVideos}
+  />
+</div>
 
-      <Row
-        title="Movies"
-        items={movies}
-      />
+<div id="movies">
+  <Row
+    title="Movies"
+    items={movies}
+  />
+</div>
 
-      <Row
-        title="Documentaries"
-        items={documentaries}
-      />
+<div id="docs">
+  <Row
+    title="Documentaries"
+    items={documentaries}
+  />
+</div>
 
-      <Row
-        title="Live Events"
-        items={liveEvents}
-      />
-
+<div id="live">
+  <Row
+    title="Live Events"
+    items={liveEvents}
+  />
+</div>
 <div id="install" className="section">
   <h2>Install UTV</h2>
   <p>
