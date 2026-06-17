@@ -1277,7 +1277,7 @@ label { color: var(--muted); font-size: 14px; }
   }
 
   .cinematicHero::before {
-    opacity: 0.22;
+    opacity: 0.10;
   }
 
   .cinematicHero::after {
@@ -1329,5 +1329,34 @@ label { color: var(--muted); font-size: 14px; }
 
   .heroButtons {
     margin-top: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    min-height: auto !important;
+    padding: 0 22px 22px !important;
+  }
+
+  .heroContent {
+    display: none !important;
+  }
+
+  .cinematicHero {
+    min-height: 520px !important;
+    padding-bottom: 18px !important;
+    background-position: center top !important;
+  }
+
+  .cinematicHero::before {
+    opacity: 0.08 !important;
+  }
+
+  .cinematicHero::after {
+    opacity: 0.18 !important;
+  }
+
+  .categoryBar {
+    margin-top: 0 !important;
   }
 }
