@@ -838,3 +838,21 @@ label { color: var(--muted); font-size: 14px; }
   font-size:18px;
   margin-bottom:25px;
 }
+
+@media (max-width: 600px) {
+  .nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .nav .btn {
+    width: 90%;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .logo {
+    margin-bottom: 4px;
+  }
+}
