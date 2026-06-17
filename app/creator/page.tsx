@@ -86,14 +86,7 @@ if (
 />
 
 <h1>Submit Content to UTV</h1>
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(4,1fr)",
-    gap: 12,
-    marginBottom: 24,
-  }}
->
+<div className="creatorStats">
   <div className="card">
     <h3>{creatorUploads.length}</h3>
     <p>Total Uploads</p>
@@ -124,6 +117,35 @@ if (
   </div>
 </div>
 <p>
+  <section className="card" style={{ marginBottom: 24 }}>
+  <h2>My Content</h2>
+
+  {creatorUploads.length === 0 ? (
+    <p>No uploads yet. Submit your first title below.</p>
+  ) : (
+    <div className="creatorContentList">
+      {creatorUploads.map((item) => (
+        <div key={item.id} className="creatorContentItem">
+          {item.cover_url && (
+            <img src={item.cover_url} alt={item.title} />
+          )}
+
+          <div>
+            <h3>{item.title}</h3>
+            <p>{item.category} • 👁 {item.views || 0} views</p>
+            <strong>
+              {item.approved ? "Live on UTV" : "Pending Review"}
+            </strong>
+          </div>
+
+          <Link href={`/watch/${item.id}`} className="btn secondary">
+            View
+          </Link>
+        </div>
+      ))}
+    </div>
+  )}
+</section>
 Upload your TV show, podcast, movie, documentary, music video, trailer or live event. UTV will review and approve your content for streaming.
 </p>
 

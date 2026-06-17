@@ -1543,3 +1543,31 @@ label { color: var(--muted); font-size: 14px; }
   font-size: 14px;
   white-space: normal;
 }
+.creatorContentList {
+  display: grid;
+  gap: 12px;
+}
+
+.creatorContentItem {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.creatorContentItem img {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+@media (max-width: 700px) {
+  .creatorContentItem {
+    grid-template-columns: 70px 1fr;
+  }
+
+  .creatorContentItem .btn {
+    grid-column: 1 / -1;
+  }
+}
