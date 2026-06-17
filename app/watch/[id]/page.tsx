@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
+import WatchTracker from "../../components/WatchTracker";
 
 function getYoutubeEmbed(url: string) {
   if (url.includes("youtu.be")) {
@@ -39,6 +40,8 @@ export default async function ShowPage({
   if (!show) {
     return (
       <main className="container">
+
+
         <h1>Show not found</h1>
         <Link href="/watch" className="btn">
           Back to UTV
@@ -59,6 +62,13 @@ export default async function ShowPage({
 
   return (
     <main className="container">
+<WatchTracker
+  id={show.id}
+  title={show.title}
+  cover_url={show.cover_url}
+  category={show.category}
+/>
+
       <nav className="nav">
         <Link href="/" className="logo">
           U<span>TV</span>
