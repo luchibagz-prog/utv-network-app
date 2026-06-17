@@ -171,7 +171,7 @@ return (
       <div className="navLinks">
         <Link href="/watch">Browse</Link>
         <Link href="/creator" className="btn secondary">
-          Submit Your Show
+          Submit Content
         </Link>
       </div>
     </nav>
@@ -204,8 +204,21 @@ return (
           <Link href="/creator" className="btn secondary">
             Submit Content
           </Link>
-        </div>
 
+<a
+  href="#"
+  className="btn secondary"
+  onClick={() =>
+    alert(
+      "Install UTV: Tap the menu in your browser and select Add to Home Screen."
+    )
+  }
+>
+  Install UTV
+</a>
+
+        </div>
+        
         <div className="heroBadges">
           <span>Creator Powered</span>
           <span>Independent Content</span>
