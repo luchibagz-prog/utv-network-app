@@ -1437,3 +1437,52 @@ label { color: var(--muted); font-size: 14px; }
     width: 82px !important;
   }
 }
+
+/* UTV final mobile hero fix */
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 500px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-size: 100% auto !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+  }
+
+  .cinematicHero::after {
+    opacity: 0.06 !important;
+    background: linear-gradient(
+      180deg,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0.03) 55%,
+      rgba(0,0,0,0.65) 100%
+    ) !important;
+  }
+
+  .heroContent {
+    position: absolute !important;
+    left: 18px !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .heroButtons {
+    display: flex !important;
+    gap: 12px !important;
+    margin: 0 !important;
+  }
+
+  .heroButtons .btn {
+    flex: 1 !important;
+    padding: 13px 12px !important;
+    text-align: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+
+  .categoryBar {
+    margin-top: -6px !important;
+  }
+}
