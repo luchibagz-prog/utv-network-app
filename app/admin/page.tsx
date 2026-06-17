@@ -73,7 +73,7 @@ if (!authorized) {
   className="btn secondary"
   onClick={() => {
     localStorage.removeItem("utvAdmin");
-    window.location.href = "/watch";
+    window.location.href = "/admin";
   }}
 >
   Logout
