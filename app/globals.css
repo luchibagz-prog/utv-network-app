@@ -1486,3 +1486,30 @@ label { color: var(--muted); font-size: 14px; }
     margin-top: -6px !important;
   }
 }
+
+/* UTV brighter hero + lower poster */
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 500px !important;
+    background-size: 110% auto !important;
+    background-position: center 78px !important;
+  }
+
+  .cinematicHero::after {
+    opacity: 0 !important;
+    background: none !important;
+  }
+
+  .cinematicHero::before {
+    opacity: 0 !important;
+    background: none !important;
+  }
+
+  .heroContent {
+    bottom: 16px !important;
+  }
+
+  .categoryBar {
+    margin-top: -18px !important;
+  }
+}
