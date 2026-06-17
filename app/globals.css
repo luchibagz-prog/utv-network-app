@@ -1360,3 +1360,22 @@ label { color: var(--muted); font-size: 14px; }
     margin-top: 0 !important;
   }
 }
+
+@media (max-width: 600px) {
+
+  .heroContent {
+    display: none !important;
+  }
+
+  .cinematicHero {
+    min-height: 380px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-position: center top !important;
+  }
+
+  .categoryBar {
+    margin-top: -20px !important;
+  }
+
+}
