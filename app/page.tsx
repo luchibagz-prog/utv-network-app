@@ -185,14 +185,7 @@ return (
       }}
     >
       <div className="heroContent">
-        <p className="eyebrow">THE FUTURE OF INDEPENDENT STREAMING</p>
-
-        <h1>UTV</h1>
-
-        <p className="heroDescription">
-          The home for independent shows, podcasts, movies, documentaries,
-          music videos, and live events. Stream culture from everywhere.
-        </p>
+       
 
         <div className="heroButtons">
           {featuredShows[0] && (
@@ -211,13 +204,7 @@ return (
 
         </div>
         
-        <div className="heroBadges">
-          <span>Creator Powered</span>
-          <span>Independent Content</span>
-          <span>Shows • Music • Live Events</span>
-        </div>
-      </div>
-
+  
 <div className="categoryBar">
   <a href="#shows">Shows</a>
   <a href="#podcasts">Podcasts</a>
