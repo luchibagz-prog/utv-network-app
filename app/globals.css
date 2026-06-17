@@ -500,17 +500,12 @@ label { color: var(--muted); font-size: 14px; }
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(157, 255, 79, 0.2);
+
+  filter: brightness(1.35) contrast(1.1);
 }
 
 .cinematicHero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(0deg, #050505 0%, transparent 40%),
-    radial-gradient(circle at 20% 20%, rgba(157, 255, 79, 0.22), transparent 28%),
-    radial-gradient(circle at 90% 20%, rgba(160, 70, 255, 0.25), transparent 32%);
-  pointer-events: none;
+  content: none !important;
 }
 
 .cinematicHero .heroText {
