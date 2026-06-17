@@ -183,11 +183,17 @@ label { color: var(--muted); font-size: 14px; }
   display: flex;
   gap: 18px;
   overflow-x: auto;
-  padding: 10px 0 32px;
+  padding: 10px 0 34px;
+  scroll-snap-type: x mandatory;
+}
+
+.rowScroll::-webkit-scrollbar {
+  display: none;
 }
 
 .rowScroll .posterCard {
-  min-width: 230px;
+  flex: 0 0 230px;
+  scroll-snap-align: start;
 }
 
 @media (max-width: 800px) {
@@ -1044,5 +1050,33 @@ label { color: var(--muted); font-size: 14px; }
   .navLinks .btn{
     padding:10px 16px;
     font-size:14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .rowScroll {
+    gap: 14px;
+    padding: 8px 0 30px;
+  }
+
+  .rowScroll .posterCard {
+    flex: 0 0 72vw;
+    max-width: 72vw;
+  }
+
+  .posterCard h3,
+  .posterCard h2 {
+    font-size: 22px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .posterCard p {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
