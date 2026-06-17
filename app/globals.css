@@ -1379,3 +1379,61 @@ label { color: var(--muted); font-size: 14px; }
   }
 
 }
+
+/* UTV mobile final polish */
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 520px !important;
+    padding: 0 20px 28px !important;
+    background-size: 100% auto !important;
+    background-repeat: no-repeat !important;
+    background-position: center top !important;
+  }
+
+  .cinematicHero::after {
+    opacity: 0.18 !important;
+    background: linear-gradient(
+      180deg,
+      rgba(0,0,0,0.02) 0%,
+      rgba(0,0,0,0.08) 45%,
+      rgba(0,0,0,0.78) 100%
+    ) !important;
+  }
+
+  .heroButtons {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 24px;
+    z-index: 5;
+    display: flex;
+    gap: 12px;
+  }
+
+  .heroButtons .btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .categoryBar {
+    position: sticky;
+    top: 78px;
+    z-index: 50;
+    margin-top: 0 !important;
+    padding: 12px 18px;
+    background: rgba(0,0,0,.92);
+    border-top: 1px solid rgba(255,255,255,.08);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
+  .premiumNav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .utvLogo {
+    width: 82px !important;
+  }
+}
