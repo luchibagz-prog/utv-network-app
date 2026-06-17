@@ -116,7 +116,7 @@ export default async function WatchPage({
   className="cinematicHero"
   style={{
     backgroundImage:
-      "linear-gradient(90deg, rgba(0,0,0,.96) 0%, rgba(0,0,0,.45) 45%, rgba(0,0,0,.15) 100%), url('/utv-banner.png')",
+      "linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.15) 100%), url('/utv-banner.png')",
   }}
 >
   <div className="heroContent">
