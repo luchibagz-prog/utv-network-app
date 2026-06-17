@@ -1167,3 +1167,44 @@ label { color: var(--muted); font-size: 14px; }
     line-height: 1.18;
   }
 }
+
+@media (max-width: 600px) {
+  .cinematicHero {
+    min-height: 760px;
+    padding: 120px 28px 70px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center top;
+  }
+
+  .cinematicHero::before,
+  .cinematicHero::after {
+    opacity: 0.45;
+  }
+
+  .heroContent {
+    padding-top: 180px;
+  }
+
+  .eyebrow {
+    font-size: 17px;
+    line-height: 1.08;
+  }
+
+  .cinematicHero h1 {
+    font-size: 52px;
+  }
+
+  .heroDescription {
+    font-size: 21px;
+    line-height: 1.22;
+  }
+
+  .premiumNav {
+    padding: 6px 10px;
+  }
+
+  .utvLogo {
+    width: 54px;
+  }
+}
