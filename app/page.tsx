@@ -205,15 +205,7 @@ return (
             Submit Content
           </Link>
 
-<a
-  href="#"
-  className="btn secondary"
-  onClick={() =>
-    alert(
-      "Install UTV: Tap the menu in your browser and select Add to Home Screen."
-    )
-  }
->
+<a href="#install" className="btn secondary">
   Install UTV
 </a>
 
@@ -274,6 +266,20 @@ return (
         title="Live Events"
         items={liveEvents}
       />
+
+<div id="install" className="section">
+  <h2>Install UTV</h2>
+  <p>
+    On Android: Tap the 3 dots menu and choose
+    "Add to Home Screen".
+  </p>
+
+  <p>
+    On iPhone: Tap Share and choose
+    "Add to Home Screen".
+  </p>
+</div>
+
     </main>
   );
 }
