@@ -185,9 +185,9 @@ return (
       }}
     >
       <div className="heroContent">
-        <p className="eyebrow">NEW WAVE STREAMING PLATFORM</p>
+        <p className="eyebrow">THE FUTURE OF INDEPENDENT STREAMING</p>
 
-        <h1>{featuredShows[0]?.title || "Urban Television"}</h1>
+        <h1>UTV</h1>
 
         <p className="heroDescription">
           The home for independent shows, podcasts, movies, documentaries,
