@@ -9,6 +9,7 @@ export default function CreatorPage() {
   const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [creatorUploads, setCreatorUploads] = useState<any[]>([]);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -22,9 +23,20 @@ export default function CreatorPage() {
 
   const freeWindow = freeEndDate ? new Date() <= new Date(freeEndDate + 'T23:59:59') : false;
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({data}) => setUser(data.user));
-  }, []);
+useEffect(() => {
+  supabase.auth.getUser().then(async ({ data }) => {
+    setUser(data.user);
+
+    if (data.user?.email) {
+      const { data: uploads } = await supabase
+        .from("uploads")
+        .select("*")
+        .eq("creator_email", data.user.email);
+
+      setCreatorUploads(uploads || []);
+    }
+  });
+}, []);
 
   async function submitContent() {
   // if (!user) {
@@ -74,7 +86,43 @@ if (
 />
 
 <h1>Submit Content to UTV</h1>
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(4,1fr)",
+    gap: 12,
+    marginBottom: 24,
+  }}
+>
+  <div className="card">
+    <h3>{creatorUploads.length}</h3>
+    <p>Total Uploads</p>
+  </div>
 
+  <div className="card">
+    <h3>
+      {creatorUploads.reduce(
+        (sum, item) => sum + (item.views || 0),
+        0
+      )}
+    </h3>
+    <p>Total Views</p>
+  </div>
+
+  <div className="card">
+    <h3>
+      {creatorUploads.filter(item => item.approved).length}
+    </h3>
+    <p>Approved</p>
+  </div>
+
+  <div className="card">
+    <h3>
+      {creatorUploads.filter(item => !item.approved).length}
+    </h3>
+    <p>Pending</p>
+  </div>
+</div>
 <p>
 Upload your TV show, podcast, movie, documentary, music video, trailer or live event. UTV will review and approve your content for streaming.
 </p>
