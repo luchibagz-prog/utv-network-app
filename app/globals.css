@@ -1120,3 +1120,50 @@ label { color: var(--muted); font-size: 14px; }
   background: rgba(57,255,136,.18);
   border-color: rgba(57,255,136,.45);
 }
+
+@media (max-width: 600px) {
+  .premiumNav {
+    padding: 8px 12px;
+  }
+
+  .utvLogo {
+    width: 62px;
+  }
+
+  .navLinks {
+    gap: 8px;
+  }
+
+  .navLinks a {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .navLinks .btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .cinematicHero {
+    padding-top: 80px;
+    min-height: 650px;
+    background-position: center top;
+  }
+
+  .heroContent {
+    padding-top: 20px;
+  }
+
+  .eyebrow {
+    font-size: 18px;
+  }
+
+  .cinematicHero h1 {
+    font-size: 58px;
+  }
+
+  .heroDescription {
+    font-size: 25px;
+    line-height: 1.18;
+  }
+}
