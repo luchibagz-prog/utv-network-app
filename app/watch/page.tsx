@@ -120,19 +120,23 @@ export default async function WatchPage({
   }}
 >
   <div className="heroContent">
-    <p className="eyebrow">UTV ORIGINAL SERIES</p>
+<p className="eyebrow">
+  {featuredShows[0]?.category || "UTV FEATURED"}
+</p>
 
-    <h1>Bad & Boujee</h1>
+<h1>{featuredShows[0]?.title || "UTV"}</h1>
 
-    <p className="heroDescription">
-      Beauty. Ambition. Loyalty. Drama. Stream Season 1 now on UTV.
-    </p>
+<p className="heroDescription">
+  {featuredShows[0]?.description ||
+    "Stream shows, movies, podcasts, music videos and more on UTV."}
+</p>
 
     <div className="heroButtons">
-      <Link href="/watch" className="btn">
-        ▶ Watch Now
-      </Link>
-
+  {featuredShows[0] && (
+  <Link href={`/watch/${featuredShows[0].id}`} className="btn">
+    Watch Now
+  </Link>
+)}
       <Link href="/creator" className="btn secondary">
         Submit Content
       </Link>
