@@ -69,6 +69,16 @@ if (!authorized) {
         <Link href="/watch" className="btn secondary">Watch</Link>
       </nav>
 
+<button
+  className="btn secondary"
+  onClick={() => {
+    localStorage.removeItem("utvAdmin");
+    window.location.href = "/watch";
+  }}
+>
+  Logout
+</button>
+
       <h1>UTV Admin Approval</h1>
       <p style={{ color: 'var(--muted)' }}>Review, approve, and feature creator submissions.</p>
 
