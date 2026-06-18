@@ -18,32 +18,48 @@ function cleanCategory(category?: string) {
   return category.replaceAll("_", " ");
 }
 
-function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
-  if (!shows.length) return null;
-
+function CategoryRow({ title, shows }: { title: string; shows: any[] }) {
   return (
     <section className="utvRow">
       <h2>{title}</h2>
 
       <div className="utvScrollRow">
-      {shows.map((show, index) => (
-          <Link href={`/watch/${show.id}`} className="utvCard" key={show.id}>
-<div className="utvPoster">
-  {title === "Top 10 On UTV" && (
-    <div className="rankBadge">#{index + 1}</div>
-  )}
+        {shows.map((show, index) => (
+          <Link
+            key={show.id}
+            href={`/watch/${show.id}`}
+            className="utvCard"
+          >
+            <div className="utvPoster">
+              {title === "Top 10 On UTV" && (
+                <div className="rankBadge">#{index + 1}</div>
+              )}
 
-  {show.cover_url ? (
-    <img src={show.cover_url} alt={show.title} />
-  ) : (
-    <div className="posterFallback">UTV</div>
-  )}
-</div>
+              {show.cover_url ? (
+                <img src={show.cover_url} alt={show.title} />
+              ) : (
+                <div className="posterFallback">UTV</div>
+              )}
+            </div>
 
             <h3>{show.title}</h3>
-            <p style={{ color: "#8b8b8b", fontSize: "14px" }}>
-  By {show.creator_name || "UTV Creator"}
+
+          <p style={{ color: "#b8b8b8", fontSize: "14px" }}>
+  By{" "}
+  {show.creator_name ? (
+    <Link
+      href={`/creator/${show.creator_name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")}`}
+    >
+      {show.creator_name}
+    </Link>
+  ) : (
+    "UTV Creator"
+  )}
 </p>
+
             <p>{cleanCategory(show.category)}</p>
           </Link>
         ))}
@@ -51,7 +67,6 @@ function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
     </section>
   );
 }
-
 export default async function WatchPage({
   searchParams,
 }: {
@@ -120,20 +135,17 @@ export default async function WatchPage({
   }}
 >
   <div className="heroContent">
-<p className="eyebrow">
-  {featuredShows[0]?.category || "UTV FEATURED"}
-</p>
+{heroShow?.category || "UTV FEATURED"}
 
 <h1>{featuredShows[0]?.title || "UTV"}</h1>
 
 <p className="heroDescription">
-  {featuredShows[0]?.description ||
-    "Stream shows, movies, podcasts, music videos and more on UTV."}
+  {(heroShow?.title || "UTV") + " — Stream shows, movies, podcasts, music videos and more on UTV."}
 </p>
 
     <div className="heroButtons">
-  {featuredShows[0] && (
-  <Link href={`/watch/${featuredShows[0].id}`} className="btn">
+ {heroShow && (
+  <Link href={`/watch/${heroShow.id}`} className="btn">
     Watch Now
   </Link>
 )}
