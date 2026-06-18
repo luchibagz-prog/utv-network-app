@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
-import WatchTracker from "../../components/WatchTracker";
 
+import UTVPlayer from "../../components/UTVPlayer";
 function getYoutubeEmbed(url: string) {
   if (url.includes("youtu.be")) {
     const id = url.split("/").pop()?.split("?")[0];
@@ -62,12 +62,7 @@ export default async function ShowPage({
 
   return (
     <main className="container">
-<WatchTracker
-  id={show.id}
-  title={show.title}
-  cover_url={show.cover_url}
-  category={show.category}
-/>
+
 
       <nav className="nav">
         <Link href="/" className="logo">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
-import ContinueWatching from "./components/ContinueWatching";
+
 type Show = {
   id: string;
   title: string;
@@ -221,7 +221,7 @@ return (
   <a href="#live">Live</a>
 </div>
 
-<ContinueWatching />
+
 
       <Row
         title="Featured on UTV"
