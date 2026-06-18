@@ -1,21 +1,47 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-export default function ContinueTracker({ item }: { item: any }) {
+export default function ContinueWatching() {
+  const [items, setItems] = useState<any[]>([]);
+
   useEffect(() => {
-    if (!item?.id) return;
+    const saved = JSON.parse(
+      localStorage.getItem("utv-continue-watching") || "[]"
+    );
+    setItems(saved);
+  }, []);
 
-    const key = "utv-continue-watching";
-    const saved = JSON.parse(localStorage.getItem(key) || "[]");
+  if (!items.length) return null;
 
-    const updated = [
-      item,
-      ...saved.filter((x: any) => x.id !== item.id),
-    ].slice(0, 12);
+  return (
+    <section className="utvRow">
+      <h2>Continue Watching</h2>
 
-    localStorage.setItem(key, JSON.stringify(updated));
-  }, [item]);
+      <div className="utvScrollRow">
+        {items.map((item) => (
+          <Link
+            key={item.id}
+            href={`/watch/${item.id}`}
+            className="utvCard"
+          >
+            <div className="utvPoster">
+              {item.cover_url ? (
+                <img src={item.cover_url} alt={item.title} />
+              ) : (
+                <div className="posterFallback">UTV</div>
+              )}
+            </div>
 
-  return null;
+            <h3>{item.title}</h3>
+
+            <p style={{ color: "#b8b8b8", fontSize: "14px" }}>
+              {item.category}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
