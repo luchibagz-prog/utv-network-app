@@ -82,7 +82,17 @@ export default function CreatorPage() {
     const autoApproved = safeAutoApproveCategories.includes(form.category);
 
     const { error } = await supabase.from('uploads').insert({
-      ...form,
+      title: form.title,
+description: form.description,
+category: form.category,
+city: form.city,
+video_url: form.video_url,
+cover_url: form.cover_url,
+
+creator_name: "UTV Originals",
+creator_email: "utv@official.com",
+creator_avatar: "/utv-logo.png",
+creator_bio: "Official UTV Content Library",
       approved: autoApproved,
       locked: autoApproved,
       review_status: autoApproved ? 'Approved' : 'Pending Review',
