@@ -8,15 +8,18 @@ export default function CreatorPage() {
   const [message, setMessage] = useState('');
   const [creatorUploads, setCreatorUploads] = useState<any[]>([]);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: '',
     description: '',
     category: 'movie',
     city: 'Worldwide',
     video_url: '',
     cover_url: '',
-  });
+  };
+
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     loadUploads();
@@ -63,11 +66,17 @@ export default function CreatorPage() {
     setUploadingCover(false);
   }
 
-  async function submitContent() {
+  function validateForm() {
     if (!form.title || !form.description || !form.video_url || !form.cover_url) {
       setMessage('Please fill out title, description, video URL and cover image.');
-      return;
+      return false;
     }
+
+    return true;
+  }
+
+  async function submitContent() {
+    if (!validateForm()) return;
 
     const safeAutoApproveCategories = [
       'music_video',
@@ -101,17 +110,56 @@ export default function CreatorPage() {
     }
 
     setMessage(autoApproved ? 'Uploaded and live on UTV.' : 'Uploaded! Go to Admin to approve it.');
+    setForm(emptyForm);
+    loadUploads();
+  }
 
+  async function updateContent() {
+    if (!editingId) return;
+    if (!validateForm()) return;
+
+    const { error } = await supabase
+      .from('uploads')
+      .update({
+        title: form.title,
+        description: form.description,
+        category: form.category,
+        city: form.city,
+        video_url: form.video_url,
+        cover_url: form.cover_url,
+      })
+      .eq('id', editingId);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage('Upload updated.');
+    setEditingId(null);
+    setForm(emptyForm);
+    loadUploads();
+  }
+
+  function startEditing(item: any) {
+    setEditingId(item.id);
     setForm({
-      title: '',
-      description: '',
-      category: 'movie',
-      city: 'Worldwide',
-      video_url: '',
-      cover_url: '',
+      title: item.title || '',
+      description: item.description || '',
+      category: item.category || 'movie',
+      city: item.city || 'Worldwide',
+      video_url: item.video_url || '',
+      cover_url: item.cover_url || '',
     });
 
-    loadUploads();
+    setMessage('Editing upload. Make changes below and press Save Changes.');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setMessage('');
   }
 
   return (
@@ -133,34 +181,14 @@ export default function CreatorPage() {
       </nav>
 
       <section className="card" style={{ marginBottom: 24 }}>
-        <h1>UTV Upload</h1>
-        <p>Add movies, shows, podcasts, trailers, music videos and live events to UTV.</p>
+        <h1>{editingId ? 'Edit UTV Upload' : 'UTV Upload'}</h1>
+        <p>
+          Add or edit movies, shows, podcasts, trailers, music videos and live events.
+        </p>
       </section>
 
-      <div className="creatorStats">
-        <div className="card">
-          <h3>{creatorUploads.length}</h3>
-          <p>UTV Uploads</p>
-        </div>
-
-        <div className="card">
-          <h3>{creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}</h3>
-          <p>Total Views</p>
-        </div>
-
-        <div className="card">
-          <h3>{creatorUploads.filter((item) => item.approved).length}</h3>
-          <p>Live</p>
-        </div>
-
-        <div className="card">
-          <h3>{creatorUploads.filter((item) => !item.approved).length}</h3>
-          <p>Pending</p>
-        </div>
-      </div>
-
       <section className="card" style={{ maxWidth: 760, marginBottom: 24 }}>
-        <h2>Add Content</h2>
+        <h2>{editingId ? 'Edit Content' : 'Add Content'}</h2>
 
         <label>Title</label>
         <input
@@ -242,12 +270,49 @@ export default function CreatorPage() {
           />
         )}
 
-        <button className="btn" onClick={submitContent} disabled={uploadingCover}>
-          {uploadingCover ? 'Uploading Cover...' : 'Add To UTV'}
+        <button
+          className="btn"
+          onClick={editingId ? updateContent : submitContent}
+          disabled={uploadingCover}
+        >
+          {uploadingCover ? 'Uploading Cover...' : editingId ? 'Save Changes' : 'Add To UTV'}
         </button>
+
+        {editingId && (
+          <button
+            className="btn secondary"
+            type="button"
+            onClick={cancelEdit}
+            style={{ marginLeft: 12 }}
+          >
+            Cancel Edit
+          </button>
+        )}
 
         <p>{message}</p>
       </section>
+
+      <div className="creatorStats">
+        <div className="card">
+          <h3>{creatorUploads.length}</h3>
+          <p>UTV Uploads</p>
+        </div>
+
+        <div className="card">
+          <h3>{creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}</h3>
+          <p>Total Views</p>
+        </div>
+
+        <div className="card">
+          <h3>{creatorUploads.filter((item) => item.approved).length}</h3>
+          <p>Live</p>
+        </div>
+
+        <div className="card">
+          <h3>{creatorUploads.filter((item) => !item.approved).length}</h3>
+          <p>Pending</p>
+        </div>
+      </div>
 
       <section className="card">
         <h2>My UTV Uploads</h2>
@@ -265,6 +330,14 @@ export default function CreatorPage() {
                   <p>{item.category} • 👁 {item.views || 0} views</p>
                   <strong>{item.approved ? 'Live on UTV' : 'Pending Review'}</strong>
                 </div>
+
+                <button
+                  className="btn secondary"
+                  type="button"
+                  onClick={() => startEditing(item)}
+                >
+                  Edit
+                </button>
 
                 <Link href={`/watch/${item.id}`} className="btn secondary">
                   View
