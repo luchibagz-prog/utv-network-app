@@ -7,15 +7,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
-  async function signIn() {
-    setMessage('Sending login link...');
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/creator` }
-    });
-    setMessage(error ? error.message : 'Check your email for the login link.');
-  }
+async function signIn() {
+  setMessage("Sending login link...");
 
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: "https://utv-network-app.vercel.app/watch",
+    },
+  });
+
+  setMessage(
+    error ? error.message : "Check your email for the login link."
+  );
+}
   return (
     <main className="container">
       <nav className="nav"><Link href="/" className="logo">U<span>TV</span></Link></nav>
