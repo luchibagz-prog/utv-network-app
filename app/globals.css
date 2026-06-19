@@ -1663,3 +1663,67 @@ label { color: var(--muted); font-size: 14px; }
   font-size: 13px;
   opacity: 0.8;
 }
+
+.utvRow {
+  margin: 30px 0;
+}
+
+.utvRow h2 {
+  font-size: 22px;
+  margin-bottom: 15px;
+  padding-left: 10px;
+}
+
+.utvGrid {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 10px;
+  scroll-behavior: smooth;
+}
+
+.utvGrid::-webkit-scrollbar {
+  display: none;
+}
+
+.utvCard {
+  min-width: 180px;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: white;
+}
+
+.thumbWrap {
+  position: relative;
+  width: 180px;
+  height: 260px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.thumbWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rankBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 40px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 2px 2px 8px black;
+}
+
+.utvCard h3 {
+  font-size: 15px;
+  margin-top: 8px;
+  line-height: 1.2;
+}
+
+.utvCard p {
+  font-size: 13px;
+  opacity: 0.8;
+}
