@@ -1727,3 +1727,28 @@ label { color: var(--muted); font-size: 14px; }
   font-size: 13px;
   opacity: 0.8;
 }
+.hero {
+  min-height: 58vh !important;
+  margin: 0 0 34px !important;
+  padding: 26px !important;
+  border-radius: 0 0 32px 32px !important;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.15), rgba(0,0,0,.92)),
+    url("/utv-header.png") center top / cover no-repeat !important;
+  display: flex !important;
+  align-items: flex-end !important;
+}
+
+.hero h1 {
+  font-size: 46px !important;
+  margin-bottom: 8px !important;
+}
+
+.hero p {
+  font-size: 18px !important;
+  color: #ddd !important;
+}
+
+.nav {
+  margin-bottom: 0 !important;
+}
