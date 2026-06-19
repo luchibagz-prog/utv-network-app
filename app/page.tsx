@@ -22,8 +22,9 @@ export default function SplashPage() {
           src="/utv-logo.png"
           alt="UTV"
           style={{
-            width: "220px",
-            maxWidth: "80%",
+           width: "150px",
+maxWidth: "65%",
+objectFit: "contain",
             height: "auto",
             display: "block",
             margin: "0 auto 24px",
