@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 import ContinueWatching from "../components/ContinueWatching";
@@ -33,13 +33,7 @@ export default async function WatchPage({
 }: {
   searchParams: Promise<any>;
 }) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
 
   const params = await searchParams;
   const q = params?.q?.trim().toLowerCase() || "";
