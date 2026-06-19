@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 import ContinueWatching from "../components/ContinueWatching";
@@ -33,8 +32,6 @@ export default async function WatchPage({
 }: {
   searchParams: Promise<any>;
 }) {
-
-
   const params = await searchParams;
   const q = params?.q?.trim().toLowerCase() || "";
   const category = params?.category?.trim().toLowerCase() || "";
@@ -60,23 +57,37 @@ export default async function WatchPage({
 
   const popularShows = [...filteredShows].slice(0, 10);
   const featuredShows = filteredShows.filter((show) => show.featured);
-  const freeMovies = filteredShows.filter(
-    (show) => show.category?.toLowerCase() === "movie"
-  );
+  const freeMovies = filteredShows.filter((show) => show.category?.toLowerCase() === "movie");
   const utvOriginals = filteredShows.filter(
     (show) =>
       show.creator_name?.toLowerCase().includes("utv") ||
       show.creator_email?.toLowerCase().includes("utv")
   );
-  const showsOnly = filteredShows.filter(
-    (show) => show.category?.toLowerCase() === "show"
-  );
-  const musicVideos = filteredShows.filter(
-    (show) => show.category?.toLowerCase() === "music_video"
-  );
+  const showsOnly = filteredShows.filter((show) => show.category?.toLowerCase() === "show");
+  const musicVideos = filteredShows.filter((show) => show.category?.toLowerCase() === "music_video");
 
   return (
     <main className="container">
+      <nav className="nav">
+        <Link href="/" className="logo">
+          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+        </Link>
+
+        <div className="navLinks">
+          <Link href="/watch" className="btn secondary">Home</Link>
+          <Link href="/creator" className="btn secondary">Submit Content</Link>
+          <Link href="/admin" className="btn secondary">Admin</Link>
+        </div>
+      </nav>
+
+      <section className="hero">
+        <div>
+          <h1>UTV</h1>
+          <p>Where the culture streams.</p>
+          <Link href="/creator" className="btn">Submit Content</Link>
+        </div>
+      </section>
+
       <ContinueWatching />
 
       <CategoryRow title="Top 10 On UTV" shows={popularShows} />
