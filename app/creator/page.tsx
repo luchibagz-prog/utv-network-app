@@ -109,7 +109,12 @@ export default function CreatorPage() {
       return;
     }
 
-    setMessage(autoApproved ? 'Uploaded and live on UTV.' : 'Uploaded! Go to Admin to approve it.');
+    setMessage(
+      autoApproved
+        ? 'Uploaded and live on UTV.'
+        : 'Uploaded! Go to Admin to approve it.'
+    );
+
     setForm(emptyForm);
     loadUploads();
   }
@@ -143,6 +148,7 @@ export default function CreatorPage() {
 
   function startEditing(item: any) {
     setEditingId(item.id);
+
     setForm({
       title: item.title || '',
       description: item.description || '',
@@ -275,7 +281,11 @@ export default function CreatorPage() {
           onClick={editingId ? updateContent : submitContent}
           disabled={uploadingCover}
         >
-          {uploadingCover ? 'Uploading Cover...' : editingId ? 'Save Changes' : 'Add To UTV'}
+          {uploadingCover
+            ? 'Uploading Cover...'
+            : editingId
+              ? 'Save Changes'
+              : 'Add To UTV'}
         </button>
 
         {editingId && (
@@ -299,7 +309,9 @@ export default function CreatorPage() {
         </div>
 
         <div className="card">
-          <h3>{creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}</h3>
+          <h3>
+            {creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}
+          </h3>
           <p>Total Views</p>
         </div>
 
@@ -323,12 +335,18 @@ export default function CreatorPage() {
           <div className="creatorContentList">
             {creatorUploads.map((item) => (
               <div key={item.id} className="creatorContentItem">
-                {item.cover_url && <img src={item.cover_url} alt={item.title} />}
+                {item.cover_url && (
+                  <img src={item.cover_url} alt={item.title} />
+                )}
 
                 <div>
                   <h3>{item.title}</h3>
-                  <p>{item.category} • 👁 {item.views || 0} views</p>
-                  <strong>{item.approved ? 'Live on UTV' : 'Pending Review'}</strong>
+                  <p>
+                    {item.category} • 👁 {item.views || 0} views
+                  </p>
+                  <strong>
+                    {item.approved ? 'Live on UTV' : 'Pending Review'}
+                  </strong>
                 </div>
 
                 <button
