@@ -211,14 +211,42 @@ export default function CreatorPage() {
           value={form.video_url}
           onChange={(e) => setForm({ ...form, video_url: e.target.value })}
         />
+<label>Cover Image</label>
 
-        <label>Cover Image URL</label>
-        <input
-          className="input"
-          placeholder="Paste poster / cover image URL"
-          value={form.cover_url}
-          onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
-        />
+<input
+  className="input"
+  type="file"
+  accept="image/*"
+  onChange={async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = `${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage
+      .from("covers")
+      .upload(fileName, file);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("covers")
+      .getPublicUrl(fileName);
+
+    setForm({ ...form, cover_url: data.publicUrl });
+  }}
+/>
+
+<label>Cover Image URL</label>
+<input
+  className="input"
+  placeholder="Paste poster / cover image URL"
+  value={form.cover_url}
+  onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+/>
 
         {form.cover_url && (
           <img
