@@ -92,17 +92,23 @@ return (
         </div>
       </section>
 
-      {videoUrl ? (
-        isYoutube ? (
-          <iframe
-            src={getYoutubeEmbed(videoUrl)}
-            className="videoPlayer"
-            allowFullScreen
-          />
-        ) : (
-          <video className="videoPlayer" controls src={videoUrl} />
-        )
-      ) : (
+  {videoUrl ? (
+  videoUrl.includes("youtube.com") ||
+  videoUrl.includes("youtu.be") ||
+  videoUrl.includes("archive.org/embed") ? (
+    <iframe
+      src={
+        videoUrl.includes("archive.org/embed")
+          ? videoUrl
+          : getYoutubeEmbed(videoUrl)
+      }
+      className="videoPlayer"
+      allowFullScreen
+    />
+  ) : (
+    <video className="videoPlayer" controls src={videoUrl} />
+  )
+) : (
         <section className="card">
           <h2>Video coming soon</h2>
           <p>This title has been approved, but the video link has not been added yet.</p>
