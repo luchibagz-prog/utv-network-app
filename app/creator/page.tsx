@@ -124,9 +124,15 @@ export default function CreatorPage() {
       </nav>
 
       <img
-        src="/utv-logo.png"
+      style={{
+  width: "220px",
+  maxWidth: "80%",
+  height: "auto",
+  display: "block",
+  margin: "0 auto 30px",
+}}
         alt="UTV"
-        style={{ width: 240, marginBottom: 30 }}
+
       />
 
       <h1>Submit Content to UTV</h1>
