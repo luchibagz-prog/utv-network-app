@@ -15,16 +15,12 @@ const emptyForm = {
 
 export default function CreatorPage() {
   const [uploads, setUploads] = useState<any[]>([]);
-  const [user, setUser] = useState<any>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     loadUploads();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
   }, []);
 
   async function loadUploads() {
@@ -38,7 +34,6 @@ export default function CreatorPage() {
 
   function startEditing(item: any) {
     setEditingId(item.id);
-
     setForm({
       title: item.title || "",
       description: item.description || "",
@@ -47,6 +42,7 @@ export default function CreatorPage() {
       video_url: item.video_url || "",
       cover_url: item.cover_url || "",
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function updateContent() {
@@ -54,14 +50,7 @@ export default function CreatorPage() {
 
     const { error } = await supabase
       .from("uploads")
-      .update({
-        title: form.title,
-        description: form.description,
-        category: form.category,
-        city: form.city,
-        video_url: form.video_url,
-        cover_url: form.cover_url,
-      })
+      .update(form)
       .eq("id", editingId);
 
     if (error) {
@@ -69,110 +58,123 @@ export default function CreatorPage() {
       return;
     }
 
-    setMessage("Updated successfully");
+    setMessage("Updated successfully.");
     setEditingId(null);
     setForm(emptyForm);
     loadUploads();
   }
 
+  const totalViews = uploads.reduce((sum, item) => sum + (item.views || 0), 0);
+  const liveCount = uploads.filter((item) => item.approved).length;
+  const pendingCount = uploads.filter((item) => !item.approved).length;
+
   return (
     <main className="container">
-      <h1>Creator Dashboard</h1>
+      <nav className="nav">
+        <Link href="/" className="logo">
+          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+        </Link>
+
+        <div className="navLinks">
+          <Link href="/watch" className="btn secondary">Home</Link>
+          <Link href="/admin" className="btn secondary">Admin</Link>
+        </div>
+      </nav>
+
+      <section className="card" style={{ marginBottom: 22 }}>
+        <p style={{ color: "var(--muted)", marginBottom: 8 }}>UTV Creator Studio</p>
+        <h1 style={{ marginBottom: 10 }}>Creator Dashboard</h1>
+        <p style={{ color: "var(--muted)" }}>
+          Upload, manage, edit, and track your content all in one place.
+        </p>
+      </section>
+
+      <div className="creatorStats" style={{ marginBottom: 22 }}>
+        <div className="card">
+          <h3>{uploads.length}</h3>
+          <p>Total Uploads</p>
+        </div>
+
+        <div className="card">
+          <h3>{totalViews}</h3>
+          <p>Total Views</p>
+        </div>
+
+        <div className="card">
+          <h3>{liveCount}</h3>
+          <p>Live</p>
+        </div>
+
+        <div className="card">
+          <h3>{pendingCount}</h3>
+          <p>Pending</p>
+        </div>
+      </div>
 
       {editingId && (
-        <section className="card">
+        <section className="card" style={{ marginBottom: 24 }}>
           <h2>Edit Content</h2>
 
-          <input
-            value={form.title}
-            onChange={(e) =>
-              setForm({ ...form, title: e.target.value })
-            }
-            placeholder="Title"
-          />
+          <label>Title</label>
+          <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
 
-          <textarea
-            value={form.description}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value })
-            }
-            placeholder="Description"
-          />
+          <label>Description</label>
+          <textarea className="input" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
 
-          <input
-            value={form.category}
-            onChange={(e) =>
-              setForm({ ...form, category: e.target.value })
-            }
-            placeholder="Category"
-          />
+          <label>Category</label>
+          <input className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
 
-          <input
-            value={form.city}
-            onChange={(e) =>
-              setForm({ ...form, city: e.target.value })
-            }
-            placeholder="City"
-          />
+          <label>City</label>
+          <input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
 
-          <input
-            value={form.video_url}
-            onChange={(e) =>
-              setForm({ ...form, video_url: e.target.value })
-            }
-            placeholder="Video URL"
-          />
+          <label>Video URL</label>
+          <input className="input" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} />
 
-          <input
-            value={form.cover_url}
-            onChange={(e) =>
-              setForm({ ...form, cover_url: e.target.value })
-            }
-            placeholder="Cover URL"
-          />
+          <label>Cover Image URL</label>
+          <input className="input" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} />
 
-          <button onClick={updateContent} className="btn">
-            Save Changes
-          </button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
+            <button className="btn" onClick={updateContent}>Save Changes</button>
+            <button className="btn secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button>
+          </div>
+
+          {message && <p>{message}</p>}
         </section>
       )}
 
-      <section className="creatorContentList">
-        {uploads.map((item) => (
-          <div key={item.id} className="creatorContentItem">
-            {item.cover_url && (
-              <img src={item.cover_url} alt={item.title} />
-            )}
-
-            <div>
-              <h3>{item.title}</h3>
-              <p>
-                {item.category} • {item.views || 0} views
-              </p>
-
-              <strong>
-                {item.approved ? "Live on UTV" : "Pending Review"}
-              </strong>
-            </div>
-
-            <button
-              className="btn secondary"
-              onClick={() => startEditing(item)}
-            >
-              Edit
-            </button>
-
-            <Link
-              href={`/watch/${item.id}`}
-              className="btn secondary"
-            >
-              View
-            </Link>
+      <section className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 18 }}>
+          <div>
+            <h2>My Content</h2>
+            <p style={{ color: "var(--muted)" }}>Edit covers, titles, descriptions, links, and details.</p>
           </div>
-        ))}
-      </section>
 
-      {message && <p>{message}</p>}
+          <Link href="/creator" className="btn">Upload New</Link>
+        </div>
+
+        <div className="creatorContentList">
+          {uploads.map((item) => (
+            <div key={item.id} className="creatorContentItem">
+              {item.cover_url ? (
+                <img src={item.cover_url} alt={item.title} />
+              ) : (
+                <div style={{ width: 90, height: 120, background: "#111", borderRadius: 14 }} />
+              )}
+
+              <div style={{ flex: 1 }}>
+                <h3>{item.title}</h3>
+                <p>{item.category} • {item.views || 0} views</p>
+                <strong>{item.approved ? "Live on UTV" : "Pending Review"}</strong>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button className="btn secondary" onClick={() => startEditing(item)}>Edit</button>
+                <Link href={`/watch/${item.id}`} className="btn secondary">View</Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
