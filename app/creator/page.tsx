@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function CreatorPage() {
-  const [user, setUser] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [creatorUploads, setCreatorUploads] = useState<any[]>([]);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -19,22 +19,53 @@ export default function CreatorPage() {
   });
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
-      setUser(data.user);
-
-      const { data: uploads } = await supabase
-        .from('uploads')
-        .select('*')
-        .eq('creator_email', 'utv@official.com')
-        .order('created_at', { ascending: false });
-
-      setCreatorUploads(uploads || []);
-    });
+    loadUploads();
   }, []);
+
+  async function loadUploads() {
+    const { data } = await supabase
+      .from('uploads')
+      .select('*')
+      .eq('creator_email', 'utv@official.com')
+      .order('created_at', { ascending: false });
+
+    setCreatorUploads(data || []);
+  }
+
+  async function uploadCover(file: File) {
+    setUploadingCover(true);
+    setMessage('Uploading cover...');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `cover-${Date.now()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from('covers')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      setMessage(error.message);
+      setUploadingCover(false);
+      return;
+    }
+
+    const { data } = supabase.storage.from('covers').getPublicUrl(fileName);
+
+    setForm((prev) => ({
+      ...prev,
+      cover_url: data.publicUrl,
+    }));
+
+    setMessage('Cover uploaded.');
+    setUploadingCover(false);
+  }
 
   async function submitContent() {
     if (!form.title || !form.description || !form.video_url || !form.cover_url) {
-      setMessage('Please fill out title, description, video URL and cover URL.');
+      setMessage('Please fill out title, description, video URL and cover image.');
       return;
     }
 
@@ -62,27 +93,25 @@ export default function CreatorPage() {
 
       approved: autoApproved,
       locked: autoApproved,
-    
     });
 
-    setMessage(
-      error
-        ? error.message
-        : autoApproved
-          ? 'Uploaded and auto-approved.'
-          : 'Uploaded! Go to Admin to approve it.'
-    );
-
-    if (!error) {
-      setForm({
-        title: '',
-        description: '',
-        category: 'movie',
-        city: 'Worldwide',
-        video_url: '',
-        cover_url: '',
-      });
+    if (error) {
+      setMessage(error.message);
+      return;
     }
+
+    setMessage(autoApproved ? 'Uploaded and live on UTV.' : 'Uploaded! Go to Admin to approve it.');
+
+    setForm({
+      title: '',
+      description: '',
+      category: 'movie',
+      city: 'Worldwide',
+      video_url: '',
+      cover_url: '',
+    });
+
+    loadUploads();
   }
 
   return (
@@ -105,9 +134,7 @@ export default function CreatorPage() {
 
       <section className="card" style={{ marginBottom: 24 }}>
         <h1>UTV Upload</h1>
-        <p>
-          Add free movies, shows, podcasts, trailers, music videos and live events to UTV.
-        </p>
+        <p>Add movies, shows, podcasts, trailers, music videos and live events to UTV.</p>
       </section>
 
       <div className="creatorStats">
@@ -117,9 +144,7 @@ export default function CreatorPage() {
         </div>
 
         <div className="card">
-          <h3>
-            {creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}
-          </h3>
+          <h3>{creatorUploads.reduce((sum, item) => sum + (item.views || 0), 0)}</h3>
           <p>Total Views</p>
         </div>
 
@@ -134,35 +159,7 @@ export default function CreatorPage() {
         </div>
       </div>
 
-      <section className="card" style={{ marginBottom: 24 }}>
-        <h2>My UTV Uploads</h2>
-
-        {creatorUploads.length === 0 ? (
-          <p>No UTV uploads yet.</p>
-        ) : (
-          <div className="creatorContentList">
-            {creatorUploads.map((item) => (
-              <div key={item.id} className="creatorContentItem">
-                {item.cover_url && <img src={item.cover_url} alt={item.title} />}
-
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>
-                    {item.category} • 👁 {item.views || 0} views
-                  </p>
-                  <strong>{item.approved ? 'Live on UTV' : 'Pending Review'}</strong>
-                </div>
-
-                <Link href={`/watch/${item.id}`} className="btn secondary">
-                  View
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="card" style={{ maxWidth: 760 }}>
+      <section className="card" style={{ maxWidth: 760, marginBottom: 24 }}>
         <h2>Add Content</h2>
 
         <label>Title</label>
@@ -211,42 +208,25 @@ export default function CreatorPage() {
           value={form.video_url}
           onChange={(e) => setForm({ ...form, video_url: e.target.value })}
         />
-<label>Cover Image</label>
 
-<input
-  className="input"
-  type="file"
-  accept="image/*"
-  onChange={async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+        <label>Cover Image From Phone</label>
+        <input
+          className="input"
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) uploadCover(file);
+          }}
+        />
 
-    const fileName = `${Date.now()}-${file.name}`;
-
-    const { error } = await supabase.storage
-      .from("covers")
-      .upload(fileName, file);
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    const { data } = supabase.storage
-      .from("covers")
-      .getPublicUrl(fileName);
-
-    setForm({ ...form, cover_url: data.publicUrl });
-  }}
-/>
-
-<label>Cover Image URL</label>
-<input
-  className="input"
-  placeholder="Paste poster / cover image URL"
-  value={form.cover_url}
-  onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
-/>
+        <label>Cover Image URL</label>
+        <input
+          className="input"
+          placeholder="Auto-fills after image upload, or paste a cover URL"
+          value={form.cover_url}
+          onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+        />
 
         {form.cover_url && (
           <img
@@ -257,15 +237,42 @@ export default function CreatorPage() {
               borderRadius: 18,
               marginTop: 12,
               marginBottom: 20,
+              display: 'block',
             }}
           />
         )}
 
-        <button className="btn" onClick={submitContent}>
-          Add To UTV
+        <button className="btn" onClick={submitContent} disabled={uploadingCover}>
+          {uploadingCover ? 'Uploading Cover...' : 'Add To UTV'}
         </button>
 
         <p>{message}</p>
+      </section>
+
+      <section className="card">
+        <h2>My UTV Uploads</h2>
+
+        {creatorUploads.length === 0 ? (
+          <p>No UTV uploads yet.</p>
+        ) : (
+          <div className="creatorContentList">
+            {creatorUploads.map((item) => (
+              <div key={item.id} className="creatorContentItem">
+                {item.cover_url && <img src={item.cover_url} alt={item.title} />}
+
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.category} • 👁 {item.views || 0} views</p>
+                  <strong>{item.approved ? 'Live on UTV' : 'Pending Review'}</strong>
+                </div>
+
+                <Link href={`/watch/${item.id}`} className="btn secondary">
+                  View
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
