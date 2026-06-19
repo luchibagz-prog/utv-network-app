@@ -62,10 +62,7 @@ export default function CreatorPage() {
 
       approved: autoApproved,
       locked: autoApproved,
-      review_status: autoApproved ? 'Approved' : 'Pending Review',
-      review_reason: autoApproved
-        ? 'Auto-approved category'
-        : 'Requires UTV review',
+    
     });
 
     setMessage(
