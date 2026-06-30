@@ -32,6 +32,24 @@ export default function CreatorPage() {
     setUploads(data || []);
   }
 
+async function deleteContent(id: string) {
+  const confirmDelete = confirm("Are you sure you want to delete this content?");
+  if (!confirmDelete) return;
+
+  const { error } = await supabase
+    .from("uploads")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    setMessage(error.message);
+    return;
+  }
+
+  setMessage("Content deleted.");
+  loadUploads();
+}
+
   function startEditing(item: any) {
     setEditingId(item.id);
     setForm({
@@ -168,8 +186,20 @@ export default function CreatorPage() {
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button className="btn secondary" onClick={() => startEditing(item)}>Edit</button>
-                <Link href={`/watch/${item.id}`} className="btn secondary">View</Link>
+<button className="btn secondary" onClick={() => startEditing(item)}>
+  Edit
+</button>
+
+<Link href={`/watch/${item.id}`} className="btn secondary">
+  View
+</Link>
+
+<button
+  className="btn secondary"
+  onClick={() => deleteContent(item.id)}
+>
+  Delete
+</button>
               </div>
             </div>
           ))}
