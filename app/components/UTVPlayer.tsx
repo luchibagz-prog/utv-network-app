@@ -15,9 +15,7 @@ export default function UTVPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    const savedTime = localStorage.getItem(
-      `utv-progress-${videoId}`
-    );
+    const savedTime = localStorage.getItem(`utv-progress-${videoId}`);
 
     if (savedTime) {
       video.currentTime = Number(savedTime);
@@ -33,24 +31,31 @@ export default function UTVPlayer({
     video.addEventListener("timeupdate", saveProgress);
 
     return () => {
-      video.removeEventListener(
-        "timeupdate",
-        saveProgress
-      );
+      video.removeEventListener("timeupdate", saveProgress);
     };
   }, [videoId]);
 
   return (
-    <video
-      ref={videoRef}
-      controls
-      style={{
-        width: "100%",
-        borderRadius: "16px",
-        background: "#000",
-      }}
-    >
-      <source src={src} />
-    </video>
+    <div style={{ width: "100%" }}>
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        preload="metadata"
+        controlsList="nodownload"
+        style={{
+          width: "100%",
+          borderRadius: "16px",
+          background: "#000",
+        }}
+      >
+        <source src={src} />
+      </video>
+
+      <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 10 }}>
+        Tip: tap the fullscreen icon on the video player to watch wide screen.
+        To mirror on TV, use your phone’s Screen Cast / Smart View / AirPlay.
+      </p>
+    </div>
   );
 }
