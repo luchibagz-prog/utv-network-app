@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import NotifyButton from "./components/NotifyButton";
 export default function SplashPage() {
   return (
     <main
@@ -54,6 +54,7 @@ objectFit: "contain",
           <Link href="/creator" className="btn secondary">
             Submit Content
           </Link>
+          <NotifyButton />
         </div>
       </section>
     </main>
