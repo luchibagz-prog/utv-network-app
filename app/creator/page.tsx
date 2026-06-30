@@ -45,7 +45,14 @@ useEffect(() => {
   }
 
 async function deleteContent(id: string) {
-  const confirmDelete = confirm("Are you sure you want to delete this content?");
+  const item = uploads.find((upload) => upload.id === id);
+
+  if (item?.approved) {
+    setMessage("This content is live. Only UTV admin can delete it.");
+    return;
+  }
+
+  const confirmDelete = confirm("Delete this draft content?");
   if (!confirmDelete) return;
 
   const { error } = await supabase
@@ -58,10 +65,9 @@ async function deleteContent(id: string) {
     return;
   }
 
-  setMessage("Content deleted.");
+  setMessage("Draft deleted.");
   loadUploads();
 }
-
   function startEditing(item: any) {
     setEditingId(item.id);
     setForm({
