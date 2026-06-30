@@ -14,6 +14,21 @@ const totalViews = uploads.reduce(
   (sum, item) => sum + (item.views || 0),
   0
 );
+const [heroTitle, setHeroTitle] = useState("");
+const [heroSubtitle, setHeroSubtitle] = useState("");
+const [heroButton, setHeroButton] = useState("");
+
+async function saveHero() {
+  await supabase.from("settings").upsert([
+    {
+      id: 1,
+      hero_title: heroTitle,
+      hero_subtitle: heroSubtitle,
+      hero_button: heroButton
+    }
+  ]);
+  alert("Hero updated.");
+}
 
   async function loadUploads() {
     const { data, error } = await supabase
@@ -78,8 +93,36 @@ if (!authorized) {
 >
   Logout
 </button>
+<div className="card" style={{ marginBottom: 24 }}>
+  <h2>Hero Banner Control</h2>
 
+  <input
+    className="input"
+    placeholder="Hero Title"
+    value={heroTitle}
+    onChange={(e) => setHeroTitle(e.target.value)}
+  />
+
+  <input
+    className="input"
+    placeholder="Hero Subtitle"
+    value={heroSubtitle}
+    onChange={(e) => setHeroSubtitle(e.target.value)}
+  />
+
+  <input
+    className="input"
+    placeholder="Hero Button Text"
+    value={heroButton}
+    onChange={(e) => setHeroButton(e.target.value)}
+  />
+
+  <button className="btn" onClick={saveHero}>
+    Save Hero
+  </button>
+</div>
       <h1>UTV Admin Approval</h1>
+      
       <p style={{ color: 'var(--muted)' }}>Review, approve, and feature creator submissions.</p>
 
 <div
