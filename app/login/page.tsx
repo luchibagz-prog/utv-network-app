@@ -12,11 +12,13 @@ export default function LoginPage() {
   async function login() {
     setMessage("Logging in...");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
+  const { error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: "https://utv-network-app.vercel.app/watch",
+  },
+});
     if (error) {
       setMessage(error.message);
       return;
@@ -38,8 +40,7 @@ export default function LoginPage() {
       return;
     }
 
-    setMessage("Account created. You can log in now.");
-  }
+setMessage("Check your email to confirm your account. UTV will open automatically.");
 
   return (
     <main className="container">
@@ -84,4 +85,4 @@ export default function LoginPage() {
       </div>
     </main>
   );
-}
+}}
