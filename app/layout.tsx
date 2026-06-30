@@ -1,4 +1,5 @@
 import "./globals.css";
+import NotificationButton from "./components/NotificationButton";
 
 export const metadata = {
   title: "UTV - Urban Television",
@@ -24,7 +25,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <NotificationButton />
+      </body>
     </html>
   );
 }
