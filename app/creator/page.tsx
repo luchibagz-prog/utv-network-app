@@ -19,10 +19,22 @@ export default function CreatorPage() {
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    loadUploads();
-  }, []);
+useEffect(() => {
+  async function checkUserAndLoad() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    loadUploads();
+  }
+
+  checkUserAndLoad();
+}, []);
   async function loadUploads() {
     const { data } = await supabase
       .from("uploads")
