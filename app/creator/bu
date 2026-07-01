@@ -21,13 +21,20 @@ const emptyForm = {
 export default function CreatorPage() {
   const [uploads, setUploads] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<any>(emptyForm);
+  const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    loadUploads();
+    checkUserAndLoad();
   }, []);
+
+  async function checkUserAndLoad() {
+    const { data: { user } } = await supabase.auth.getUser();
+
+
+
+    loadUploads();
+  }
 
   async function loadUploads() {
     const { data } = await supabase
@@ -38,65 +45,27 @@ export default function CreatorPage() {
     setUploads(data || []);
   }
 
-  async function uploadFile(file: File, bucket: "videos" | "covers") {
-    const cleanName = file.name.replace(/\s+/g, "-").toLowerCase();
-    const filePath = `${Date.now()}-${cleanName}`;
-
-    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
-
-    if (error) throw error;
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    return data.publicUrl;
-  }
-
-  async function handleVideoUpload(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      setMessage("Uploading video...");
-      const url = await uploadFile(file, "videos");
-      setForm({ ...form, video_url: url });
-      setMessage("Video uploaded.");
-    } catch (error: any) {
-      setMessage(error.message);
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleCoverUpload(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploading(true);
-      setMessage("Uploading cover...");
-      const url = await uploadFile(file, "covers");
-      setForm({ ...form, cover_url: url });
-      setMessage("Cover uploaded.");
-    } catch (error: any) {
-      setMessage(error.message);
-    } finally {
-      setUploading(false);
-    }
-  }
-
   async function submitContent() {
     setMessage("Submitting...");
 
-    const payload = {
-      ...form,
-      approved: false,
-      featured: false,
-      locked: false,
-      views: 0,
-      review_status: "Pending Review",
-    };
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("uploads").insert([payload]);
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const { error } = await supabase.from("uploads").insert([
+      {
+        ...form,
+        approved: false,
+        featured: false,
+        views: 0,
+        creator_email: user.email,
+        review_status: "Pending Review",
+        locked: false,
+      },
+    ]);
 
     if (error) {
       setMessage(error.message);
@@ -108,8 +77,36 @@ export default function CreatorPage() {
     loadUploads();
   }
 
+  async function deleteContent(id: string) {
+    const item = uploads.find((upload) => upload.id === id);
+
+    if (item?.approved) {
+      setMessage("This content is live. Only UTV admin can delete it.");
+      return;
+    }
+
+    const confirmDelete = confirm("Delete this draft content?");
+    if (!confirmDelete) return;
+
+    const { error } = await supabase.from("uploads").delete().eq("id", id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Draft deleted.");
+    loadUploads();
+  }
+
   function startEditing(item: any) {
+    if (item.approved) {
+      setMessage("This content is live. Only UTV admin can change it.");
+      return;
+    }
+
     setEditingId(item.id);
+
     setForm({
       title: item.title || "",
       description: item.description || "",
@@ -123,6 +120,7 @@ export default function CreatorPage() {
       event_location: item.event_location || "",
       ticket_link: item.ticket_link || "",
     });
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -145,21 +143,6 @@ export default function CreatorPage() {
     loadUploads();
   }
 
-  async function deleteContent(id: string) {
-    const yes = confirm("Delete this draft?");
-    if (!yes) return;
-
-    const { error } = await supabase.from("uploads").delete().eq("id", id);
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    setMessage("Draft deleted.");
-    loadUploads();
-  }
-
   const totalViews = uploads.reduce((sum, item) => sum + (item.views || 0), 0);
   const liveCount = uploads.filter((item) => item.approved).length;
   const pendingCount = uploads.filter((item) => !item.approved).length;
@@ -174,7 +157,6 @@ export default function CreatorPage() {
         <div className="navLinks">
           <Link href="/watch" className="btn secondary">Home</Link>
           <Link href="/admin" className="btn secondary">Admin</Link>
-          <Link href="/events" className="btn secondary">Events</Link>
         </div>
       </nav>
 
@@ -209,25 +191,31 @@ export default function CreatorPage() {
       </div>
 
       <section className="card" style={{ marginBottom: 24 }}>
-        <h2>{editingId ? "Edit Content" : "Submit Content"}</h2>
+        <h2>{editingId ? "Edit Draft Content" : "Upload New Content"}</h2>
 
         <label>Title</label>
-        <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <input
+          className="input"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+        />
 
         <label>Description</label>
-        <textarea className="input" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <textarea
+          className="input"
+          rows={4}
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
 
         <label>Category</label>
-        <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-          <option value="movie">Movie</option>
-          <option value="show">Show</option>
-          <option value="podcast">Podcast</option>
-          <option value="music-video">Music Video</option>
-          <option value="documentary">Documentary</option>
-          <option value="live-event">Live Event</option>
-        </select>
+        <input
+          className="input"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+        />
 
-        <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
+        <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <input
             type="checkbox"
             checked={form.is_event}
@@ -239,37 +227,75 @@ export default function CreatorPage() {
         {form.is_event && (
           <>
             <label>Event Date</label>
-            <input className="input" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
+            <input
+              className="input"
+              value={form.event_date}
+              onChange={(e) => setForm({ ...form, event_date: e.target.value })}
+            />
 
             <label>Event Time</label>
-            <input className="input" value={form.event_time} onChange={(e) => setForm({ ...form, event_time: e.target.value })} />
+            <input
+              className="input"
+              value={form.event_time}
+              onChange={(e) => setForm({ ...form, event_time: e.target.value })}
+            />
 
             <label>Event Location</label>
-            <input className="input" value={form.event_location} onChange={(e) => setForm({ ...form, event_location: e.target.value })} />
+            <input
+              className="input"
+              value={form.event_location}
+              onChange={(e) => setForm({ ...form, event_location: e.target.value })}
+            />
 
-            <label>Ticket / Info Link</label>
-            <input className="input" value={form.ticket_link} onChange={(e) => setForm({ ...form, ticket_link: e.target.value })} />
+            <label>Ticket Link</label>
+            <input
+              className="input"
+              value={form.ticket_link}
+              onChange={(e) => setForm({ ...form, ticket_link: e.target.value })}
+            />
           </>
         )}
 
         <label>City</label>
-        <input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+        <input
+          className="input"
+          value={form.city}
+          onChange={(e) => setForm({ ...form, city: e.target.value })}
+        />
 
-        <label>Upload Video</label>
-        <input className="input" type="file" accept="video/*" onChange={handleVideoUpload} />
-        {form.video_url && <p style={{ color: "var(--muted)" }}>Video ready ✅</p>}
+        <label>Video URL</label>
+        <input
+          className="input"
+          value={form.video_url}
+          onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+        />
 
-        <label>Upload Cover Image</label>
-        <input className="input" type="file" accept="image/*" onChange={handleCoverUpload} />
-        {form.cover_url && <p style={{ color: "var(--muted)" }}>Cover ready ✅</p>}
+        <label>Cover Image URL</label>
+        <input
+          className="input"
+          value={form.cover_url}
+          onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+        />
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
-          <button className="btn" disabled={uploading} onClick={editingId ? updateContent : submitContent}>
-            {uploading ? "Uploading..." : editingId ? "Save Changes" : "Submit Content"}
-          </button>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
+          {editingId ? (
+            <button className="btn" onClick={updateContent}>
+              Save Changes
+            </button>
+          ) : (
+            <button className="btn" onClick={submitContent}>
+              Submit Content
+            </button>
+          )}
 
           {editingId && (
-            <button className="btn secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
+            <button
+              className="btn secondary"
+              onClick={() => {
+                setEditingId(null);
+                setForm(emptyForm);
+              }}
+            >
               Cancel
             </button>
           )}
@@ -283,7 +309,7 @@ export default function CreatorPage() {
           <div>
             <h2>My Content</h2>
             <p style={{ color: "var(--muted)" }}>
-              Edit drafts. Live content can only be deleted by UTV.
+              Edit drafts. Live content can only be deleted by UTV admin.
             </p>
           </div>
         </div>
@@ -299,20 +325,28 @@ export default function CreatorPage() {
 
               <div style={{ flex: 1 }}>
                 <h3>{item.title}</h3>
-                <p>{item.category} • {item.views || 0} views</p>
+                <p>
+                  {item.is_event ? "event" : item.category} • {item.views || 0} views
+                </p>
                 <strong>{item.approved ? "Live on UTV" : "Pending Review"}</strong>
-                {item.is_event && <p>Event • {item.city || "No city"}</p>}
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {!item.approved && (
-                  <>
-                    <button className="btn secondary" onClick={() => startEditing(item)}>Edit</button>
-                    <button className="btn secondary" onClick={() => deleteContent(item.id)}>Delete</button>
-                  </>
+                  <button className="btn secondary" onClick={() => startEditing(item)}>
+                    Edit
+                  </button>
                 )}
 
-                <Link href={`/watch/${item.id}`} className="btn secondary">View</Link>
+                <Link href={`/watch/${item.id}`} className="btn secondary">
+                  View
+                </Link>
+
+                {!item.approved && (
+                  <button className="btn secondary" onClick={() => deleteContent(item.id)}>
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           ))}
