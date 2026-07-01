@@ -121,7 +121,11 @@ export default async function WatchPage({
         </Link>
 
         <div className="navLinks">
-          <Link href="/">Home</Link>
+       <Link href="/">Home</Link>
+
+<Link href="/events" className="btn secondary">
+  Events
+</Link>
           
           <Link href="/creator" className="btn secondary">
             Submit Your Content
