@@ -1,42 +1,52 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { supabase } from "../../lib/supabaseClient";
 
-export default async function GoLivePage() {
-  const supabase = createClient();
+export default function GoLivePage() {
+  const [loading, setLoading] = useState(true);
+  const [allowed, setAllowed] = useState(false);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    checkAccess();
+  }, []);
 
-  if (!user) {
+  async function checkAccess() {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData?.user;
+
+    if (!user?.email) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: access } = await supabase
+      .from("live_access")
+      .select("*")
+      .eq("email", user.email)
+      .single();
+
+    setAllowed(!!access?.live_unlocked || !!access?.is_admin);
+    setLoading(false);
+  }
+
+  if (loading) {
     return (
-      <main className="pageWrap">
+      <main className="container">
         <section className="card">
-          <h1>Login Required</h1>
-          <p>You must login to go live.</p>
-          <Link href="/login" className="btn">
-            Login
-          </Link>
+          <h1>Checking live access...</h1>
         </section>
       </main>
     );
   }
 
-  const { data: access } = await supabase
-    .from("live_access")
-    .select("*")
-    .eq("email", user.email)
-    .single();
-
-  if (!access?.live_unlocked) {
+  if (!allowed) {
     return (
-      <main className="pageWrap">
+      <main className="container">
         <section className="card">
           <h1>Unlock Live Access</h1>
-          <p>
-            First month $2.99. Then $4.99/month.
-          </p>
-
+          <p>First month $2.99. Then $4.99/month.</p>
           <Link href="/live-pass" className="btn">
             Get Live Pass
           </Link>
@@ -46,16 +56,11 @@ export default async function GoLivePage() {
   }
 
   return (
-    <main className="pageWrap">
+    <main className="container">
       <section className="card">
         <h1>Go Live on UTV</h1>
         <p>Your live access is active.</p>
-
-        <div style={{ marginTop: 20 }}>
-          <button className="btn">
-            Start Live Stream
-          </button>
-        </div>
+        <button className="btn">Start Live Stream</button>
       </section>
     </main>
   );
