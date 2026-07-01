@@ -41,11 +41,8 @@ export default function CreatorPage() {
   async function uploadFile(file: File, bucket: "videos" | "covers") {
     const cleanName = file.name.replace(/\s+/g, "-").toLowerCase();
     const filePath = `${Date.now()}-${cleanName}`;
-
     const { error } = await supabase.storage.from(bucket).upload(filePath, file);
-
     if (error) throw error;
-
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
     return data.publicUrl;
   }
@@ -53,13 +50,12 @@ export default function CreatorPage() {
   async function handleVideoUpload(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setUploading(true);
       setMessage("Uploading video...");
       const url = await uploadFile(file, "videos");
-      setForm({ ...form, video_url: url });
-      setMessage("Video uploaded.");
+      setForm((prev: any) => ({ ...prev, video_url: url }));
+      setMessage("Video uploaded ✅");
     } catch (error: any) {
       setMessage(error.message);
     } finally {
@@ -70,13 +66,12 @@ export default function CreatorPage() {
   async function handleCoverUpload(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setUploading(true);
       setMessage("Uploading cover...");
       const url = await uploadFile(file, "covers");
-      setForm({ ...form, cover_url: url });
-      setMessage("Cover uploaded.");
+      setForm((prev: any) => ({ ...prev, cover_url: url }));
+      setMessage("Cover uploaded ✅");
     } catch (error: any) {
       setMessage(error.message);
     } finally {
@@ -84,11 +79,18 @@ export default function CreatorPage() {
     }
   }
 
+  function fixedForm() {
+    return {
+      ...form,
+      category: form.is_event ? "live-event" : form.category,
+    };
+  }
+
   async function submitContent() {
     setMessage("Submitting...");
 
     const payload = {
-      ...form,
+      ...fixedForm(),
       approved: false,
       featured: false,
       locked: false,
@@ -103,7 +105,7 @@ export default function CreatorPage() {
       return;
     }
 
-    setMessage("Submitted for review.");
+    setMessage("Submitted for review ✅");
     setForm(emptyForm);
     loadUploads();
   }
@@ -117,7 +119,7 @@ export default function CreatorPage() {
       city: item.city || "",
       video_url: item.video_url || "",
       cover_url: item.cover_url || "",
-      is_event: item.is_event || false,
+      is_event: item.is_event || item.category === "live-event" || false,
       event_date: item.event_date || "",
       event_time: item.event_time || "",
       event_location: item.event_location || "",
@@ -131,7 +133,7 @@ export default function CreatorPage() {
 
     const { error } = await supabase
       .from("uploads")
-      .update(form)
+      .update(fixedForm())
       .eq("id", editingId);
 
     if (error) {
@@ -139,7 +141,7 @@ export default function CreatorPage() {
       return;
     }
 
-    setMessage("Updated successfully.");
+    setMessage("Updated successfully ✅");
     setEditingId(null);
     setForm(emptyForm);
     loadUploads();
@@ -156,7 +158,7 @@ export default function CreatorPage() {
       return;
     }
 
-    setMessage("Draft deleted.");
+    setMessage("Draft deleted ✅");
     loadUploads();
   }
 
@@ -165,13 +167,13 @@ export default function CreatorPage() {
   const pendingCount = uploads.filter((item) => !item.approved).length;
 
   return (
-    <main className="container">
-      <nav className="nav">
+    <main className="container" style={{ overflowX: "hidden" }}>
+      <nav className="nav" style={{ flexWrap: "wrap", gap: 12 }}>
         <Link href="/" className="logo">
           <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
         </Link>
 
-        <div className="navLinks">
+        <div className="navLinks" style={{ flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/watch" className="btn secondary">Home</Link>
           <Link href="/admin" className="btn secondary">Admin</Link>
           <Link href="/events" className="btn secondary">Events</Link>
@@ -182,34 +184,19 @@ export default function CreatorPage() {
         <p style={{ color: "var(--muted)", marginBottom: 8 }}>UTV Creator Studio</p>
         <h1 style={{ marginBottom: 10 }}>Creator Dashboard</h1>
         <p style={{ color: "var(--muted)" }}>
-          Upload, manage, edit, and track your content all in one place.
+          Upload content, submit events, and manage drafts.
         </p>
       </section>
 
       <div className="creatorStats" style={{ marginBottom: 22 }}>
-        <div className="card">
-          <h3>{uploads.length}</h3>
-          <p>Total Uploads</p>
-        </div>
-
-        <div className="card">
-          <h3>{totalViews}</h3>
-          <p>Total Views</p>
-        </div>
-
-        <div className="card">
-          <h3>{liveCount}</h3>
-          <p>Live</p>
-        </div>
-
-        <div className="card">
-          <h3>{pendingCount}</h3>
-          <p>Pending</p>
-        </div>
+        <div className="card"><h3>{uploads.length}</h3><p>Total Uploads</p></div>
+        <div className="card"><h3>{totalViews}</h3><p>Total Views</p></div>
+        <div className="card"><h3>{liveCount}</h3><p>Live</p></div>
+        <div className="card"><h3>{pendingCount}</h3><p>Pending</p></div>
       </div>
 
       <section className="card" style={{ marginBottom: 24 }}>
-        <h2>{editingId ? "Edit Content" : "Submit Content"}</h2>
+        <h2>{editingId ? "Edit Draft" : "Submit Content"}</h2>
 
         <label>Title</label>
         <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -217,15 +204,18 @@ export default function CreatorPage() {
         <label>Description</label>
         <textarea className="input" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
 
-        <label>Category</label>
-        <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-          <option value="movie">Movie</option>
-          <option value="show">Show</option>
-          <option value="podcast">Podcast</option>
-          <option value="music-video">Music Video</option>
-          <option value="documentary">Documentary</option>
-          <option value="live-event">Live Event</option>
-        </select>
+        {!form.is_event && (
+          <>
+            <label>Category</label>
+            <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              <option value="movie">Movie</option>
+              <option value="show">Show</option>
+              <option value="podcast">Podcast</option>
+              <option value="music-video">Music Video</option>
+              <option value="documentary">Documentary</option>
+            </select>
+          </>
+        )}
 
         <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
           <input
@@ -238,6 +228,8 @@ export default function CreatorPage() {
 
         {form.is_event && (
           <>
+            <p style={{ color: "var(--muted)" }}>This will only show in Live Events / Events Near You.</p>
+
             <label>Event Date</label>
             <input className="input" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
 
@@ -275,33 +267,39 @@ export default function CreatorPage() {
           )}
         </div>
 
-        {message && <p>{message}</p>}
+        {message && <p style={{ marginTop: 14 }}>{message}</p>}
       </section>
 
       <section className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-          <div>
-            <h2>My Content</h2>
-            <p style={{ color: "var(--muted)" }}>
-              Edit drafts. Live content can only be deleted by UTV.
-            </p>
-          </div>
-        </div>
+        <h2>My Content</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Edit drafts. Live content can only be deleted by UTV.
+        </p>
 
         <div className="creatorContentList">
           {uploads.map((item) => (
-            <div key={item.id} className="creatorContentItem">
+            <div
+              key={item.id}
+              className="creatorContentItem"
+              style={{
+                display: "flex",
+                gap: 14,
+                alignItems: "center",
+                flexWrap: "wrap",
+                width: "100%",
+              }}
+            >
               {item.cover_url ? (
-                <img src={item.cover_url} alt={item.title} />
+                <img src={item.cover_url} alt={item.title} style={{ width: 90, height: 120, objectFit: "cover", borderRadius: 12 }} />
               ) : (
                 <div style={{ width: 90, height: 120, background: "#111", borderRadius: 12 }} />
               )}
 
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: "1 1 180px", minWidth: 0 }}>
                 <h3>{item.title}</h3>
                 <p>{item.category} • {item.views || 0} views</p>
                 <strong>{item.approved ? "Live on UTV" : "Pending Review"}</strong>
-                {item.is_event && <p>Event • {item.city || "No city"}</p>}
+                {(item.is_event || item.category === "live-event") && <p>Event • {item.city || "No city"}</p>}
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -310,6 +308,10 @@ export default function CreatorPage() {
                     <button className="btn secondary" onClick={() => startEditing(item)}>Edit</button>
                     <button className="btn secondary" onClick={() => deleteContent(item.id)}>Delete</button>
                   </>
+                )}
+
+                {item.approved && (
+                  <button className="btn secondary" onClick={() => startEditing(item)}>Edit Info</button>
                 )}
 
                 <Link href={`/watch/${item.id}`} className="btn secondary">View</Link>
