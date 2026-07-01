@@ -11,6 +11,11 @@ const emptyForm = {
   city: "",
   video_url: "",
   cover_url: "",
+  is_event: false,
+  event_date: "",
+  event_time: "",
+  event_location: "",
+  ticket_link: "",
 };
 
 export default function CreatorPage() {
@@ -19,11 +24,12 @@ export default function CreatorPage() {
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState("");
 
-useEffect(() => {
+  useEffect(() => {
+    checkUserAndLoad();
+  }, []);
+
   async function checkUserAndLoad() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       window.location.href = "/login";
@@ -33,8 +39,6 @@ useEffect(() => {
     loadUploads();
   }
 
-  checkUserAndLoad();
-}, []);
   async function loadUploads() {
     const { data } = await supabase
       .from("uploads")
@@ -44,32 +48,68 @@ useEffect(() => {
     setUploads(data || []);
   }
 
-async function deleteContent(id: string) {
-  const item = uploads.find((upload) => upload.id === id);
+  async function submitContent() {
+    setMessage("Submitting...");
 
-  if (item?.approved) {
-    setMessage("This content is live. Only UTV admin can delete it.");
-    return;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const { error } = await supabase.from("uploads").insert([
+      {
+        ...form,
+        approved: false,
+        featured: false,
+        views: 0,
+        creator_email: user.email,
+        review_status: "Pending Review",
+        locked: false,
+      },
+    ]);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Submitted for review.");
+    setForm(emptyForm);
+    loadUploads();
   }
 
-  const confirmDelete = confirm("Delete this draft content?");
-  if (!confirmDelete) return;
+  async function deleteContent(id: string) {
+    const item = uploads.find((upload) => upload.id === id);
 
-  const { error } = await supabase
-    .from("uploads")
-    .delete()
-    .eq("id", id);
+    if (item?.approved) {
+      setMessage("This content is live. Only UTV admin can delete it.");
+      return;
+    }
 
-  if (error) {
-    setMessage(error.message);
-    return;
+    const confirmDelete = confirm("Delete this draft content?");
+    if (!confirmDelete) return;
+
+    const { error } = await supabase.from("uploads").delete().eq("id", id);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Draft deleted.");
+    loadUploads();
   }
 
-  setMessage("Draft deleted.");
-  loadUploads();
-}
   function startEditing(item: any) {
+    if (item.approved) {
+      setMessage("This content is live. Only UTV admin can change it.");
+      return;
+    }
+
     setEditingId(item.id);
+
     setForm({
       title: item.title || "",
       description: item.description || "",
@@ -77,7 +117,13 @@ async function deleteContent(id: string) {
       city: item.city || "",
       video_url: item.video_url || "",
       cover_url: item.cover_url || "",
+      is_event: item.is_event || false,
+      event_date: item.event_date || "",
+      event_time: item.event_time || "",
+      event_location: item.event_location || "",
+      ticket_link: item.ticket_link || "",
     });
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -147,45 +193,128 @@ async function deleteContent(id: string) {
         </div>
       </div>
 
-      {editingId && (
-        <section className="card" style={{ marginBottom: 24 }}>
-          <h2>Edit Content</h2>
+      <section className="card" style={{ marginBottom: 24 }}>
+        <h2>{editingId ? "Edit Draft Content" : "Upload New Content"}</h2>
 
-          <label>Title</label>
-          <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <label>Title</label>
+        <input
+          className="input"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+        />
 
-          <label>Description</label>
-          <textarea className="input" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <label>Description</label>
+        <textarea
+          className="input"
+          rows={4}
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
 
-          <label>Category</label>
-          <input className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+        <label>Category</label>
+        <input
+          className="input"
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value })}
+        />
 
-          <label>City</label>
-          <input className="input" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+        <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <input
+            type="checkbox"
+            checked={form.is_event}
+            onChange={(e) => setForm({ ...form, is_event: e.target.checked })}
+          />
+          This is an Event
+        </label>
 
-          <label>Video URL</label>
-          <input className="input" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} />
+        {form.is_event && (
+          <>
+            <label>Event Date</label>
+            <input
+              className="input"
+              value={form.event_date}
+              onChange={(e) => setForm({ ...form, event_date: e.target.value })}
+            />
 
-          <label>Cover Image URL</label>
-          <input className="input" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} />
+            <label>Event Time</label>
+            <input
+              className="input"
+              value={form.event_time}
+              onChange={(e) => setForm({ ...form, event_time: e.target.value })}
+            />
 
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
-            <button className="btn" onClick={updateContent}>Save Changes</button>
-            <button className="btn secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>Cancel</button>
-          </div>
+            <label>Event Location</label>
+            <input
+              className="input"
+              value={form.event_location}
+              onChange={(e) => setForm({ ...form, event_location: e.target.value })}
+            />
 
-          {message && <p>{message}</p>}
-        </section>
-      )}
+            <label>Ticket Link</label>
+            <input
+              className="input"
+              value={form.ticket_link}
+              onChange={(e) => setForm({ ...form, ticket_link: e.target.value })}
+            />
+          </>
+        )}
+
+        <label>City</label>
+        <input
+          className="input"
+          value={form.city}
+          onChange={(e) => setForm({ ...form, city: e.target.value })}
+        />
+
+        <label>Video URL</label>
+        <input
+          className="input"
+          value={form.video_url}
+          onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+        />
+
+        <label>Cover Image URL</label>
+        <input
+          className="input"
+          value={form.cover_url}
+          onChange={(e) => setForm({ ...form, cover_url: e.target.value })}
+        />
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
+          {editingId ? (
+            <button className="btn" onClick={updateContent}>
+              Save Changes
+            </button>
+          ) : (
+            <button className="btn" onClick={submitContent}>
+              Submit Content
+            </button>
+          )}
+
+          {editingId && (
+            <button
+              className="btn secondary"
+              onClick={() => {
+                setEditingId(null);
+                setForm(emptyForm);
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {message && <p>{message}</p>}
+      </section>
 
       <section className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
           <div>
             <h2>My Content</h2>
-            <p style={{ color: "var(--muted)" }}>Edit covers, titles, descriptions, links, and details.</p>
+            <p style={{ color: "var(--muted)" }}>
+              Edit drafts. Live content can only be deleted by UTV admin.
+            </p>
           </div>
-
-          <Link href="/creator" className="btn">Upload New</Link>
         </div>
 
         <div className="creatorContentList">
@@ -194,30 +323,33 @@ async function deleteContent(id: string) {
               {item.cover_url ? (
                 <img src={item.cover_url} alt={item.title} />
               ) : (
-                <div style={{ width: 90, height: 120, background: "#111", borderRadius: 14 }} />
+                <div style={{ width: 90, height: 120, background: "#111", borderRadius: 12 }} />
               )}
 
               <div style={{ flex: 1 }}>
                 <h3>{item.title}</h3>
-                <p>{item.category} • {item.views || 0} views</p>
+                <p>
+                  {item.is_event ? "event" : item.category} • {item.views || 0} views
+                </p>
                 <strong>{item.approved ? "Live on UTV" : "Pending Review"}</strong>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-<button className="btn secondary" onClick={() => startEditing(item)}>
-  Edit
-</button>
+                {!item.approved && (
+                  <button className="btn secondary" onClick={() => startEditing(item)}>
+                    Edit
+                  </button>
+                )}
 
-<Link href={`/watch/${item.id}`} className="btn secondary">
-  View
-</Link>
+                <Link href={`/watch/${item.id}`} className="btn secondary">
+                  View
+                </Link>
 
-<button
-  className="btn secondary"
-  onClick={() => deleteContent(item.id)}
->
-  Delete
-</button>
+                {!item.approved && (
+                  <button className="btn secondary" onClick={() => deleteContent(item.id)}>
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           ))}
