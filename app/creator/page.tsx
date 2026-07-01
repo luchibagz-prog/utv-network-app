@@ -262,7 +262,9 @@ export default function CreatorPage() {
           <button className="btn" disabled={uploading} onClick={editingId ? updateContent : submitContent}>
             {uploading ? "Uploading..." : editingId ? "Save Changes" : "Submit Content"}
           </button>
-
+<Link href="/go-live" className="btn secondary">
+  Go Live
+</Link>
           {editingId && (
             <button className="btn secondary" onClick={() => { setEditingId(null); setForm(emptyForm); }}>
               Cancel
