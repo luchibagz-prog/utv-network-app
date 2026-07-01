@@ -60,7 +60,9 @@ export default function GoLivePage() {
       <section className="card">
         <h1>Go Live on UTV</h1>
         <p>Your live access is active.</p>
-        <button className="btn">Start Live Stream</button>
+    <Link href="/live-room" className="btn">
+  Start Live Stream
+</Link>
       </section>
     </main>
   );
