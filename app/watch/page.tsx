@@ -248,6 +248,26 @@ export default async function WatchPage({
             )}
           />
           <CategoryRow
+  title="Comedy"
+  shows={filteredShows.filter(
+    (show) => show.category?.toLowerCase() === "comedy"
+  )}
+/>
+
+<CategoryRow
+  title="Sports"
+  shows={filteredShows.filter(
+    (show) => show.category?.toLowerCase() === "sports"
+  )}
+/>
+
+<CategoryRow
+  title="UTV Reels"
+  shows={filteredShows.filter(
+    (show) => show.category?.toLowerCase() === "reels"
+  )}
+/>
+          <CategoryRow
             title="Live Events"
             shows={filteredShows.filter((show) =>
               ["live", "live_event"].includes(

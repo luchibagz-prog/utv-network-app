@@ -213,6 +213,9 @@ export default function CreatorPage() {
               <option value="podcast">Podcast</option>
               <option value="music-video">Music Video</option>
               <option value="documentary">Documentary</option>
+              <option value="comedy">Comedy</option>
+              <option value="sports">Sports</option>
+              <option value="utv-reels">UTV Reels</option>
             </select>
           </>
         )}
