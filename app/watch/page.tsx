@@ -53,6 +53,7 @@ function CategoryRow({ title, shows }: { title: string; shows: any[] }) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "")}`}
     >
+
       {show.creator_name}
     </Link>
   ) : (
@@ -144,14 +145,19 @@ export default async function WatchPage({
 </p>
 
     <div className="heroButtons">
- {heroShow && (
+{heroShow && (
   <Link href={`/watch/${heroShow.id}`} className="btn">
     Watch Now
   </Link>
 )}
-      <Link href="/creator" className="btn secondary">
-        Submit Content
-      </Link>
+
+<Link href="/events" className="btn secondary">
+  Events Near You
+</Link>
+
+<Link href="/creator" className="btn secondary">
+  Submit Content
+</Link>
     </div>
 
     <div className="heroBadges">
