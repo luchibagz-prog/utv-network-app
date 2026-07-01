@@ -1,88 +1,65 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-
-  async function login() {
-    setMessage("Logging in...");
-
-  const { error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    emailRedirectTo: "https://utv-network-app.vercel.app/watch",
-  },
-});
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    window.location.href = "/watch";
-  }
-
-  async function signUp() {
-    setMessage("Creating account...");
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-setMessage("Check your email to confirm your account. UTV will open automatically.");
-
   return (
-    <main className="container">
-      <nav className="nav">
-        <Link href="/" className="logo">
-          U<span>TV</span>
-        </Link>
-      </nav>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#0b0b0f",
+        color: "white",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          background: "#111",
+          padding: 24,
+          borderRadius: 20,
+          textAlign: "center",
+        }}
+      >
+        <h1 style={{ fontSize: 32, marginBottom: 10 }}>Welcome to UTV</h1>
 
-      <div className="card" style={{ maxWidth: 520 }}>
-        <h1>Login / Sign Up</h1>
-        <p style={{ color: "var(--muted)" }}>
-          Enter your email and password to access UTV.
+        <p style={{ opacity: 0.7, marginBottom: 24 }}>
+          Sign in to watch and upload content
         </p>
 
-        <input
-          className="input"
-          placeholder="email@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          className="input"
-          type="password"
-          placeholder="Create or enter password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button className="btn" onClick={login}>
-            Log In
+        <Link href="/watch">
+          <button
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 14,
+              border: "none",
+              fontWeight: "bold",
+              marginBottom: 12,
+            }}
+          >
+            Enter UTV
           </button>
+        </Link>
 
-          <button className="btn secondary" onClick={signUp}>
-            Sign Up
+        <Link href="/creator">
+          <button
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 14,
+              border: "none",
+              fontWeight: "bold",
+            }}
+          >
+            Submit Content
           </button>
-        </div>
-
-        <p>{message}</p>
+        </Link>
       </div>
     </main>
   );
-}}
+}
