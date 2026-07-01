@@ -22,6 +22,7 @@ export default function UTVNav() {
       <Link href="/reels" className="btn secondary">Reels</Link>
       <Link href="/events" className="btn secondary">Events</Link>
       <Link href="/creator" className="btn secondary">Submit</Link>
+      <Link href="/profile" className="btn secondary">Profile</Link>
     </nav>
   );
 }
