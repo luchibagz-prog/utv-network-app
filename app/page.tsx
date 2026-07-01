@@ -54,6 +54,9 @@ objectFit: "contain",
           <Link href="/creator" className="btn secondary">
             Submit Content
           </Link>
+          <Link href="/events" className="btn secondary">
+  Events Near You
+</Link>
         </div>
       </section>
     </main>
