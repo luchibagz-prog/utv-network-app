@@ -1,202 +1,209 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { supabase } from '../../lib/supabaseClient';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function AdminPage() {
   const [uploads, setUploads] = useState<any[]>([]);
-const [authorized, setAuthorized] = useState(false);
-  const totalUploads = uploads.length;
-const featuredUploads = uploads.filter(item => item.featured).length;
-const approvedUploads = uploads.filter(item => item.approved).length;
-const totalViews = uploads.reduce(
-  (sum, item) => sum + (item.views || 0),
-  0
-);
-const [heroTitle, setHeroTitle] = useState("");
-const [heroSubtitle, setHeroSubtitle] = useState("");
-const [heroButton, setHeroButton] = useState("");
+  const [password, setPassword] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [message, setMessage] = useState("");
 
-async function saveHero() {
-  await supabase.from("settings").upsert([
-    {
-      id: 1,
-      hero_title: heroTitle,
-      hero_subtitle: heroSubtitle,
-      hero_button: heroButton
+  useEffect(() => {
+    const saved = localStorage.getItem("utv-admin");
+    if (saved === "yes") {
+      setAuthed(true);
+      loadUploads();
     }
-  ]);
-  alert("Hero updated.");
-}
+  }, []);
+
+  function login() {
+    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+      localStorage.setItem("utv-admin", "yes");
+      setAuthed(true);
+      loadUploads();
+    } else {
+      setMessage("Wrong admin password.");
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("utv-admin");
+    setAuthed(false);
+  }
 
   async function loadUploads() {
-    const { data, error } = await supabase
-      .from('uploads')
-      .select('*')
-      .order("views", { ascending: false });
+    const { data } = await supabase
+      .from("uploads")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    if (!error) setUploads(data || []);
+    setUploads(data || []);
   }
 
-  async function updateUpload(id: string, updates: any) {
-    await supabase.from('uploads').update(updates).eq('id', id);
+  async function approve(id: string, approved: boolean) {
+    await supabase.from("uploads").update({ approved }).eq("id", id);
     loadUploads();
   }
 
-async function deleteUpload(id: string) {
-  const yes = confirm("Delete this upload from UTV?");
-  if (!yes) return;
-
-  const { error } = await supabase.from("uploads").delete().eq("id", id);
-
-  if (error) {
-    alert("Delete failed: " + error.message);
-    console.error(error);
-    return;
-  }
-
-  loadUploads();
-}
-useEffect(() => {
-  const pass = prompt("Admin Password");
-
-  if (
-    pass ===
-    process.env.NEXT_PUBLIC_ADMIN_PASSWORD
-  ) {
-    setAuthorized(true);
+  async function toggleFeature(id: string, featured: boolean) {
+    await supabase.from("uploads").update({ featured: !featured }).eq("id", id);
     loadUploads();
-  } else {
-    alert("Wrong Password");
-    window.location.href = "/watch";
   }
-}, []);
 
-if (!authorized) {
-  return <div>Loading...</div>;
-}
+  async function deleteUpload(id: string) {
+    const yes = confirm("Delete this from UTV?");
+    if (!yes) return;
+
+    await supabase.from("uploads").delete().eq("id", id);
+    loadUploads();
+  }
+
+  const totalViews = uploads.reduce((sum, item) => sum + (item.views || 0), 0);
+  const liveCount = uploads.filter((item) => item.approved).length;
+  const pendingCount = uploads.filter((item) => !item.approved).length;
+  const eventCount = uploads.filter((item) => item.is_event || item.category === "live-event").length;
+
+  if (!authed) {
+    return (
+      <main className="container">
+        <section className="card" style={{ maxWidth: 520, margin: "60px auto" }}>
+          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+          <h1>UTV Admin</h1>
+          <p style={{ color: "var(--muted)" }}>Enter admin password.</p>
+
+          <input
+            className="input"
+            type="password"
+            placeholder="Admin password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button className="btn" onClick={login}>
+            Enter Admin
+          </button>
+
+          {message && <p>{message}</p>}
+        </section>
+      </main>
+    );
+  }
 
   return (
-    <main className="container">
-      <nav className="nav">
-        <Link href="/" className="logo">U<span>TV</span></Link>
-        <Link href="/watch" className="btn secondary">Watch</Link>
+    <main className="container" style={{ overflowX: "hidden" }}>
+      <nav className="nav" style={{ flexWrap: "wrap", gap: 12 }}>
+        <Link href="/" className="logo">
+          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
+        </Link>
+
+        <div className="navLinks" style={{ flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/watch" className="btn secondary">Watch</Link>
+          <Link href="/creator" className="btn secondary">Upload</Link>
+          <Link href="/events" className="btn secondary">Events</Link>
+          <button className="btn secondary" onClick={logout}>Logout</button>
+        </div>
       </nav>
 
-<button
-  className="btn secondary"
-  onClick={() => {
-    localStorage.removeItem("utvAdmin");
-    window.location.href = "/admin";
-  }}
->
-  Logout
-</button>
-<div className="card" style={{ marginBottom: 24 }}>
-  <h2>Hero Banner Control</h2>
+      <section className="card" style={{ marginBottom: 22 }}>
+        <p style={{ color: "var(--muted)", marginBottom: 8 }}>UTV Command Center</p>
+        <h1>Admin Dashboard</h1>
+        <p style={{ color: "var(--muted)" }}>
+          Approve, feature, delete, and manage all UTV content from your phone.
+        </p>
+      </section>
 
-  <input
-    className="input"
-    placeholder="Hero Title"
-    value={heroTitle}
-    onChange={(e) => setHeroTitle(e.target.value)}
-  />
-
-  <input
-    className="input"
-    placeholder="Hero Subtitle"
-    value={heroSubtitle}
-    onChange={(e) => setHeroSubtitle(e.target.value)}
-  />
-
-  <input
-    className="input"
-    placeholder="Hero Button Text"
-    value={heroButton}
-    onChange={(e) => setHeroButton(e.target.value)}
-  />
-
-  <button className="btn" onClick={saveHero}>
-    Save Hero
-  </button>
-</div>
-      <h1>UTV Admin Approval</h1>
-      
-      <p style={{ color: 'var(--muted)' }}>Review, approve, and feature creator submissions.</p>
-
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "16px",
-    marginBottom: "24px"
-  }}
->
-  <div className="card">
-    <h3>{totalUploads}</h3>
-    <p>Total Uploads</p>
-  </div>
-
-  <div className="card">
-    <h3>{approvedUploads}</h3>
-    <p>Approved</p>
-  </div>
-
-  <div className="card">
-    <h3>{featuredUploads}</h3>
-    <p>Featured</p>
-  </div>
-
-  <div className="card">
-    <h3>{totalViews.toLocaleString()}</h3>
-    <p>Total Views</p>
-  </div>
-</div>
-
-      <div className="grid">
-        {uploads.map((item) => (
-          <div className="card" key={item.id}>
-            <h2>{item.title}</h2>
-            <p>{item.description}</p>
-            <p><b>Category:</b> {item.category}</p>
-            <p><b>City:</b> {item.city}</p>
-            <p><b>Approved:</b> {String(item.approved)}</p>
-            <p><b>Featured:</b> {String(item.featured)}</p>
-
-            {item.video_url && (
-              <a className="btn secondary" href={item.video_url} target="_blank">
-                View Video
-              </a>
-            )}
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 15 }}>
-              <button className="btn" onClick={() => updateUpload(item.id, { approved: true })}>
-                Approve
-              </button>
-
-              <button className="btn secondary" onClick={() => updateUpload(item.id, { approved: false })}>
-                Unapprove
-              </button>
-
-              <button className="btn" onClick={() => updateUpload(item.id, { featured: true })}>
-                Feature
-              </button>
-
-              <button className="btn secondary" onClick={() => updateUpload(item.id, { featured: false })}>
-                Unfeature
-              </button>
-              <button
-  className="btn secondary"
-  style={{ background: "#6b1111", border: "1px solid #ff4d4d" }}
-  onClick={() => deleteUpload(item.id)}
->
-  Delete
-</button>
-            </div>
-          </div>
-        ))}
+      <div className="creatorStats" style={{ marginBottom: 22 }}>
+        <div className="card"><h3>{uploads.length}</h3><p>Total Uploads</p></div>
+        <div className="card"><h3>{totalViews}</h3><p>Total Views</p></div>
+        <div className="card"><h3>{liveCount}</h3><p>Live</p></div>
+        <div className="card"><h3>{pendingCount}</h3><p>Pending</p></div>
+        <div className="card"><h3>{eventCount}</h3><p>Events</p></div>
       </div>
+
+      <section className="card">
+        <h2>Content Queue</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Pending uploads need approval before going live.
+        </p>
+
+        <div className="creatorContentList">
+          {uploads.map((item) => (
+            <div
+              key={item.id}
+              className="creatorContentItem"
+              style={{
+                display: "flex",
+                gap: 14,
+                alignItems: "center",
+                flexWrap: "wrap",
+                width: "100%",
+              }}
+            >
+              {item.cover_url ? (
+                <img
+                  src={item.cover_url}
+                  alt={item.title}
+                  style={{
+                    width: 100,
+                    height: 135,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                  }}
+                />
+              ) : (
+                <div style={{ width: 100, height: 135, background: "#111", borderRadius: 14 }} />
+              )}
+
+              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+                <h3>{item.title || "Untitled"}</h3>
+
+                <p style={{ color: "var(--muted)" }}>
+                  {item.is_event || item.category === "live-event" ? "Event" : item.category || "content"} • 👁 {item.views || 0}
+                </p>
+
+                <p style={{ color: "var(--muted)" }}>
+                  {item.city || "No city"} {item.event_date ? `• ${item.event_date}` : ""}
+                </p>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                  <strong>{item.approved ? "Live" : "Pending"}</strong>
+                  {item.featured && <strong>Featured</strong>}
+                  {(item.is_event || item.category === "live-event") && <strong>Event</strong>}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  className="btn secondary"
+                  onClick={() => approve(item.id, !item.approved)}
+                >
+                  {item.approved ? "Unapprove" : "Approve"}
+                </button>
+
+                <button
+                  className="btn secondary"
+                  onClick={() => toggleFeature(item.id, item.featured)}
+                >
+                  {item.featured ? "Unfeature" : "Feature"}
+                </button>
+
+                <Link href={`/watch/${item.id}`} className="btn secondary">
+                  View
+                </Link>
+
+                <button
+                  className="btn secondary"
+                  onClick={() => deleteUpload(item.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
