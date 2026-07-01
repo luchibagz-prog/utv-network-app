@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
+import UTVNav from "../components/UTVNav";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
@@ -35,6 +36,7 @@ export default function EventsPage() {
 
   return (
     <main className="container" style={{ overflowX: "hidden" }}>
+      <UTVNav />
       <nav className="nav" style={{ flexWrap: "wrap", gap: 12 }}>
         <Link href="/watch" className="logo">
           <img src="/utv-logo.png" alt="UTV" className="utvLogo" />

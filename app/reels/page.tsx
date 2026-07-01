@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
+import UTVNav from "../components/UTVNav";
 
 export default function ReelsPage() {
   const [reels, setReels] = useState<any[]>([]);
@@ -36,6 +37,8 @@ export default function ReelsPage() {
         color: "#fff",
       }}
     >
+<UTVNav />
+
       <nav
         style={{
           position: "fixed",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
-
+import UTVNav from "../components/UTVNav";
 type Show = {
   id: string;
   title: string;
@@ -115,6 +115,7 @@ export default async function WatchPage({
 
   return (
     <main className="utvPage">
+      <UTVNav />
       <nav className="nav premiumNav">
         <Link href="/" className="logo">
           <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
