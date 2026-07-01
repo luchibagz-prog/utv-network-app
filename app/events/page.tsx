@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState("all");
 
   useEffect(() => {
     loadEvents();
@@ -16,81 +16,150 @@ export default function EventsPage() {
     const { data } = await supabase
       .from("uploads")
       .select("*")
-      .eq("is_event", true)
       .eq("approved", true)
-      .order("event_date", { ascending: true });
+      .order("created_at", { ascending: false });
 
-    setEvents(data || []);
+    const onlyEvents = (data || []).filter(
+      (item) => item.is_event || item.category === "live-event"
+    );
+
+    setEvents(onlyEvents);
   }
 
-  const filteredEvents = city
-    ? events.filter((event) =>
-        (event.city || "").toLowerCase().includes(city.toLowerCase())
-      )
-    : events;
+  const cities = ["all", ...Array.from(new Set(events.map((e) => e.city).filter(Boolean)))];
+
+  const filteredEvents =
+    city === "all"
+      ? events
+      : events.filter((event) => event.city?.toLowerCase() === city.toLowerCase());
 
   return (
-    <main className="container">
-      <nav className="nav">
-        <Link href="/" className="logo">
+    <main className="container" style={{ overflowX: "hidden" }}>
+      <nav className="nav" style={{ flexWrap: "wrap", gap: 12 }}>
+        <Link href="/watch" className="logo">
           <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
         </Link>
 
-        <div className="navLinks">
+        <div
+          className="navLinks"
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            justifyContent: "center",
+            width: "100%",
+          }}
+        >
           <Link href="/watch" className="btn secondary">Watch</Link>
           <Link href="/creator" className="btn secondary">Submit Event</Link>
         </div>
       </nav>
 
-      <section className="card" style={{ marginBottom: 22 }}>
+      <section className="card" style={{ marginBottom: 24 }}>
         <p style={{ color: "var(--muted)", marginBottom: 8 }}>UTV Events</p>
-        <h1 style={{ marginBottom: 10 }}>Near You</h1>
+        <h1>Events Near You</h1>
         <p style={{ color: "var(--muted)" }}>
-          Find parties, shows, cyphers, popups, live tapings, and events in your city.
+          Find parties, concerts, comedy nights, sports events, pop-ups, and live experiences on UTV.
         </p>
       </section>
 
-      <section className="card" style={{ marginBottom: 22 }}>
-        <label>Search by City</label>
-        <input
-          className="input"
-          placeholder="Sacramento, Bay Area, LA..."
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
+      <section className="card" style={{ marginBottom: 24 }}>
+        <h2>Browse By City</h2>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+          {cities.map((item) => (
+            <button
+              key={item}
+              className={city === item ? "btn" : "btn secondary"}
+              onClick={() => setCity(item)}
+            >
+              {item === "all" ? "All Cities" : item}
+            </button>
+          ))}
+        </div>
       </section>
 
-      <section className="grid">
-        {filteredEvents.map((event) => (
-          <div key={event.id} className="card">
-            {event.cover_url && (
-              <img
-                src={event.cover_url}
-                alt={event.title}
-                style={{
-                  width: "100%",
-                  borderRadius: 16,
-                  marginBottom: 14,
-                }}
-              />
-            )}
+      {filteredEvents.length === 0 ? (
+        <section className="card">
+          <h2>No events yet</h2>
+          <p style={{ color: "var(--muted)" }}>
+            Be the first to submit an event and get it listed on UTV.
+          </p>
 
-            <h2>{event.title}</h2>
-            <p style={{ color: "var(--muted)" }}>{event.description}</p>
+          <Link href="/creator" className="btn">
+            Submit Event
+          </Link>
+        </section>
+      ) : (
+        <section>
+          <h2 style={{ marginBottom: 16 }}>Upcoming Events</h2>
 
-            <p><b>City:</b> {event.city || "TBA"}</p>
-            <p><b>Date:</b> {event.event_date || "TBA"}</p>
-            <p><b>Time:</b> {event.event_time || "TBA"}</p>
-            <p><b>Location:</b> {event.event_location || "TBA"}</p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 18,
+            }}
+          >
+            {filteredEvents.map((event) => (
+              <div key={event.id} className="card">
+                {event.cover_url ? (
+                  <img
+                    src={event.cover_url}
+                    alt={event.title}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "3 / 4",
+                      objectFit: "cover",
+                      borderRadius: 18,
+                      marginBottom: 14,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      aspectRatio: "3 / 4",
+                      borderRadius: 18,
+                      background: "#111",
+                      display: "grid",
+                      placeItems: "center",
+                      marginBottom: 14,
+                    }}
+                  >
+                    UTV
+                  </div>
+                )}
 
-            {event.ticket_link && (
-              <a className="btn" href={event.ticket_link} target="_blank">
-                Tickets / Info
-              </a>
-            )}
+                <p style={{ color: "var(--muted)" }}>{event.city || "City TBA"}</p>
+                <h2>{event.title}</h2>
+
+                <p style={{ color: "var(--muted)" }}>
+                  {event.event_date || "Date TBA"} {event.event_time ? `• ${event.event_time}` : ""}
+                </p>
+
+                <p style={{ color: "var(--muted)" }}>
+                  {event.event_location || "Location TBA"}
+                </p>
+
+                <p>{event.description}</p>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                  {event.ticket_link && (
+                    <a className="btn" href={event.ticket_link} target="_blank">
+                      Tickets / Info
+                    </a>
+                  )}
+
+                  <Link href={`/watch/${event.id}`} className="btn secondary">
+                    View
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </section>
+        </section>
+      )}
     </main>
   );
 }
