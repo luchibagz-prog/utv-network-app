@@ -4,25 +4,31 @@ export default function UTVNav() {
   return (
     <nav
       style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        gap: 12,
-        flexWrap: "wrap",
-        padding: "14px 10px",
         position: "sticky",
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
+        width: "100%",
+        padding: "12px 10px",
         background: "rgba(0,0,0,.82)",
-        backdropFilter: "blur(16px)",
-        borderBottom: "1px solid rgba(255,255,255,.06)"
+        backdropFilter: "blur(18px)",
+        borderBottom: "1px solid rgba(255,255,255,.08)",
       }}
     >
-      <Link href="/watch" className="btn secondary">Watch</Link>
-      <Link href="/reels" className="btn secondary">Reels</Link>
-      <Link href="/events" className="btn secondary">Events</Link>
-      <Link href="/creator" className="btn secondary">Submit</Link>
-      <Link href="/profile" className="btn secondary">Profile</Link>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <Link href="/watch" className="btn secondary">Watch</Link>
+        <Link href="/reels" className="btn secondary">Reels</Link>
+        <Link href="/events" className="btn secondary">Events</Link>
+        <Link href="/live" className="btn secondary">Live</Link>
+        <Link href="/creator" className="btn secondary">Submit</Link>
+        <Link href="/profile" className="btn secondary">👤</Link>
+      </div>
     </nav>
   );
 }
