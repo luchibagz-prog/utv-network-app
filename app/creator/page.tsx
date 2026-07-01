@@ -31,10 +31,7 @@ export default function CreatorPage() {
   async function checkUserAndLoad() {
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
+
 
     loadUploads();
   }
