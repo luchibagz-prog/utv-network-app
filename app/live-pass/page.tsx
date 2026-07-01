@@ -20,9 +20,14 @@ export default function LivePassPage() {
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-          <a href="#" className="btn">
-            Pay & Unlock Live
-          </a>
+      <a
+  href="https://buy.stripe.com/28E9AU7t4cBV94l083bo400"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="btn"
+>
+  Pay & Unlock Live
+</a>
 
           <Link href="/creator" className="btn secondary">
             Back to Creator
