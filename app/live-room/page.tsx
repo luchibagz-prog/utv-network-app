@@ -1,31 +1,56 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function LiveRoomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
   const [liveTitle, setLiveTitle] = useState("");
   const [isLive, setIsLive] = useState(false);
   const [message, setMessage] = useState("");
+  const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
+  const [cameraMode, setCameraMode] = useState<"user" | "environment">("user");
   const [requests, setRequests] = useState(["Viewer request: guest_102"]);
 
   async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "user",
+          facingMode: cameraMode,
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
+
+      const mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideo(url);
+        chunksRef.current = [];
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
 
       setMessage("Camera and mic ready.");
     } catch {
@@ -43,10 +68,14 @@ export default function LiveRoomPage() {
     const hostEmail = userData.user?.email || "CEO@UTV.app";
 
     await supabase.from("live_streams").insert({
-      host_email: hostEmail,
+      creator_email: hostEmail,
       title: liveTitle,
       is_live: true,
     });
+
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.start();
+    }
 
     setIsLive(true);
     setMessage("You are now live on UTV.");
@@ -59,20 +88,47 @@ export default function LiveRoomPage() {
     await supabase
       .from("live_streams")
       .update({ is_live: false })
-      .eq("host_email", hostEmail);
+      .eq("creator_email", hostEmail);
+
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+    }
 
     setIsLive(false);
-    setMessage("Live ended.");
+    setMessage("Live ended and saved.");
+  }
+
+  async function deleteLive() {
+    const { data: userData } = await supabase.auth.getUser();
+    const hostEmail = userData.user?.email || "CEO@UTV.app";
+
+    await supabase
+      .from("live_streams")
+      .delete()
+      .eq("creator_email", hostEmail);
+
+    setRecordedVideo(null);
+    setMessage("Live deleted.");
   }
 
   function approveRequest(name: string) {
     setRequests(requests.filter((request) => request !== name));
-    setMessage(`${name} approved to join.`);
+    setMessage(`${name} approved.`);
   }
 
   function denyRequest(name: string) {
     setRequests(requests.filter((request) => request !== name));
     setMessage(`${name} denied.`);
+  }
+
+  async function shareLive() {
+    if (navigator.share && recordedVideo) {
+      await navigator.share({
+        title: liveTitle,
+        text: "Watch my UTV live replay",
+        url: recordedVideo,
+      });
+    }
   }
 
   return (
@@ -97,11 +153,10 @@ export default function LiveRoomPage() {
           playsInline
           style={{
             width: "100%",
-            height: 280,
             marginTop: 16,
             borderRadius: 18,
             background: "#000",
-            transform: "scaleX(-1)",
+            transform: cameraMode === "user" ? "scaleX(-1)" : "none",
             objectFit: "cover",
           }}
         />
@@ -118,6 +173,17 @@ export default function LiveRoomPage() {
             Turn On Camera
           </button>
 
+          <button
+            className="btn secondary"
+            onClick={() =>
+              setCameraMode(
+                cameraMode === "user" ? "environment" : "user"
+              )
+            }
+          >
+            Flip Camera
+          </button>
+
           {!isLive ? (
             <button className="btn" onClick={startLive}>
               Start Live
@@ -127,48 +193,81 @@ export default function LiveRoomPage() {
               End Live
             </button>
           )}
-
-          <Link href="/live" className="btn secondary">
-            Back to Live
-          </Link>
         </div>
 
         {message && (
-          <p style={{ color: "var(--muted)", marginTop: 14 }}>{message}</p>
+          <p style={{ marginTop: 14, color: "var(--muted)" }}>
+            {message}
+          </p>
         )}
       </section>
 
-      <section className="card" style={{ marginTop: 24 }}>
-        <h2>Join Requests</h2>
-        <p style={{ color: "var(--muted)" }}>
-          Viewers cannot join unless you approve them.
-        </p>
-
-        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          {requests.length === 0 && (
-            <p style={{ color: "var(--muted)" }}>No pending requests.</p>
-          )}
+      {requests.length > 0 && (
+        <section className="card" style={{ marginTop: 20 }}>
+          <h2>Join Requests</h2>
 
           {requests.map((request) => (
-            <div key={request}>
-              <h3>{request}</h3>
+            <div
+              key={request}
+              style={{
+                display: "flex",
+                gap: 10,
+                marginTop: 14,
+                alignItems: "center",
+              }}
+            >
+              <p>{request}</p>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                <button className="btn" onClick={() => approveRequest(request)}>
-                  Approve
-                </button>
+              <button
+                className="btn"
+                onClick={() => approveRequest(request)}
+              >
+                Approve
+              </button>
 
-                <button
-                  className="btn secondary"
-                  onClick={() => denyRequest(request)}
-                >
-                  Deny
-                </button>
-              </div>
+              <button
+                className="btn secondary"
+                onClick={() => denyRequest(request)}
+              >
+                Deny
+              </button>
             </div>
           ))}
-        </div>
-      </section>
+        </section>
+      )}
+
+      {recordedVideo && (
+        <section className="card" style={{ marginTop: 20 }}>
+          <h2>Replay Saved</h2>
+
+          <video
+            src={recordedVideo}
+            controls
+            style={{
+              width: "100%",
+              borderRadius: 18,
+              marginTop: 12,
+            }}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginTop: 14,
+              flexWrap: "wrap",
+            }}
+          >
+            <button className="btn" onClick={shareLive}>
+              Share
+            </button>
+
+            <button className="btn secondary" onClick={deleteLive}>
+              Delete
+            </button>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
