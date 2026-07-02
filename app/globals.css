@@ -1629,3 +1629,54 @@ label { color: var(--muted); font-size: 14px; }
   border: 0 !important;
   pointer-events: auto !important;
 }
+.posterRow {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 10px 0 20px;
+  scrollbar-width: none;
+}
+
+.posterRow::-webkit-scrollbar {
+  display: none;
+}
+
+.posterCard {
+  min-width: 180px;
+  max-width: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111;
+  text-decoration: none;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.posterCard:hover {
+  transform: scale(1.05);
+}
+
+.posterImage {
+  width: 100%;
+  height: 260px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+}
+
+.posterInfo {
+  padding: 10px;
+}
+
+.posterInfo h3 {
+  font-size: 16px;
+  margin: 0;
+  color: white;
+}
+
+.posterInfo p {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
