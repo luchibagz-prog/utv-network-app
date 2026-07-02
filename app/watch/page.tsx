@@ -101,7 +101,17 @@ export default function WatchPage() {
         </div>
       </section>
 
-      <CategoryRow title="Now Streaming" shows={shows} />
+    <CategoryRow title="UTV Originals" shows={shows.filter((s) => s.category?.toLowerCase().includes("show"))} />
+
+<CategoryRow title="Movies" shows={shows.filter((s) => s.category?.toLowerCase().includes("movie"))} />
+
+<CategoryRow title="Podcasts" shows={shows.filter((s) => s.category?.toLowerCase().includes("podcast"))} />
+
+<CategoryRow title="Music Videos" shows={shows.filter((s) => s.category?.toLowerCase().includes("music"))} />
+
+<CategoryRow title="Live Events" shows={shows.filter((s) => s.category?.toLowerCase().includes("live"))} />
+
+<CategoryRow title="Now Streaming" shows={shows} />
     </main>
   );
 }
