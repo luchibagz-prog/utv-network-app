@@ -125,7 +125,10 @@ const heroDescription =
 <section
   className="cinematicHero"
   style={{
-    backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.65) 100%), url('/utv-main-header.png')`,
+backgroundImage: "linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.75) 100%), url('/utv-main-header.png')",
+backgroundSize: "cover",
+backgroundPosition: "center top",
+backgroundRepeat: "no-repeat",
   }}
 >
   <div className="heroContent">
