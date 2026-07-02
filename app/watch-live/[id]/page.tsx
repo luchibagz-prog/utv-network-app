@@ -26,7 +26,9 @@ export default function WatchLivePage() {
       .eq("id", params.id)
       .single();
 
-    if (data) setStream(data);
+    if (data) {
+      setStream(data);
+    }
   }
 
   async function addViewer() {
@@ -37,10 +39,14 @@ export default function WatchLivePage() {
       .single();
 
     if (data) {
+      const newCount = (data.viewers || 0) + 1;
+
       await supabase
         .from("live_streams")
-        .update({ viewers: (data.viewers || 0) + 1 })
+        .update({ viewers: newCount })
         .eq("id", params.id);
+
+      loadStream();
     }
   }
 
@@ -51,7 +57,9 @@ export default function WatchLivePage() {
       .eq("stream_id", params.id)
       .order("created_at", { ascending: true });
 
-    if (data) setComments(data);
+    if (data) {
+      setComments(data);
+    }
   }
 
   async function loadTips() {
@@ -61,7 +69,11 @@ export default function WatchLivePage() {
       .eq("stream_id", params.id);
 
     if (data) {
-      const total = data.reduce((sum, tip) => sum + (tip.amount || 0), 0);
+      const total = data.reduce(
+        (sum: number, tip: any) => sum + (tip.amount || 0),
+        0
+      );
+
       setTipsTotal(total);
     }
   }
@@ -83,17 +95,19 @@ export default function WatchLivePage() {
   }
 
   async function sendTip(giftType: string, amount: number) {
-    const { data: userData } = await supabase.auth.getUser();
-    const userEmail = userData.user?.email || "Guest@UTV.app";
-
-    await supabase.from("live_tips").insert({
-      stream_id: params.id,
-      user_email: userEmail,
-      gift_type: giftType,
-      amount,
+    const response = await fetch("/api/tip", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount, giftType }),
     });
 
-    loadTips();
+    const data = await response.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    }
   }
 
   if (!stream) {
@@ -112,7 +126,10 @@ export default function WatchLivePage() {
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
-        <p style={{ color: "var(--muted)" }}>{stream.creator_email}</p>
+        <p style={{ color: "var(--muted)" }}>
+          {stream.creator_email}
+        </p>
+
         <h1>{stream.title}</h1>
 
         <p style={{ marginTop: 10 }}>
@@ -134,14 +151,23 @@ export default function WatchLivePage() {
             justifyContent: "center",
           }}
         >
-          <h2>{stream.is_live ? "🔴 Live Now" : "▶ Replay"}</h2>
+          <h2>
+            {stream.is_live ? "🔴 Live Now" : "▶ Replay"}
+          </h2>
         </div>
       </section>
 
       <section className="card" style={{ marginTop: 20 }}>
         <h2>Send Gifts</h2>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 16,
+          }}
+        >
           <button className="btn" onClick={() => sendTip("Flame", 1)}>
             🔥 $1
           </button>
@@ -176,7 +202,13 @@ export default function WatchLivePage() {
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginTop: 16,
+          }}
+        >
           <input
             className="input"
             placeholder="Type a comment..."
