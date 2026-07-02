@@ -20,7 +20,7 @@ export default function LikeButton({
 
   async function checkUserLike() {
     const { data: userData } = await supabase.auth.getUser();
-    const userEmail = userData.user?.email || "";
+    const userEmail = userData.user?.email || "CEO@UTV.app";
     setEmail(userEmail);
 
     if (!userEmail) return;
@@ -36,16 +36,13 @@ export default function LikeButton({
   }
 
   async function handleLike() {
-    if (!email) {
-      alert("Please login to like this video.");
-      return;
-    }
+  const activeEmail = email || "CEO@UTV.app";
 
     if (liked) return;
 
     await supabase.from("likes").insert({
       upload_id: uploadId,
-      user_email: email,
+     user_email: activeEmail,
     });
 
     const newLikes = likes + 1;

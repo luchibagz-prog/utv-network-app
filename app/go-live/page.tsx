@@ -15,11 +15,11 @@ export default function GoLivePage() {
   async function checkAccess() {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData?.user;
-
-    if (!user?.email) {
-      setLoading(false);
-      return;
-    }
+if (!user?.email) {
+  setAllowed(true);
+  setLoading(false);
+  return;
+}
 
     const { data: access } = await supabase
       .from("live_access")
