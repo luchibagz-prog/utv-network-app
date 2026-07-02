@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function ProfilePage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
-  const [plan, setPlan] = useState("Gold");
-  const [liveAccess, setLiveAccess] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [plan, setPlan] = useState("Free");
+  const [liveAccess, setLiveAccess] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadProfile();
@@ -17,19 +20,41 @@ export default function ProfilePage() {
 
   async function loadProfile() {
     const { data } = await supabase.auth.getUser();
-    const userEmail = data.user?.email || "CEO@UTV.app";
+
+    if (!data.user) {
+      router.push("/login");
+      return;
+    }
+
+    const userEmail = data.user.email || "";
 
     setEmail(userEmail);
 
-    // Force Gold + Admin + Live unlocked
-    setPlan("Gold Creator");
-    setLiveAccess(true);
-    setIsAdmin(true);
+    // YOUR ADMIN EMAIL ONLY
+    if (userEmail === "CEO@UTV.app") {
+      setPlan("Gold Creator");
+      setLiveAccess(true);
+      setIsAdmin(true);
+    } else {
+      setPlan("Free Creator");
+      setLiveAccess(false);
+      setIsAdmin(false);
+    }
+
+    setLoading(false);
   }
 
   async function logout() {
     await supabase.auth.signOut();
     window.location.href = "/login";
+  }
+
+  if (loading) {
+    return (
+      <main className="container">
+        <p>Loading profile...</p>
+      </main>
+    );
   }
 
   return (
@@ -77,7 +102,7 @@ export default function ProfilePage() {
           <p
             style={{
               marginTop: 10,
-              color: "#9dff00",
+              color: "#39ff88",
             }}
           >
             Live Pass Active
@@ -96,57 +121,44 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section
-        className="card"
-        style={{
-          marginTop: 24,
-        }}
-      >
+      <section className="card" style={{ marginTop: 20 }}>
         <h2>Account Hub</h2>
 
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            marginTop: 20,
-          }}
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() => router.push("/watch")}
         >
-          <Link href="/watch" className="btn secondary">
-            Watch UTV
-          </Link>
+          Watch UTV
+        </button>
 
-          <Link href="/reels" className="btn secondary">
-            UTV Reels
-          </Link>
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() => router.push("/reels")}
+        >
+          UTV Reels
+        </button>
 
-          <Link href="/events" className="btn secondary">
-            Events
-          </Link>
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() => router.push("/events")}
+        >
+          Events
+        </button>
 
-          <Link href="/creator" className="btn secondary">
-            Creator Dashboard
-          </Link>
-
-          <Link href="/go-live" className="btn secondary">
-            Go Live
-          </Link>
-
-          <Link href="/live-pass" className="btn secondary">
-            Live Pass
-          </Link>
-
-          <Link href="/admin" className="btn secondary">
-            Admin Panel
-          </Link>
-
-          <Link href="/notifications" className="btn secondary">
-  Notifications
-</Link>
-
-          <button className="btn" onClick={logout}>
-            Logout
-          </button>
-        </div>
+        <button
+          className="btn"
+          style={{
+            width: "100%",
+            marginTop: 20,
+            background: "#ff3b3b",
+          }}
+          onClick={logout}
+        >
+          Logout
+        </button>
       </section>
     </main>
   );
