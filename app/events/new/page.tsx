@@ -13,8 +13,8 @@ export default function NewEventPage() {
   const [location, setLocation] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [description, setDescription] = useState("");
-  const [flyerUrl, setFlyerUrl] = useState("");
   const [ticketUrl, setTicketUrl] = useState("");
+  const [flyer, setFlyer] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +25,29 @@ export default function NewEventPage() {
     }
 
     setLoading(true);
+    setMessage("");
+
+    let flyerUrl = "";
+
+    if (flyer) {
+      const fileName = `${Date.now()}-${flyer.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("event-flyers")
+        .upload(fileName, flyer);
+
+      if (uploadError) {
+        setMessage("Flyer upload failed.");
+        setLoading(false);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("event-flyers")
+        .getPublicUrl(fileName);
+
+      flyerUrl = data.publicUrl;
+    }
 
     const { error } = await supabase.from("events").insert({
       title,
@@ -42,7 +65,6 @@ export default function NewEventPage() {
       return;
     }
 
-    setMessage("Event posted.");
     router.push("/events");
   }
 
@@ -57,7 +79,6 @@ export default function NewEventPage() {
         <input className="input" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
         <input className="input" placeholder="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
         <input className="input" placeholder="Date / Time" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
-        <input className="input" placeholder="Flyer image URL" value={flyerUrl} onChange={(e) => setFlyerUrl(e.target.value)} />
         <input className="input" placeholder="Ticket / RSVP link" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} />
 
         <textarea
@@ -68,7 +89,14 @@ export default function NewEventPage() {
           style={{ minHeight: 120 }}
         />
 
-        <button className="btn" onClick={createEvent} disabled={loading}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFlyer(e.target.files?.[0] || null)}
+          style={{ marginTop: 14 }}
+        />
+
+        <button className="btn" onClick={createEvent} disabled={loading} style={{ marginTop: 18 }}>
           {loading ? "Posting..." : "Post Event"}
         </button>
 
