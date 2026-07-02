@@ -4,21 +4,29 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+
 type Show = {
   id: string;
   title: string;
   description: string;
   category: string;
   thumbnail_url: string;
-  city?: string;
 };
 
-function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
+function CategoryRow({
+  title,
+  shows,
+}: {
+  title: string;
+  shows: Show[];
+}) {
+  if (!shows.length) return null;
+
   return (
     <section className="contentRow">
       <h2>{title}</h2>
 
-      <div className="posterRail">
+      <div className="posterRow">
         {shows.map((show) => (
           <Link key={show.id} href={`/watch/${show.id}`} className="posterCard">
             <div
@@ -27,6 +35,7 @@ function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
                 backgroundImage: `url(${show.thumbnail_url || "/utv-main-header.png"})`,
               }}
             />
+
             <div className="posterInfo">
               <h3>{show.title}</h3>
               <p>{show.category}</p>
@@ -40,6 +49,7 @@ function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
 
 export default function WatchPage() {
   const [shows, setShows] = useState<Show[]>([]);
+  const [heroIndex, setHeroIndex] = useState(0);
 
   const heroImages = [
     "/utv-main-header.png",
@@ -47,16 +57,6 @@ export default function WatchPage() {
     "/utv2art.png",
     "/bgroundup.png",
   ];
-
-  const [heroIndex, setHeroIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroImages.length);
-    }, 6000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const fetchShows = async () => {
@@ -72,6 +72,14 @@ export default function WatchPage() {
     fetchShows();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <main className="utvPage">
       <UTVNav />
@@ -79,39 +87,47 @@ export default function WatchPage() {
       <section
         className="cinematicHero"
         style={{
-          backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.75) 100%), url(${heroImages[heroIndex]})`,
+          backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.2) 100%), url(${heroImages[heroIndex]})`,
           backgroundSize: "cover",
           backgroundPosition: "center top",
           backgroundRepeat: "no-repeat",
         }}
-      >
-        <div className="heroContent">
-          <h1>UTV Originals</h1>
-          <p>Your content. Your platform. Your legacy.</p>
+      />
 
-          <div className="heroButtons">
-            <Link href="/submit" className="btn">
-              Upload Now
-            </Link>
+      <CategoryRow
+        title="UTV Originals"
+        shows={shows.filter((s) =>
+          ["show", "series"].includes(s.category?.toLowerCase())
+        )}
+      />
 
-            <Link href="/live" className="btn secondary">
-              Go Live
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CategoryRow
+        title="Movies"
+        shows={shows.filter((s) => s.category?.toLowerCase() === "movie")}
+      />
 
-    <CategoryRow title="UTV Originals" shows={shows.filter((s) => s.category?.toLowerCase().includes("show"))} />
+      <CategoryRow
+        title="Podcasts"
+        shows={shows.filter((s) =>
+          s.category?.toLowerCase().includes("podcast")
+        )}
+      />
 
-<CategoryRow title="Movies" shows={shows.filter((s) => s.category?.toLowerCase().includes("movie"))} />
+      <CategoryRow
+        title="Music Videos"
+        shows={shows.filter((s) =>
+          s.category?.toLowerCase().includes("music")
+        )}
+      />
 
-<CategoryRow title="Podcasts" shows={shows.filter((s) => s.category?.toLowerCase().includes("podcast"))} />
+      <CategoryRow
+        title="Live Events"
+        shows={shows.filter((s) =>
+          s.category?.toLowerCase().includes("live")
+        )}
+      />
 
-<CategoryRow title="Music Videos" shows={shows.filter((s) => s.category?.toLowerCase().includes("music"))} />
-
-<CategoryRow title="Live Events" shows={shows.filter((s) => s.category?.toLowerCase().includes("live"))} />
-
-<CategoryRow title="Now Streaming" shows={shows} />
+      <CategoryRow title="Now Streaming" shows={shows} />
     </main>
   );
 }

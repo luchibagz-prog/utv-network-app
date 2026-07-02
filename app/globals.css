@@ -1680,3 +1680,50 @@ label { color: var(--muted); font-size: 14px; }
   margin-top: 4px;
   text-transform: uppercase;
 }
+.contentRow {
+  padding: 18px 0 8px 14px;
+}
+
+.contentRow h2 {
+  font-size: 28px;
+  margin: 0 0 12px;
+}
+
+.posterRail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 18px;
+}
+
+.posterCard {
+  min-width: 145px;
+  max-width: 145px;
+  background: #111;
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.posterImage {
+  height: 205px;
+  background-size: cover;
+  background-position: center;
+}
+
+.posterInfo {
+  padding: 9px;
+}
+
+.posterInfo h3 {
+  font-size: 15px;
+  color: white;
+  margin: 0;
+}
+
+.posterInfo p {
+  font-size: 11px;
+  color: #aaa;
+  margin: 5px 0 0;
+  text-transform: uppercase;
+}
