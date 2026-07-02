@@ -494,14 +494,19 @@ label { color: var(--muted); font-size: 14px; }
 }
 
 .cinematicHero {
-  min-height: 520px;
-  background-size: 105;
-  background-position: center 30px;
   position: relative;
+  width: 100%;
+  min-height: 42vh;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 20px;
+  margin: 0;
+  background-size: cover;
+  background-position: center;
   overflow: hidden;
-  border-bottom: 1px solid rgba(157, 255, 79, 0.2);
-
-  filter: brightness(1.35) contrast(1.1);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  filter: brightness(1.25) contrast(1.08);
 }
 
 .cinematicHero::after {
