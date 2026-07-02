@@ -139,6 +139,10 @@ export default function ProfilePage() {
             Admin Panel
           </Link>
 
+          <Link href="/notifications" className="btn secondary">
+  Notifications
+</Link>
+
           <button className="btn" onClick={logout}>
             Logout
           </button>
