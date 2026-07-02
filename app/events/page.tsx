@@ -71,9 +71,19 @@ export default function EventsPage() {
               {event.city} • {event.event_date}
             </p>
             <p>{event.location}</p>
-            <Link href="/events/new" className="btn" style={{ marginTop: 16 }}>
-  Post Event
-</Link>
+{event.flyer_url && (
+  <img
+    src={event.flyer_url}
+    alt={event.title}
+    style={{
+      width: "100%",
+      borderRadius: 14,
+      marginTop: 12,
+      marginBottom: 12,
+      objectFit: "cover"
+    }}
+  />
+)}
             <p style={{ color: "var(--muted)" }}>{event.description}</p>
 
             {event.ticket_url && (
