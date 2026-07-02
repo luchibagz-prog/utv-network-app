@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import UTVNav from "../components/UTVNav";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function LiveRoomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -11,38 +12,55 @@ export default function LiveRoomPage() {
   const [message, setMessage] = useState("");
   const [requests, setRequests] = useState(["Viewer request: guest_102"]);
 
-async function startCamera() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      },
-      audio: true,
-    });
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: true,
+      });
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      setMessage("Camera and mic ready.");
+    } catch {
+      setMessage("Camera/mic permission was blocked.");
     }
-
-    setMessage("Camera and mic ready.");
-  } catch {
-    setMessage("Camera/mic permission was blocked.");
   }
-}
 
-  function startLive() {
+  async function startLive() {
     if (!liveTitle.trim()) {
       setMessage("Add a live title first.");
       return;
     }
 
+    const { data: userData } = await supabase.auth.getUser();
+    const hostEmail = userData.user?.email || "CEO@UTV.app";
+
+    await supabase.from("live_streams").insert({
+      host_email: hostEmail,
+      title: liveTitle,
+      is_live: true,
+    });
+
     setIsLive(true);
     setMessage("You are now live on UTV.");
   }
 
-  function endLive() {
+  async function endLive() {
+    const { data: userData } = await supabase.auth.getUser();
+    const hostEmail = userData.user?.email || "CEO@UTV.app";
+
+    await supabase
+      .from("live_streams")
+      .update({ is_live: false })
+      .eq("host_email", hostEmail);
+
     setIsLive(false);
     setMessage("Live ended.");
   }
@@ -63,7 +81,7 @@ async function startCamera() {
 
       <section className="card" style={{ marginTop: 24 }}>
         <p style={{ color: "var(--muted)" }}>UTV Live Room</p>
-        <h1>{isLive ? "You’re Live" : "Start Your Live"}</h1>
+        <h1>{isLive ? "You're Live" : "Start Your Live"}</h1>
 
         <input
           className="input"
@@ -77,18 +95,25 @@ async function startCamera() {
           autoPlay
           muted
           playsInline
-         style={{
-  width: "100%",
-  marginTop: 16,
-  borderRadius: 18,
-  background: "#000",
-  transform: "scaleX(-1)",
-  objectFit: "cover",
-}}
-
+          style={{
+            width: "100%",
+            height: 280,
+            marginTop: 16,
+            borderRadius: 18,
+            background: "#000",
+            transform: "scaleX(-1)",
+            objectFit: "cover",
+          }}
         />
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            marginTop: 16,
+          }}
+        >
           <button className="btn secondary" onClick={startCamera}>
             Turn On Camera
           </button>
@@ -98,7 +123,7 @@ async function startCamera() {
               Start Live
             </button>
           ) : (
-            <button className="btn secondary" onClick={endLive}>
+            <button className="btn" onClick={endLive}>
               End Live
             </button>
           )}
@@ -108,7 +133,9 @@ async function startCamera() {
           </Link>
         </div>
 
-        {message && <p style={{ marginTop: 14 }}>{message}</p>}
+        {message && (
+          <p style={{ color: "var(--muted)", marginTop: 14 }}>{message}</p>
+        )}
       </section>
 
       <section className="card" style={{ marginTop: 24 }}>
@@ -117,33 +144,30 @@ async function startCamera() {
           Viewers cannot join unless you approve them.
         </p>
 
-        {requests.length === 0 ? (
-          <p>No join requests.</p>
-        ) : (
-          requests.map((request) => (
-            <div
-              key={request}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 10,
-                flexWrap: "wrap",
-                marginTop: 12,
-              }}
-            >
-              <strong>{request}</strong>
+        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+          {requests.length === 0 && (
+            <p style={{ color: "var(--muted)" }}>No pending requests.</p>
+          )}
 
-              <div style={{ display: "flex", gap: 8 }}>
+          {requests.map((request) => (
+            <div key={request}>
+              <h3>{request}</h3>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <button className="btn" onClick={() => approveRequest(request)}>
                   Approve
                 </button>
-                <button className="btn secondary" onClick={() => denyRequest(request)}>
+
+                <button
+                  className="btn secondary"
+                  onClick={() => denyRequest(request)}
+                >
                   Deny
                 </button>
               </div>
             </div>
-          ))
-        )}
+          ))}
+        </div>
       </section>
     </main>
   );
