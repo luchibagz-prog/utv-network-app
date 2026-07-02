@@ -116,25 +116,7 @@ export default async function WatchPage({
   return (
     <main className="utvPage">
       <UTVNav />
-      <nav className="nav premiumNav">
-        <Link href="/" className="logo">
-          <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
-        </Link>
-
-<div className="navLinks" style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
-  <Link href="/" className="btn secondary" style={{ padding: "12px 18px", fontSize: 14 }}>
-    Home
-  </Link>
-
-  <Link href="/events" className="btn secondary" style={{ padding: "12px 18px", fontSize: 14 }}>
-    Events
-  </Link>
-
-  <Link href="/creator" className="btn secondary" style={{ padding: "12px 18px", fontSize: 14 }}>
-    Submit
-  </Link>
-</div>
-      </nav>
+      
 
 <section
   className="cinematicHero"
