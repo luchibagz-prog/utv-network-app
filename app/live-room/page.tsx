@@ -73,6 +73,13 @@ export default function LiveRoomPage() {
       is_live: true,
     });
 
+    await supabase.from("notifications").insert({
+  title: "🔴 Live Now",
+  message: `${hostEmail} just went live: ${liveTitle}`,
+  type: "live",
+  link: "/live",
+});
+
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.start();
     }
