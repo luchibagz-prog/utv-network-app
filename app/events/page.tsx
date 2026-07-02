@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
@@ -71,6 +71,9 @@ export default function EventsPage() {
               {event.city} • {event.event_date}
             </p>
             <p>{event.location}</p>
+            <Link href="/events/new" className="btn" style={{ marginTop: 16 }}>
+  Post Event
+</Link>
             <p style={{ color: "var(--muted)" }}>{event.description}</p>
 
             {event.ticket_url && (
