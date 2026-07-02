@@ -8,9 +8,12 @@ import { supabase } from "../../lib/supabaseClient";
 type Show = {
   id: string;
   title: string;
-  description: string;
-  category: string;
-  thumbnail_url: string;
+  description?: string;
+  category?: string;
+  thumbnail_url?: string;
+  thumbnail?: string;
+  image_url?: string;
+  cover_url?: string;
 };
 
 function CategoryRow({
@@ -32,7 +35,13 @@ function CategoryRow({
             <div
               className="posterImage"
               style={{
-                backgroundImage: `url(${show.thumbnail_url || "/utv-main-header.png"})`,
+               backgroundImage: `url(${
+  show.thumbnail_url ||
+  show.thumbnail ||
+  show.image_url ||
+  show.cover_url ||
+  "/utv-main-header.png"
+})`,
               }}
             />
 
@@ -84,20 +93,20 @@ export default function WatchPage() {
     <main className="utvPage">
       <UTVNav />
 
-      <section
-        className="cinematicHero"
-        style={{
-          backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.2) 100%), url(${heroImages[heroIndex]})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center top",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
+   <section
+  className="cinematicHero"
+  style={{
+    backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.65) 100%), url(${heroImages[heroIndex]})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center top",
+    backgroundRepeat: "no-repeat",
+  }}
+/>
 
       <CategoryRow
         title="UTV Originals"
         shows={shows.filter((s) =>
-          ["show", "series"].includes(s.category?.toLowerCase())
+       ["show", "series"].includes((s.category || "").toLowerCase())
         )}
       />
 
