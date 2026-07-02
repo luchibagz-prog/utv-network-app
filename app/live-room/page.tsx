@@ -11,22 +11,26 @@ export default function LiveRoomPage() {
   const [message, setMessage] = useState("");
   const [requests, setRequests] = useState(["Viewer request: guest_102"]);
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: true,
+    });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
-      setMessage("Camera and mic ready.");
-    } catch {
-      setMessage("Camera/mic permission was blocked.");
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
     }
+
+    setMessage("Camera and mic ready.");
+  } catch {
+    setMessage("Camera/mic permission was blocked.");
   }
+}
 
   function startLive() {
     if (!liveTitle.trim()) {
@@ -73,12 +77,15 @@ export default function LiveRoomPage() {
           autoPlay
           muted
           playsInline
-          style={{
-            width: "100%",
-            marginTop: 16,
-            borderRadius: 18,
-            background: "#000",
-          }}
+         style={{
+  width: "100%",
+  marginTop: 16,
+  borderRadius: 18,
+  background: "#000",
+  transform: "scaleX(-1)",
+  objectFit: "cover",
+}}
+
         />
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
