@@ -14,6 +14,7 @@ export default function WatchLivePage() {
   useEffect(() => {
     loadStream();
     loadComments();
+    addViewer();
   }, []);
 
   async function loadStream() {
@@ -25,6 +26,23 @@ export default function WatchLivePage() {
 
     if (data) {
       setStream(data);
+    }
+  }
+
+  async function addViewer() {
+    const { data } = await supabase
+      .from("live_streams")
+      .select("viewers")
+      .eq("id", params.id)
+      .single();
+
+    if (data) {
+      const newCount = (data.viewers || 0) + 1;
+
+      await supabase
+        .from("live_streams")
+        .update({ viewers: newCount })
+        .eq("id", params.id);
     }
   }
 
@@ -74,6 +92,10 @@ export default function WatchLivePage() {
       <section className="card" style={{ marginTop: 24 }}>
         <p style={{ color: "var(--muted)" }}>{stream.creator_email}</p>
         <h1>{stream.title}</h1>
+
+        <p style={{ marginTop: 10 }}>
+          👁 {stream.viewers || 0} Watching
+        </p>
 
         <div
           style={{
