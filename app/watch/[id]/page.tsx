@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
 import ContinueSaver from "../../components/ContinueSaver";
+import LikeButton from "../../components/LikeButton";
 
 function getYoutubeEmbed(url: string) {
   if (url.includes("youtube.com/watch")) {
@@ -106,6 +107,7 @@ export default async function ShowPage({
       <section className="card" style={{ marginTop: 24 }}>
         <h1>{show.title}</h1>
         <p className="meta">👁 {show.views || 0} views</p>
+        <LikeButton uploadId={show.id} startingLikes={show.likes || 0} />
         <p className="sub">{show.description}</p>
         <p className="meta">
           {show.category} • {show.city}
