@@ -1727,3 +1727,50 @@ label { color: var(--muted); font-size: 14px; }
   margin: 5px 0 0;
   text-transform: uppercase;
 }
+.dashGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.statBox {
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.statBox h3 {
+  font-size: 32px;
+  margin: 0;
+}
+
+.statBox p {
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+
+.statBox.gold {
+  border-color: rgba(212, 175, 55, 0.7);
+}
+
+.creatorContentCard {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: center;
+  background: #111;
+  border-radius: 18px;
+  padding: 12px;
+  text-decoration: none;
+  color: white;
+}
+
+.creatorThumb {
+  width: 90px;
+  height: 70px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+}
