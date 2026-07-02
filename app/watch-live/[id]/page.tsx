@@ -10,10 +10,10 @@ export default function WatchLivePage() {
   const [stream, setStream] = useState<any>(null);
 
   useEffect(() => {
-    getLive();
+    loadStream();
   }, []);
 
-  async function getLive() {
+  async function loadStream() {
     const { data } = await supabase
       .from("live_streams")
       .select("*")
@@ -25,16 +25,12 @@ export default function WatchLivePage() {
     }
   }
 
-  function requestJoin() {
-    alert("Join request sent.");
-  }
-
   if (!stream) {
     return (
       <main className="container">
         <UTVNav />
-        <section className="card" style={{ marginTop: 24 }}>
-          <h1>Loading live...</h1>
+        <section className="card">
+          <h1>Loading...</h1>
         </section>
       </main>
     );
@@ -45,30 +41,22 @@ export default function WatchLivePage() {
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
-        <p style={{ color: "var(--muted)" }}>Watching Live</p>
+        <p style={{ color: "var(--muted)" }}>{stream.creator_email}</p>
         <h1>{stream.title}</h1>
 
         <div
           style={{
-            width: "100%",
-            height: 320,
-            background: "#000",
+            marginTop: 20,
+            background: "#111",
+            height: 300,
             borderRadius: 18,
-            marginTop: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
-
-        <p style={{ marginTop: 14 }}>
-          Host: {stream.host_email}
-        </p>
-
-        <button
-          className="btn"
-          style={{ marginTop: 16 }}
-          onClick={requestJoin}
         >
-          Request To Join
-        </button>
+          <h2>{stream.is_live ? "🔴 Live Now" : "▶ Replay"}</h2>
+        </div>
       </section>
     </main>
   );
