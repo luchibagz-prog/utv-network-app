@@ -10,10 +10,12 @@ export default function WatchLivePage() {
   const [stream, setStream] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [tipsTotal, setTipsTotal] = useState(0);
 
   useEffect(() => {
     loadStream();
     loadComments();
+    loadTips();
     addViewer();
   }, []);
 
@@ -24,9 +26,7 @@ export default function WatchLivePage() {
       .eq("id", params.id)
       .single();
 
-    if (data) {
-      setStream(data);
-    }
+    if (data) setStream(data);
   }
 
   async function addViewer() {
@@ -37,11 +37,9 @@ export default function WatchLivePage() {
       .single();
 
     if (data) {
-      const newCount = (data.viewers || 0) + 1;
-
       await supabase
         .from("live_streams")
-        .update({ viewers: newCount })
+        .update({ viewers: (data.viewers || 0) + 1 })
         .eq("id", params.id);
     }
   }
@@ -53,8 +51,18 @@ export default function WatchLivePage() {
       .eq("stream_id", params.id)
       .order("created_at", { ascending: true });
 
+    if (data) setComments(data);
+  }
+
+  async function loadTips() {
+    const { data } = await supabase
+      .from("live_tips")
+      .select("*")
+      .eq("stream_id", params.id);
+
     if (data) {
-      setComments(data);
+      const total = data.reduce((sum, tip) => sum + (tip.amount || 0), 0);
+      setTipsTotal(total);
     }
   }
 
@@ -72,6 +80,20 @@ export default function WatchLivePage() {
 
     setNewComment("");
     loadComments();
+  }
+
+  async function sendTip(giftType: string, amount: number) {
+    const { data: userData } = await supabase.auth.getUser();
+    const userEmail = userData.user?.email || "Guest@UTV.app";
+
+    await supabase.from("live_tips").insert({
+      stream_id: params.id,
+      user_email: userEmail,
+      gift_type: giftType,
+      amount,
+    });
+
+    loadTips();
   }
 
   if (!stream) {
@@ -97,6 +119,10 @@ export default function WatchLivePage() {
           👁 {stream.viewers || 0} Watching
         </p>
 
+        <p style={{ marginTop: 8 }}>
+          💸 ${tipsTotal} tipped
+        </p>
+
         <div
           style={{
             marginTop: 20,
@@ -109,6 +135,24 @@ export default function WatchLivePage() {
           }}
         >
           <h2>{stream.is_live ? "🔴 Live Now" : "▶ Replay"}</h2>
+        </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 20 }}>
+        <h2>Send Gifts</h2>
+
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+          <button className="btn" onClick={() => sendTip("Flame", 1)}>
+            🔥 $1
+          </button>
+
+          <button className="btn" onClick={() => sendTip("Rocket", 5)}>
+            🚀 $5
+          </button>
+
+          <button className="btn" onClick={() => sendTip("Crown", 20)}>
+            👑 $20
+          </button>
         </div>
       </section>
 
@@ -132,13 +176,7 @@ export default function WatchLivePage() {
           ))}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            marginTop: 16,
-          }}
-        >
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           <input
             className="input"
             placeholder="Type a comment..."
