@@ -112,6 +112,10 @@ export default async function WatchPage({
     .slice(0, 10);
 
   const heroShow = featuredShows[0] || popularShows[0] || filteredShows[0];
+const heroTitle = heroShow?.title || "UTV";
+const heroDescription =
+  heroShow?.description ||
+  "Stream shows, movies, podcasts, music videos, comedy, sports, reels, live events and original UTV content.";
 
   return (
     <main className="utvPage">
@@ -121,17 +125,16 @@ export default async function WatchPage({
 <section
   className="cinematicHero"
   style={{
-    backgroundImage:
-      "linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.15) 100%), url('/utv-banner.png')",
+    backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.15) 45%, rgba(0,0,0,.65) 100%), url('/utv-main-header.png')`,
   }}
 >
   <div className="heroContent">
-{heroShow?.category || "UTV FEATURED"}
+{heroShow?.category || "UTV ORIGINALS"}
 
-<h1>{featuredShows[0]?.title || "UTV"}</h1>
+<h1>{heroTitle}</h1>
 
 <p className="heroDescription">
-  {(heroShow?.title || "UTV") + " — Stream shows, movies, podcasts, music videos and more on UTV."}
+  {heroDescription}
 </p>
 
     <div className="heroButtons">
