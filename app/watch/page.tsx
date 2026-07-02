@@ -13,23 +13,24 @@ type Show = {
   city?: string;
 };
 
-function CategoryRow({
-  title,
-  shows,
-}: {
-  title: string;
-  shows: Show[];
-}) {
+function CategoryRow({ title, shows }: { title: string; shows: Show[] }) {
   return (
-    <section className="categoryRow">
+    <section className="contentRow">
       <h2>{title}</h2>
 
-      <div className="showGrid">
+      <div className="posterRail">
         {shows.map((show) => (
-          <Link key={show.id} href={`/watch/${show.id}`} className="showCard">
-            <img src={show.thumbnail_url} alt={show.title} />
-            <h3>{show.title}</h3>
-            <p>{show.category}</p>
+          <Link key={show.id} href={`/watch/${show.id}`} className="posterCard">
+            <div
+              className="posterImage"
+              style={{
+                backgroundImage: `url(${show.thumbnail_url || "/utv-main-header.png"})`,
+              }}
+            />
+            <div className="posterInfo">
+              <h3>{show.title}</h3>
+              <p>{show.category}</p>
+            </div>
           </Link>
         ))}
       </div>
