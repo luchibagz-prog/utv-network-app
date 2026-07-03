@@ -31,7 +31,7 @@ export default function ProfilePage() {
     setEmail(userEmail);
 
     // YOUR ADMIN EMAIL ONLY
-    if (userEmail === "CEO@UTV.app") {
+    if (userEmail === "Luchibagz@gmail.com") {
       setPlan("Gold Creator");
       setLiveAccess(true);
       setIsAdmin(true);
