@@ -147,7 +147,13 @@ export default function ProfilePage() {
         >
           Events
         </button>
-
+<button
+  className="btn"
+  style={{ width: "100%", marginTop: 12 }}
+  onClick={() => router.push("/creator/settings")}
+>
+  Edit Creator Profile
+</button>
         <button
           className="btn"
           style={{
