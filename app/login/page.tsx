@@ -1,8 +1,27 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function signIn() {
+    if (!email) return;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: "https://utv-network-app-cdfd.vercel.app/profile",
+      },
+    });
+
+    if (!error) {
+      setSent(true);
+    }
+  }
+
   return (
     <main
       style={{
@@ -25,40 +44,40 @@ export default function LoginPage() {
           textAlign: "center",
         }}
       >
-        <h1 style={{ fontSize: 32, marginBottom: 10 }}>Welcome to UTV</h1>
+        <h1>Login to UTV</h1>
 
-        <p style={{ opacity: 0.7, marginBottom: 24 }}>
-          Sign in to watch and upload content
-        </p>
+        {sent ? (
+          <p>Check your email for your login link.</p>
+        ) : (
+          <>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 14,
+                borderRadius: 12,
+                marginTop: 20,
+                marginBottom: 20,
+              }}
+            />
 
-  <Link href="/watch">
-  <button
-    style={{
-      width: "100%",
-      padding: 14,
-      borderRadius: 14,
-      border: "none",
-      fontWeight: "bold",
-      marginBottom: 12,
-    }}
-  >
-    Enter UTV
-  </button>
-</Link>
-
-<Link href="/submit">
-  <button
-    style={{
-      width: "100%",
-      padding: 14,
-      borderRadius: 14,
-      border: "none",
-      fontWeight: "bold",
-    }}
-  >
-    Submit Content
-  </button>
-</Link>
+            <button
+              onClick={signIn}
+              style={{
+                width: "100%",
+                padding: 14,
+                borderRadius: 12,
+                border: "none",
+                fontWeight: "bold",
+              }}
+            >
+              Send Login Link
+            </button>
+          </>
+        )}
       </div>
     </main>
   );
