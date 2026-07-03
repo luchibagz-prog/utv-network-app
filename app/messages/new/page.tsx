@@ -1,23 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import UTVNav from "../../components/UTVNav";
 
-export default function NewMessagePage() {
+function NewMessageForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const toEmail = searchParams.get("to") || "";
 
   const [senderEmail, setSenderEmail] = useState("");
-  const [receiverEmail, setReceiverEmail] = useState(toEmail);
+  const [receiverEmail, setReceiverEmail] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("");
 
   useEffect(() => {
+    setReceiverEmail(searchParams.get("to") || "");
     loadUser();
-  }, []);
+  }, [searchParams]);
 
   async function loadUser() {
     const { data } = await supabase.auth.getUser();
@@ -32,7 +32,7 @@ export default function NewMessagePage() {
 
   async function sendMessage() {
     if (!receiverEmail || !message.trim()) {
-      setStatus("Add a message first.");
+      setStatus("Add receiver and message first.");
       return;
     }
 
@@ -56,36 +56,44 @@ export default function NewMessagePage() {
   }
 
   return (
+    <section className="card" style={{ marginTop: 24 }}>
+      <h1>Send Message</h1>
+      <p style={{ color: "var(--muted)" }}>
+        Send a collab request, booking message, business inquiry, or fan message.
+      </p>
+
+      <input
+        className="input"
+        placeholder="To email"
+        value={receiverEmail}
+        onChange={(e) => setReceiverEmail(e.target.value)}
+      />
+
+      <textarea
+        className="input"
+        placeholder="Write your message..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        style={{ minHeight: 140 }}
+      />
+
+      <button className="btn" onClick={sendMessage} style={{ width: "100%" }}>
+        Send Message
+      </button>
+
+      {status && <p style={{ marginTop: 14 }}>{status}</p>}
+    </section>
+  );
+}
+
+export default function NewMessagePage() {
+  return (
     <main className="container">
       <UTVNav />
 
-      <section className="card" style={{ marginTop: 24 }}>
-        <h1>Send Message</h1>
-        <p style={{ color: "var(--muted)" }}>
-          Send a collab request, booking message, business inquiry, or fan message.
-        </p>
-
-        <input
-          className="input"
-          placeholder="To email"
-          value={receiverEmail}
-          onChange={(e) => setReceiverEmail(e.target.value)}
-        />
-
-        <textarea
-          className="input"
-          placeholder="Write your message..."
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          style={{ minHeight: 140 }}
-        />
-
-        <button className="btn" onClick={sendMessage} style={{ width: "100%" }}>
-          Send Message
-        </button>
-
-        {status && <p style={{ marginTop: 14 }}>{status}</p>}
-      </section>
+      <Suspense fallback={<p>Loading message form...</p>}>
+        <NewMessageForm />
+      </Suspense>
     </main>
   );
 }
