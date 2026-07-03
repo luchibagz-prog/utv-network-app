@@ -164,6 +164,7 @@ export default function FeedPage() {
                     playsInline
                     loop
                     muted
+                    controls
                     preload="metadata"
                     style={{
                       width: "100%",
@@ -194,17 +195,16 @@ export default function FeedPage() {
                   </button>
                 </div>
               ) : item.thumbnail_url ? (
-                <img
-                  src={item.thumbnail_url}
-                  alt={item.title}
-                  style={{
-                    width: "100%",
-                    maxHeight: 680,
-                    objectFit: "cover",
-                    borderRadius: 20,
-                    display: "block",
-                  }}
-                />
+              <img
+  src={item.thumbnail}
+  alt={item.title}
+  onClick={() => window.location.href = `/watch/${item.id}`}
+  style={{
+    width: "100%",
+    borderRadius: 18,
+    cursor: "pointer"
+  }}
+/>
               ) : (
                 <div
                   style={{
@@ -236,9 +236,48 @@ export default function FeedPage() {
                     fontWeight: "bold",
                   }}
                 >
-                  <span>♡ Like</span>
-                  <span>💬 Comment</span>
-                  <span>↗ Share</span>
+                <button
+  onClick={() => alert("Liked")}
+  style={{
+    background: "none",
+    border: "none",
+    color: "var(--muted)",
+    fontWeight: "bold",
+    fontSize: 16,
+  }}
+>
+  ♡ Like
+</button>
+
+<button
+  onClick={() => alert("Comments coming next")}
+  style={{
+    background: "none",
+    border: "none",
+    color: "var(--muted)",
+    fontWeight: "bold",
+    fontSize: 16,
+  }}
+>
+  💬 Comment
+</button>
+
+<button
+  onClick={() => navigator.share?.({
+    title: item.title,
+    text: item.description || "Check this out on UTV",
+    url: window.location.origin + `/watch/${item.id}`,
+  })}
+  style={{
+    background: "none",
+    border: "none",
+    color: "var(--muted)",
+    fontWeight: "bold",
+    fontSize: 16,
+  }}
+>
+  ↗ Share
+</button>
                 </div>
               </div>
             </article>
