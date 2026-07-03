@@ -31,34 +31,34 @@ export default function LoginPage() {
           Sign in to watch and upload content
         </p>
 
-        <Link href="/watch">
-          <button
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 14,
-              border: "none",
-              fontWeight: "bold",
-              marginBottom: 12,
-            }}
-          >
-            Enter UTV
-          </button>
-        </Link>
+  <Link href="/watch">
+  <button
+    style={{
+      width: "100%",
+      padding: 14,
+      borderRadius: 14,
+      border: "none",
+      fontWeight: "bold",
+      marginBottom: 12,
+    }}
+  >
+    Enter UTV
+  </button>
+</Link>
 
-        <Link href="/creator">
-          <button
-            style={{
-              width: "100%",
-              padding: 14,
-              borderRadius: 14,
-              border: "none",
-              fontWeight: "bold",
-            }}
-          >
-            Submit Content
-          </button>
-        </Link>
+<Link href="/submit">
+  <button
+    style={{
+      width: "100%",
+      padding: 14,
+      borderRadius: 14,
+      border: "none",
+      fontWeight: "bold",
+    }}
+  >
+    Submit Content
+  </button>
+</Link>
       </div>
     </main>
   );
