@@ -5,80 +5,64 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function signIn() {
-    if (!email) return;
+  async function sendLoginLink() {
+    setMessage("");
+
+    if (!email.trim()) {
+      setMessage("Enter your email first.");
+      return;
+    }
+
+    setLoading(true);
 
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: email.trim(),
       options: {
         emailRedirectTo: "https://utv-network-app-cdfd.vercel.app/profile",
       },
     });
 
-    if (!error) {
-      setSent(true);
+    setLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
     }
+
+    setMessage("Login link sent. Check your email.");
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#0b0b0f",
-        color: "white",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          background: "#111",
-          padding: 24,
-          borderRadius: 20,
-          textAlign: "center",
-        }}
-      >
+    <main className="container">
+      <section className="card" style={{ marginTop: 80, textAlign: "center" }}>
         <h1>Login to UTV</h1>
+        <p style={{ color: "var(--muted)" }}>
+          Enter your email to get your secure login link.
+        </p>
 
-        {sent ? (
-          <p>Check your email for your login link.</p>
-        ) : (
-          <>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: 14,
-                borderRadius: 12,
-                marginTop: 20,
-                marginBottom: 20,
-              }}
-            />
+        <input
+          className="input"
+          type="email"
+          placeholder="your@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{ marginTop: 20 }}
+        />
 
-            <button
-              onClick={signIn}
-              style={{
-                width: "100%",
-                padding: 14,
-                borderRadius: 12,
-                border: "none",
-                fontWeight: "bold",
-              }}
-            >
-              Send Login Link
-            </button>
-          </>
-        )}
-      </div>
+        <button
+          className="btn"
+          onClick={sendLoginLink}
+          disabled={loading}
+          style={{ width: "100%", marginTop: 16 }}
+        >
+          {loading ? "Sending..." : "Send Login Link"}
+        </button>
+
+        {message && <p style={{ marginTop: 14 }}>{message}</p>}
+      </section>
     </main>
   );
 }
