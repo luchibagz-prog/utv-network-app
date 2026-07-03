@@ -30,7 +30,7 @@ export default async function PublicCreatorPage({
         {profile?.avatar_url ? (
           <img
             src={profile.avatar_url}
-            alt={profile.display_name || creatorEmail}
+            alt="Creator"
             style={{
               width: 120,
               height: 120,
@@ -54,19 +54,49 @@ export default async function PublicCreatorPage({
           </p>
         )}
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
           {profile?.instagram && (
-            <a className="btn secondary" href={`https://instagram.com/${profile.instagram.replace("@", "")}`} target="_blank">
+            <a
+              className="btn secondary"
+              href={`https://instagram.com/${profile.instagram.replace("@", "")}`}
+              target="_blank"
+            >
               Instagram
             </a>
           )}
 
           {profile?.youtube && (
-            <a className="btn secondary" href={profile.youtube} target="_blank">
+            <a
+              className="btn secondary"
+              href={profile.youtube}
+              target="_blank"
+            >
               YouTube
             </a>
           )}
+
+          <Link
+            className="btn"
+            href={`/messages/new?to=${encodeURIComponent(creatorEmail)}`}
+          >
+            Message / Collab
+          </Link>
         </div>
+      </section>
+
+      <section className="card" style={{ marginTop: 20 }}>
+        <h2>Business / Booking</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Book services, request collabs, ask about promo, or connect with this creator.
+        </p>
+
+        <Link
+          className="btn"
+          href={`/messages/new?to=${encodeURIComponent(creatorEmail)}`}
+          style={{ marginTop: 14 }}
+        >
+          Contact Creator
+        </Link>
       </section>
 
       <section className="card" style={{ marginTop: 20 }}>
