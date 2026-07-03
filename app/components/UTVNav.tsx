@@ -16,18 +16,17 @@ export default function UTVNav() {
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        <Link
-          href="/feed"
-          style={{
-            color: "white",
-            textDecoration: "none",
-            fontWeight: 900,
-            fontSize: 22,
-            letterSpacing: 0.5,
-          }}
-        >
-          UTV
-        </Link>
+      <Link href="/feed" style={{ textDecoration: "none" }}>
+  <img
+    src="/utv2art.png"
+    alt="UTV"
+    style={{
+      height: 54,
+      width: "auto",
+      objectFit: "contain",
+    }}
+  />
+</Link>
       </nav>
 
       <div style={{ height: 76 }} />
