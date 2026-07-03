@@ -18,7 +18,7 @@ export default function UTVNav() {
       >
       <Link href="/feed" style={{ textDecoration: "none" }}>
   <img
-    src="/utv2art.png"
+    src="/utv-logo.png"
     alt="UTV"
     style={{
       height: 54,

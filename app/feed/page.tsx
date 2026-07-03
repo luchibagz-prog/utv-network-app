@@ -23,15 +23,7 @@ export default function FeedPage() {
 
     const channel = supabase
       .channel("feed-refresh")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "uploads",
-        },
-        () => loadFeed()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "uploads" }, () => loadFeed())
       .subscribe();
 
     return () => {
@@ -42,7 +34,7 @@ export default function FeedPage() {
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
-    }, 4500);
+    }, 4000);
 
     return () => clearInterval(timer);
   }, []);
@@ -63,116 +55,122 @@ export default function FeedPage() {
   }
 
   const filtered = items.filter((item) => {
-    const text = `${item.title || ""} ${item.category || ""} ${
-      item.description || ""
-    }`.toLowerCase();
-
+    const text = `${item.title || ""} ${item.category || ""} ${item.description || ""}`.toLowerCase();
     return text.includes(search.toLowerCase());
   });
 
   return (
-    <main className="container" style={{ paddingBottom: 110 }}>
+    <main className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section
         style={{
-          marginTop: 16,
-          borderRadius: 26,
+          marginTop: 8,
+          borderRadius: 24,
           overflow: "hidden",
-          background: "#050508",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 0 40px rgba(123,97,255,0.18)",
+          background: "#000",
+          boxShadow: "0 0 55px rgba(123,97,255,0.3)",
         }}
       >
         <img
           src={heroHeaders[heroIndex]}
-          alt="UTV Hero"
+          alt="UTV"
           style={{
             width: "100%",
-            height: 230,
+            height: 245,
             objectFit: "cover",
             display: "block",
-            filter: "brightness(1.15) contrast(1.08) saturate(1.2)",
+            filter: "brightness(1.25) contrast(1.15) saturate(1.25)",
           }}
         />
       </section>
 
-      <section className="card" style={{ marginTop: 20 }}>
-        <h1>UTV Feed</h1>
-        <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-          Fresh clips, live replays, flyers, music, comedy, sports, behind-the-scenes,
-          and creator posts.
-        </p>
-
+      <section style={{ marginTop: 16 }}>
         <input
           className="input"
-          placeholder="Search title, comedy, music, sports, creator..."
+          placeholder="Search UTV..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </section>
 
-      <section style={{ display: "grid", gap: 18, marginTop: 20 }}>
+      <section style={{ display: "grid", gap: 20, marginTop: 18 }}>
         {filtered.length === 0 ? (
           <div className="card">
-            <h2>No feed posts found</h2>
-            <p style={{ color: "var(--muted)" }}>
-              New creator posts will show here first.
-            </p>
+            <h2>No posts yet</h2>
+            <p style={{ color: "var(--muted)" }}>Upload content and it will show here.</p>
           </div>
         ) : (
           filtered.map((item) => (
-            <Link
+            <article
               key={item.id}
-              href={`/watch/${item.id}`}
               className="card"
-              style={{
-                textDecoration: "none",
-                padding: 0,
-                overflow: "hidden",
-              }}
+              style={{ padding: 0, overflow: "hidden" }}
             >
-              {item.thumbnail_url && (
-                <img
-                  src={item.thumbnail_url}
-                  alt={item.title}
-                  style={{
-                    width: "100%",
-                    maxHeight: 520,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              )}
-
-              {item.video_url && (
-                <video
-                  src={item.video_url}
-                  controls
-                  playsInline
-                  style={{
-                    width: "100%",
-                    maxHeight: 620,
-                    background: "#000",
-                    display: "block",
-                  }}
-                />
-              )}
-
-              <div style={{ padding: 18 }}>
-                <h2>{item.title}</h2>
-
-                <p style={{ color: "#d4af37", fontWeight: "bold" }}>
-                  {item.category || "Feed"}
-                </p>
-
-                {item.description && (
-                  <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
-                    {item.description}
-                  </p>
+              <Link href={`/watch/${item.id}`} style={{ textDecoration: "none" }}>
+                {item.thumbnail_url ? (
+                  <img
+                    src={item.thumbnail_url}
+                    alt={item.title}
+                    style={{
+                      width: "100%",
+                      maxHeight: 620,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : item.video_url ? (
+                  <video
+                    src={item.video_url}
+                    controls
+                    playsInline
+                    style={{
+                      width: "100%",
+                      maxHeight: 620,
+                      background: "#000",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: 320,
+                      display: "grid",
+                      placeItems: "center",
+                      background: "linear-gradient(135deg,#111,#24113d)",
+                      fontSize: 54,
+                    }}
+                  >
+                    UTV
+                  </div>
                 )}
+
+                <div style={{ padding: 16 }}>
+                  <h2 style={{ marginBottom: 6 }}>{item.title}</h2>
+                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+                    {item.category || "UTV Feed"}
+                  </p>
+                  {item.description && (
+                    <p style={{ color: "var(--muted)", lineHeight: 1.45 }}>
+                      {item.description}
+                    </p>
+                  )}
+                </div>
+              </Link>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "0 16px 16px",
+                  color: "var(--muted)",
+                }}
+              >
+                <span>♡ Like</span>
+                <span>💬 Comment</span>
+                <span>↗ Share</span>
               </div>
-            </Link>
+            </article>
           ))
         )}
       </section>
