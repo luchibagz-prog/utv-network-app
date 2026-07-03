@@ -9,11 +9,13 @@ export default function CreatorSettingsPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [bookingEmail, setBookingEmail] = useState("");
   const [bio, setBio] = useState("");
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
-  const [category, setCategory] = useState("Music");
+  const [category, setCategory] = useState("Creator");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [message, setMessage] = useState("");
@@ -33,6 +35,7 @@ export default function CreatorSettingsPage() {
 
     const userEmail = data.user.email || "";
     setEmail(userEmail);
+    setBookingEmail(userEmail);
 
     const { data: profile } = await supabase
       .from("creator_profiles")
@@ -41,11 +44,13 @@ export default function CreatorSettingsPage() {
       .maybeSingle();
 
     if (profile) {
+      setUsername(profile.username || "");
       setDisplayName(profile.display_name || "");
+      setBookingEmail(profile.booking_email || userEmail);
       setBio(profile.bio || "");
       setInstagram(profile.instagram || "");
       setYoutube(profile.youtube || "");
-      setCategory(profile.category || "Music");
+      setCategory(profile.category || "Creator");
       setAvatarUrl(profile.avatar_url || "");
     }
   }
@@ -53,6 +58,12 @@ export default function CreatorSettingsPage() {
   async function saveProfile() {
     setSaving(true);
     setMessage("");
+
+    const cleanUsername = username
+      .trim()
+      .toLowerCase()
+      .replaceAll(" ", "")
+      .replaceAll("@", "");
 
     let finalAvatarUrl = avatarUrl;
 
@@ -77,7 +88,9 @@ export default function CreatorSettingsPage() {
 
     const { error } = await supabase.from("creator_profiles").upsert({
       email,
+      username: cleanUsername,
       display_name: displayName,
+      booking_email: bookingEmail,
       bio,
       instagram,
       youtube,
@@ -92,6 +105,7 @@ export default function CreatorSettingsPage() {
       return;
     }
 
+    setUsername(cleanUsername);
     setAvatarUrl(finalAvatarUrl);
     setMessage("Creator profile saved.");
   }
@@ -123,14 +137,28 @@ export default function CreatorSettingsPage() {
 
         <input
           className="input"
-          placeholder="Creator / Brand Name"
+          placeholder="Username — example: luchibagz"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+
+        <input
+          className="input"
+          placeholder="Creator / Business Name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
         />
 
+        <input
+          className="input"
+          placeholder="Booking / Contact Email"
+          value={bookingEmail}
+          onChange={(e) => setBookingEmail(e.target.value)}
+        />
+
         <textarea
           className="input"
-          placeholder="Bio — tell viewers who you are"
+          placeholder="Bio — tell viewers who you are and what you offer"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           style={{ minHeight: 120 }}
@@ -155,14 +183,18 @@ export default function CreatorSettingsPage() {
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
-          <option>Music</option>
+          <option>Creator</option>
+          <option>Music Artist</option>
           <option>Podcast</option>
           <option>Comedy</option>
           <option>Sports</option>
           <option>Reality Show</option>
           <option>Documentary</option>
-          <option>Events</option>
-          <option>Creator</option>
+          <option>Business</option>
+          <option>Event Promoter</option>
+          <option>Videographer</option>
+          <option>Model</option>
+          <option>Service Provider</option>
         </select>
 
         <p style={{ marginTop: 16, color: "var(--muted)" }}>
@@ -183,6 +215,14 @@ export default function CreatorSettingsPage() {
           style={{ width: "100%", marginTop: 20 }}
         >
           {saving ? "Saving..." : "Save Creator Profile"}
+        </button>
+
+        <button
+          className="btn secondary"
+          onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
+          style={{ width: "100%", marginTop: 12 }}
+        >
+          View Public Page
         </button>
 
         <button
