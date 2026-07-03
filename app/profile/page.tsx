@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import UTVNav from "../components/UTVNav";
 
 export default function ProfilePage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [plan, setPlan] = useState("Free");
-  const [liveAccess, setLiveAccess] = useState(false);
+  const [plan, setPlan] = useState("Free Creator");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -27,17 +26,14 @@ export default function ProfilePage() {
     }
 
     const userEmail = data.user.email || "";
-
     setEmail(userEmail);
 
-    // YOUR ADMIN EMAIL ONLY
+    // YOUR ADMIN ACCOUNT
     if (userEmail === "luchibagz@gmail.com") {
       setPlan("Gold Creator");
-      setLiveAccess(true);
       setIsAdmin(true);
     } else {
       setPlan("Free Creator");
-      setLiveAccess(false);
       setIsAdmin(false);
     }
 
@@ -46,13 +42,15 @@ export default function ProfilePage() {
 
   async function logout() {
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    router.push("/login");
   }
 
   if (loading) {
     return (
       <main className="container">
-        <p>Loading profile...</p>
+        <section className="card">
+          <h1>Loading profile...</h1>
+        </section>
       </main>
     );
   }
@@ -61,28 +59,24 @@ export default function ProfilePage() {
     <main className="container">
       <UTVNav />
 
-      <section
-        className="card"
-        style={{
-          marginTop: 24,
-          textAlign: "center",
-        }}
-      >
+      <section className="card" style={{ marginTop: 24 }}>
         <div
           style={{
-            fontSize: 60,
-            marginBottom: 15,
+            fontSize: 70,
+            textAlign: "center",
+            marginBottom: 20,
           }}
         >
           👤
         </div>
 
-        <h1>My UTV Profile</h1>
+        <h1 style={{ textAlign: "center" }}>My UTV Profile</h1>
 
         <p
           style={{
+            textAlign: "center",
             color: "var(--muted)",
-            marginTop: 10,
+            marginTop: 14,
           }}
         >
           {email}
@@ -90,35 +84,14 @@ export default function ProfilePage() {
 
         <p
           style={{
-            marginTop: 15,
-            fontWeight: "bold",
+            textAlign: "center",
             color: "#d4af37",
+            fontWeight: "bold",
+            marginTop: 12,
           }}
         >
           {plan}
         </p>
-
-        {liveAccess && (
-          <p
-            style={{
-              marginTop: 10,
-              color: "#39ff88",
-            }}
-          >
-            Live Pass Active
-          </p>
-        )}
-
-        {isAdmin && (
-          <p
-            style={{
-              marginTop: 10,
-              color: "#b388ff",
-            }}
-          >
-            Admin Access Enabled
-          </p>
-        )}
       </section>
 
       <section className="card" style={{ marginTop: 20 }}>
@@ -126,7 +99,7 @@ export default function ProfilePage() {
 
         <button
           className="btn"
-          style={{ width: "100%", marginTop: 12 }}
+          style={{ width: "100%", marginTop: 14 }}
           onClick={() => router.push("/watch")}
         >
           Watch UTV
@@ -147,13 +120,35 @@ export default function ProfilePage() {
         >
           Events
         </button>
-<button
-  className="btn"
-  style={{ width: "100%", marginTop: 12 }}
-  onClick={() => router.push("/creator/settings")}
->
-  Edit Creator Profile
-</button>
+
+        <button
+          className="btn secondary"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() =>
+            router.push(`/u/${encodeURIComponent(email)}`)
+          }
+        >
+          View Public Creator Page
+        </button>
+
+        {isAdmin && (
+          <button
+            className="btn secondary"
+            style={{ width: "100%", marginTop: 12 }}
+            onClick={() => router.push("/admin")}
+          >
+            Admin Panel
+          </button>
+        )}
+
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 12 }}
+          onClick={() => router.push("/creator/settings")}
+        >
+          Edit Creator Profile
+        </button>
+
         <button
           className="btn"
           style={{
