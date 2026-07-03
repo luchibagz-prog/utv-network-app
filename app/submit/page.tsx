@@ -9,73 +9,56 @@ export default function SubmitPage() {
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
-  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState("Feed");
-  const [postType, setPostType] = useState("Feed");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  function pickFile(selected: File | null) {
+    if (!selected) return;
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+  }
+
   async function uploadPost() {
-    if (!file || !title.trim()) {
-      setMessage("Add a file and title first.");
+    if (!file) {
+      setMessage("Take a photo/video or choose one from your phone.");
       return;
     }
 
     setLoading(true);
-    setMessage("");
 
     const { data: userData } = await supabase.auth.getUser();
-
     if (!userData.user) {
       router.push("/login");
       return;
     }
 
     const userEmail = userData.user.email || "";
-
     const fileName = `${Date.now()}-${file.name.replaceAll(" ", "-")}`;
 
-    const { error: fileError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("uploads")
       .upload(fileName, file);
 
-    if (fileError) {
-      setMessage(fileError.message);
+    if (uploadError) {
+      setMessage(uploadError.message);
       setLoading(false);
       return;
     }
 
-    const fileUrl = supabase.storage
-      .from("uploads")
-      .getPublicUrl(fileName).data.publicUrl;
-
-    let thumbUrl = "";
-
-    if (thumbnail) {
-      const thumbName = `${Date.now()}-${thumbnail.name.replaceAll(" ", "-")}`;
-
-      const { error: thumbError } = await supabase.storage
-        .from("thumbnails")
-        .upload(thumbName, thumbnail);
-
-      if (!thumbError) {
-        thumbUrl = supabase.storage
-          .from("thumbnails")
-          .getPublicUrl(thumbName).data.publicUrl;
-      }
-    }
-
+    const fileUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
     const isVideo = file.type.startsWith("video");
 
     const { error } = await supabase.from("uploads").insert({
-      title,
+      title: title || "UTV Post",
       description: caption,
-      category: postType === "Feed" ? category : postType,
+      category,
       creator_email: userEmail,
       video_url: isVideo ? fileUrl : "",
-      thumbnail_url: isVideo ? thumbUrl : fileUrl,
+      thumbnail_url: isVideo ? "" : fileUrl,
       approved: true,
     });
 
@@ -86,8 +69,7 @@ export default function SubmitPage() {
       return;
     }
 
-    setMessage("Posted to UTV.");
-    router.push(postType === "Feed" ? "/feed" : "/watch");
+    router.push("/feed");
   }
 
   return (
@@ -95,85 +77,116 @@ export default function SubmitPage() {
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
-        <h1>Create Post</h1>
+        <h1>Create</h1>
         <p style={{ color: "var(--muted)" }}>
-          Record, upload from your phone, post to the Feed, or submit premium content.
+          Open camera, choose from gallery, add a caption, then post to UTV.
         </p>
 
-        <input
-          type="file"
-          accept="image/*,video/*"
-          capture="environment"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          style={{ marginTop: 16 }}
-        />
+        {!preview ? (
+          <div style={{ display: "grid", gap: 14, marginTop: 20 }}>
+            <label className="btn" style={{ textAlign: "center" }}>
+              📷 Open Camera
+              <input
+                type="file"
+                accept="image/*,video/*"
+                capture="environment"
+                onChange={(e) => pickFile(e.target.files?.[0] || null)}
+                style={{ display: "none" }}
+              />
+            </label>
 
-        <input
-          className="input"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-
-        <textarea
-          className="input"
-          placeholder="Caption / description"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          style={{ minHeight: 120 }}
-        />
-
-        <select
-          className="input"
-          value={postType}
-          onChange={(e) => setPostType(e.target.value)}
-        >
-          <option>Feed</option>
-          <option>Show</option>
-          <option>Movie</option>
-          <option>Podcast</option>
-          <option>Live Replay</option>
-        </select>
-
-        {postType === "Feed" && (
-          <select
-            className="input"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option>Feed</option>
-            <option>Comedy</option>
-            <option>Music</option>
-            <option>Sports</option>
-            <option>Skits</option>
-            <option>Behind The Scenes</option>
-            <option>Business Promo</option>
-            <option>Event Promo</option>
-          </select>
-        )}
-
-        {file?.type.startsWith("video") && (
+            <label className="btn secondary" style={{ textAlign: "center" }}>
+              🖼️ Choose From Phone
+              <input
+                type="file"
+                accept="image/*,video/*"
+                onChange={(e) => pickFile(e.target.files?.[0] || null)}
+                style={{ display: "none" }}
+              />
+            </label>
+          </div>
+        ) : (
           <>
-            <p style={{ marginTop: 14, color: "var(--muted)" }}>
-              Optional cover image
-            </p>
+            {file?.type.startsWith("video") ? (
+              <video
+                src={preview}
+                controls
+                playsInline
+                style={{
+                  width: "100%",
+                  borderRadius: 22,
+                  marginTop: 18,
+                  background: "#000",
+                }}
+              />
+            ) : (
+              <img
+                src={preview}
+                alt="Preview"
+                style={{
+                  width: "100%",
+                  borderRadius: 22,
+                  marginTop: 18,
+                  objectFit: "cover",
+                }}
+              />
+            )}
 
             <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
+              className="input"
+              placeholder="Add title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
+
+            <textarea
+              className="input"
+              placeholder="Write a caption... add emojis 🔥🎬💯"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              style={{ minHeight: 120 }}
+            />
+
+            <select
+              className="input"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option>Feed</option>
+              <option>Comedy</option>
+              <option>Music</option>
+              <option>Sports</option>
+              <option>Skits</option>
+              <option>Behind The Scenes</option>
+              <option>Business Promo</option>
+              <option>Event Promo</option>
+              <option>Live Replay</option>
+              <option>Podcast</option>
+              <option>Show</option>
+              <option>Movie</option>
+            </select>
+
+            <button
+              className="btn"
+              onClick={uploadPost}
+              disabled={loading}
+              style={{ width: "100%", marginTop: 12 }}
+            >
+              {loading ? "Posting..." : "Post to UTV"}
+            </button>
+
+            <button
+              className="btn secondary"
+              onClick={() => {
+                setFile(null);
+                setPreview("");
+              }}
+              style={{ width: "100%", marginTop: 12 }}
+            >
+              Choose Different
+            </button>
           </>
         )}
-
-        <button
-          className="btn"
-          onClick={uploadPost}
-          disabled={loading}
-          style={{ width: "100%", marginTop: 20 }}
-        >
-          {loading ? "Posting..." : "Post to UTV"}
-        </button>
 
         {message && <p style={{ marginTop: 14 }}>{message}</p>}
       </section>
