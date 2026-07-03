@@ -96,7 +96,9 @@ export default function CreatorSettingsPage() {
       youtube,
       category,
       avatar_url: finalAvatarUrl,
-    });
+    },
+    { onConflict: "email" }
+    );
 
     setSaving(false);
 
