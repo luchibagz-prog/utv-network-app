@@ -11,8 +11,12 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<any>(null);
   const [uploads, setUploads] = useState<any[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [collabs, setCollabs] = useState(0);
+  const [unread, setUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = email.toLowerCase() === "luchibagz@gmail.com";
 
   useEffect(() => {
     loadProfile();
@@ -29,9 +33,6 @@ export default function ProfilePage() {
     const userEmail = data.user.email || "";
     setEmail(userEmail);
 
-    const admin = userEmail.toLowerCase() === "luchibagz@gmail.com";
-    setIsAdmin(admin);
-
     const { data: creatorProfile } = await supabase
       .from("creator_profiles")
       .select("*")
@@ -47,6 +48,29 @@ export default function ProfilePage() {
       .order("created_at", { ascending: false });
 
     setUploads(creatorUploads || []);
+
+    const { count: followerCount } = await supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("following_email", userEmail);
+
+    setFollowers(followerCount || 0);
+
+    const { count: collabCount } = await supabase
+      .from("collabs")
+      .select("*", { count: "exact", head: true })
+      .or(`sender_email.eq.${userEmail},receiver_email.eq.${userEmail}`)
+      .eq("status", "accepted");
+
+    setCollabs(collabCount || 0);
+
+    const { count: unreadCount } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("receiver_email", userEmail)
+      .eq("read", false);
+
+    setUnread(unreadCount || 0);
     setLoading(false);
   }
 
@@ -57,7 +81,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <main className="container">
+      <main className="container" style={{ paddingBottom: 120 }}>
         <UTVNav />
         <section className="card" style={{ marginTop: 24 }}>
           <h1>Loading profile...</h1>
@@ -69,38 +93,46 @@ export default function ProfilePage() {
   const displayName = profile?.display_name || "UTV Creator";
   const username = profile?.username || email.split("@")[0];
   const avatarUrl = profile?.avatar_url || "";
-  const bio = profile?.bio || "Create, upload, go live, and build your audience on UTV.";
+  const bio = profile?.bio || "Building content, community, and culture on UTV.";
   const category = profile?.category || "Creator";
-  const plan = isAdmin ? "Gold Creator" : "Free Creator";
 
   return (
-    <main className="container">
+    <main className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
-      <section className="card" style={{ marginTop: 24 }}>
+      <section
+        className="card"
+        style={{
+          marginTop: 24,
+          overflow: "hidden",
+          background:
+            "linear-gradient(160deg, rgba(57,255,136,0.08), rgba(123,97,255,0.08), rgba(0,0,0,0.9))",
+        }}
+      >
         <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={displayName}
               style={{
-                width: 96,
-                height: 96,
+                width: 105,
+                height: 105,
                 borderRadius: "50%",
                 objectFit: "cover",
-                border: "2px solid rgba(255,255,255,0.2)",
+                border: "3px solid rgba(57,255,136,0.45)",
               }}
             />
           ) : (
             <div
               style={{
-                width: 96,
-                height: 96,
+                width: 105,
+                height: 105,
                 borderRadius: "50%",
-                background: "rgba(255,255,255,0.08)",
                 display: "grid",
                 placeItems: "center",
-                fontSize: 48,
+                fontSize: 50,
+                background: "rgba(255,255,255,0.08)",
+                border: "2px solid rgba(255,255,255,0.14)",
               }}
             >
               👤
@@ -111,23 +143,21 @@ export default function ProfilePage() {
             <h1 style={{ margin: 0 }}>{displayName}</h1>
             <p style={{ color: "var(--muted)", marginTop: 6 }}>@{username}</p>
             <p style={{ color: "#d4af37", fontWeight: "bold", marginTop: 6 }}>
-              {plan} • {category}
+              {isAdmin ? "Gold Creator" : "Creator"} • {category}
             </p>
           </div>
         </div>
 
-        <p style={{ marginTop: 18, color: "var(--muted)", lineHeight: 1.5 }}>
+        <p style={{ color: "var(--muted)", lineHeight: 1.5, marginTop: 18 }}>
           {bio}
         </p>
 
-        <p style={{ marginTop: 10, color: "var(--muted)", fontSize: 14 }}>
-          {email}
-        </p>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>{email}</p>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
+            gridTemplateColumns: "repeat(4, 1fr)",
             gap: 10,
             marginTop: 20,
             textAlign: "center",
@@ -135,22 +165,35 @@ export default function ProfilePage() {
         >
           <div className="card" style={{ padding: 12 }}>
             <h2>{uploads.length}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>Posts</p>
+            <p style={{ color: "var(--muted)", fontSize: 12 }}>Posts</p>
           </div>
 
           <div className="card" style={{ padding: 12 }}>
-            <h2>0</h2>
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>Followers</p>
+            <h2>{followers}</h2>
+            <p style={{ color: "var(--muted)", fontSize: 12 }}>Followers</p>
           </div>
 
           <div className="card" style={{ padding: 12 }}>
-            <h2>0</h2>
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>Collabs</p>
+            <h2>{collabs}</h2>
+            <p style={{ color: "var(--muted)", fontSize: 12 }}>Collabs</p>
+          </div>
+
+          <div className="card" style={{ padding: 12 }}>
+            <h2>{unread}</h2>
+            <p style={{ color: "var(--muted)", fontSize: 12 }}>Alerts</p>
           </div>
         </div>
 
         <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-          <button className="btn" onClick={() => router.push("/creator/settings")}>
+          <button className="btn" onClick={() => router.push("/submit")}>
+            Create Post
+          </button>
+
+          <button className="btn secondary" onClick={() => router.push("/messages")}>
+            Inbox {unread > 0 ? `(${unread})` : ""}
+          </button>
+
+          <button className="btn secondary" onClick={() => router.push("/creator/settings")}>
             Edit Profile
           </button>
 
@@ -158,18 +201,11 @@ export default function ProfilePage() {
             className="btn secondary"
             onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
           >
-            View Public Page
+            View Public Profile
           </button>
 
-          <button className="btn" onClick={() => router.push("/go-live")}>
+          <button className="btn" onClick={() => router.push("/live-room")}>
             Go Live
-          </button>
-
-          <button
-            className="btn secondary"
-            onClick={() => router.push(`/messages/new?to=${encodeURIComponent(email)}`)}
-          >
-            Message / Collab
           </button>
 
           {isAdmin && (
@@ -178,38 +214,56 @@ export default function ProfilePage() {
             </button>
           )}
 
-          <button
-            className="btn"
-            style={{ background: "#ff3b3b" }}
-            onClick={logout}
-          >
+          <button className="btn" style={{ background: "#ff3b3b" }} onClick={logout}>
             Logout
           </button>
         </div>
       </section>
 
       <section className="card" style={{ marginTop: 20 }}>
-        <h2>Uploads</h2>
+        <h2>Profile Wall</h2>
+        <p style={{ color: "var(--muted)" }}>
+          Your uploads, live replays, promos, and creator posts.
+        </p>
 
         {uploads.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>
-            No uploads yet. Start posting content to build your UTV profile.
-          </p>
+          <p style={{ color: "var(--muted)" }}>No posts yet.</p>
         ) : (
-          <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
             {uploads.map((upload) => (
-              <div key={upload.id} className="card" style={{ padding: 14 }}>
-                <h3>{upload.title}</h3>
-                <p style={{ color: "var(--muted)" }}>
-                  {upload.category || "UTV Upload"}
-                </p>
-                <button
-                  className="btn secondary"
-                  style={{ width: "100%", marginTop: 10 }}
-                  onClick={() => router.push(`/watch/${upload.id}`)}
-                >
-                  View
-                </button>
+              <div key={upload.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                {upload.video_url ? (
+                  <video
+                    src={upload.video_url}
+                    controls
+                    playsInline
+                    style={{
+                      width: "100%",
+                      maxHeight: 520,
+                      background: "#000",
+                    }}
+                  />
+                ) : upload.thumbnail_url ? (
+                  <img
+                    src={upload.thumbnail_url}
+                    alt={upload.title}
+                    style={{
+                      width: "100%",
+                      maxHeight: 520,
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : null}
+
+                <div style={{ padding: 16 }}>
+                  <h3>{upload.title}</h3>
+                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+                    {upload.category || "UTV Post"}
+                  </p>
+                  {upload.description && (
+                    <p style={{ color: "var(--muted)" }}>{upload.description}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
