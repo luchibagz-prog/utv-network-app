@@ -15,8 +15,12 @@ function NewMessageForm() {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    setReceiverEmail(searchParams.get("to") || "");
     loadUser();
+
+    const to = searchParams.get("to");
+    if (to) {
+      setReceiverEmail(decodeURIComponent(to));
+    }
   }, [searchParams]);
 
   async function loadUser() {
@@ -31,15 +35,22 @@ function NewMessageForm() {
   }
 
   async function sendMessage() {
-    if (!receiverEmail || !message.trim()) {
-      setStatus("Add receiver and message first.");
+    setStatus("");
+
+    if (!receiverEmail.trim()) {
+      setStatus("Add who you want to message.");
+      return;
+    }
+
+    if (!message.trim()) {
+      setStatus("Write a message first.");
       return;
     }
 
     const { error } = await supabase.from("messages").insert({
       sender_email: senderEmail,
-      receiver_email: receiverEmail,
-      message,
+      receiver_email: receiverEmail.trim().toLowerCase(),
+      message: message.trim(),
     });
 
     if (error) {
@@ -58,13 +69,14 @@ function NewMessageForm() {
   return (
     <section className="card" style={{ marginTop: 24 }}>
       <h1>Send Message</h1>
+
       <p style={{ color: "var(--muted)" }}>
         Send a collab request, booking message, business inquiry, or fan message.
       </p>
 
       <input
         className="input"
-        placeholder="To email"
+        placeholder="Type user email or creator email"
         value={receiverEmail}
         onChange={(e) => setReceiverEmail(e.target.value)}
       />
@@ -77,7 +89,11 @@ function NewMessageForm() {
         style={{ minHeight: 140 }}
       />
 
-      <button className="btn" onClick={sendMessage} style={{ width: "100%" }}>
+      <button
+        className="btn"
+        onClick={sendMessage}
+        style={{ width: "100%" }}
+      >
         Send Message
       </button>
 
