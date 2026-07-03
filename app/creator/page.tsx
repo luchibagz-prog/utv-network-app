@@ -57,6 +57,13 @@ export default function CreatorPage() {
         <p style={{ color: "#d4af37", fontWeight: "bold" }}>
           Creator Tools Active
         </p>
+        <button
+  className="btn"
+  style={{ width: "100%", marginTop: 16 }}
+  onClick={() => router.push("/creator/settings")}
+>
+  Edit Creator Profile
+</button>
       </section>
 
       <section className="card" style={{ marginTop: 20 }}>
