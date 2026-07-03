@@ -9,6 +9,7 @@ export default function LiveRoomPage() {
 
   const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("user");
   const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isLive, setIsLive] = useState(false);
   const [status, setStatus] = useState("Camera off");
 
   async function startCamera(facing: "user" | "environment" = cameraFacing) {
@@ -18,20 +19,27 @@ export default function LiveRoomPage() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
         },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        await videoRef.current.play();
       }
 
       setCameraFacing(facing);
       setIsCameraOn(true);
-      setStatus(facing === "user" ? "Front camera live" : "Back camera live");
-    } catch (err) {
+      setStatus(facing === "user" ? "Front camera ready" : "Back camera ready");
+    } catch {
       setStatus("Camera blocked. Allow camera/mic permissions.");
     }
   }
@@ -47,6 +55,7 @@ export default function LiveRoomPage() {
     }
 
     setIsCameraOn(false);
+    setIsLive(false);
     setStatus("Camera off");
   }
 
@@ -55,10 +64,22 @@ export default function LiveRoomPage() {
     await startCamera(nextFacing);
   }
 
+  async function startLive() {
+    if (!isCameraOn) {
+      await startCamera();
+    }
+
+    setIsLive(true);
+    setStatus("You are LIVE on UTV");
+  }
+
+  function endLive() {
+    setIsLive(false);
+    setStatus("Live ended. Camera still ready.");
+  }
+
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, []);
 
   return (
@@ -67,8 +88,17 @@ export default function LiveRoomPage() {
 
       <section className="card" style={{ marginTop: 24 }}>
         <p style={{ color: "var(--muted)" }}>UTV Live Room</p>
+
         <h1>Go Live</h1>
-        <p style={{ color: "var(--muted)" }}>{status}</p>
+
+        <p
+          style={{
+            color: isLive ? "#39ff88" : "var(--muted)",
+            fontWeight: isLive ? "bold" : "normal",
+          }}
+        >
+          {isLive ? "● LIVE NOW" : status}
+        </p>
 
         <video
           ref={videoRef}
@@ -77,11 +107,13 @@ export default function LiveRoomPage() {
           muted
           style={{
             width: "100%",
-            minHeight: 360,
+            aspectRatio: "9 / 16",
+            maxHeight: "70vh",
             background: "#000",
-            borderRadius: 20,
+            borderRadius: 24,
             objectFit: "cover",
             marginTop: 16,
+            transform: cameraFacing === "user" ? "scaleX(-1)" : "none",
           }}
         />
 
@@ -102,14 +134,36 @@ export default function LiveRoomPage() {
           Flip Front / Back Camera
         </button>
 
+        {!isLive ? (
+          <button
+            className="btn"
+            onClick={startLive}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              background: "#ff2d55",
+            }}
+          >
+            Start Live
+          </button>
+        ) : (
+          <button
+            className="btn"
+            onClick={endLive}
+            style={{
+              width: "100%",
+              marginTop: 12,
+              background: "#ff3b3b",
+            }}
+          >
+            End Live
+          </button>
+        )}
+
         <button
-          className="btn"
+          className="btn secondary"
           onClick={stopCamera}
-          style={{
-            width: "100%",
-            marginTop: 12,
-            background: "#ff3b3b",
-          }}
+          style={{ width: "100%", marginTop: 12 }}
         >
           Stop Camera
         </button>
