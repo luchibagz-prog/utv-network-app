@@ -23,7 +23,7 @@ export default function UTVNav() {
         }}
       >
         <Link href="/watch" className="btn secondary">Watch</Link>
-        <Link href="/reels" className="btn secondary">Reels</Link>
+        <Link href="/feed" className="btn secondary">Feed</Link>
         <Link href="/events" className="btn secondary">Events</Link>
         <Link href="/live" className="btn secondary">Live</Link>
         <Link href="/go-live" className="btn secondary">Go Live</Link>
