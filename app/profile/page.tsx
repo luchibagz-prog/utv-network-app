@@ -120,7 +120,13 @@ export default function ProfilePage() {
         >
           Events
         </button>
-
+<button
+  className="btn"
+  style={{ width: "100%", marginTop: 12 }}
+  onClick={() => router.push("/go-live")}
+>
+  Go Live
+</button>
         <button
           className="btn secondary"
           style={{ width: "100%", marginTop: 12 }}
