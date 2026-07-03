@@ -123,7 +123,9 @@ export default function ProfilePage() {
 <button
   className="btn"
   style={{ width: "100%", marginTop: 12 }}
-  onClick={() => router.push("/go-live")}
+  onClick={() =>
+    router.push(isAdmin ? "/live-room" : "/go-live")
+  }
 >
   Go Live
 </button>
