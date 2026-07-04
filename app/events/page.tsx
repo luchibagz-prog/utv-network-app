@@ -5,20 +5,10 @@ import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-type Event = {
-  id: string;
-  title: string;
-  city: string;
-  location: string;
-  event_date: string;
-  flyer_url: string;
-  ticket_url: string;
-  description: string;
-};
-
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [rsvpCounts, setRsvpCounts] = useState<Record<string, number>>({});
+  const [events, setEvents] = useState<any[]>([]);
+  const [rsvps, setRsvps] = useState<Record<string, number>>({});
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadEvents();
@@ -28,121 +18,131 @@ export default function EventsPage() {
     const { data } = await supabase
       .from("events")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("event_date", { ascending: true });
 
     setEvents(data || []);
-    loadRsvpCounts(data || []);
+
+    (data || []).forEach((event) => {
+      loadRsvps(event.id);
+    });
   }
 
-  async function loadRsvpCounts(eventList: Event[]) {
-    const counts: Record<string, number> = {};
-
-    for (const event of eventList) {
-      const { count } = await supabase
-        .from("event_rsvps")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", event.id);
-
-      counts[event.id] = count || 0;
-    }
-
-    setRsvpCounts(counts);
-  }
-
-  async function rsvp(eventId: string) {
-    const { data: userData } = await supabase.auth.getUser();
-    const userEmail = userData.user?.email || "Guest@UTV.app";
-
-    const { data: existing } = await supabase
+  async function loadRsvps(eventId: string) {
+    const { count } = await supabase
       .from("event_rsvps")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("user_email", userEmail)
-      .maybeSingle();
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId);
 
-    if (existing) return;
+    setRsvps((prev) => ({ ...prev, [eventId]: count || 0 }));
+  }
+
+  async function going(eventId: string) {
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) {
+      window.location.href = "/login";
+      return;
+    }
 
     await supabase.from("event_rsvps").insert({
       event_id: eventId,
-      user_email: userEmail,
+      user_email: data.user.email,
     });
 
-    loadEvents();
+    loadRsvps(eventId);
   }
 
+  const filtered = events.filter((event) => {
+    const text = `${event.title || ""} ${event.city || ""} ${event.state || ""} ${
+      event.location || ""
+    }`.toLowerCase();
+
+    return text.includes(search.toLowerCase());
+  });
+
   return (
-    <main className="container">
+    <main className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
-        <h1>UTV Events</h1>
+        <h1>Events</h1>
         <p style={{ color: "var(--muted)" }}>
-          Find live events, pop-ups, shows, parties, premieres, and UTV experiences.
+          Discover upcoming events, gatherings, pop-ups, parties, premieres, and UTV experiences.
         </p>
 
-        <Link href="/events/new" className="btn" style={{ marginTop: 16 }}>
+        <input
+          className="input"
+          placeholder="Search city, state, event name..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <Link className="btn" href="/events/new" style={{ width: "100%", marginTop: 14 }}>
           Post Event
         </Link>
       </section>
 
       <section style={{ display: "grid", gap: 18, marginTop: 20 }}>
-        {events.length === 0 && (
+        {filtered.length === 0 ? (
           <div className="card">
-            <h2>No events posted yet</h2>
+            <h2>No events yet</h2>
             <p style={{ color: "var(--muted)" }}>
-              Events will show here once posted.
+              Events posted by creators will show here.
             </p>
           </div>
-        )}
-
-        {events.map((event) => (
-          <div key={event.id} className="card">
-            <h2>{event.title}</h2>
-
-            <p style={{ color: "var(--muted)" }}>
-              {event.city} • {event.event_date}
-            </p>
-
-            <p>{event.location}</p>
-
-            {event.flyer_url && (
-              <img
-                src={event.flyer_url}
-                alt={event.title}
-                style={{
-                  width: "100%",
-                  borderRadius: 14,
-                  marginTop: 12,
-                  marginBottom: 12,
-                  objectFit: "cover",
-                }}
-              />
-            )}
-
-            <p style={{ color: "var(--muted)" }}>{event.description}</p>
-
-            <p style={{ marginTop: 12 }}>
-              🔥 {rsvpCounts[event.id] || 0} going
-            </p>
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
-              <button className="btn" onClick={() => rsvp(event.id)}>
-                Going
-              </button>
-
-              {event.ticket_url && (
-                <a
-                  href={event.ticket_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn secondary"
-                >
-                  RSVP / Tickets
-                </a>
+        ) : (
+          filtered.map((event) => (
+            <div key={event.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {event.flyer_url && (
+                <img
+                  src={event.flyer_url}
+                  alt={event.title}
+                  style={{
+                    width: "100%",
+                    maxHeight: 560,
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
               )}
+
+              <div style={{ padding: 16 }}>
+                <h2>{event.title}</h2>
+
+                <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+                  {event.city || "City"} {event.state ? `, ${event.state}` : ""} •{" "}
+                  {event.event_date || "Date TBA"}
+                </p>
+
+                {event.location && (
+                  <p style={{ color: "var(--muted)" }}>{event.location}</p>
+                )}
+
+                {event.description && <p>{event.description}</p>}
+
+                <p style={{ color: "#39ff88", fontWeight: "bold" }}>
+                  {rsvps[event.id] || 0} going
+                </p>
+
+                <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                  <button className="btn" onClick={() => going(event.id)}>
+                    I’m Going
+                  </button>
+
+                  {event.ticket_url && (
+                    <a
+                      className="btn secondary"
+                      href={event.ticket_url}
+                      target="_blank"
+                    >
+                      Tickets / RSVP Link
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </section>
     </main>
   );
