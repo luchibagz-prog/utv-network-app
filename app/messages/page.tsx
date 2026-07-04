@@ -10,6 +10,7 @@ export default function MessagesPage() {
 
   const [email, setEmail] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [replyText, setReplyText] = useState("");
   const [replyTo, setReplyTo] = useState("");
   const [status, setStatus] = useState("");
@@ -18,6 +19,18 @@ export default function MessagesPage() {
   useEffect(() => {
     loadMessages();
   }, []);
+
+  async function getName(userEmail: string) {
+    if (!userEmail) return "UTV User";
+
+    const { data } = await supabase
+      .from("creator_profiles")
+      .select("display_name, username")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    return data?.display_name || data?.username || userEmail;
+  }
 
   async function loadMessages() {
     const { data } = await supabase.auth.getUser();
@@ -36,14 +49,30 @@ export default function MessagesPage() {
       .or(`sender_email.eq.${userEmail},receiver_email.eq.${userEmail}`)
       .order("created_at", { ascending: false });
 
-    setMessages(inbox || []);
-    setLoading(false);
+    const allMessages = inbox || [];
+    setMessages(allMessages);
+
+    const uniqueEmails = Array.from(
+      new Set(
+        allMessages.flatMap((msg) => [msg.sender_email, msg.receiver_email])
+      )
+    );
+
+    const nameMap: Record<string, string> = {};
+
+    for (const user of uniqueEmails) {
+      nameMap[user] = await getName(user);
+    }
+
+    setNames(nameMap);
 
     await supabase
       .from("messages")
       .update({ read: true })
       .eq("receiver_email", userEmail)
       .eq("read", false);
+
+    setLoading(false);
   }
 
   async function sendReply(receiverEmail: string) {
@@ -64,6 +93,13 @@ export default function MessagesPage() {
       return;
     }
 
+    await supabase.from("notifications").insert({
+      user_email: receiverEmail,
+      type: "message",
+      title: "New Message",
+      message: `${names[email] || email} sent you a message.`,
+    });
+
     setReplyText("");
     setReplyTo("");
     setStatus("Reply sent.");
@@ -72,7 +108,7 @@ export default function MessagesPage() {
 
   if (loading) {
     return (
-      <main className="container">
+      <main className="container" style={{ paddingBottom: 120 }}>
         <UTVNav />
         <section className="card" style={{ marginTop: 24 }}>
           <h1>Loading inbox...</h1>
@@ -82,13 +118,13 @@ export default function MessagesPage() {
   }
 
   return (
-    <main className="container">
+    <main className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
         <h1>Inbox</h1>
         <p style={{ color: "var(--muted)" }}>
-          Messages, booking requests, fan notes, and creator conversations.
+          Messages, booking questions, fan notes, and creator conversations.
         </p>
 
         <button
@@ -100,90 +136,76 @@ export default function MessagesPage() {
         </button>
       </section>
 
-      <section className="card" style={{ marginTop: 20 }}>
+      <section style={{ display: "grid", gap: 14, marginTop: 20 }}>
         {messages.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No messages yet.</p>
+          <div className="card">
+            <p style={{ color: "var(--muted)" }}>No messages yet.</p>
+          </div>
         ) : (
-          <div style={{ display: "grid", gap: 14 }}>
-            {messages.map((msg) => {
-              const otherUser =
-                msg.sender_email === email ? msg.receiver_email : msg.sender_email;
+          messages.map((msg) => {
+            const otherUser =
+              msg.sender_email === email ? msg.receiver_email : msg.sender_email;
 
-              const isReceived = msg.receiver_email === email;
+            const isReceived = msg.receiver_email === email;
 
-              return (
-                <div key={msg.id} className="card" style={{ padding: 14 }}>
-                  <p style={{ color: isReceived && !msg.read ? "#39ff88" : "#d4af37", fontWeight: "bold" }}>
-                    {isReceived ? "Received Message" : "Sent Message"}
-                  </p>
+            return (
+              <div key={msg.id} className="card">
+                <p style={{ color: isReceived ? "#39ff88" : "#d4af37", fontWeight: "bold" }}>
+                  {isReceived ? "From" : "To"}: {names[otherUser] || otherUser}
+                </p>
 
-                  <p style={{ marginTop: 8 }}>
-                    <strong>From:</strong> {msg.sender_email}
-                  </p>
+                {msg.subject && <h3>{msg.subject}</h3>}
 
-                  <p>
-                    <strong>To:</strong> {msg.receiver_email}
-                  </p>
+                <p style={{ lineHeight: 1.5 }}>{msg.message}</p>
 
-                  {msg.subject && (
-                    <p>
-                      <strong>Subject:</strong> {msg.subject}
-                    </p>
-                  )}
+                <p style={{ color: "var(--muted)", fontSize: 12 }}>
+                  {new Date(msg.created_at).toLocaleString()}
+                </p>
 
-                  <p style={{ marginTop: 12, lineHeight: 1.5 }}>
-                    {msg.message}
-                  </p>
+                {replyTo === msg.id ? (
+                  <div style={{ marginTop: 14 }}>
+                    <textarea
+                      className="input"
+                      placeholder={`Reply to ${names[otherUser] || otherUser}`}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      style={{ minHeight: 100 }}
+                    />
 
-                  <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 10 }}>
-                    {new Date(msg.created_at).toLocaleString()}
-                  </p>
+                    <button
+                      className="btn"
+                      style={{ width: "100%", marginTop: 10 }}
+                      onClick={() => sendReply(otherUser)}
+                    >
+                      Send Reply
+                    </button>
 
-                  {replyTo === msg.id ? (
-                    <div style={{ marginTop: 14 }}>
-                      <textarea
-                        className="input"
-                        placeholder={`Reply to ${otherUser}`}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        style={{ minHeight: 100 }}
-                      />
-
-                      <button
-                        className="btn"
-                        style={{ width: "100%", marginTop: 10 }}
-                        onClick={() => sendReply(otherUser)}
-                      >
-                        Send Reply
-                      </button>
-
-                      <button
-                        className="btn secondary"
-                        style={{ width: "100%", marginTop: 10 }}
-                        onClick={() => {
-                          setReplyTo("");
-                          setReplyText("");
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
                     <button
                       className="btn secondary"
-                      style={{ width: "100%", marginTop: 14 }}
-                      onClick={() => setReplyTo(msg.id)}
+                      style={{ width: "100%", marginTop: 10 }}
+                      onClick={() => {
+                        setReplyTo("");
+                        setReplyText("");
+                      }}
                     >
-                      Reply
+                      Cancel
                     </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  </div>
+                ) : (
+                  <button
+                    className="btn secondary"
+                    style={{ width: "100%", marginTop: 14 }}
+                    onClick={() => setReplyTo(msg.id)}
+                  >
+                    Reply
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
 
-        {status && <p style={{ marginTop: 14 }}>{status}</p>}
+        {status && <p>{status}</p>}
       </section>
     </main>
   );
