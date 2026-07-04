@@ -5,138 +5,192 @@ import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-type Show = {
-  id: string;
-  title: string;
-  description?: string;
-  category?: string;
-  thumbnail_url?: string;
-  thumbnail?: string;
-  image_url?: string;
-  cover_url?: string;
-};
-
-function CategoryRow({
-  title,
-  shows,
-}: {
-  title: string;
-  shows: Show[];
-}) {
-  if (!shows.length) return null;
-
-  return (
-    <section className="contentRow">
-      <h2>{title}</h2>
-
-      <div className="posterRow">
-        {shows.map((show) => (
-          <Link key={show.id} href={`/watch/${show.id}`} className="posterCard">
-            <div
-              className="posterImage"
-              style={{
-               backgroundImage: `url(${
-  show.thumbnail_url ||
-  show.thumbnail ||
-  show.image_url ||
-  show.cover_url ||
-  "/utv-main-header.png"
-})`,
-              }}
-            />
-
-            <div className="posterInfo">
-              <h3>{show.title}</h3>
-              <p>{show.category}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
+const heroHeaders = [
+  "/utv-logo.png",
+  "/utv-banner.png",
+  "/bbgroundup.png",
+  "/utv1.png",
+  "/utv2art.png",
+];
 
 export default function WatchPage() {
-  const [shows, setShows] = useState<Show[]>([]);
+  const [uploads, setUploads] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
 
-  const heroImages = [
-    "/utv-main-header.png",
-    "/utv1.png",
-    "/utv2art.png",
-    "/bgroundup.png",
-  ];
-
   useEffect(() => {
-    const fetchShows = async () => {
-      const { data } = await supabase
-        .from("uploads")
-        .select("*")
-        .eq("approved", true)
-        .order("created_at", { ascending: false });
+    loadUploads();
 
-      setShows(data || []);
-    };
+    const timer = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
+    }, 4200);
 
-    fetchShows();
+    return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroImages.length);
-    }, 6000);
+  async function loadUploads() {
+    const { data } = await supabase
+      .from("uploads")
+      .select("*")
+      .eq("approved", true)
+      .order("created_at", { ascending: false });
 
-    return () => clearInterval(interval);
-  }, []);
+    setUploads(data || []);
+  }
+
+  const filtered = uploads.filter((item) => {
+    const text = `${item.title || ""} ${item.category || ""} ${item.description || ""}`.toLowerCase();
+    return text.includes(search.toLowerCase());
+  });
+
+  const originals = filtered.filter((item) =>
+    `${item.category || ""} ${item.title || ""}`.toLowerCase().includes("show")
+  );
+
+  const movies = filtered.filter((item) =>
+    `${item.category || ""}`.toLowerCase().includes("movie")
+  );
+
+  const podcasts = filtered.filter((item) =>
+    `${item.category || ""}`.toLowerCase().includes("podcast")
+  );
+
+  const top10 = [...filtered]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 10);
+
+  function Row({ title, items, numbered = false }: any) {
+    if (!items || items.length === 0) return null;
+
+    return (
+      <section style={{ marginTop: 28 }}>
+        <h2 style={{ paddingLeft: 16, marginBottom: 12 }}>{title}</h2>
+
+        <div
+          style={{
+            display: "flex",
+            overflowX: "auto",
+            gap: 14,
+            padding: "0 16px 10px",
+            scrollSnapType: "x mandatory",
+          }}
+        >
+          {items.map((item: any, index: number) => (
+            <Link
+              key={item.id}
+              href={`/watch/${item.id}`}
+              style={{
+                minWidth: 210,
+                maxWidth: 210,
+                textDecoration: "none",
+                color: "white",
+                scrollSnapAlign: "start",
+              }}
+            >
+              <div
+                style={{
+                  position: "relative",
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  background: "#111",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  boxShadow: "0 0 24px rgba(123,97,255,0.12)",
+                }}
+              >
+                {item.thumbnail_url ? (
+                  <img
+                    src={item.thumbnail_url}
+                    alt={item.title}
+                    style={{
+                      width: "100%",
+                      height: 125,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: 125,
+                      display: "grid",
+                      placeItems: "center",
+                      background: "linear-gradient(135deg,#111,#24113d)",
+                    }}
+                  >
+                    UTV
+                  </div>
+                )}
+
+                {numbered && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 8,
+                      top: 8,
+                      width: 34,
+                      height: 34,
+                      borderRadius: "50%",
+                      background: "rgba(0,0,0,0.78)",
+                      display: "grid",
+                      placeItems: "center",
+                      fontWeight: "bold",
+                      color: "#39ff88",
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                )}
+              </div>
+
+              <h3 style={{ marginTop: 10, fontSize: 17 }}>{item.title}</h3>
+              <p style={{ color: "#d4af37", marginTop: -4, fontWeight: "bold" }}>
+                {item.category || "UTV"}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <main className="utvPage">
+    <main style={{ background: "#000", minHeight: "100vh", paddingBottom: 120 }}>
       <UTVNav />
 
-   <section
-  className="cinematicHero"
-  style={{
-    backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.65) 100%), url(${heroImages[heroIndex]})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center top",
-    backgroundRepeat: "no-repeat",
-  }}
-/>
+      <section style={{ width: "100%", background: "#000" }}>
+        <img
+          src={heroHeaders[heroIndex]}
+          alt="UTV Watch"
+          style={{
+            width: "100%",
+            height: "44vh",
+            minHeight: 300,
+            objectFit: "cover",
+            display: "block",
+            filter: "brightness(1.25) contrast(1.14) saturate(1.25)",
+          }}
+        />
+      </section>
 
-      <CategoryRow
-        title="UTV Originals"
-        shows={shows.filter((s) =>
-       ["show", "series"].includes((s.category || "").toLowerCase())
-        )}
-      />
+      <section style={{ padding: "16px" }}>
+        <h1 style={{ fontSize: 44, margin: 0 }}>Watch UTV</h1>
+        <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>
+          Stream originals, shows, movies, podcasts, live events, and featured content.
+        </p>
 
-      <CategoryRow
-        title="Movies"
-        shows={shows.filter((s) => s.category?.toLowerCase() === "movie")}
-      />
+        <input
+          className="input"
+          placeholder="Search shows, movies, podcasts..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </section>
 
-      <CategoryRow
-        title="Podcasts"
-        shows={shows.filter((s) =>
-          s.category?.toLowerCase().includes("podcast")
-        )}
-      />
-
-      <CategoryRow
-        title="Music Videos"
-        shows={shows.filter((s) =>
-          s.category?.toLowerCase().includes("music")
-        )}
-      />
-
-      <CategoryRow
-        title="Live Events"
-        shows={shows.filter((s) =>
-          s.category?.toLowerCase().includes("live")
-        )}
-      />
-
-      <CategoryRow title="Now Streaming" shows={shows} />
+      <Row title="Top 10 on UTV" items={top10} numbered />
+      <Row title="UTV Originals" items={originals} />
+      <Row title="Movies" items={movies} />
+      <Row title="Podcasts" items={podcasts} />
+      <Row title="All Streaming" items={filtered} />
     </main>
   );
 }
