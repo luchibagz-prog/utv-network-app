@@ -228,49 +228,71 @@ export default function FeedPage() {
                 </p>
               </div>
 
-              {item.video_url ? (
-                <video
-                  ref={(el) => {
-                    videoRefs.current[item.id] = el;
-                  }}
-                  src={item.video_url}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  style={{
-                    width: "100%",
-                    maxHeight: 720,
-                    objectFit: "cover",
-                    background: "#000",
-                    display: "block",
-                  }}
-                />
-              ) : item.thumbnail_url ? (
-                <img
-                  src={item.thumbnail_url}
-                  alt={item.title}
-                  onClick={() => (window.location.href = `/watch/${item.id}`)}
-                  style={{
-                    width: "100%",
-                    maxHeight: 720,
-                    objectFit: "cover",
-                    display: "block",
-                    cursor: "pointer",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    height: 340,
-                    display: "grid",
-                    placeItems: "center",
-                    background: "linear-gradient(135deg,#111,#24113d)",
-                    fontSize: 54,
-                  }}
-                >
-                  UTV
-                </div>
-              )}
+{(() => {
+  const image =
+    item.thumbnail_url ||
+    item.cover_url ||
+    item.image_url ||
+    item.poster_url ||
+    item.flyer_url ||
+    "";
+
+  const video =
+    item.video_url ||
+    item.file_url ||
+    item.media_url ||
+    item.url ||
+    "";
+
+  if (video) {
+    return (
+      <video
+        src={video}
+        controls
+        playsInline
+        preload="metadata"
+        style={{
+          width: "100%",
+          maxHeight: 720,
+          objectFit: "cover",
+          background: "#000",
+          display: "block",
+        }}
+      />
+    );
+  }
+
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={item.title}
+        onClick={() => (window.location.href = `/watch/${item.id}`)}
+        style={{
+          width: "100%",
+          maxHeight: 720,
+          objectFit: "cover",
+          display: "block",
+          cursor: "pointer",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        height: 340,
+        display: "grid",
+        placeItems: "center",
+        background: "linear-gradient(135deg,#111,#24113d)",
+        fontSize: 54,
+      }}
+    >
+      UTV
+    </div>
+  );
+})()}
 
               <div style={{ padding: "14px 16px 0" }}>
                 {item.description && (
