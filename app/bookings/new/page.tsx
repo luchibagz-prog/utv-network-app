@@ -1,15 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function NewBookingPage() {
-  const params = useSearchParams();
-
-  const receiverEmail = params.get("to") || "";
-
+  const [receiverEmail, setReceiverEmail] = useState("");
   const [service, setService] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
@@ -17,7 +13,17 @@ export default function NewBookingPage() {
   const [status, setStatus] = useState("");
   const [sending, setSending] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setReceiverEmail(params.get("to") || "");
+  }, []);
+
   async function submitBooking() {
+    if (!receiverEmail) {
+      setStatus("Missing creator email.");
+      return;
+    }
+
     if (!service.trim()) {
       setStatus("Enter the service needed.");
       return;
@@ -72,10 +78,11 @@ export default function NewBookingPage() {
 
       <section className="card" style={{ marginTop: 24 }}>
         <h1>Book Creator</h1>
-
         <p style={{ color: "var(--muted)" }}>
           Request services, content, interviews, appearances, promos, and more.
         </p>
+
+        <input className="input" value={receiverEmail} readOnly />
 
         <input
           className="input"
