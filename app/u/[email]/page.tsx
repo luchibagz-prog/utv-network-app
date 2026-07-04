@@ -231,6 +231,14 @@ export default function PublicCreatorPage() {
             }
           >
             Message
+            <button
+  className="btn secondary"
+  onClick={() =>
+    router.push(`/bookings/new?to=${encodeURIComponent(creatorEmail)}`)
+  }
+>
+  Book Creator
+</button>
           </button>
 
           <button

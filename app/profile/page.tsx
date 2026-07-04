@@ -202,6 +202,14 @@ export default function ProfilePage() {
             onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
           >
             View Public Profile
+            <button
+  className="btn secondary"
+  onClick={() =>
+    router.push(`/bookings/new?to=${encodeURIComponent(email)}`)
+  }
+>
+  Book Me
+</button>
           </button>
 
           <button className="btn" onClick={() => router.push("/live-room")}>
