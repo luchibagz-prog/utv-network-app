@@ -97,44 +97,68 @@ export default function WatchPage() {
                   boxShadow: "0 0 24px rgba(123,97,255,0.12)",
                 }}
               >
-                {item.thumbnail_url ? (
-  <img
-    src={item.thumbnail_url}
-    alt={item.title}
-    style={{
-      width: "100%",
-      height: 125,
-      objectFit: "cover",
-      display: "block",
-    }}
-  />
-) : item.video_url ? (
-  <video
-    src={item.video_url}
-    muted
-    playsInline
-    preload="metadata"
-    style={{
-      width: "100%",
-      height: 125,
-      objectFit: "cover",
-      display: "block",
-      background: "#000",
-    }}
-  />
-) : (
-  <div
-    style={{
-      height: 125,
-      display: "grid",
-      placeItems: "center",
-      background: "linear-gradient(135deg,#111,#24113d)",
-    }}
-  >
-    UTV
-  </div>
-)}
+  {(() => {
+  const image =
+    item.thumbnail_url ||
+    item.cover_url ||
+    item.image_url ||
+    item.poster_url ||
+    item.flyer_url ||
+    "";
 
+  const video =
+    item.video_url ||
+    item.file_url ||
+    item.media_url ||
+    item.url ||
+    "";
+
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={item.title}
+        style={{
+          width: "100%",
+          height: 125,
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+    );
+  }
+
+  if (video) {
+    return (
+      <video
+        src={video}
+        muted
+        playsInline
+        preload="metadata"
+        style={{
+          width: "100%",
+          height: 125,
+          objectFit: "cover",
+          display: "block",
+          background: "#000",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        height: 125,
+        display: "grid",
+        placeItems: "center",
+        background: "linear-gradient(135deg,#111,#24113d)",
+      }}
+    >
+      UTV
+    </div>
+  );
+})()}
                 {numbered && (
                   <div
                     style={{
