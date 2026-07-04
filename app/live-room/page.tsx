@@ -2,18 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 import UTVNav from "../components/UTVNav";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function LiveRoomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
 
   const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("user");
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [status, setStatus] = useState("Camera off");
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState(0);
+  const [status, setStatus] = useState("Preparing camera...");
+  const [recordingFile, setRecordingFile] = useState<File | null>(null);
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const [title, setTitle] = useState("UTV Live Replay");
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    startCamera("user");
+
+    return () => {
+      stopCamera();
+      clearInterval(timerRef.current);
+    };
+  }, []);
 
   async function startCamera(facing: "user" | "environment" = cameraFacing) {
     try {
@@ -22,8 +38,8 @@ export default function LiveRoomPage() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facing,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: {
           echoCancellation: true,
@@ -41,9 +57,9 @@ export default function LiveRoomPage() {
 
       setCameraFacing(facing);
       setIsCameraOn(true);
-      setStatus(facing === "user" ? "Front camera ready" : "Back camera ready");
+      setStatus("Camera ready");
     } catch {
-      setStatus("Camera blocked. Allow camera/mic permissions.");
+      setStatus("Allow camera and mic permissions.");
     }
   }
 
@@ -52,10 +68,8 @@ export default function LiveRoomPage() {
       recorderRef.current.stop();
     }
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -63,19 +77,14 @@ export default function LiveRoomPage() {
 
     setIsCameraOn(false);
     setIsLive(false);
-    setStatus("Camera off");
   }
 
   async function flipCamera() {
-    const nextFacing = cameraFacing === "user" ? "environment" : "user";
-    await startCamera(nextFacing);
+    const next = cameraFacing === "user" ? "environment" : "user";
+    await startCamera(next);
   }
 
-  async function startLive() {
-    if (!isCameraOn) {
-      await startCamera();
-    }
-
+  function startLive() {
     if (!streamRef.current) return;
 
     chunksRef.current = [];
@@ -83,14 +92,18 @@ export default function LiveRoomPage() {
     const recorder = new MediaRecorder(streamRef.current);
 
     recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunksRef.current.push(event.data);
-      }
+      if (event.data.size > 0) chunksRef.current.push(event.data);
     };
 
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const file = new File([blob], `utv-live-${Date.now()}.webm`, {
+        type: "video/webm",
+      });
+
       const url = URL.createObjectURL(blob);
+
+      setRecordingFile(file);
       setRecordingUrl(url);
       chunksRef.current = [];
     };
@@ -99,7 +112,12 @@ export default function LiveRoomPage() {
     recorder.start();
 
     setIsLive(true);
-    setStatus("You are LIVE on UTV");
+    setSeconds(0);
+    setStatus("● LIVE NOW");
+
+    timerRef.current = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
   }
 
   function endLive() {
@@ -107,147 +125,244 @@ export default function LiveRoomPage() {
       recorderRef.current.stop();
     }
 
+    clearInterval(timerRef.current);
     setIsLive(false);
-    setStatus("Live ended. Replay saved below.");
+    setStatus("Live ended. Replay ready.");
   }
 
   function deleteReplay() {
-    if (recordingUrl) {
-      URL.revokeObjectURL(recordingUrl);
-    }
+    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
 
-    setRecordingUrl(null);
+    setRecordingFile(null);
+    setRecordingUrl("");
+    setCaption("");
+    setTitle("UTV Live Replay");
     setStatus("Replay deleted.");
   }
 
-  async function shareReplay() {
-    if (!recordingUrl) return;
+  async function postReplay(visibility: "feed" | "profile") {
+    if (!recordingFile) return;
 
-    if (navigator.share) {
-      await navigator.share({
-        title: "UTV Live Replay",
-        text: "Watch my UTV live replay.",
-        url: recordingUrl,
-      });
-    } else {
-      alert("Share is not supported on this device.");
+    setPosting(true);
+
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) {
+      window.location.href = "/login";
+      return;
     }
+
+    const userEmail = data.user.email || "";
+    const fileName = `${Date.now()}-${recordingFile.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("uploads")
+      .upload(fileName, recordingFile);
+
+    if (uploadError) {
+      alert(uploadError.message);
+      setPosting(false);
+      return;
+    }
+
+    const fileUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
+
+    const { error } = await supabase.from("uploads").insert({
+      title,
+      description: caption,
+      category: "Live Replay",
+      creator_email: userEmail,
+      video_url: fileUrl,
+      thumbnail_url: "",
+      visibility,
+      approved: true,
+    });
+
+    setPosting(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    window.location.href = visibility === "feed" ? "/feed" : "/profile";
   }
 
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
+  function formatTime(total: number) {
+    const min = Math.floor(total / 60);
+    const sec = total % 60;
+    return `${min}:${String(sec).padStart(2, "0")}`;
+  }
 
   return (
-    <main className="container">
+    <main style={{ minHeight: "100vh", background: "#000", paddingBottom: 100 }}>
       <UTVNav />
 
-      <section className="card" style={{ marginTop: 24 }}>
-        <p style={{ color: "var(--muted)" }}>UTV Live Room</p>
+      {!recordingUrl ? (
+        <section style={{ position: "relative", height: "calc(100vh - 95px)" }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: cameraFacing === "user" ? "scaleX(-1)" : "none",
+            }}
+          />
 
-        <h1>Go Live</h1>
+          <div
+            style={{
+              position: "absolute",
+              top: 20,
+              left: 20,
+              right: 20,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              color: "white",
+            }}
+          >
+            <div
+              style={{
+                padding: "8px 14px",
+                borderRadius: 999,
+                background: isLive ? "#ff2d55" : "rgba(0,0,0,0.55)",
+                fontWeight: "bold",
+              }}
+            >
+              {isLive ? `● LIVE ${formatTime(seconds)}` : status}
+            </div>
 
-        <p
+            <button
+              onClick={flipCamera}
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(0,0,0,0.55)",
+                color: "white",
+                fontSize: 24,
+              }}
+            >
+              🔄
+            </button>
+          </div>
+
+          {!isLive ? (
+            <button
+              onClick={startLive}
+              disabled={!isCameraOn}
+              style={{
+                position: "absolute",
+                bottom: 42,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 92,
+                height: 92,
+                borderRadius: "50%",
+                border: "5px solid white",
+                background: "#ff2d55",
+                color: "white",
+                fontWeight: "bold",
+              }}
+            >
+              LIVE
+            </button>
+          ) : (
+            <button
+              onClick={endLive}
+              style={{
+                position: "absolute",
+                bottom: 42,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 92,
+                height: 92,
+                borderRadius: "50%",
+                border: "5px solid white",
+                background: "#ff3b3b",
+                color: "white",
+                fontWeight: "bold",
+              }}
+            >
+              END
+            </button>
+          )}
+        </section>
+      ) : (
+        <section
           style={{
-            color: isLive ? "#39ff88" : "var(--muted)",
-            fontWeight: isLive ? "bold" : "normal",
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "#000",
+            overflowY: "auto",
+            padding: "20px 16px 120px",
           }}
         >
-          {isLive ? "● LIVE NOW / RECORDING" : status}
-        </p>
-
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: "100%",
-            aspectRatio: "9 / 16",
-            maxHeight: "70vh",
-            background: "#000",
-            borderRadius: 24,
-            objectFit: "cover",
-            marginTop: 16,
-            transform: cameraFacing === "user" ? "scaleX(-1)" : "none",
-          }}
-        />
-
-        <button className="btn" onClick={() => startCamera()} style={{ width: "100%", marginTop: 16 }}>
-          Start Camera
-        </button>
-
-        <button className="btn secondary" onClick={flipCamera} disabled={!isCameraOn} style={{ width: "100%", marginTop: 12 }}>
-          Flip Front / Back Camera
-        </button>
-
-        {!isLive ? (
-          <button
-            className="btn"
-            onClick={startLive}
-            style={{
-              width: "100%",
-              marginTop: 12,
-              background: "#ff2d55",
-            }}
-          >
-            Start Live / Record
-          </button>
-        ) : (
-          <button
-            className="btn"
-            onClick={endLive}
-            style={{
-              width: "100%",
-              marginTop: 12,
-              background: "#ff3b3b",
-            }}
-          >
-            End Live / Save Replay
-          </button>
-        )}
-
-        <button className="btn secondary" onClick={stopCamera} style={{ width: "100%", marginTop: 12 }}>
-          Stop Camera
-        </button>
-      </section>
-
-      {recordingUrl && (
-        <section className="card" style={{ marginTop: 20 }}>
-          <h2>Saved Replay</h2>
-
           <video
             src={recordingUrl}
             controls
+            playsInline
             style={{
               width: "100%",
-              borderRadius: 20,
-              marginTop: 12,
+              height: "60vh",
+              objectFit: "cover",
+              borderRadius: 22,
               background: "#000",
             }}
           />
 
-          <a
+          <input
+            className="input"
+            placeholder="Replay title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+
+          <textarea
+            className="input"
+            placeholder="Caption for your replay 🔥🎬"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            style={{ minHeight: 110 }}
+          />
+
+          <button
             className="btn"
+            onClick={() => postReplay("feed")}
+            disabled={posting}
+            style={{ width: "100%", marginTop: 14 }}
+          >
+            {posting ? "Posting..." : "Post Replay to Feed + Profile"}
+          </button>
+
+          <button
+            className="btn secondary"
+            onClick={() => postReplay("profile")}
+            disabled={posting}
+            style={{ width: "100%", marginTop: 12 }}
+          >
+            Post Replay to Profile Only
+          </button>
+
+          <a
+            className="btn secondary"
             href={recordingUrl}
             download="utv-live-replay.webm"
-            style={{ width: "100%", marginTop: 16 }}
+            style={{ width: "100%", marginTop: 12 }}
           >
-            Save / Download Replay
+            Save to Phone
           </a>
-
-          <button className="btn secondary" onClick={shareReplay} style={{ width: "100%", marginTop: 12 }}>
-            Share Replay
-          </button>
 
           <button
             className="btn"
             onClick={deleteReplay}
-            style={{
-              width: "100%",
-              marginTop: 12,
-              background: "#ff3b3b",
-            }}
+            style={{ width: "100%", marginTop: 12, background: "#ff3b3b" }}
           >
             Delete Replay
           </button>
