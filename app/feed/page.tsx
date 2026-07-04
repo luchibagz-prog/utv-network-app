@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -14,34 +14,33 @@ const heroHeaders = [
 
 export default function FeedPage() {
   const [items, setItems] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
-  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
   useEffect(() => {
     loadFeed();
+    loadStories();
 
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
     }, 4200);
 
-    const channel = supabase
-      .channel("feed-live-refresh")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "uploads" },
-        () => loadFeed()
-      )
-      .subscribe();
-
-    return () => {
-      clearInterval(timer);
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(timer);
   }, []);
+
+  async function loadStories() {
+    const { data } = await supabase
+      .from("stories")
+      .select("*")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+
+    setStories(data || []);
+  }
 
   async function loadFeed() {
     const { data } = await supabase
@@ -53,15 +52,10 @@ export default function FeedPage() {
     const feedItems = (data || []).filter((item) => {
       const category = (item.category || "").toLowerCase();
       const visibility = (item.visibility || "feed").toLowerCase();
-      return (
-        visibility !== "profile" &&
-        !category.includes("movie") &&
-        !category.includes("show")
-      );
+      return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
     });
 
     setItems(feedItems);
-
     feedItems.forEach((item) => {
       loadLikes(item.id);
       loadComments(item.id);
@@ -167,28 +161,68 @@ export default function FeedPage() {
     <main style={{ background: "#000", minHeight: "100vh", paddingBottom: 120 }}>
       <UTVNav />
 
-      <section
+      <img
+        src={heroHeaders[heroIndex]}
+        alt="UTV"
         style={{
           width: "100%",
-          marginTop: 0,
-          background: "#000",
+          height: "42vh",
+          minHeight: 280,
+          objectFit: "cover",
+          display: "block",
+          filter: "brightness(1.22) contrast(1.12) saturate(1.25)",
         }}
-      >
-        <img
-          src={heroHeaders[heroIndex]}
-          alt="UTV"
+      />
+
+      <section style={{ display: "flex", gap: 14, overflowX: "auto", padding: "16px" }}>
+        <button
+          onClick={() => (window.location.href = "/submit")}
           style={{
-            width: "100%",
-            height: "42vh",
-            minHeight: 280,
-            objectFit: "cover",
-            display: "block",
-            filter: "brightness(1.22) contrast(1.12) saturate(1.25)",
+            minWidth: 78,
+            height: 78,
+            borderRadius: "50%",
+            border: "2px solid #39ff88",
+            background: "rgba(255,255,255,0.08)",
+            color: "white",
+            fontWeight: "bold",
           }}
-        />
+        >
+          + Story
+        </button>
+
+        {stories.map((story) => (
+          <button
+            key={story.id}
+            onClick={() => window.open(story.media_url, "_blank")}
+            style={{
+              minWidth: 78,
+              height: 78,
+              borderRadius: "50%",
+              border: "3px solid #7b61ff",
+              padding: 3,
+              background: "transparent",
+              overflow: "hidden",
+            }}
+          >
+            {story.media_type === "video" ? (
+              <video
+                src={story.media_url}
+                muted
+                playsInline
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
+            ) : (
+              <img
+                src={story.media_url}
+                alt="Story"
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
+            )}
+          </button>
+        ))}
       </section>
 
-      <section style={{ padding: "14px 16px" }}>
+      <section style={{ padding: "0 16px 14px" }}>
         <input
           className="input"
           placeholder="Search UTV..."
@@ -201,205 +235,152 @@ export default function FeedPage() {
         {filtered.length === 0 ? (
           <div className="card" style={{ margin: 16 }}>
             <h2>No posts yet</h2>
-            <p style={{ color: "var(--muted)" }}>
-              New posts will show here first.
-            </p>
+            <p style={{ color: "var(--muted)" }}>New posts will show here first.</p>
           </div>
         ) : (
-          filtered.map((item) => (
-            <article
-              key={item.id}
-              style={{
-                paddingBottom: 24,
-                borderBottom: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
-              <div style={{ padding: "0 16px 12px" }}>
-                <h2 style={{ margin: 0, fontSize: 30 }}>{item.title}</h2>
-                <p
-                  style={{
-                    color: "#d4af37",
-                    fontWeight: "bold",
-                    marginTop: 6,
-                    textTransform: "capitalize",
-                  }}
-                >
-                  {item.category || "UTV Feed"}
-                </p>
-              </div>
+          filtered.map((item) => {
+            const image =
+              item.thumbnail_url ||
+              item.cover_url ||
+              item.image_url ||
+              item.poster_url ||
+              item.flyer_url ||
+              "";
 
-{(() => {
-  const image =
-    item.thumbnail_url ||
-    item.cover_url ||
-    item.image_url ||
-    item.poster_url ||
-    item.flyer_url ||
-    "";
+            const video =
+              item.video_url ||
+              item.file_url ||
+              item.media_url ||
+              item.url ||
+              "";
 
-  const video =
-    item.video_url ||
-    item.file_url ||
-    item.media_url ||
-    item.url ||
-    "";
-
-  if (video) {
-    return (
-      <video
-        src={video}
-        controls
-        playsInline
-        preload="metadata"
-        style={{
-          width: "100%",
-          maxHeight: 720,
-          objectFit: "cover",
-          background: "#000",
-          display: "block",
-        }}
-      />
-    );
-  }
-
-  if (image) {
-    return (
-      <img
-        src={image}
-        alt={item.title}
-        onClick={() => (window.location.href = `/watch/${item.id}`)}
-        style={{
-          width: "100%",
-          maxHeight: 720,
-          objectFit: "cover",
-          display: "block",
-          cursor: "pointer",
-        }}
-      />
-    );
-  }
-
-  return (
-    <div
-      style={{
-        height: 340,
-        display: "grid",
-        placeItems: "center",
-        background: "linear-gradient(135deg,#111,#24113d)",
-        fontSize: 54,
-      }}
-    >
-      UTV
-    </div>
-  );
-})()}
-
-              <div style={{ padding: "14px 16px 0" }}>
-                {item.description && (
-                  <p
-                    style={{
-                      color: "rgba(255,255,255,0.78)",
-                      lineHeight: 1.45,
-                      fontSize: 18,
-                    }}
-                  >
-                    {item.description}
+            return (
+              <article
+                key={item.id}
+                style={{
+                  paddingBottom: 24,
+                  borderBottom: "1px solid rgba(255,255,255,0.12)",
+                }}
+              >
+                <div style={{ padding: "0 16px 12px" }}>
+                  <h2 style={{ margin: 0, fontSize: 30 }}>{item.title}</h2>
+                  <p style={{ color: "#d4af37", fontWeight: "bold", marginTop: 6 }}>
+                    {item.category || "UTV Feed"}
                   </p>
-                )}
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    marginTop: 14,
-                    alignItems: "center",
-                  }}
-                >
-                  <button
-                    className="btn secondary"
-                    onClick={() => likePost(item.id)}
-                    style={{ flex: 1 }}
-                  >
-                    ♡ {likes[item.id] || 0}
-                  </button>
-
-                  <button
-                    className="btn secondary"
-                    onClick={() => sharePost(item)}
-                    style={{ flex: 1 }}
-                  >
-                    ↗ Share
-                  </button>
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 14,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: 18,
-                    padding: 12,
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      className="input"
-                      placeholder="Add a comment..."
-                      value={commentText[item.id] || ""}
-                      onChange={(e) =>
-                        setCommentText((prev) => ({
-                          ...prev,
-                          [item.id]: e.target.value,
-                        }))
-                      }
-                      style={{ marginTop: 0 }}
-                    />
+                {video ? (
+                  <video
+                    src={video}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    style={{
+                      width: "100%",
+                      maxHeight: 720,
+                      objectFit: "cover",
+                      background: "#000",
+                      display: "block",
+                    }}
+                  />
+                ) : image ? (
+                  <img
+                    src={image}
+                    alt={item.title}
+                    onClick={() => (window.location.href = `/watch/${item.id}`)}
+                    style={{
+                      width: "100%",
+                      maxHeight: 720,
+                      objectFit: "cover",
+                      display: "block",
+                      cursor: "pointer",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: 340,
+                      display: "grid",
+                      placeItems: "center",
+                      background: "linear-gradient(135deg,#111,#24113d)",
+                      fontSize: 54,
+                    }}
+                  >
+                    UTV
+                  </div>
+                )}
 
-                    <button
-                      className="btn"
-                      onClick={() => addComment(item.id)}
-                      style={{ width: 96 }}
-                    >
-                      Post
+                <div style={{ padding: "14px 16px 0" }}>
+                  {item.description && (
+                    <p style={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.45, fontSize: 18 }}>
+                      {item.description}
+                    </p>
+                  )}
+
+                  <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
+                    <button className="btn secondary" onClick={() => likePost(item.id)} style={{ flex: 1 }}>
+                      ♡ {likes[item.id] || 0}
+                    </button>
+
+                    <button className="btn secondary" onClick={() => sharePost(item)} style={{ flex: 1 }}>
+                      ↗ Share
                     </button>
                   </div>
 
-                  <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-                    {(comments[item.id] || []).length === 0 ? (
-                      <p style={{ color: "var(--muted)", margin: 0 }}>
-                        No comments yet.
-                      </p>
-                    ) : (
-                      (comments[item.id] || []).slice(-5).map((comment) => (
-                        <div
-                          key={comment.id}
-                          style={{
-                            background: "rgba(0,0,0,0.35)",
-                            borderRadius: 14,
-                            padding: "10px 12px",
-                          }}
-                        >
-                          <p
+                  <div
+                    style={{
+                      marginTop: 14,
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 18,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        className="input"
+                        placeholder="Add a comment..."
+                        value={commentText[item.id] || ""}
+                        onChange={(e) =>
+                          setCommentText((prev) => ({
+                            ...prev,
+                            [item.id]: e.target.value,
+                          }))
+                        }
+                        style={{ marginTop: 0 }}
+                      />
+
+                      <button className="btn" onClick={() => addComment(item.id)} style={{ width: 96 }}>
+                        Post
+                      </button>
+                    </div>
+
+                    <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+                      {(comments[item.id] || []).length === 0 ? (
+                        <p style={{ color: "var(--muted)", margin: 0 }}>No comments yet.</p>
+                      ) : (
+                        (comments[item.id] || []).slice(-5).map((comment) => (
+                          <div
+                            key={comment.id}
                             style={{
-                              margin: 0,
-                              color: "#d4af37",
-                              fontWeight: "bold",
-                              fontSize: 13,
+                              background: "rgba(0,0,0,0.35)",
+                              borderRadius: 14,
+                              padding: "10px 12px",
                             }}
                           >
-                            {comment.user_email}
-                          </p>
-                          <p style={{ margin: "4px 0 0", color: "white" }}>
-                            {comment.comment}
-                          </p>
-                        </div>
-                      ))
-                    )}
+                            <p style={{ margin: 0, color: "#d4af37", fontWeight: "bold", fontSize: 13 }}>
+                              {comment.user_email}
+                            </p>
+                            <p style={{ margin: "4px 0 0", color: "white" }}>{comment.comment}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))
+              </article>
+            );
+          })
         )}
       </section>
     </main>
