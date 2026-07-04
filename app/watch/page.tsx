@@ -98,28 +98,42 @@ export default function WatchPage() {
                 }}
               >
                 {item.thumbnail_url ? (
-                  <img
-                    src={item.thumbnail_url}
-                    alt={item.title}
-                    style={{
-                      width: "100%",
-                      height: 125,
-                      objectFit: "cover",
-                      display: "block",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      height: 125,
-                      display: "grid",
-                      placeItems: "center",
-                      background: "linear-gradient(135deg,#111,#24113d)",
-                    }}
-                  >
-                    UTV
-                  </div>
-                )}
+  <img
+    src={item.thumbnail_url}
+    alt={item.title}
+    style={{
+      width: "100%",
+      height: 125,
+      objectFit: "cover",
+      display: "block",
+    }}
+  />
+) : item.video_url ? (
+  <video
+    src={item.video_url}
+    muted
+    playsInline
+    preload="metadata"
+    style={{
+      width: "100%",
+      height: 125,
+      objectFit: "cover",
+      display: "block",
+      background: "#000",
+    }}
+  />
+) : (
+  <div
+    style={{
+      height: 125,
+      display: "grid",
+      placeItems: "center",
+      background: "linear-gradient(135deg,#111,#24113d)",
+    }}
+  >
+    UTV
+  </div>
+)}
 
                 {numbered && (
                   <div
