@@ -193,7 +193,9 @@ export default function SubmitPage() {
       video_url: isVideo ? fileUrl : "",
       thumbnail_url: isVideo ? "" : fileUrl,
       visibility,
-      approved: true,
+   content_type: category,
+needs_approval: ["Show", "Movie", "Podcast", "Live Event"].includes(category),
+approved: !["Show", "Movie", "Podcast", "Live Event"].includes(category),
     });
 
     setPosting(false);
@@ -361,6 +363,10 @@ export default function SubmitPage() {
               <option>Business Promo</option>
               <option>Event Promo</option>
               <option>Live Replay</option>
+              <option>Live Event</option>
+              <option>Podcast</option>
+              <option>Show</option>
+              <option>Movie</option>
             </select>
 
             <button className="btn" onClick={postToUTV} disabled={posting} style={{ width: "100%", marginTop: 14 }}>
