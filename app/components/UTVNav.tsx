@@ -10,26 +10,20 @@ export default function UTVNav() {
           position: "sticky",
           top: 0,
           zIndex: 50,
-          padding: "14px 16px",
-          background: "rgba(5,5,8,0.92)",
+          padding: "10px 16px",
+          background: "rgba(0,0,0,0.72)",
           backdropFilter: "blur(18px)",
           borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
-      <Link href="/feed" style={{ textDecoration: "none" }}>
-  <img
-    src="/utv-logo.png"
-    alt="UTV"
-    style={{
-      height: 54,
-      width: "auto",
-      objectFit: "contain",
-    }}
-  />
-</Link>
+        <Link href="/feed" style={{ textDecoration: "none" }}>
+          <img
+            src="/utv-logo.png"
+            alt="UTV"
+            style={{ height: 66, width: "auto", objectFit: "contain" }}
+          />
+        </Link>
       </nav>
-
-      <div style={{ height: 76 }} />
 
       <nav
         style={{
@@ -39,33 +33,19 @@ export default function UTVNav() {
           right: 0,
           zIndex: 100,
           display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 4,
-          padding: "10px 8px 14px",
-          background: "rgba(5,5,8,0.96)",
-          backdropFilter: "blur(18px)",
+          gridTemplateColumns: "repeat(6, 1fr)",
+          gap: 5,
+          padding: "10px 6px 16px",
+          background: "rgba(0,0,0,0.96)",
           borderTop: "1px solid rgba(255,255,255,0.1)",
         }}
       >
-        <Link className="btn secondary" href="/feed" style={{ padding: 10 }}>
-          Feed
-        </Link>
-
-        <Link className="btn secondary" href="/watch" style={{ padding: 10 }}>
-          Watch
-        </Link>
-
-        <Link className="btn" href="/submit" style={{ padding: 10 }}>
-          Upload
-        </Link>
-
-        <Link className="btn secondary" href="/live" style={{ padding: 10 }}>
-          Live
-        </Link>
-
-        <Link className="btn secondary" href="/profile" style={{ padding: 10 }}>
-          👤
-        </Link>
+        <Link className="btn secondary" href="/feed" style={{ padding: 8 }}>Feed</Link>
+        <Link className="btn secondary" href="/watch" style={{ padding: 8 }}>Watch</Link>
+        <Link className="btn secondary" href="/events" style={{ padding: 8 }}>Events</Link>
+        <Link className="btn" href="/submit" style={{ padding: 8 }}>+</Link>
+        <Link className="btn secondary" href="/live" style={{ padding: 8 }}>Live</Link>
+        <Link className="btn secondary" href="/profile" style={{ padding: 8 }}>👤</Link>
       </nav>
     </>
   );
