@@ -11,12 +11,14 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [profile, setProfile] = useState<any>(null);
   const [uploads, setUploads] = useState<any[]>([]);
-  const [followers, setFollowers] = useState(0);
+  const [events, setEvents] = useState<any[]>([]);
+  const [lives, setLives] = useState<any[]>([]);
+  const [crew, setCrew] = useState(0);
+  const [following, setFollowing] = useState(0);
   const [collabs, setCollabs] = useState(0);
-  const [unread, setUnread] = useState(0);
+  const [alerts, setAlerts] = useState(0);
+  const [tab, setTab] = useState("feed");
   const [loading, setLoading] = useState(true);
-
-  const isAdmin = email.toLowerCase() === "luchibagz@gmail.com";
 
   useEffect(() => {
     loadProfile();
@@ -41,20 +43,37 @@ export default function ProfilePage() {
 
     setProfile(creatorProfile);
 
-    const { data: creatorUploads } = await supabase
+    const { data: uploadData } = await supabase
       .from("uploads")
       .select("*")
       .eq("creator_email", userEmail)
       .order("created_at", { ascending: false });
 
-    setUploads(creatorUploads || []);
+    const allUploads = uploadData || [];
+    setUploads(allUploads);
+    setLives(allUploads.filter((x) => (x.category || "").toLowerCase().includes("live")));
 
-    const { count: followerCount } = await supabase
+    const { data: eventData } = await supabase
+      .from("events")
+      .select("*")
+      .eq("creator_email", userEmail)
+      .order("created_at", { ascending: false });
+
+    setEvents(eventData || []);
+
+    const { count: crewCount } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
       .eq("following_email", userEmail);
 
-    setFollowers(followerCount || 0);
+    setCrew(crewCount || 0);
+
+    const { count: followingCount } = await supabase
+      .from("follows")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_email", userEmail);
+
+    setFollowing(followingCount || 0);
 
     const { count: collabCount } = await supabase
       .from("collabs")
@@ -64,13 +83,13 @@ export default function ProfilePage() {
 
     setCollabs(collabCount || 0);
 
-    const { count: unreadCount } = await supabase
-      .from("messages")
+    const { count: alertCount } = await supabase
+      .from("notifications")
       .select("*", { count: "exact", head: true })
-      .eq("receiver_email", userEmail)
+      .eq("user_email", userEmail)
       .eq("read", false);
 
-    setUnread(unreadCount || 0);
+    setAlerts(alertCount || 0);
     setLoading(false);
   }
 
@@ -84,197 +103,237 @@ export default function ProfilePage() {
       <main className="container" style={{ paddingBottom: 120 }}>
         <UTVNav />
         <section className="card" style={{ marginTop: 24 }}>
-          <h1>Loading profile...</h1>
+          <h1>Loading your UTV profile...</h1>
         </section>
       </main>
     );
   }
 
+  const isAdmin = email.toLowerCase() === "luchibagz@gmail.com";
   const displayName = profile?.display_name || "UTV Creator";
   const username = profile?.username || email.split("@")[0];
-  const avatarUrl = profile?.avatar_url || "";
-  const bio = profile?.bio || "Building content, community, and culture on UTV.";
+  const avatar = profile?.avatar_url || "";
+  const background = profile?.profile_background || profile?.profile_background_url || "";
+  const song = profile?.profile_song || profile?.profile_song_url || "";
+  const theme = profile?.theme_color || "#7b61ff";
+  const accent = profile?.accent_color || "#37f2a3";
+  const bio = profile?.bio || "The platform where creators build together.";
   const category = profile?.category || "Creator";
 
+  const shownPosts =
+    tab === "feed"
+      ? uploads.filter((x) => (x.visibility || "feed") !== "profile")
+      : tab === "uploads"
+      ? uploads
+      : tab === "lives"
+      ? lives
+      : [];
+
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main style={{ minHeight: "100vh", background: "#000", paddingBottom: 120 }}>
       <UTVNav />
 
       <section
-        className="card"
         style={{
-          marginTop: 24,
+          margin: "16px",
+          borderRadius: 28,
           overflow: "hidden",
-          background:
-            "linear-gradient(160deg, rgba(57,255,136,0.08), rgba(123,97,255,0.08), rgba(0,0,0,0.9))",
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: `linear-gradient(160deg, ${theme}33, #000 55%, ${accent}22)`,
         }}
       >
-        <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              style={{
-                width: 105,
-                height: 105,
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid rgba(57,255,136,0.45)",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 105,
-                height: 105,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 50,
-                background: "rgba(255,255,255,0.08)",
-                border: "2px solid rgba(255,255,255,0.14)",
-              }}
-            >
-              👤
-            </div>
-          )}
-
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0 }}>{displayName}</h1>
-            <p style={{ color: "var(--muted)", marginTop: 6 }}>@{username}</p>
-            <p style={{ color: "#d4af37", fontWeight: "bold", marginTop: 6 }}>
-              {isAdmin ? "Gold Creator" : "Creator"} • {category}
-            </p>
-          </div>
-        </div>
-
-        <p style={{ color: "var(--muted)", lineHeight: 1.5, marginTop: 18 }}>
-          {bio}
-        </p>
-
-        <p style={{ color: "var(--muted)", fontSize: 14 }}>{email}</p>
-
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 10,
-            marginTop: 20,
-            textAlign: "center",
+            height: 210,
+            backgroundImage: background
+              ? `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.65)), url(${background})`
+              : `linear-gradient(135deg, ${theme}, #000, ${accent})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
           }}
         >
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{uploads.length}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Posts</p>
-          </div>
-
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{followers}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Followers</p>
-          </div>
-
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{collabs}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Collabs</p>
-          </div>
-
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{unread}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Alerts</p>
+          <div
+            style={{
+              position: "absolute",
+              left: 18,
+              bottom: -52,
+              display: "flex",
+              alignItems: "end",
+              gap: 16,
+            }}
+          >
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={displayName}
+                style={{
+                  width: 112,
+                  height: 112,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: `4px solid ${accent}`,
+                  background: "#111",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 112,
+                  height: 112,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 52,
+                  border: `4px solid ${accent}`,
+                  background: "#111",
+                }}
+              >
+                👤
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-          <button className="btn" onClick={() => router.push("/submit")}>
-            Create Post
-          </button>
+        <div style={{ padding: "68px 18px 20px" }}>
+          <h1 style={{ margin: 0, fontSize: 34 }}>
+            {displayName} {isAdmin ? "✅" : ""}
+          </h1>
 
-          <button className="btn secondary" onClick={() => router.push("/messages")}>
-            Inbox {unread > 0 ? `(${unread})` : ""}
-          </button>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>@{username}</p>
 
-          <button className="btn secondary" onClick={() => router.push("/creator/settings")}>
-            Edit Profile
-          </button>
+          <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+            {isAdmin ? "Gold Creator" : category} • UTV
+          </p>
 
-          <button
-            className="btn secondary"
-            onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
-          >
-            View Public Profile
-            <button
-  className="btn secondary"
-  onClick={() =>
-    router.push(`/bookings/new?to=${encodeURIComponent(email)}`)
-  }
->
-  Book Me
-</button>
-          </button>
+          <p style={{ color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>{bio}</p>
 
-          <button className="btn" onClick={() => router.push("/live-room")}>
-            Go Live
-          </button>
-
-          {isAdmin && (
-            <button className="btn secondary" onClick={() => router.push("/admin")}>
-              Admin Panel
-            </button>
+          {song && (
+            <audio
+              controls
+              src={song}
+              style={{ width: "100%", marginTop: 12 }}
+            />
           )}
 
-          <button className="btn" style={{ background: "#ff3b3b" }} onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </section>
-
-      <section className="card" style={{ marginTop: 20 }}>
-        <h2>Profile Wall</h2>
-        <p style={{ color: "var(--muted)" }}>
-          Your uploads, live replays, promos, and creator posts.
-        </p>
-
-        {uploads.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No posts yet.</p>
-        ) : (
-          <div style={{ display: "grid", gap: 16, marginTop: 16 }}>
-            {uploads.map((upload) => (
-              <div key={upload.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                {upload.video_url ? (
-                  <video
-                    src={upload.video_url}
-                    controls
-                    playsInline
-                    style={{
-                      width: "100%",
-                      maxHeight: 520,
-                      background: "#000",
-                    }}
-                  />
-                ) : upload.thumbnail_url ? (
-                  <img
-                    src={upload.thumbnail_url}
-                    alt={upload.title}
-                    style={{
-                      width: "100%",
-                      maxHeight: 520,
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : null}
-
-                <div style={{ padding: 16 }}>
-                  <h3>{upload.title}</h3>
-                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>
-                    {upload.category || "UTV Post"}
-                  </p>
-                  {upload.description && (
-                    <p style={{ color: "var(--muted)" }}>{upload.description}</p>
-                  )}
-                </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 8,
+              marginTop: 18,
+              textAlign: "center",
+            }}
+          >
+            {[
+              ["Posts", uploads.length],
+              ["Crew", crew],
+              ["Following", following],
+              ["Collabs", collabs],
+              ["Alerts", alerts],
+            ].map(([label, value]) => (
+              <div key={label} style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
+                <h2 style={{ margin: 0 }}>{value}</h2>
+                <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>{label}</p>
               </div>
             ))}
           </div>
+
+          <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
+            <button className="btn" onClick={() => router.push("/submit")}>
+              Create
+            </button>
+
+            <button className="btn secondary" onClick={() => router.push("/messages")}>
+              Inbox {alerts > 0 ? `(${alerts})` : ""}
+            </button>
+
+            <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>
+              View Public Profile
+            </button>
+
+            <button className="btn secondary" onClick={() => router.push(`/bookings/new?to=${encodeURIComponent(email)}`)}>
+              Book Me
+            </button>
+
+            <button className="btn" onClick={() => router.push("/live-room")}>
+              Go Live
+            </button>
+
+            <button className="btn secondary" onClick={() => router.push("/creator/settings")}>
+              Edit Profile
+            </button>
+
+            {isAdmin && (
+              <button className="btn secondary" onClick={() => router.push("/admin")}>
+                UTV Studio
+              </button>
+            )}
+
+            <button className="btn" style={{ background: "#ff3b3b" }} onClick={logout}>
+              Logout
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ display: "flex", gap: 8, padding: "0 16px", overflowX: "auto" }}>
+        {["feed", "uploads", "events", "lives", "about"].map((name) => (
+          <button
+            key={name}
+            className={tab === name ? "btn" : "btn secondary"}
+            onClick={() => setTab(name)}
+            style={{ minWidth: 92 }}
+          >
+            {name === "feed" ? "Feed" : name === "uploads" ? "Uploads" : name === "lives" ? "Lives" : name === "about" ? "About" : "Events"}
+          </button>
+        ))}
+      </section>
+
+      <section style={{ display: "grid", gap: 18, padding: 16 }}>
+        {tab === "events" ? (
+          events.length === 0 ? (
+            <div className="card"><h2>No events yet</h2></div>
+          ) : (
+            events.map((event) => (
+              <div key={event.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                {event.flyer_url && <img src={event.flyer_url} alt={event.title} style={{ width: "100%", maxHeight: 520, objectFit: "cover" }} />}
+                <div style={{ padding: 16 }}>
+                  <h2>{event.title}</h2>
+                  <p style={{ color: "#d4af37" }}>{event.city}, {event.state}</p>
+                  <p>{event.event_date}</p>
+                </div>
+              </div>
+            ))
+          )
+        ) : tab === "about" ? (
+          <div className="card">
+            <h2>About {displayName}</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>{bio}</p>
+            <p>{email}</p>
+            <p style={{ color: "#d4af37" }}>UTV — The platform where creators build together.</p>
+          </div>
+        ) : shownPosts.length === 0 ? (
+          <div className="card">
+            <h2>No posts yet</h2>
+            <p style={{ color: "var(--muted)" }}>Create something and start building your UTV profile.</p>
+          </div>
+        ) : (
+          shownPosts.map((post) => (
+            <div key={post.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {post.video_url ? (
+                <video src={post.video_url} controls playsInline style={{ width: "100%", maxHeight: 540, background: "#000" }} />
+              ) : post.thumbnail_url ? (
+                <img src={post.thumbnail_url} alt={post.title} style={{ width: "100%", maxHeight: 540, objectFit: "cover" }} />
+              ) : null}
+
+              <div style={{ padding: 16 }}>
+                <h2>{post.title}</h2>
+                <p style={{ color: "#d4af37", fontWeight: "bold" }}>{post.category || "UTV Post"}</p>
+                {post.description && <p style={{ color: "var(--muted)" }}>{post.description}</p>}
+              </div>
+            </div>
+          ))
         )}
       </section>
     </main>
