@@ -88,7 +88,7 @@ return supabase.storage.from("creator-avatars").getPublicUrl(fileName).data.publ
 
     const newAvatarUrl = await uploadFile(avatar, "avatars");
     const newBackgroundUrl = await uploadFile(background, "backgrounds");
-    const newSongUrl = await uploadFile(song, "songs");
+    const newSongUrl = await uploadFile(song, "profile-songs");
 
     const cleanUsername = username.trim().toLowerCase().replaceAll(" ", "").replaceAll("@", "");
 
