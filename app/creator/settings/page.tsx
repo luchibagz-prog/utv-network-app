@@ -1,41 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function CreatorSettingsPage() {
-  const router = useRouter();
-
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [bookingEmail, setBookingEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [youtube, setYoutube] = useState("");
   const [category, setCategory] = useState("Creator");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
+  const [background, setBackground] = useState<File | null>(null);
+  const [song, setSong] = useState<File | null>(null);
+  const [themeColor, setThemeColor] = useState("#7b61ff");
+  const [accentColor, setAccentColor] = useState("#37f2a3");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadProfile();
+    loadSettings();
   }, []);
 
-  async function loadProfile() {
+  async function loadSettings() {
     const { data } = await supabase.auth.getUser();
 
     if (!data.user) {
-      router.push("/login");
+      window.location.href = "/login";
       return;
     }
 
     const userEmail = data.user.email || "";
     setEmail(userEmail);
-    setBookingEmail(userEmail);
 
     const { data: profile } = await supabase
       .from("creator_profiles")
@@ -44,61 +40,55 @@ export default function CreatorSettingsPage() {
       .maybeSingle();
 
     if (profile) {
-      setUsername(profile.username || "");
       setDisplayName(profile.display_name || "");
-      setBookingEmail(profile.booking_email || userEmail);
+      setUsername(profile.username || "");
       setBio(profile.bio || "");
-      setInstagram(profile.instagram || "");
-      setYoutube(profile.youtube || "");
       setCategory(profile.category || "Creator");
-      setAvatarUrl(profile.avatar_url || "");
+      setThemeColor(profile.theme_color || "#7b61ff");
+      setAccentColor(profile.accent_color || "#37f2a3");
     }
   }
 
-  async function saveProfile() {
+  async function uploadFile(file: File | null) {
+    if (!file) return "";
+
+    const fileName = `${Date.now()}-${file.name.replaceAll(" ", "-")}`;
+
+    const { error } = await supabase.storage.from("uploads").upload(fileName, file);
+
+    if (error) {
+      setMessage(error.message);
+      return "";
+    }
+
+    return supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
+  }
+
+  async function saveSettings() {
     setSaving(true);
     setMessage("");
 
-    const cleanUsername = username
-      .trim()
-      .toLowerCase()
-      .replaceAll(" ", "")
-      .replaceAll("@", "");
+    const avatarUrl = await uploadFile(avatar);
+    const backgroundUrl = await uploadFile(background);
+    const songUrl = await uploadFile(song);
 
-    let finalAvatarUrl = avatarUrl;
-
-    if (avatar) {
-      const safeName = avatar.name.replaceAll(" ", "-").toLowerCase();
-      const fileName = `${Date.now()}-${safeName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("creator-avatars")
-        .upload(fileName, avatar);
-
-      if (uploadError) {
-        setMessage("Avatar upload failed.");
-        setSaving(false);
-        return;
-      }
-
-      finalAvatarUrl = supabase.storage
-        .from("creator-avatars")
-        .getPublicUrl(fileName).data.publicUrl;
-    }
-
-    const { error } = await supabase.from("creator_profiles").upsert({
+    const updateData: any = {
       email,
-      username: cleanUsername,
       display_name: displayName,
-      booking_email: bookingEmail,
+      username,
       bio,
-      instagram,
-      youtube,
       category,
-      avatar_url: finalAvatarUrl,
-    },
-    { onConflict: "email" }
-    );
+      theme_color: themeColor,
+      accent_color: accentColor,
+    };
+
+    if (avatarUrl) updateData.avatar_url = avatarUrl;
+    if (backgroundUrl) updateData.profile_background = backgroundUrl;
+    if (songUrl) updateData.profile_song = songUrl;
+
+    const { error } = await supabase
+      .from("creator_profiles")
+      .upsert(updateData, { onConflict: "email" });
 
     setSaving(false);
 
@@ -107,77 +97,39 @@ export default function CreatorSettingsPage() {
       return;
     }
 
-    setUsername(cleanUsername);
-    setAvatarUrl(finalAvatarUrl);
-    setMessage("Creator profile saved.");
+    setMessage("Profile updated.");
   }
 
   return (
-    <main className="container">
+    <main className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
-        <h1>Creator Settings</h1>
-        <p style={{ color: "var(--muted)" }}>{email}</p>
-
-        <div style={{ textAlign: "center", marginTop: 20 }}>
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Creator avatar"
-              style={{
-                width: 110,
-                height: 110,
-                borderRadius: "50%",
-                objectFit: "cover",
-              }}
-            />
-          ) : (
-            <div style={{ fontSize: 70 }}>👤</div>
-          )}
-        </div>
+        <h1>Customize Profile</h1>
+        <p style={{ color: "var(--muted)" }}>
+          Add your name, avatar, background, theme, and profile song.
+        </p>
 
         <input
           className="input"
-          placeholder="Username — example: luchibagz"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-
-        <input
-          className="input"
-          placeholder="Creator / Business Name"
+          placeholder="Display name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
         />
 
         <input
           className="input"
-          placeholder="Booking / Contact Email"
-          value={bookingEmail}
-          onChange={(e) => setBookingEmail(e.target.value)}
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
         />
 
         <textarea
           className="input"
-          placeholder="Bio — tell viewers who you are and what you offer"
+          placeholder="Bio / headline"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           style={{ minHeight: 120 }}
-        />
-
-        <input
-          className="input"
-          placeholder="Instagram handle"
-          value={instagram}
-          onChange={(e) => setInstagram(e.target.value)}
-        />
-
-        <input
-          className="input"
-          placeholder="YouTube link"
-          value={youtube}
-          onChange={(e) => setYoutube(e.target.value)}
         />
 
         <select
@@ -186,56 +138,41 @@ export default function CreatorSettingsPage() {
           onChange={(e) => setCategory(e.target.value)}
         >
           <option>Creator</option>
-          <option>Music Artist</option>
-          <option>Podcast</option>
-          <option>Comedy</option>
-          <option>Sports</option>
-          <option>Reality Show</option>
-          <option>Documentary</option>
+          <option>Artist</option>
+          <option>Producer</option>
+          <option>Host</option>
+          <option>Actor</option>
+          <option>Model</option>
+          <option>Comedian</option>
           <option>Business</option>
           <option>Event Promoter</option>
-          <option>Videographer</option>
-          <option>Model</option>
-          <option>Service Provider</option>
         </select>
 
-        <p style={{ marginTop: 16, color: "var(--muted)" }}>
-          Upload profile picture
-        </p>
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Avatar</p>
+        <input type="file" accept="image/*" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
 
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setAvatar(e.target.files?.[0] || null)}
-          style={{ marginTop: 8 }}
-        />
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Profile background</p>
+        <input type="file" accept="image/*" onChange={(e) => setBackground(e.target.files?.[0] || null)} />
+
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Profile song</p>
+        <input type="file" accept="audio/*" onChange={(e) => setSong(e.target.files?.[0] || null)} />
+
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Theme color</p>
+        <input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} />
+
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Accent color</p>
+        <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} />
 
         <button
           className="btn"
-          onClick={saveProfile}
+          onClick={saveSettings}
           disabled={saving}
-          style={{ width: "100%", marginTop: 20 }}
+          style={{ width: "100%", marginTop: 24 }}
         >
-          {saving ? "Saving..." : "Save Creator Profile"}
+          {saving ? "Saving..." : "Save Profile"}
         </button>
 
-        <button
-          className="btn secondary"
-          onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
-          style={{ width: "100%", marginTop: 12 }}
-        >
-          View Public Page
-        </button>
-
-        <button
-          className="btn secondary"
-          onClick={() => router.push("/creator")}
-          style={{ width: "100%", marginTop: 12 }}
-        >
-          Back to Dashboard
-        </button>
-
-        {message && <p style={{ marginTop: 15 }}>{message}</p>}
+        {message && <p style={{ marginTop: 14 }}>{message}</p>}
       </section>
     </main>
   );
