@@ -16,10 +16,13 @@ export default function LiveRoomPage() {
   const [isLive, setIsLive] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [status, setStatus] = useState("Preparing camera...");
+  const [worldPostId, setWorldPostId] = useState("");
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [recordingUrl, setRecordingUrl] = useState("");
+  const [title, setTitle] = useState("UTV Live");
   const [caption, setCaption] = useState("");
-  const [title, setTitle] = useState("UTV Live Replay");
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
   const [posting, setPosting] = useState(false);
 
   useEffect(() => {
@@ -84,8 +87,40 @@ export default function LiveRoomPage() {
     await startCamera(next);
   }
 
-  function startLive() {
+  async function startLive() {
     if (!streamRef.current) return;
+
+    const { data } = await supabase.auth.getUser();
+
+    if (!data.user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const userEmail = data.user.email || "";
+
+    const { data: worldPost, error } = await supabase
+      .from("world_posts")
+      .insert({
+        creator_email: userEmail,
+        title: title || "UTV Live",
+        description: caption || "Live now on UTV.",
+        world_type: "Live",
+        city,
+        state: stateName,
+        location: "UTV Live Room",
+        is_live: true,
+        viewer_count: 0,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setWorldPostId(worldPost.id);
 
     chunksRef.current = [];
 
@@ -101,10 +136,8 @@ export default function LiveRoomPage() {
         type: "video/webm",
       });
 
-      const url = URL.createObjectURL(blob);
-
       setRecordingFile(file);
-      setRecordingUrl(url);
+      setRecordingUrl(URL.createObjectURL(blob));
       chunksRef.current = [];
     };
 
@@ -120,7 +153,7 @@ export default function LiveRoomPage() {
     }, 1000);
   }
 
-  function endLive() {
+  async function endLive() {
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
       recorderRef.current.stop();
     }
@@ -128,16 +161,16 @@ export default function LiveRoomPage() {
     clearInterval(timerRef.current);
     setIsLive(false);
     setStatus("Live ended. Replay ready.");
-  }
 
-  function deleteReplay() {
-    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
-
-    setRecordingFile(null);
-    setRecordingUrl("");
-    setCaption("");
-    setTitle("UTV Live Replay");
-    setStatus("Replay deleted.");
+    if (worldPostId) {
+      await supabase
+        .from("world_posts")
+        .update({
+          is_live: false,
+          ended_at: new Date().toISOString(),
+        })
+        .eq("id", worldPostId);
+    }
   }
 
   async function postReplay(visibility: "feed" | "profile") {
@@ -153,7 +186,7 @@ export default function LiveRoomPage() {
     }
 
     const userEmail = data.user.email || "";
-    const fileName = `${Date.now()}-${recordingFile.name}`;
+    const fileName = `live-replays/${Date.now()}-${recordingFile.name}`;
 
     const { error: uploadError } = await supabase.storage
       .from("uploads")
@@ -168,7 +201,7 @@ export default function LiveRoomPage() {
     const fileUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
 
     const { error } = await supabase.from("uploads").insert({
-      title,
+      title: title || "UTV Live Replay",
       description: caption,
       category: "Live Replay",
       creator_email: userEmail,
@@ -176,6 +209,8 @@ export default function LiveRoomPage() {
       thumbnail_url: "",
       visibility,
       approved: true,
+      content_type: "Live Replay",
+      needs_approval: false,
     });
 
     setPosting(false);
@@ -186,6 +221,16 @@ export default function LiveRoomPage() {
     }
 
     window.location.href = visibility === "feed" ? "/feed" : "/profile";
+  }
+
+  function deleteReplay() {
+    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+
+    setRecordingFile(null);
+    setRecordingUrl("");
+    setCaption("");
+    setTitle("UTV Live");
+    setStatus("Replay deleted.");
   }
 
   function formatTime(total: number) {
@@ -213,44 +258,87 @@ export default function LiveRoomPage() {
             }}
           />
 
+          {!isLive && (
+            <div
+              style={{
+                position: "absolute",
+                left: 16,
+                right: 16,
+                top: 20,
+                padding: 14,
+                borderRadius: 22,
+                background: "rgba(0,0,0,.6)",
+                backdropFilter: "blur(16px)",
+              }}
+            >
+              <input
+                className="input"
+                placeholder="Live title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                style={{ marginTop: 0 }}
+              />
+
+              <textarea
+                className="input"
+                placeholder="Live caption..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                style={{ minHeight: 70 }}
+              />
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <input
+                  className="input"
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  style={{ marginTop: 0 }}
+                />
+
+                <input
+                  className="input"
+                  placeholder="State"
+                  value={stateName}
+                  onChange={(e) => setStateName(e.target.value)}
+                  style={{ marginTop: 0 }}
+                />
+              </div>
+            </div>
+          )}
+
           <div
             style={{
               position: "absolute",
-              top: 20,
               left: 20,
-              right: 20,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              bottom: 150,
+              padding: "8px 14px",
+              borderRadius: 999,
+              background: isLive ? "#ff2d55" : "rgba(0,0,0,0.55)",
               color: "white",
+              fontWeight: "bold",
             }}
           >
-            <div
-              style={{
-                padding: "8px 14px",
-                borderRadius: 999,
-                background: isLive ? "#ff2d55" : "rgba(0,0,0,0.55)",
-                fontWeight: "bold",
-              }}
-            >
-              {isLive ? `● LIVE ${formatTime(seconds)}` : status}
-            </div>
-
-            <button
-              onClick={flipCamera}
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: "50%",
-                border: "none",
-                background: "rgba(0,0,0,0.55)",
-                color: "white",
-                fontSize: 24,
-              }}
-            >
-              🔄
-            </button>
+            {isLive ? `● LIVE ${formatTime(seconds)}` : status}
           </div>
+
+          <button
+            onClick={flipCamera}
+            style={{
+              position: "absolute",
+              right: 20,
+              bottom: 145,
+              width: 54,
+              height: 54,
+              borderRadius: "50%",
+              border: "none",
+              background: "rgba(0,0,0,0.55)",
+              color: "white",
+              fontSize: 24,
+            }}
+          >
+            🔄
+          </button>
 
           {!isLive ? (
             <button
@@ -261,8 +349,8 @@ export default function LiveRoomPage() {
                 bottom: 42,
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: 92,
-                height: 92,
+                width: 96,
+                height: 96,
                 borderRadius: "50%",
                 border: "5px solid white",
                 background: "#ff2d55",
@@ -280,8 +368,8 @@ export default function LiveRoomPage() {
                 bottom: 42,
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: 92,
-                height: 92,
+                width: 96,
+                height: 96,
                 borderRadius: "50%",
                 border: "5px solid white",
                 background: "#ff3b3b",
