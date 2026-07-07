@@ -40,12 +40,12 @@ export default function UTVNav() {
           borderTop: "1px solid rgba(255,255,255,0.1)",
         }}
       >
-        <Link className="btn secondary" href="/feed" style={{ padding: 8 }}>Feed</Link>
-        <Link className="btn secondary" href="/watch" style={{ padding: 8 }}>Watch</Link>
-        <Link className="btn secondary" href="/events" style={{ padding: 8 }}>Events</Link>
-        <Link className="btn" href="/submit" style={{ padding: 8 }}>+</Link>
-        <Link className="btn secondary" href="/live" style={{ padding: 8 }}>Live</Link>
-        <Link className="btn secondary" href="/profile" style={{ padding: 8 }}>👤</Link>
+<Link className="btn secondary" href="/feed" style={{ padding: 8 }}>Feed</Link>
+<Link className="btn secondary" href="/watch" style={{ padding: 8 }}>Watch</Link>
+<Link className="btn secondary" href="/world" style={{ padding: 8 }}>World</Link>
+<Link className="btn" href="/submit" style={{ padding: 8 }}>+</Link>
+<Link className="btn secondary" href="/live" style={{ padding: 8 }}>Live</Link>
+<Link className="btn secondary" href="/profile" style={{ padding: 8 }}>👤</Link>
       </nav>
     </>
   );
