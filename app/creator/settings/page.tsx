@@ -72,15 +72,14 @@ export default function CreatorSettingsPage() {
 
     const safeName = file.name.replaceAll(" ", "-").toLowerCase();
     const fileName = `${folder}/${Date.now()}-${safeName}`;
-
-    const { error } = await supabase.storage.from("uploads").upload(fileName, file);
+const { error } = await supabase.storage.from("creator-avatars").upload(fileName, file);
 
     if (error) {
       setMessage(error.message);
       return "";
     }
 
-    return supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
+return supabase.storage.from("creator-avatars").getPublicUrl(fileName).data.publicUrl;
   }
 
   async function saveSettings() {
