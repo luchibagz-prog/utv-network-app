@@ -17,6 +17,11 @@ export default function NewEventPage() {
   const [message, setMessage] = useState("");
 
   async function createEvent() {
+    if (!title.trim()) {
+      setMessage("Add an event title.");
+      return;
+    }
+
     setLoading(true);
     setMessage("");
 
@@ -27,48 +32,61 @@ export default function NewEventPage() {
       return;
     }
 
+    const creatorEmail = userData.user.email || "";
     let flyerUrl = "";
 
     if (flyer) {
-      const fileName = `${Date.now()}-${flyer.name}`;
+      const fileName = `events/${Date.now()}-${flyer.name.replaceAll(" ", "-").toLowerCase()}`;
 
       const { error: uploadError } = await supabase.storage
         .from("uploads")
         .upload(fileName, flyer);
 
       if (!uploadError) {
-        const { data } = supabase.storage.from("uploads").getPublicUrl(fileName);
-        flyerUrl = data.publicUrl;
+        flyerUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
       }
     }
 
-    const { error } = await supabase.from("events").insert({
-      creator_email: userData.user.email,
-      title,
-      description,
-      city,
-      state: stateName,
-      location,
-      event_date: eventDate,
-      flyer_url: flyerUrl,
-      ticket_url: ticketUrl,
-    });
+    const { data: eventRow, error } = await supabase
+      .from("events")
+      .insert({
+        creator_email: creatorEmail,
+        title,
+        description,
+        city,
+        state: stateName,
+        location,
+        event_date: eventDate,
+        flyer_url: flyerUrl,
+        ticket_url: ticketUrl,
+      })
+      .select()
+      .single();
 
     if (error) {
       setMessage(error.message);
-    } else {
-      setMessage("Event posted.");
-      setTitle("");
-      setDescription("");
-      setCity("");
-      setStateName("");
-      setLocation("");
-      setEventDate("");
-      setTicketUrl("");
-      setFlyer(null);
+      setLoading(false);
+      return;
     }
 
+    await supabase.from("world_posts").insert({
+      creator_email: creatorEmail,
+      title,
+      description,
+      world_type: "Events",
+      city,
+      state: stateName,
+      location,
+      address: location,
+      media_url: flyerUrl,
+      link_url: ticketUrl,
+      is_live: false,
+      source_type: "event",
+      source_id: eventRow.id,
+    });
+
     setLoading(false);
+    window.location.href = "/events";
   }
 
   return (
@@ -77,13 +95,11 @@ export default function NewEventPage() {
 
       <section className="card" style={{ marginTop: 24 }}>
         <h1>Post Event</h1>
+        <p style={{ color: "var(--muted)" }}>
+          Add flyers, parties, premieres, meetups, pop-ups, and experiences to Events and UTV World.
+        </p>
 
-        <input
-          className="input"
-          placeholder="Event title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <input className="input" placeholder="Event title" value={title} onChange={(e) => setTitle(e.target.value)} />
 
         <textarea
           className="input"
@@ -93,62 +109,22 @@ export default function NewEventPage() {
           style={{ minHeight: 120 }}
         />
 
-        <input
-          className="input"
-          placeholder="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
+        <input className="input" placeholder="City" value={city} onChange={(e) => setCity(e.target.value)} />
+        <input className="input" placeholder="State" value={stateName} onChange={(e) => setStateName(e.target.value)} />
+        <input className="input" placeholder="Location / Address" value={location} onChange={(e) => setLocation(e.target.value)} />
 
-        <input
-          className="input"
-          placeholder="State"
-          value={stateName}
-          onChange={(e) => setStateName(e.target.value)}
-        />
+        <input className="input" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
 
-        <input
-          className="input"
-          placeholder="Location / Address"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
+        <input className="input" placeholder="Ticket / RSVP link optional" value={ticketUrl} onChange={(e) => setTicketUrl(e.target.value)} />
 
-        <input
-          className="input"
-          type="date"
-          value={eventDate}
-          onChange={(e) => setEventDate(e.target.value)}
-        />
+        <p style={{ color: "var(--muted)", marginTop: 16 }}>Event flyer</p>
+        <input type="file" accept="image/*" onChange={(e) => setFlyer(e.target.files?.[0] || null)} />
 
-        <input
-          className="input"
-          placeholder="Ticket / RSVP link (optional)"
-          value={ticketUrl}
-          onChange={(e) => setTicketUrl(e.target.value)}
-        />
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFlyer(e.target.files?.[0] || null)}
-          style={{ marginTop: 14 }}
-        />
-
-        <button
-          className="btn"
-          onClick={createEvent}
-          disabled={loading}
-          style={{ width: "100%", marginTop: 20 }}
-        >
+        <button className="btn" onClick={createEvent} disabled={loading} style={{ width: "100%", marginTop: 20 }}>
           {loading ? "Posting..." : "Post Event"}
         </button>
 
-        {message && (
-          <p style={{ marginTop: 14 }}>
-            {message}
-          </p>
-        )}
+        {message && <p style={{ marginTop: 14 }}>{message}</p>}
       </section>
     </main>
   );
