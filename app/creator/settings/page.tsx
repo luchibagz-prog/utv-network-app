@@ -10,9 +10,18 @@ export default function CreatorSettingsPage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [category, setCategory] = useState("Creator");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [bookingEmail, setBookingEmail] = useState("");
+
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [backgroundUrl, setBackgroundUrl] = useState("");
+  const [songUrl, setSongUrl] = useState("");
+
   const [avatar, setAvatar] = useState<File | null>(null);
   const [background, setBackground] = useState<File | null>(null);
   const [song, setSong] = useState<File | null>(null);
+
   const [themeColor, setThemeColor] = useState("#7b61ff");
   const [accentColor, setAccentColor] = useState("#37f2a3");
   const [message, setMessage] = useState("");
@@ -32,6 +41,7 @@ export default function CreatorSettingsPage() {
 
     const userEmail = data.user.email || "";
     setEmail(userEmail);
+    setBookingEmail(userEmail);
 
     const { data: profile } = await supabase
       .from("creator_profiles")
@@ -44,15 +54,24 @@ export default function CreatorSettingsPage() {
       setUsername(profile.username || "");
       setBio(profile.bio || "");
       setCategory(profile.category || "Creator");
+      setInstagram(profile.instagram || "");
+      setYoutube(profile.youtube || "");
+      setBookingEmail(profile.booking_email || userEmail);
+
+      setAvatarUrl(profile.avatar_url || "");
+      setBackgroundUrl(profile.profile_background || "");
+      setSongUrl(profile.profile_song || "");
+
       setThemeColor(profile.theme_color || "#7b61ff");
       setAccentColor(profile.accent_color || "#37f2a3");
     }
   }
 
-  async function uploadFile(file: File | null) {
+  async function uploadFile(file: File | null, folder: string) {
     if (!file) return "";
 
-    const fileName = `${Date.now()}-${file.name.replaceAll(" ", "-")}`;
+    const safeName = file.name.replaceAll(" ", "-").toLowerCase();
+    const fileName = `${folder}/${Date.now()}-${safeName}`;
 
     const { error } = await supabase.storage.from("uploads").upload(fileName, file);
 
@@ -68,27 +87,30 @@ export default function CreatorSettingsPage() {
     setSaving(true);
     setMessage("");
 
-    const avatarUrl = await uploadFile(avatar);
-    const backgroundUrl = await uploadFile(background);
-    const songUrl = await uploadFile(song);
+    const newAvatarUrl = await uploadFile(avatar, "avatars");
+    const newBackgroundUrl = await uploadFile(background, "backgrounds");
+    const newSongUrl = await uploadFile(song, "songs");
 
-    const updateData: any = {
-      email,
-      display_name: displayName,
-      username,
-      bio,
-      category,
-      theme_color: themeColor,
-      accent_color: accentColor,
-    };
+    const cleanUsername = username.trim().toLowerCase().replaceAll(" ", "").replaceAll("@", "");
 
-    if (avatarUrl) updateData.avatar_url = avatarUrl;
-    if (backgroundUrl) updateData.profile_background = backgroundUrl;
-    if (songUrl) updateData.profile_song = songUrl;
-
-    const { error } = await supabase
-      .from("creator_profiles")
-      .upsert(updateData, { onConflict: "email" });
+    const { error } = await supabase.from("creator_profiles").upsert(
+      {
+        email,
+        display_name: displayName,
+        username: cleanUsername,
+        bio,
+        category,
+        instagram,
+        youtube,
+        booking_email: bookingEmail,
+        avatar_url: newAvatarUrl || avatarUrl,
+        profile_background: newBackgroundUrl || backgroundUrl,
+        profile_song: newSongUrl || songUrl,
+        theme_color: themeColor,
+        accent_color: accentColor,
+      },
+      { onConflict: "email" }
+    );
 
     setSaving(false);
 
@@ -96,6 +118,11 @@ export default function CreatorSettingsPage() {
       setMessage(error.message);
       return;
     }
+
+    setUsername(cleanUsername);
+    if (newAvatarUrl) setAvatarUrl(newAvatarUrl);
+    if (newBackgroundUrl) setBackgroundUrl(newBackgroundUrl);
+    if (newSongUrl) setSongUrl(newSongUrl);
 
     setMessage("Profile updated.");
   }
@@ -107,22 +134,19 @@ export default function CreatorSettingsPage() {
       <section className="card" style={{ marginTop: 24 }}>
         <h1>Customize Profile</h1>
         <p style={{ color: "var(--muted)" }}>
-          Add your name, avatar, background, theme, and profile song.
+          Build your UTV identity with a picture, background, music, and creator info.
         </p>
 
-        <input
-          className="input"
-          placeholder="Display name"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-        />
+        {avatarUrl && (
+          <img
+            src={avatarUrl}
+            alt="Avatar"
+            style={{ width: 110, height: 110, borderRadius: "50%", objectFit: "cover" }}
+          />
+        )}
 
-        <input
-          className="input"
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+        <input className="input" placeholder="Display name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+        <input className="input" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
 
         <textarea
           className="input"
@@ -132,11 +156,11 @@ export default function CreatorSettingsPage() {
           style={{ minHeight: 120 }}
         />
 
-        <select
-          className="input"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
+        <input className="input" placeholder="Instagram handle" value={instagram} onChange={(e) => setInstagram(e.target.value)} />
+        <input className="input" placeholder="YouTube link" value={youtube} onChange={(e) => setYoutube(e.target.value)} />
+        <input className="input" placeholder="Booking email" value={bookingEmail} onChange={(e) => setBookingEmail(e.target.value)} />
+
+        <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option>Creator</option>
           <option>Artist</option>
           <option>Producer</option>
@@ -154,8 +178,12 @@ export default function CreatorSettingsPage() {
         <p style={{ color: "var(--muted)", marginTop: 16 }}>Profile background</p>
         <input type="file" accept="image/*" onChange={(e) => setBackground(e.target.files?.[0] || null)} />
 
+        {backgroundUrl && <p style={{ color: "#39ff88" }}>Background saved.</p>}
+
         <p style={{ color: "var(--muted)", marginTop: 16 }}>Profile song</p>
         <input type="file" accept="audio/*" onChange={(e) => setSong(e.target.files?.[0] || null)} />
+
+        {songUrl && <audio controls src={songUrl} style={{ width: "100%", marginTop: 10 }} />}
 
         <p style={{ color: "var(--muted)", marginTop: 16 }}>Theme color</p>
         <input type="color" value={themeColor} onChange={(e) => setThemeColor(e.target.value)} />
@@ -163,12 +191,7 @@ export default function CreatorSettingsPage() {
         <p style={{ color: "var(--muted)", marginTop: 16 }}>Accent color</p>
         <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} />
 
-        <button
-          className="btn"
-          onClick={saveSettings}
-          disabled={saving}
-          style={{ width: "100%", marginTop: 24 }}
-        >
+        <button className="btn" onClick={saveSettings} disabled={saving} style={{ width: "100%", marginTop: 24 }}>
           {saving ? "Saving..." : "Save Profile"}
         </button>
 
