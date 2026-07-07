@@ -5,18 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 
-export default function PublicCreatorPage() {
+export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
-
   const creatorEmail = decodeURIComponent(String(params.email || ""));
 
   const [viewerEmail, setViewerEmail] = useState("");
   const [profile, setProfile] = useState<any>(null);
   const [uploads, setUploads] = useState<any[]>([]);
-  const [followers, setFollowers] = useState(0);
-  const [collabs, setCollabs] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [events, setEvents] = useState<any[]>([]);
+  const [crew, setCrew] = useState(0);
+  const [following, setFollowing] = useState(false);
+  const [tab, setTab] = useState("feed");
 
   useEffect(() => {
     loadPage();
@@ -35,28 +35,28 @@ export default function PublicCreatorPage() {
 
     setProfile(creatorProfile);
 
-    const { data: creatorUploads } = await supabase
+    const { data: uploadData } = await supabase
       .from("uploads")
       .select("*")
       .eq("creator_email", creatorEmail)
       .order("created_at", { ascending: false });
 
-    setUploads(creatorUploads || []);
+    setUploads(uploadData || []);
 
-    const { count: followerCount } = await supabase
+    const { data: eventData } = await supabase
+      .from("events")
+      .select("*")
+      .eq("creator_email", creatorEmail)
+      .order("created_at", { ascending: false });
+
+    setEvents(eventData || []);
+
+    const { count } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
       .eq("following_email", creatorEmail);
 
-    setFollowers(followerCount || 0);
-
-    const { count: collabCount } = await supabase
-      .from("collabs")
-      .select("*", { count: "exact", head: true })
-      .or(`sender_email.eq.${creatorEmail},receiver_email.eq.${creatorEmail}`)
-      .eq("status", "accepted");
-
-    setCollabs(collabCount || 0);
+    setCrew(count || 0);
 
     if (currentEmail) {
       const { data: followData } = await supabase
@@ -66,7 +66,7 @@ export default function PublicCreatorPage() {
         .eq("following_email", creatorEmail)
         .maybeSingle();
 
-      setIsFollowing(!!followData);
+      setFollowing(!!followData);
     }
   }
 
@@ -78,15 +78,15 @@ export default function PublicCreatorPage() {
 
     if (viewerEmail === creatorEmail) return;
 
-    if (isFollowing) {
+    if (following) {
       await supabase
         .from("follows")
         .delete()
         .eq("follower_email", viewerEmail)
         .eq("following_email", creatorEmail);
 
-      setIsFollowing(false);
-      setFollowers((prev) => Math.max(prev - 1, 0));
+      setFollowing(false);
+      setCrew((prev) => Math.max(prev - 1, 0));
       return;
     }
 
@@ -98,204 +98,275 @@ export default function PublicCreatorPage() {
     await supabase.from("notifications").insert({
       user_email: creatorEmail,
       type: "follow",
-      title: "New Follower",
-      message: `${viewerEmail} followed your UTV profile.`,
+      title: "New Crew Member",
+      message: `${viewerEmail} joined your crew on UTV.`,
     });
 
-    setIsFollowing(true);
-    setFollowers((prev) => prev + 1);
+    setFollowing(true);
+    setCrew((prev) => prev + 1);
   }
 
-  async function sendCollabRequest() {
+  async function buildTogether() {
     if (!viewerEmail) {
       router.push("/login");
       return;
     }
 
-    if (viewerEmail === creatorEmail) return;
-
     await supabase.from("collabs").insert({
       sender_email: viewerEmail,
       receiver_email: creatorEmail,
-      title: "Collab Request",
-      message: `${viewerEmail} wants to collaborate with you on UTV.`,
+      title: "Build Together Request",
+      message: `${viewerEmail} wants to build something with you on UTV.`,
       status: "pending",
     });
 
     await supabase.from("notifications").insert({
       user_email: creatorEmail,
       type: "collab",
-      title: "New Collab Request",
-      message: `${viewerEmail} sent you a collab request.`,
+      title: "Build Together Request",
+      message: `${viewerEmail} wants to build something with you.`,
     });
 
-    alert("Collab request sent.");
+    alert("Build Together request sent.");
   }
 
   const displayName = profile?.display_name || "UTV Creator";
   const username = profile?.username || creatorEmail.split("@")[0];
-  const avatarUrl = profile?.avatar_url || "";
-  const bio =
-    profile?.bio ||
-    "Streaming original content, building community, and connecting with creators on UTV.";
+  const avatar = profile?.avatar_url || "";
+  const background = profile?.profile_background || profile?.profile_background_url || "";
+  const song = profile?.profile_song || profile?.profile_song_url || "";
+  const theme = profile?.theme_color || "#7b61ff";
+  const accent = profile?.accent_color || "#37f2a3";
+  const bio = profile?.bio || "The platform where creators build together.";
   const category = profile?.category || "Creator";
 
+  const lives = uploads.filter((x) =>
+    (x.category || "").toLowerCase().includes("live")
+  );
+
+  const shownPosts =
+    tab === "feed"
+      ? uploads.filter((x) => (x.visibility || "feed") !== "profile")
+      : tab === "uploads"
+      ? uploads
+      : tab === "lives"
+      ? lives
+      : [];
+
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main style={{ minHeight: "100vh", background: "#000", paddingBottom: 120 }}>
       <UTVNav />
 
       <section
-        className="card"
         style={{
-          marginTop: 24,
-          background:
-            "linear-gradient(160deg, rgba(57,255,136,0.08), rgba(123,97,255,0.08), rgba(0,0,0,0.9))",
+          margin: "16px",
+          borderRadius: 28,
+          overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: `linear-gradient(160deg, ${theme}33, #000 55%, ${accent}22)`,
         }}
       >
-        <div style={{ display: "flex", gap: 18, alignItems: "center" }}>
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              style={{
-                width: 105,
-                height: 105,
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "3px solid rgba(57,255,136,0.45)",
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 105,
-                height: 105,
-                borderRadius: "50%",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 50,
-                background: "rgba(255,255,255,0.08)",
-              }}
-            >
-              👤
-            </div>
-          )}
-
-          <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0 }}>{displayName}</h1>
-            <p style={{ color: "var(--muted)", marginTop: 6 }}>@{username}</p>
-            <p style={{ color: "#d4af37", fontWeight: "bold", marginTop: 6 }}>
-              {category}
-            </p>
-          </div>
-        </div>
-
-        <p style={{ color: "var(--muted)", lineHeight: 1.5, marginTop: 18 }}>
-          {bio}
-        </p>
-
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 10,
-            marginTop: 20,
-            textAlign: "center",
+            height: 230,
+            backgroundImage: background
+              ? `linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.7)), url(${background})`
+              : `linear-gradient(135deg, ${theme}, #000, ${accent})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
           }}
         >
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{uploads.length}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Posts</p>
-          </div>
-
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{followers}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Followers</p>
-          </div>
-
-          <div className="card" style={{ padding: 12 }}>
-            <h2>{collabs}</h2>
-            <p style={{ color: "var(--muted)", fontSize: 12 }}>Collabs</p>
+          <div
+            style={{
+              position: "absolute",
+              left: 18,
+              bottom: -54,
+              display: "flex",
+              alignItems: "end",
+              gap: 16,
+            }}
+          >
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={displayName}
+                style={{
+                  width: 116,
+                  height: 116,
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  border: `4px solid ${accent}`,
+                  background: "#111",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 116,
+                  height: 116,
+                  borderRadius: "50%",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 54,
+                  border: `4px solid ${accent}`,
+                  background: "#111",
+                }}
+              >
+                👤
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-          <button className="btn" onClick={followCreator}>
-            {isFollowing ? "Following" : "Follow"}
-          </button>
+        <div style={{ padding: "72px 18px 20px" }}>
+          <h1 style={{ margin: 0, fontSize: 34 }}>{displayName}</h1>
 
-          <button
-            className="btn secondary"
-            onClick={() =>
-              router.push(`/messages/new?to=${encodeURIComponent(creatorEmail)}`)
-            }
-          >
-            Message
-            <button
-  className="btn secondary"
-  onClick={() =>
-    router.push(`/bookings/new?to=${encodeURIComponent(creatorEmail)}`)
-  }
->
-  Book Creator
-</button>
-          </button>
+          <p style={{ color: "var(--muted)", marginTop: 4 }}>@{username}</p>
 
-          <button
-            onClick={sendCollabRequest}
+          <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+            {category} • UTV Creator
+          </p>
+
+          <p style={{ color: "rgba(255,255,255,.82)", lineHeight: 1.5 }}>{bio}</p>
+
+          {song && <audio controls src={song} style={{ width: "100%", marginTop: 12 }} />}
+
+          <div
             style={{
-              width: 88,
-              height: 88,
-              borderRadius: "50%",
-              border: "none",
-              margin: "8px auto 0",
-              background: "linear-gradient(135deg, #39ff88, #7b61ff)",
-              color: "#000",
-              fontWeight: "bold",
-              boxShadow: "0 0 35px rgba(57,255,136,0.28)",
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: 8,
+              marginTop: 18,
+              textAlign: "center",
             }}
           >
-            Collab
-          </button>
+            <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
+              <h2 style={{ margin: 0 }}>{uploads.length}</h2>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Posts</p>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
+              <h2 style={{ margin: 0 }}>{crew}</h2>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Crew</p>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
+              <h2 style={{ margin: 0 }}>{lives.length}</h2>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Lives</p>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
+            <button className="btn" onClick={followCreator}>
+              {following ? "Crew Member" : "Join Crew"}
+            </button>
+
+            <button
+              className="btn secondary"
+              onClick={() =>
+                router.push(`/messages/new?to=${encodeURIComponent(creatorEmail)}`)
+              }
+            >
+              Message
+            </button>
+
+            <button
+              className="btn secondary"
+              onClick={() =>
+                router.push(`/bookings/new?to=${encodeURIComponent(creatorEmail)}`)
+              }
+            >
+              Book Creator
+            </button>
+
+            <button className="btn" onClick={buildTogether}>
+              Build Together
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 20 }}>
-        <h2>Profile Wall</h2>
+      <section style={{ display: "flex", gap: 8, padding: "0 16px", overflowX: "auto" }}>
+        {["feed", "uploads", "events", "lives", "about"].map((name) => (
+          <button
+            key={name}
+            className={tab === name ? "btn" : "btn secondary"}
+            onClick={() => setTab(name)}
+            style={{ minWidth: 92 }}
+          >
+            {name === "feed"
+              ? "Feed"
+              : name === "uploads"
+              ? "Uploads"
+              : name === "lives"
+              ? "Lives"
+              : name === "about"
+              ? "About"
+              : "Events"}
+          </button>
+        ))}
+      </section>
 
-        {uploads.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>No public posts yet.</p>
+      <section style={{ display: "grid", gap: 18, padding: 16 }}>
+        {tab === "events" ? (
+          events.length === 0 ? (
+            <div className="card"><h2>No events yet</h2></div>
+          ) : (
+            events.map((event) => (
+              <div key={event.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                {event.flyer_url && (
+                  <img src={event.flyer_url} alt={event.title} style={{ width: "100%", maxHeight: 520, objectFit: "cover" }} />
+                )}
+                <div style={{ padding: 16 }}>
+                  <h2>{event.title}</h2>
+                  <p style={{ color: "#d4af37" }}>{event.city}, {event.state}</p>
+                  <p>{event.event_date}</p>
+                </div>
+              </div>
+            ))
+          )
+        ) : tab === "about" ? (
+          <div className="card">
+            <h2>About {displayName}</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>{bio}</p>
+            <p>{creatorEmail}</p>
+            <p style={{ color: "#d4af37" }}>UTV — The platform where creators build together.</p>
+          </div>
+        ) : shownPosts.length === 0 ? (
+          <div className="card">
+            <h2>No posts yet</h2>
+            <p style={{ color: "var(--muted)" }}>This creator has not posted here yet.</p>
+          </div>
         ) : (
-          <div style={{ display: "grid", gap: 16 }}>
-            {uploads.map((upload) => (
-              <div key={upload.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
-                {upload.video_url ? (
-                  <video
-                    src={upload.video_url}
-                    controls
-                    playsInline
-                    style={{ width: "100%", maxHeight: 540, background: "#000" }}
-                  />
-                ) : upload.thumbnail_url ? (
-                  <img
-                    src={upload.thumbnail_url}
-                    alt={upload.title}
-                    style={{ width: "100%", maxHeight: 540, objectFit: "cover" }}
-                  />
+          shownPosts.map((post) => {
+            const image =
+              post.thumbnail_url ||
+              post.cover_url ||
+              post.image_url ||
+              post.poster_url ||
+              post.flyer_url ||
+              "";
+
+            const video =
+              post.video_url || post.file_url || post.media_url || post.url || "";
+
+            return (
+              <div key={post.id} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                {video ? (
+                  <video src={video} controls playsInline style={{ width: "100%", maxHeight: 540, background: "#000" }} />
+                ) : image ? (
+                  <img src={image} alt={post.title} style={{ width: "100%", maxHeight: 540, objectFit: "cover" }} />
                 ) : null}
 
                 <div style={{ padding: 16 }}>
-                  <h3>{upload.title}</h3>
-                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>
-                    {upload.category || "UTV Post"}
-                  </p>
-                  {upload.description && (
-                    <p style={{ color: "var(--muted)" }}>{upload.description}</p>
-                  )}
+                  <h2>{post.title}</h2>
+                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>{post.category || "UTV Post"}</p>
+                  {post.description && <p style={{ color: "var(--muted)" }}>{post.description}</p>}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })
         )}
       </section>
     </main>
