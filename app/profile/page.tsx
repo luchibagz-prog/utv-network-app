@@ -208,13 +208,23 @@ export default function ProfilePage() {
 
           <p style={{ color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>{bio}</p>
 
-          {song && (
-            <audio
-              controls
-              src={song}
-              style={{ width: "100%", marginTop: 12 }}
-            />
-          )}
+     {song && (
+  <div
+    style={{
+      marginTop: 14,
+      padding: 14,
+      borderRadius: 18,
+      background: "rgba(255,255,255,0.08)",
+      border: "1px solid rgba(255,255,255,0.12)",
+    }}
+  >
+    <p style={{ margin: "0 0 8px", color: "#39ff88", fontWeight: "bold" }}>
+      🎵 Profile Music
+    </p>
+
+    <audio controls src={song} style={{ width: "100%" }} />
+  </div>
+)}
 
           <div
             style={{
