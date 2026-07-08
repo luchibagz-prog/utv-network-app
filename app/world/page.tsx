@@ -4,7 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-const filters = ["All", "Live", "Events", "Casting", "Build Together", "Music", "Podcast", "Business", "Sports", "Comedy"];
+const SACRAMENTO: [number, number] = [38.5816, -121.4944];
+
+const filters = [
+  "All",
+  "Live",
+  "Events",
+  "Casting",
+  "Build Together",
+  "Music",
+  "Podcast",
+  "Business",
+  "Sports",
+  "Comedy",
+];
 
 function emoji(type: string, live: boolean) {
   if (live) return "🔴";
@@ -30,13 +43,12 @@ function WorldMap({
   locationOn: boolean;
 }) {
   const [ready, setReady] = useState(false);
-
   useEffect(() => setReady(true), []);
 
   if (!ready) {
     return (
       <div style={{ height: "100%", display: "grid", placeItems: "center", background: "#020202", color: "white" }}>
-        Loading UTV World Map...
+        Loading UTV World...
       </div>
     );
   }
@@ -44,44 +56,30 @@ function WorldMap({
   const { MapContainer, Marker, Popup, TileLayer, CircleMarker, useMap } = require("react-leaflet");
   const L = require("leaflet");
 
-  function CenterButton() {
+  function FlyToUser() {
     const map = useMap();
 
-    return (
-      <button
-        onClick={() => userLocation && map.flyTo(userLocation, 13)}
-        style={{
-          position: "absolute",
-          right: 14,
-          bottom: 14,
-          zIndex: 999,
-          border: "none",
-          borderRadius: 999,
-          padding: "12px 16px",
-          background: "rgba(0,0,0,.72)",
-          color: "white",
-          fontWeight: "bold",
-          boxShadow: "0 0 20px rgba(57,255,136,.35)",
-        }}
-      >
-        📍 Center
-      </button>
-    );
+    useEffect(() => {
+      if (locationOn && userLocation) {
+        map.flyTo(userLocation, 13, { duration: 1.2 });
+      }
+    }, [locationOn, userLocation]);
+
+    return null;
   }
 
   function pinIcon(type: string, live: boolean) {
-    const glow = live ? "#ff2d55" : type?.toLowerCase().includes("event") ? "#7b61ff" : type?.toLowerCase().includes("casting") ? "#d4af37" : "#39ff88";
+    const t = (type || "").toLowerCase();
+    const glow = live ? "#ff2d55" : t.includes("event") ? "#7b61ff" : t.includes("casting") ? "#d4af37" : "#39ff88";
 
     return L.divIcon({
       className: "",
       html: `<div style="
         width:52px;height:52px;border-radius:50%;
         display:grid;place-items:center;font-size:25px;
-        background:rgba(0,0,0,.82);
+        background:rgba(0,0,0,.9);
         border:3px solid ${glow};
-        color:white;
         box-shadow:0 0 30px ${glow};
-        animation:pulseGlow 1.8s infinite;
       ">${emoji(type, live)}</div>`,
       iconSize: [52, 52],
       iconAnchor: [26, 26],
@@ -89,9 +87,9 @@ function WorldMap({
   }
 
   function fallbackLatLng(item: any, index: number) {
-    const baseLat = userLocation?.[0] || 38.5816;
-    const baseLng = userLocation?.[1] || -121.4944;
-    const spread = 0.08;
+    const baseLat = item.latitude || SACRAMENTO[0];
+    const baseLng = item.longitude || SACRAMENTO[1];
+    const spread = 0.075;
 
     return [
       item.latitude || baseLat + Math.sin(index * 2.1) * spread,
@@ -99,45 +97,40 @@ function WorldMap({
     ] as [number, number];
   }
 
-  const center = userLocation || [38.5816, -121.4944];
-
   return (
     <>
       <style>{`
-        .leaflet-container {
-          background: #000;
-          filter: brightness(.72) contrast(1.22) saturate(.5) hue-rotate(165deg);
-        }
+        .leaflet-container { background:#050505; }
         .leaflet-tile {
-          filter: invert(1) hue-rotate(180deg) brightness(.65) contrast(1.35) saturate(.55);
+          filter: invert(1) hue-rotate(185deg) brightness(.72) contrast(1.25) saturate(.75);
         }
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-          background: #080808;
-          color: white;
-          border: 1px solid rgba(57,255,136,.35);
-          box-shadow: 0 0 24px rgba(57,255,136,.22);
-        }
-        @keyframes pulseGlow {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.08); opacity: .88; }
-          100% { transform: scale(1); opacity: 1; }
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+          background:#080808;
+          color:white;
+          border:1px solid rgba(57,255,136,.35);
         }
       `}</style>
 
-      <MapContainer center={center} zoom={11} style={{ height: "100%", width: "100%" }}>
-        <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <MapContainer center={SACRAMENTO} zoom={11} style={{ height: "100%", width: "100%" }}>
+        <FlyToUser />
+
+        <TileLayer
+          attribution="&copy; OpenStreetMap"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
         {locationOn && userLocation && (
           <CircleMarker
             center={userLocation}
-            radius={9}
+            radius={10}
             pathOptions={{
               color: "#39ff88",
               fillColor: "#39ff88",
               fillOpacity: 0.9,
             }}
           >
-            <Popup>Your location is private. Only you can see this dot.</Popup>
+            <Popup>Your private location. Only you can see this.</Popup>
           </CircleMarker>
         )}
 
@@ -156,8 +149,6 @@ function WorldMap({
             </Popup>
           </Marker>
         ))}
-
-        {locationOn && userLocation && <CenterButton />}
       </MapContainer>
     </>
   );
@@ -192,20 +183,14 @@ export default function WorldPage() {
       return;
     }
 
-    if (!navigator.geolocation) {
-      setLocationMessage("Location is not supported on this device.");
-      return;
-    }
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setLocationOn(true);
-        setLocationMessage("Location on. Your private dot is only visible to you.");
+        setLocationMessage("Location on. Your dot is private.");
       },
-      () => {
-        setLocationMessage("Location permission denied.");
-      }
+      () => setLocationMessage("Location permission denied."),
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
