@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
 const filters = ["All", "Live", "Events", "Casting", "Build Together", "Music", "Podcast", "Business", "Sports", "Comedy"];
 
-function icon(type: string, live: boolean) {
+function emoji(type: string, live: boolean) {
   if (live) return "🔴";
   const t = (type || "").toLowerCase();
   if (t.includes("event")) return "🎉";
@@ -23,19 +20,71 @@ function icon(type: string, live: boolean) {
   return "🌎";
 }
 
-function pinIcon(type: string, live: boolean) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="
-      width:46px;height:46px;border-radius:50%;
-      display:grid;place-items:center;font-size:24px;
-      background:${live ? "#ff2d55" : "rgba(57,255,136,.95)"};
-      border:3px solid white;
-      box-shadow:0 0 26px ${live ? "rgba(255,45,85,.85)" : "rgba(57,255,136,.55)"};
-    ">${icon(type, live)}</div>`,
-    iconSize: [46, 46],
-    iconAnchor: [23, 23],
-  });
+function WorldMap({ items }: { items: any[] }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  if (!ready) {
+    return (
+      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "#050505", color: "white" }}>
+        Loading UTV World Map...
+      </div>
+    );
+  }
+
+  const { MapContainer, Marker, Popup, TileLayer } = require("react-leaflet");
+  const L = require("leaflet");
+
+  function pinIcon(type: string, live: boolean) {
+    return L.divIcon({
+      className: "",
+      html: `<div style="
+        width:46px;height:46px;border-radius:50%;
+        display:grid;place-items:center;font-size:24px;
+        background:${live ? "#ff2d55" : "rgba(57,255,136,.95)"};
+        border:3px solid white;
+        box-shadow:0 0 26px ${live ? "rgba(255,45,85,.85)" : "rgba(57,255,136,.55)"};
+      ">${emoji(type, live)}</div>`,
+      iconSize: [46, 46],
+      iconAnchor: [23, 23],
+    });
+  }
+
+  function fallbackLatLng(item: any, index: number) {
+    const baseLat = 38.5816;
+    const baseLng = -121.4944;
+    const spread = 0.08;
+
+    return [
+      item.latitude || baseLat + Math.sin(index * 2.1) * spread,
+      item.longitude || baseLng + Math.cos(index * 1.7) * spread,
+    ];
+  }
+
+  return (
+    <MapContainer center={[38.5816, -121.4944]} zoom={11} style={{ height: "100%", width: "100%" }}>
+      <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+      {items.map((item, index) => (
+        <Marker key={item.id} position={fallbackLatLng(item, index)} icon={pinIcon(item.world_type, item.is_live)}>
+          <Popup>
+            <strong>{emoji(item.world_type, item.is_live)} {item.title}</strong>
+            <br />
+            {item.world_type} {item.is_live ? "• LIVE NOW" : ""}
+            <br />
+            {item.city || "City TBA"} {item.state || ""}
+            <br />
+            <button onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}>
+              View Creator
+            </button>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
 }
 
 export default function WorldPage() {
@@ -56,26 +105,16 @@ export default function WorldPage() {
     setItems(data || []);
   }
 
-  function fallbackLatLng(item: any, index: number) {
-    const baseLat = 38.5816;
-    const baseLng = -121.4944;
-    const spread = 0.08;
-    return [
-      item.latitude || baseLat + Math.sin(index * 2.1) * spread,
-      item.longitude || baseLng + Math.cos(index * 1.7) * spread,
-    ] as [number, number];
-  }
-
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const text = `${item.title || ""} ${item.description || ""} ${item.city || ""} ${item.state || ""} ${item.world_type || ""}`.toLowerCase();
-      const matchesSearch = text.includes(search.toLowerCase());
-      const matchesFilter =
-        filter === "All" ||
-        item.world_type?.toLowerCase() === filter.toLowerCase() ||
-        (filter === "Live" && item.is_live);
 
-      return matchesSearch && matchesFilter;
+      return (
+        text.includes(search.toLowerCase()) &&
+        (filter === "All" ||
+          item.world_type?.toLowerCase() === filter.toLowerCase() ||
+          (filter === "Live" && item.is_live))
+      );
     });
   }, [items, search, filter]);
 
@@ -111,43 +150,19 @@ export default function WorldPage() {
       </section>
 
       <section style={{ height: "62vh", margin: "0 16px", borderRadius: 28, overflow: "hidden" }}>
-        <MapContainer center={[38.5816, -121.4944]} zoom={11} style={{ height: "100%", width: "100%" }}>
-          <TileLayer
-            attribution="&copy; OpenStreetMap"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          {filtered.map((item, index) => {
-            const position = fallbackLatLng(item, index);
-
-            return (
-              <Marker key={item.id} position={position} icon={pinIcon(item.world_type, item.is_live)}>
-                <Popup>
-                  <strong>{icon(item.world_type, item.is_live)} {item.title}</strong>
-                  <br />
-                  {item.world_type} {item.is_live ? "• LIVE NOW" : ""}
-                  <br />
-                  {item.city || "City TBA"} {item.state || ""}
-                  <br />
-                  <button onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}>
-                    View Creator
-                  </button>
-                </Popup>
-              </Marker>
-            );
-          })}
-        </MapContainer>
+        <WorldMap items={filtered} />
       </section>
 
       <section style={{ display: "grid", gap: 16, padding: 16 }}>
         {filtered.map((item) => (
           <div key={item.id} className="card">
             <p style={{ color: "#39ff88", fontWeight: "bold" }}>
-              {icon(item.world_type, item.is_live)} {item.world_type}
+              {emoji(item.world_type, item.is_live)} {item.world_type}
               {item.is_live ? " • LIVE NOW" : ""}
             </p>
 
             <h2>{item.title}</h2>
+
             {item.description && <p style={{ color: "var(--muted)" }}>{item.description}</p>}
 
             <p style={{ color: "#d4af37", fontWeight: "bold" }}>
