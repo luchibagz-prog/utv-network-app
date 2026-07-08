@@ -30,24 +30,27 @@ export default function SubmitPage() {
   const [preview, setPreview] = useState("");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
+  const [overlayText, setOverlayText] = useState("");
   const [visibility, setVisibility] = useState("feed");
   const [category, setCategory] = useState("Feed");
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
+  const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("environment");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const type = params.get("type");
-
     if (type) startCreate(type);
+
+    return () => stopCamera();
   }, []);
 
-  async function startCamera() {
+  async function startCamera(facing: "user" | "environment" = cameraFacing) {
     try {
       stopCamera();
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: true,
       });
 
@@ -57,8 +60,11 @@ export default function SubmitPage() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+
+      setCameraFacing(facing);
+      setMessage("");
     } catch {
-      setMessage("Allow camera access.");
+      setMessage("Allow camera and mic permissions.");
     }
   }
 
@@ -86,6 +92,11 @@ export default function SubmitPage() {
     setTimeout(() => startCamera(), 200);
   }
 
+  async function flipCamera() {
+    const next = cameraFacing === "user" ? "environment" : "user";
+    await startCamera(next);
+  }
+
   function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0];
     if (!picked) return;
@@ -95,9 +106,40 @@ export default function SubmitPage() {
     stopCamera();
   }
 
+  function capturePhoto() {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+
+        const capturedFile = new File([blob], `utv-photo-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+
+        setFile(capturedFile);
+        setPreview(URL.createObjectURL(blob));
+        stopCamera();
+      },
+      "image/jpeg",
+      0.92
+    );
+  }
+
   async function postToUTV() {
     if (!file) {
-      setMessage("Choose content first.");
+      setMessage("Choose or capture content first.");
       return;
     }
 
@@ -114,9 +156,7 @@ export default function SubmitPage() {
     const userEmail = data.user.email || "";
     const fileName = `${Date.now()}-${file.name.replaceAll(" ", "-").toLowerCase()}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("uploads")
-      .upload(fileName, file);
+    const { error: uploadError } = await supabase.storage.from("uploads").upload(fileName, file);
 
     if (uploadError) {
       setMessage(uploadError.message);
@@ -126,13 +166,14 @@ export default function SubmitPage() {
 
     const fileUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
     const isVideo = file.type.startsWith("video");
+    const finalCaption = overlayText ? `${caption}\n\n${overlayText}` : caption;
 
     if (visibility === "story") {
       const { error } = await supabase.from("stories").insert({
         user_email: userEmail,
         media_url: fileUrl,
         media_type: isVideo ? "video" : "image",
-        caption,
+        caption: finalCaption,
       });
 
       setPosting(false);
@@ -150,7 +191,7 @@ export default function SubmitPage() {
 
     const { error } = await supabase.from("uploads").insert({
       title: title || "UTV Post",
-      description: caption,
+      description: finalCaption,
       category,
       creator_email: userEmail,
       video_url: isVideo ? fileUrl : "",
@@ -192,18 +233,11 @@ export default function SubmitPage() {
           </p>
         </section>
 
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: 12,
-            padding: 16,
-          }}
-        >
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, padding: 16 }}>
           {createOptions.map((item) => (
             <button
               key={item.title}
-              onClick={() => item.route ? router.push(item.route) : startCreate(item.type || "feed")}
+              onClick={() => (item.route ? router.push(item.route) : startCreate(item.type || "feed"))}
               style={{
                 border: "1px solid rgba(255,255,255,.12)",
                 borderRadius: 22,
@@ -229,10 +263,24 @@ export default function SubmitPage() {
         <UTVNav />
 
         <section style={{ position: "relative", height: "calc(100vh - 95px)" }}>
-          <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: cameraFacing === "user" ? "scaleX(-1)" : "none",
+            }}
+          />
 
           <button
-            onClick={() => setMode("hub")}
+            onClick={() => {
+              stopCamera();
+              setMode("hub");
+            }}
             style={{
               position: "absolute",
               top: 20,
@@ -247,38 +295,134 @@ export default function SubmitPage() {
             Back
           </button>
 
-          <label
+          <button
+            onClick={flipCamera}
+            style={{
+              position: "absolute",
+              bottom: 42,
+              left: 24,
+              width: 64,
+              height: 64,
+              borderRadius: "50%",
+              border: "2px solid white",
+              background: "rgba(0,0,0,.5)",
+              color: "white",
+              fontSize: 26,
+            }}
+          >
+            🔄
+          </button>
+
+          <button
+            onClick={capturePhoto}
             style={{
               position: "absolute",
               bottom: 34,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 90,
+              height: 90,
+              borderRadius: "50%",
+              border: "7px solid white",
+              background: "linear-gradient(135deg,#39ff88,#7b61ff)",
+              color: "#000",
+              fontWeight: "bold",
+            }}
+          >
+            SNAP
+          </button>
+
+          <label
+            style={{
+              position: "absolute",
+              bottom: 42,
               right: 24,
-              width: 76,
-              height: 76,
+              width: 72,
+              height: 72,
               borderRadius: 20,
               border: "2px solid white",
               background: "rgba(255,255,255,.14)",
               display: "grid",
               placeItems: "center",
               color: "white",
+              fontSize: 13,
             }}
           >
             Gallery
             <input hidden type="file" accept="image/*,video/*" onChange={pickFile} />
           </label>
+
+          {message && (
+            <p
+              style={{
+                position: "absolute",
+                left: 20,
+                right: 20,
+                bottom: 142,
+                color: "white",
+                fontWeight: "bold",
+              }}
+            >
+              {message}
+            </p>
+          )}
         </section>
       </main>
     );
   }
 
   return (
-    <section style={{ position: "fixed", inset: 0, zIndex: 200, background: "#000", overflowY: "auto", padding: "20px 16px 120px" }}>
-      {file?.type.startsWith("video") ? (
-        <video src={preview} controls playsInline style={{ width: "100%", height: "62vh", objectFit: "cover", borderRadius: 22, background: "#000" }} />
-      ) : (
-        <img src={preview} alt="Preview" style={{ width: "100%", height: "62vh", objectFit: "cover", borderRadius: 22 }} />
-      )}
+    <section
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "#000",
+        overflowY: "auto",
+        padding: "20px 16px 120px",
+      }}
+    >
+      <div style={{ position: "relative" }}>
+        {file?.type.startsWith("video") ? (
+          <video
+            src={preview}
+            controls
+            playsInline
+            style={{ width: "100%", height: "62vh", objectFit: "cover", borderRadius: 22, background: "#000" }}
+          />
+        ) : (
+          <img src={preview} alt="Preview" style={{ width: "100%", height: "62vh", objectFit: "cover", borderRadius: 22 }} />
+        )}
+
+        {overlayText && (
+          <div
+            style={{
+              position: "absolute",
+              left: 18,
+              right: 18,
+              bottom: 22,
+              padding: 12,
+              borderRadius: 16,
+              background: "rgba(0,0,0,.55)",
+              color: "white",
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
+            {overlayText}
+          </div>
+        )}
+      </div>
 
       <input className="input" placeholder="Add title" value={title} onChange={(e) => setTitle(e.target.value)} />
+
+      <input
+        className="input"
+        placeholder="Add text on photo/video 🔥"
+        value={overlayText}
+        onChange={(e) => setOverlayText(e.target.value)}
+      />
 
       <textarea
         className="input"
@@ -318,7 +462,9 @@ export default function SubmitPage() {
         onClick={() => {
           setFile(null);
           setPreview("");
-          startCamera();
+          setOverlayText("");
+          setMode("camera");
+          setTimeout(() => startCamera(), 200);
         }}
         style={{ width: "100%", marginTop: 12 }}
       >
