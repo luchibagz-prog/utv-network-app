@@ -33,6 +33,17 @@ function emoji(type: string, live: boolean) {
   return "🌎";
 }
 
+function glowColor(type: string, live: boolean) {
+  if (live) return "#ff2d55";
+  const t = (type || "").toLowerCase();
+  if (t.includes("event")) return "#8b5cff";
+  if (t.includes("casting")) return "#d4af37";
+  if (t.includes("music")) return "#00d9ff";
+  if (t.includes("sports")) return "#ff8a00";
+  if (t.includes("comedy")) return "#ff4fd8";
+  return "#39ff88";
+}
+
 function WorldMap({
   items,
   userLocation,
@@ -43,12 +54,14 @@ function WorldMap({
   locationOn: boolean;
 }) {
   const [ready, setReady] = useState(false);
+
   useEffect(() => setReady(true), []);
 
   if (!ready) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "#020202", color: "white" }}>
-        Loading UTV World...
+      <div className="worldLoading">
+        <div className="worldPulse">🌎</div>
+        <p>Loading UTV World...</p>
       </div>
     );
   }
@@ -61,73 +74,118 @@ function WorldMap({
 
     useEffect(() => {
       if (locationOn && userLocation) {
-        map.flyTo(userLocation, 13, { duration: 1.2 });
+        map.flyTo(userLocation, 13, { duration: 1.35 });
       }
-    }, [locationOn, userLocation]);
+    }, [locationOn, userLocation, map]);
 
     return null;
   }
 
   function pinIcon(type: string, live: boolean) {
-    const t = (type || "").toLowerCase();
-    const glow = live ? "#ff2d55" : t.includes("event") ? "#7b61ff" : t.includes("casting") ? "#d4af37" : "#39ff88";
+    const glow = glowColor(type, live);
 
     return L.divIcon({
       className: "",
-      html: `<div style="
-        width:52px;height:52px;border-radius:50%;
-        display:grid;place-items:center;font-size:25px;
-        background:rgba(0,0,0,.9);
-        border:3px solid ${glow};
-        box-shadow:0 0 30px ${glow};
-      ">${emoji(type, live)}</div>`,
-      iconSize: [52, 52],
-      iconAnchor: [26, 26],
+      html: `
+        <div style="
+          width:46px;
+          height:46px;
+          border-radius:16px 16px 16px 4px;
+          transform:rotate(-45deg);
+          display:grid;
+          place-items:center;
+          background:linear-gradient(145deg, rgba(8,8,8,.98), rgba(18,18,18,.96));
+          border:2px solid ${glow};
+          box-shadow:0 0 18px ${glow}, 0 0 42px rgba(57,255,136,.15);
+        ">
+          <div style="transform:rotate(45deg); font-size:22px;">${emoji(type, live)}</div>
+        </div>
+      `,
+      iconSize: [46, 46],
+      iconAnchor: [23, 42],
     });
   }
 
   function fallbackLatLng(item: any, index: number) {
-    const baseLat = item.latitude || SACRAMENTO[0];
-    const baseLng = item.longitude || SACRAMENTO[1];
-    const spread = 0.075;
+    const lat = Number(item.latitude);
+    const lng = Number(item.longitude);
 
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== 0 && lng !== 0) {
+      return [lat, lng] as [number, number];
+    }
+
+    const spread = 0.09;
     return [
-      item.latitude || baseLat + Math.sin(index * 2.1) * spread,
-      item.longitude || baseLng + Math.cos(index * 1.7) * spread,
+      SACRAMENTO[0] + Math.sin(index * 2.35) * spread,
+      SACRAMENTO[1] + Math.cos(index * 1.85) * spread,
     ] as [number, number];
   }
 
   return (
     <>
       <style>{`
-        .leaflet-container { background:#050505; }
-        .leaflet-tile {
-          filter: invert(1) hue-rotate(185deg) brightness(.72) contrast(1.25) saturate(.75);
+        .leaflet-container {
+          background:#020403;
+          font-family:inherit;
         }
+
+        .leaflet-tile {
+          filter: invert(1) hue-rotate(180deg) brightness(.52) contrast(1.55) saturate(.35);
+        }
+
+        .leaflet-control-attribution {
+          background:rgba(0,0,0,.55) !important;
+          color:rgba(255,255,255,.45) !important;
+          font-size:10px;
+        }
+
         .leaflet-popup-content-wrapper,
         .leaflet-popup-tip {
-          background:#080808;
+          background:rgba(4,6,5,.96);
           color:white;
+          border:1px solid rgba(57,255,136,.32);
+          box-shadow:0 18px 45px rgba(0,0,0,.55);
+        }
+
+        .leaflet-popup-content {
+          margin:14px;
+          min-width:190px;
+        }
+
+        .worldPopupButton {
+          margin-top:10px;
+          width:100%;
           border:1px solid rgba(57,255,136,.35);
+          background:rgba(57,255,136,.1);
+          color:white;
+          border-radius:12px;
+          padding:10px 12px;
+          font-weight:800;
+          cursor:pointer;
         }
       `}</style>
 
-      <MapContainer center={SACRAMENTO} zoom={11} style={{ height: "100%", width: "100%" }}>
+      <MapContainer
+        center={SACRAMENTO}
+        zoom={11}
+        minZoom={3}
+        maxZoom={18}
+        scrollWheelZoom
+        style={{ height: "100%", width: "100%" }}
+      >
         <FlyToUser />
 
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
         {locationOn && userLocation && (
           <CircleMarker
             center={userLocation}
-            radius={10}
+            radius={11}
             pathOptions={{
               color: "#39ff88",
               fillColor: "#39ff88",
-              fillOpacity: 0.9,
+              fillOpacity: 0.88,
+              weight: 3,
             }}
           >
             <Popup>Your private location. Only you can see this.</Popup>
@@ -135,17 +193,24 @@ function WorldMap({
         )}
 
         {items.map((item, index) => (
-          <Marker key={item.id} position={fallbackLatLng(item, index)} icon={pinIcon(item.world_type, item.is_live)}>
+          <Marker key={item.id || index} position={fallbackLatLng(item, index)} icon={pinIcon(item.world_type, item.is_live)}>
             <Popup>
-              <strong>{emoji(item.world_type, item.is_live)} {item.title}</strong>
+              <strong>
+                {emoji(item.world_type, item.is_live)} {item.title || "Untitled"}
+              </strong>
               <br />
-              {item.world_type} {item.is_live ? "• LIVE NOW" : ""}
+              {item.world_type || "World"} {item.is_live ? "• LIVE NOW" : ""}
               <br />
-              {item.city || "City TBA"} {item.state || ""}
+              📍 {item.city || "City TBA"} {item.state || ""}
               <br />
-              <button onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}>
-                View Creator
-              </button>
+              {item.creator_email && (
+                <button
+                  className="worldPopupButton"
+                  onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
+                >
+                  View Creator
+                </button>
+              )}
             </Popup>
           </Marker>
         ))}
@@ -160,17 +225,23 @@ export default function WorldPage() {
   const [filter, setFilter] = useState("All");
   const [locationOn, setLocationOn] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [locationMessage, setLocationMessage] = useState("");
+  const [locationMessage, setLocationMessage] = useState("Starts in Sacramento. Turn location on to center near you.");
 
   useEffect(() => {
     loadWorld();
   }, []);
 
   async function loadWorld() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("world_posts")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("World load error:", error);
+      setItems([]);
+      return;
+    }
 
     setItems(data || []);
   }
@@ -179,18 +250,25 @@ export default function WorldPage() {
     if (locationOn) {
       setLocationOn(false);
       setUserLocation(null);
-      setLocationMessage("Location off.");
+      setLocationMessage("Location off. UTV World is showing the public map only.");
       return;
     }
+
+    if (!navigator.geolocation) {
+      setLocationMessage("Location is not supported on this device.");
+      return;
+    }
+
+    setLocationMessage("Asking permission...");
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserLocation([pos.coords.latitude, pos.coords.longitude]);
         setLocationOn(true);
-        setLocationMessage("Location on. Your dot is private.");
+        setLocationMessage("Location on. Your dot is private and only visible to you.");
       },
-      () => setLocationMessage("Location permission denied."),
-      { enableHighAccuracy: true, timeout: 10000 }
+      () => setLocationMessage("Location permission denied. You can still explore UTV World."),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }
 
@@ -208,30 +286,215 @@ export default function WorldPage() {
   }, [items, search, filter]);
 
   return (
-    <main style={{ minHeight: "100vh", background: "#000", paddingBottom: 120 }}>
+    <main className="worldPage">
       <UTVNav />
 
-      <section style={{ padding: 16 }}>
-        <h1 style={{ fontSize: 42, margin: 0 }}>UTV World</h1>
-        <p style={{ color: "var(--muted)" }}>
-          Live streams, events, casting, services, and build opportunities around you.
-        </p>
+      <style>{`
+        .worldPage {
+          min-height:100vh;
+          background:
+            radial-gradient(circle at 20% 0%, rgba(57,255,136,.14), transparent 28%),
+            radial-gradient(circle at 80% 12%, rgba(123,97,255,.18), transparent 30%),
+            linear-gradient(180deg, #050705 0%, #000 45%, #000 100%);
+          color:white;
+          padding-bottom:120px;
+        }
 
-        <button className={locationOn ? "btn" : "btn secondary"} onClick={toggleLocation} style={{ width: "100%", marginTop: 12 }}>
+        .worldHero {
+          padding:22px 16px 14px;
+        }
+
+        .worldHeroTop {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+        }
+
+        .worldBadge {
+          border:1px solid rgba(57,255,136,.32);
+          background:rgba(57,255,136,.08);
+          color:#39ff88;
+          border-radius:999px;
+          padding:8px 11px;
+          font-size:12px;
+          font-weight:900;
+          white-space:nowrap;
+        }
+
+        .worldTitle {
+          font-size:42px;
+          line-height:.95;
+          margin:0;
+          letter-spacing:-1.5px;
+        }
+
+        .worldSub {
+          color:rgba(255,255,255,.67);
+          line-height:1.45;
+          margin:12px 0 0;
+          max-width:680px;
+        }
+
+        .worldControls {
+          display:grid;
+          gap:10px;
+          padding:0 16px 14px;
+        }
+
+        .worldSearch {
+          width:100%;
+          box-sizing:border-box;
+          border:1px solid rgba(255,255,255,.12);
+          background:rgba(255,255,255,.065);
+          color:white;
+          border-radius:18px;
+          padding:15px 16px;
+          outline:none;
+          font-size:16px;
+        }
+
+        .worldFilters {
+          display:flex;
+          gap:10px;
+          overflow-x:auto;
+          padding:0 16px 14px;
+        }
+
+        .worldFilters::-webkit-scrollbar {
+          display:none;
+        }
+
+        .worldMapShell {
+          height:62vh;
+          min-height:430px;
+          margin:0 16px;
+          border-radius:30px;
+          overflow:hidden;
+          border:1px solid rgba(57,255,136,.28);
+          box-shadow:
+            0 0 0 1px rgba(255,255,255,.04) inset,
+            0 0 55px rgba(57,255,136,.16),
+            0 30px 80px rgba(0,0,0,.45);
+          position:relative;
+        }
+
+        .worldMapShell:before {
+          content:"";
+          position:absolute;
+          inset:0;
+          pointer-events:none;
+          z-index:450;
+          background:linear-gradient(180deg, rgba(0,0,0,.18), transparent 25%, rgba(0,0,0,.18));
+        }
+
+        .worldLoading {
+          height:100%;
+          display:grid;
+          place-items:center;
+          background:#020202;
+          color:white;
+          text-align:center;
+        }
+
+        .worldPulse {
+          font-size:44px;
+          animation:pulseWorld 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseWorld {
+          0%,100% { transform:scale(1); opacity:.7; }
+          50% { transform:scale(1.13); opacity:1; }
+        }
+
+        .worldList {
+          display:grid;
+          gap:14px;
+          padding:16px;
+        }
+
+        .worldCard {
+          border:1px solid rgba(255,255,255,.1);
+          background:linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+          border-radius:24px;
+          padding:16px;
+          box-shadow:0 16px 44px rgba(0,0,0,.28);
+        }
+
+        .worldType {
+          margin:0 0 8px;
+          font-weight:900;
+          color:#39ff88;
+        }
+
+        .worldCard h2 {
+          margin:0;
+          font-size:22px;
+        }
+
+        .worldDesc {
+          color:rgba(255,255,255,.66);
+          line-height:1.45;
+        }
+
+        .worldCity {
+          color:#d4af37;
+          font-weight:900;
+        }
+
+        @media (min-width: 900px) {
+          .worldHero,
+          .worldControls,
+          .worldFilters,
+          .worldList {
+            max-width:1100px;
+            margin-left:auto;
+            margin-right:auto;
+          }
+
+          .worldMapShell {
+            max-width:1100px;
+            margin-left:auto;
+            margin-right:auto;
+          }
+
+          .worldControls {
+            grid-template-columns:220px 1fr;
+          }
+
+          .worldList {
+            grid-template-columns:repeat(3, 1fr);
+          }
+        }
+      `}</style>
+
+      <section className="worldHero">
+        <div className="worldHeroTop">
+          <h1 className="worldTitle">UTV World</h1>
+          <div className="worldBadge">{filtered.length} showing</div>
+        </div>
+
+        <p className="worldSub">
+          Find live streams, events, casting calls, services, creators, and opportunities around the map.
+        </p>
+      </section>
+
+      <section className="worldControls">
+        <button className={locationOn ? "btn" : "btn secondary"} onClick={toggleLocation}>
           {locationOn ? "📍 Location On" : "📍 Turn Location On"}
         </button>
 
-        {locationMessage && <p style={{ color: "#39ff88" }}>{locationMessage}</p>}
-
         <input
-          className="input"
+          className="worldSearch"
           placeholder="Search city, event, casting..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        <p style={{ color: "#39ff88", margin: 0, fontSize: 13 }}>{locationMessage}</p>
       </section>
 
-      <section style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 16px 14px" }}>
+      <section className="worldFilters">
         {filters.map((name) => (
           <button
             key={name}
@@ -244,40 +507,34 @@ export default function WorldPage() {
         ))}
       </section>
 
-      <section
-        style={{
-          height: "64vh",
-          margin: "0 16px",
-          borderRadius: 28,
-          overflow: "hidden",
-          border: "1px solid rgba(57,255,136,.28)",
-          boxShadow: "0 0 45px rgba(57,255,136,.18)",
-        }}
-      >
+      <section className="worldMapShell">
         <WorldMap items={filtered} userLocation={userLocation} locationOn={locationOn} />
       </section>
 
-      <section style={{ display: "grid", gap: 16, padding: 16 }}>
+      <section className="worldList">
         {filtered.map((item) => (
-          <div key={item.id} className="card">
-            <p style={{ color: "#39ff88", fontWeight: "bold" }}>
-              {emoji(item.world_type, item.is_live)} {item.world_type}
+          <div key={item.id} className="worldCard">
+            <p className="worldType">
+              {emoji(item.world_type, item.is_live)} {item.world_type || "World"}
               {item.is_live ? " • LIVE NOW" : ""}
             </p>
 
-            <h2>{item.title}</h2>
-            {item.description && <p style={{ color: "var(--muted)" }}>{item.description}</p>}
+            <h2>{item.title || "Untitled"}</h2>
 
-            <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+            {item.description && <p className="worldDesc">{item.description}</p>}
+
+            <p className="worldCity">
               📍 {item.city || "City TBA"} {item.state ? `, ${item.state}` : ""}
             </p>
 
-            <button
-              className="btn secondary"
-              onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
-            >
-              View Creator
-            </button>
+            {item.creator_email && (
+              <button
+                className="btn secondary"
+                onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
+              >
+                View Creator
+              </button>
+            )}
           </div>
         ))}
       </section>
