@@ -45,11 +45,8 @@ export default function FeedPage() {
       (entries) => {
         entries.forEach((entry) => {
           const video = entry.target as HTMLVideoElement;
-          if (entry.isIntersecting) {
-            video.play().catch(() => {});
-          } else {
-            video.pause();
-          }
+          if (entry.isIntersecting) video.play().catch(() => {});
+          else video.pause();
         });
       },
       { threshold: 0.65 }
@@ -64,7 +61,7 @@ export default function FeedPage() {
 
   async function loadProfiles(emails: string[]) {
     const uniqueEmails = Array.from(new Set(emails.filter(Boolean)));
-    if (uniqueEmails.length === 0) return;
+    if (!uniqueEmails.length) return;
 
     const { data } = await supabase.from("creator_profiles").select("*").in("email", uniqueEmails);
 
@@ -107,7 +104,6 @@ export default function FeedPage() {
     const feedItems = (data || []).filter(Boolean).filter((item) => {
       const category = (item.category || "").toLowerCase();
       const visibility = (item.visibility || "feed").toLowerCase();
-
       return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
     });
 
@@ -152,13 +148,19 @@ export default function FeedPage() {
       return;
     }
 
-    const { error } = await supabase.from("feed_likes").insert({
-      upload_id: id,
-      user_email: userEmail,
-    });
+    const { data: existingLike } = await supabase
+      .from("feed_likes")
+      .select("id")
+      .eq("upload_id", id)
+      .eq("user_email", userEmail)
+      .maybeSingle();
 
-    if (error) {
+    if (existingLike) {
       await supabase.from("feed_likes").delete().eq("upload_id", id).eq("user_email", userEmail);
+      setLikes((prev) => ({ ...prev, [id]: Math.max((prev[id] || 1) - 1, 0) }));
+    } else {
+      await supabase.from("feed_likes").insert({ upload_id: id, user_email: userEmail });
+      setLikes((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     }
 
     loadLikes(id);
@@ -229,13 +231,16 @@ export default function FeedPage() {
           min-height:100vh;
           padding-bottom:120px;
           color:white;
-          background:linear-gradient(180deg,#07111e,#000);
+          background:
+            radial-gradient(circle at 10% 0%, rgba(57,255,136,.16), transparent 28%),
+            radial-gradient(circle at 90% 5%, rgba(123,97,255,.18), transparent 35%),
+            linear-gradient(180deg,#07111e,#000);
         }
 
         .feedHero img {
           width:100%;
-          height:34vh;
-          min-height:240px;
+          height:32vh;
+          min-height:225px;
           object-fit:cover;
           display:block;
           filter:brightness(1.2) contrast(1.12) saturate(1.22);
@@ -248,9 +253,7 @@ export default function FeedPage() {
           padding:16px;
         }
 
-        .stories::-webkit-scrollbar {
-          display:none;
-        }
+        .stories::-webkit-scrollbar { display:none; }
 
         .storyBtn {
           min-width:82px;
@@ -277,9 +280,7 @@ export default function FeedPage() {
           border-radius:50%;
         }
 
-        .searchWrap {
-          padding:0 16px 14px;
-        }
+        .searchWrap { padding:0 16px 14px; }
 
         .feedSearch {
           width:100%;
@@ -295,7 +296,7 @@ export default function FeedPage() {
 
         .feedList {
           display:grid;
-          gap:24px;
+          gap:26px;
         }
 
         .feedPost {
@@ -365,67 +366,101 @@ export default function FeedPage() {
 
         .postBody h2 {
           margin:0 0 6px;
-          font-size:24px;
+          font-size:23px;
         }
 
-        .postBody p {
+        .caption {
           color:rgba(255,255,255,.78);
           line-height:1.45;
           font-size:16px;
+          margin:0;
         }
 
-        .actions {
+        .actionRow {
           display:flex;
-          gap:12px;
+          align-items:center;
+          gap:18px;
           margin-top:14px;
         }
 
-        .actions button {
-          flex:1;
+        .iconBtn {
+          border:0;
+          background:transparent;
+          color:white;
+          font-size:23px;
+          padding:0;
+          cursor:pointer;
+        }
+
+        .actionMeta {
+          margin-top:8px;
+          color:rgba(255,255,255,.72);
+          font-size:13px;
+          font-weight:800;
         }
 
         .commentBox {
-          margin-top:14px;
-          background:rgba(255,255,255,.04);
-          border:1px solid rgba(255,255,255,.1);
-          border-radius:18px;
-          padding:12px;
-        }
-
-        .commentInput {
-          display:flex;
-          gap:8px;
-        }
-
-        .commentList {
           margin-top:12px;
+        }
+
+        .viewComments {
+          color:rgba(255,255,255,.55);
+          font-size:14px;
+          font-weight:800;
+          margin:0 0 10px;
+        }
+
+        .commentPreview {
           display:grid;
-          gap:8px;
+          gap:7px;
+          margin-bottom:10px;
         }
 
-        .comment {
-          display:flex;
-          gap:10px;
-          background:rgba(0,0,0,.35);
-          border-radius:14px;
-          padding:10px 12px;
-        }
-
-        .commentName {
+        .commentLine {
           margin:0;
-          color:#ffd166;
-          font-weight:900;
-          font-size:13px;
-        }
-
-        .commentText {
-          margin:4px 0 0;
           color:white;
+          font-size:14px;
+          line-height:1.35;
         }
 
-        .emptyState {
-          margin:16px;
+        .commentLine b {
+          color:#ffd166;
         }
+
+        .commentComposer {
+          display:flex;
+          align-items:center;
+          gap:9px;
+          border:1px solid rgba(255,255,255,.12);
+          background:rgba(255,255,255,.065);
+          border-radius:999px;
+          padding:8px 9px 8px 12px;
+        }
+
+        .commentComposer input {
+          flex:1;
+          border:0;
+          outline:none;
+          background:transparent;
+          color:white;
+          font-size:15px;
+        }
+
+        .commentComposer input::placeholder {
+          color:rgba(255,255,255,.45);
+        }
+
+        .sendBtn {
+          width:36px;
+          height:36px;
+          border-radius:50%;
+          border:0;
+          background:linear-gradient(135deg,#52f7c8,#7b61ff);
+          color:#07111e;
+          font-weight:950;
+        }
+
+        .emptyState { margin:16px; }
       `}</style>
 
       <section className="feedHero">
@@ -476,19 +511,19 @@ export default function FeedPage() {
             const creator = item.creator_email;
             const avatar = profileAvatar(creator);
             const isMuted = muted[item.id] ?? true;
+            const postComments = comments[item.id] || [];
 
             return (
               <article key={item.id} className="feedPost">
                 <div className="postHeader" onClick={() => (window.location.href = `/u/${encodeURIComponent(creator)}`)}>
                   {avatar ? <img className="avatar" src={avatar} alt={profileName(creator)} /> : <div className="avatar">👤</div>}
-
                   <div>
-                    <h3>{profileName(creator)}</h3>
+                    <h3>{profileName(creator)} <span style={{ color: "#52f7c8" }}>●</span></h3>
                     <p>{item.category || "UTV Feed"}</p>
                   </div>
                 </div>
 
-                <div className="mediaWrap">
+                <div className="mediaWrap" onDoubleClick={() => likePost(item.id)}>
                   {video ? (
                     <>
                       <video
@@ -517,56 +552,41 @@ export default function FeedPage() {
                 </div>
 
                 <div className="postBody">
-                  <h2>{item.title || "Untitled"}</h2>
-
-                  {item.description && <p>{item.description}</p>}
-
-                  <div className="actions">
-                    <button className="btn secondary" onClick={() => likePost(item.id)}>
-                      ♡ {likes[item.id] || 0}
-                    </button>
-
-                    <button className="btn secondary" onClick={() => sharePost(item)}>
-                      ↗ Share
-                    </button>
+                  <div className="actionRow">
+                    <button className="iconBtn" onClick={() => likePost(item.id)}>♡</button>
+                    <button className="iconBtn">💬</button>
+                    <button className="iconBtn" onClick={() => sharePost(item)}>↗</button>
+                    <button className="iconBtn" style={{ marginLeft: "auto" }}>🔖</button>
                   </div>
 
+                  <div className="actionMeta">
+                    {likes[item.id] || 0} likes • {postComments.length} comments
+                  </div>
+
+                  <h2>{item.title || "Untitled"}</h2>
+                  {item.description && <p className="caption">{item.description}</p>}
+
                   <div className="commentBox">
-                    <div className="commentInput">
+                    {postComments.length > 2 && (
+                      <p className="viewComments">View all {postComments.length} comments</p>
+                    )}
+
+                    <div className="commentPreview">
+                      {postComments.slice(-2).map((comment) => (
+                        <p className="commentLine" key={comment.id}>
+                          <b>{profileName(comment.user_email)}</b> {comment.comment}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div className="commentComposer">
+                      <span>😊</span>
                       <input
-                        className="input"
                         placeholder="Add a comment..."
                         value={commentText[item.id] || ""}
                         onChange={(e) => setCommentText((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                        style={{ marginTop: 0 }}
                       />
-
-                      <button className="btn" onClick={() => addComment(item.id)} style={{ width: 88 }}>
-                        Post
-                      </button>
-                    </div>
-
-                    <div className="commentList">
-                      {(comments[item.id] || []).length === 0 ? (
-                        <p style={{ color: "var(--muted)", margin: 0 }}>No comments yet.</p>
-                      ) : (
-                        (comments[item.id] || []).slice(-5).map((comment) => (
-                          <div className="comment" key={comment.id}>
-                            {profileAvatar(comment.user_email) ? (
-                              <img className="avatar" style={{ width: 34, height: 34 }} src={profileAvatar(comment.user_email)} alt="Comment" />
-                            ) : (
-                              <div className="avatar" style={{ width: 34, height: 34 }}>
-                                👤
-                              </div>
-                            )}
-
-                            <div>
-                              <p className="commentName">{profileName(comment.user_email)}</p>
-                              <p className="commentText">{comment.comment}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
+                      <button className="sendBtn" onClick={() => addComment(item.id)}>➤</button>
                     </div>
                   </div>
                 </div>
