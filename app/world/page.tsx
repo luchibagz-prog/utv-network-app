@@ -6,61 +6,42 @@ import { supabase } from "../../lib/supabaseClient";
 
 const SACRAMENTO: [number, number] = [38.5816, -121.4944];
 
-const filters = [
-  "All",
-  "Live",
-  "Events",
-  "Casting",
-  "Build Together",
-  "Music",
-  "Podcast",
-  "Business",
-  "Sports",
-  "Comedy",
-];
+const filters = ["All", "Live", "Events", "Casting", "Build Together", "Music", "Podcast", "Business", "Sports", "Comedy"];
 
 function emoji(type: string, live: boolean) {
-  if (live) return "🔴";
+  if (live) return "●";
   const t = (type || "").toLowerCase();
-  if (t.includes("event")) return "🎉";
-  if (t.includes("casting")) return "🎭";
-  if (t.includes("build")) return "🤝";
-  if (t.includes("music")) return "🎵";
-  if (t.includes("podcast")) return "🎤";
-  if (t.includes("business")) return "💼";
-  if (t.includes("sports")) return "🏀";
-  if (t.includes("comedy")) return "😂";
-  return "🌎";
+  if (t.includes("event")) return "EV";
+  if (t.includes("casting")) return "CA";
+  if (t.includes("build")) return "BT";
+  if (t.includes("music")) return "MU";
+  if (t.includes("podcast")) return "PO";
+  if (t.includes("business")) return "BU";
+  if (t.includes("sports")) return "SP";
+  if (t.includes("comedy")) return "CO";
+  return "UTV";
 }
 
 function glowColor(type: string, live: boolean) {
-  if (live) return "#ff2d55";
+  if (live) return "#ff3b6b";
   const t = (type || "").toLowerCase();
-  if (t.includes("event")) return "#8b5cff";
-  if (t.includes("casting")) return "#d4af37";
-  if (t.includes("music")) return "#00d9ff";
-  if (t.includes("sports")) return "#ff8a00";
-  if (t.includes("comedy")) return "#ff4fd8";
-  return "#39ff88";
+  if (t.includes("event")) return "#7c6cff";
+  if (t.includes("casting")) return "#f4c542";
+  if (t.includes("music")) return "#31d7ff";
+  if (t.includes("sports")) return "#ff9f2f";
+  if (t.includes("comedy")) return "#ff5eea";
+  if (t.includes("business")) return "#39ff88";
+  return "#52f7c8";
 }
 
-function WorldMap({
-  items,
-  userLocation,
-  locationOn,
-}: {
-  items: any[];
-  userLocation: [number, number] | null;
-  locationOn: boolean;
-}) {
+function WorldMap({ items, userLocation, locationOn }: { items: any[]; userLocation: [number, number] | null; locationOn: boolean }) {
   const [ready, setReady] = useState(false);
-
   useEffect(() => setReady(true), []);
 
   if (!ready) {
     return (
       <div className="worldLoading">
-        <div className="worldPulse">🌎</div>
+        <div className="orb">UTV</div>
         <p>Loading UTV World...</p>
       </div>
     );
@@ -71,38 +52,31 @@ function WorldMap({
 
   function FlyToUser() {
     const map = useMap();
-
     useEffect(() => {
-      if (locationOn && userLocation) {
-        map.flyTo(userLocation, 13, { duration: 1.35 });
-      }
+      if (locationOn && userLocation) map.flyTo(userLocation, 13, { duration: 1.4 });
     }, [locationOn, userLocation, map]);
-
     return null;
   }
 
   function pinIcon(type: string, live: boolean) {
     const glow = glowColor(type, live);
+    const label = emoji(type, live);
 
     return L.divIcon({
       className: "",
       html: `
         <div style="
-          width:46px;
-          height:46px;
-          border-radius:16px 16px 16px 4px;
-          transform:rotate(-45deg);
-          display:grid;
-          place-items:center;
-          background:linear-gradient(145deg, rgba(8,8,8,.98), rgba(18,18,18,.96));
-          border:2px solid ${glow};
-          box-shadow:0 0 18px ${glow}, 0 0 42px rgba(57,255,136,.15);
-        ">
-          <div style="transform:rotate(45deg); font-size:22px;">${emoji(type, live)}</div>
-        </div>
+          width:44px;height:44px;border-radius:50%;
+          display:grid;place-items:center;
+          color:white;font-weight:900;font-size:12px;letter-spacing:.5px;
+          background:radial-gradient(circle at 30% 25%, rgba(255,255,255,.95), ${glow} 22%, rgba(11,17,31,.95) 70%);
+          border:1px solid rgba(255,255,255,.7);
+          box-shadow:0 0 0 8px ${glow}22, 0 0 28px ${glow}, 0 18px 30px rgba(0,0,0,.35);
+          animation:${live ? "liveBeacon" : "softBeacon"} 2.2s infinite ease-in-out;
+        ">${label}</div>
       `,
-      iconSize: [46, 46],
-      iconAnchor: [23, 42],
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     });
   }
 
@@ -110,69 +84,61 @@ function WorldMap({
     const lat = Number(item.latitude);
     const lng = Number(item.longitude);
 
-    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== 0 && lng !== 0) {
-      return [lat, lng] as [number, number];
-    }
+    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== 0 && lng !== 0) return [lat, lng] as [number, number];
 
-    const spread = 0.09;
     return [
-      SACRAMENTO[0] + Math.sin(index * 2.35) * spread,
-      SACRAMENTO[1] + Math.cos(index * 1.85) * spread,
+      SACRAMENTO[0] + Math.sin(index * 2.35) * 0.09,
+      SACRAMENTO[1] + Math.cos(index * 1.85) * 0.09,
     ] as [number, number];
   }
 
   return (
     <>
       <style>{`
+        @keyframes softBeacon {
+          0%,100% { transform:scale(1); }
+          50% { transform:scale(1.08); }
+        }
+
+        @keyframes liveBeacon {
+          0%,100% { transform:scale(1); box-shadow:0 0 0 6px rgba(255,59,107,.16), 0 0 30px rgba(255,59,107,.85); }
+          50% { transform:scale(1.14); box-shadow:0 0 0 18px rgba(255,59,107,.03), 0 0 45px rgba(255,59,107,1); }
+        }
+
         .leaflet-container {
-          background:#020403;
+          background:#101827;
           font-family:inherit;
         }
 
         .leaflet-tile {
-          filter: invert(1) hue-rotate(180deg) brightness(.52) contrast(1.55) saturate(.35);
-        }
-
-        .leaflet-control-attribution {
-          background:rgba(0,0,0,.55) !important;
-          color:rgba(255,255,255,.45) !important;
-          font-size:10px;
+          filter: saturate(1.08) brightness(.92) contrast(1.02) hue-rotate(8deg);
         }
 
         .leaflet-popup-content-wrapper,
         .leaflet-popup-tip {
-          background:rgba(4,6,5,.96);
+          background:rgba(13,19,33,.94);
           color:white;
-          border:1px solid rgba(57,255,136,.32);
-          box-shadow:0 18px 45px rgba(0,0,0,.55);
+          border:1px solid rgba(124,108,255,.35);
+          box-shadow:0 18px 50px rgba(0,0,0,.35);
+          backdrop-filter:blur(16px);
         }
 
-        .leaflet-popup-content {
-          margin:14px;
-          min-width:190px;
+        .leaflet-control-attribution {
+          background:rgba(13,19,33,.65) !important;
+          color:rgba(255,255,255,.55) !important;
+          font-size:10px;
         }
 
         .worldPopupButton {
-          margin-top:10px;
-          width:100%;
-          border:1px solid rgba(57,255,136,.35);
-          background:rgba(57,255,136,.1);
-          color:white;
-          border-radius:12px;
-          padding:10px 12px;
-          font-weight:800;
-          cursor:pointer;
+          margin-top:10px;width:100%;
+          border:1px solid rgba(82,247,200,.45);
+          background:linear-gradient(135deg, rgba(82,247,200,.22), rgba(124,108,255,.22));
+          color:white;border-radius:14px;padding:10px 12px;
+          font-weight:900;cursor:pointer;
         }
       `}</style>
 
-      <MapContainer
-        center={SACRAMENTO}
-        zoom={11}
-        minZoom={3}
-        maxZoom={18}
-        scrollWheelZoom
-        style={{ height: "100%", width: "100%" }}
-      >
+      <MapContainer center={SACRAMENTO} zoom={11} minZoom={3} maxZoom={18} scrollWheelZoom style={{ height: "100%", width: "100%" }}>
         <FlyToUser />
 
         <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -180,13 +146,8 @@ function WorldMap({
         {locationOn && userLocation && (
           <CircleMarker
             center={userLocation}
-            radius={11}
-            pathOptions={{
-              color: "#39ff88",
-              fillColor: "#39ff88",
-              fillOpacity: 0.88,
-              weight: 3,
-            }}
+            radius={12}
+            pathOptions={{ color: "#52f7c8", fillColor: "#52f7c8", fillOpacity: 0.9, weight: 3 }}
           >
             <Popup>Your private location. Only you can see this.</Popup>
           </CircleMarker>
@@ -195,19 +156,14 @@ function WorldMap({
         {items.map((item, index) => (
           <Marker key={item.id || index} position={fallbackLatLng(item, index)} icon={pinIcon(item.world_type, item.is_live)}>
             <Popup>
-              <strong>
-                {emoji(item.world_type, item.is_live)} {item.title || "Untitled"}
-              </strong>
+              <strong>{item.title || "Untitled"}</strong>
               <br />
               {item.world_type || "World"} {item.is_live ? "• LIVE NOW" : ""}
               <br />
               📍 {item.city || "City TBA"} {item.state || ""}
               <br />
               {item.creator_email && (
-                <button
-                  className="worldPopupButton"
-                  onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
-                >
+                <button className="worldPopupButton" onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}>
                   View Creator
                 </button>
               )}
@@ -225,24 +181,19 @@ export default function WorldPage() {
   const [filter, setFilter] = useState("All");
   const [locationOn, setLocationOn] = useState(false);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [locationMessage, setLocationMessage] = useState("Starts in Sacramento. Turn location on to center near you.");
+  const [locationMessage, setLocationMessage] = useState("Turn location on to see what’s moving near you.");
 
   useEffect(() => {
     loadWorld();
   }, []);
 
   async function loadWorld() {
-    const { data, error } = await supabase
-      .from("world_posts")
-      .select("*")
-      .order("created_at", { ascending: false });
-
+    const { data, error } = await supabase.from("world_posts").select("*").order("created_at", { ascending: false });
     if (error) {
       console.error("World load error:", error);
       setItems([]);
       return;
     }
-
     setItems(data || []);
   }
 
@@ -250,7 +201,7 @@ export default function WorldPage() {
     if (locationOn) {
       setLocationOn(false);
       setUserLocation(null);
-      setLocationMessage("Location off. UTV World is showing the public map only.");
+      setLocationMessage("Location off. Showing public UTV World.");
       return;
     }
 
@@ -267,7 +218,7 @@ export default function WorldPage() {
         setLocationOn(true);
         setLocationMessage("Location on. Your dot is private and only visible to you.");
       },
-      () => setLocationMessage("Location permission denied. You can still explore UTV World."),
+      () => setLocationMessage("Location denied. You can still explore UTV World."),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }
@@ -275,15 +226,16 @@ export default function WorldPage() {
   const filtered = useMemo(() => {
     return items.filter((item) => {
       const text = `${item.title || ""} ${item.description || ""} ${item.city || ""} ${item.state || ""} ${item.world_type || ""}`.toLowerCase();
-
       return (
         text.includes(search.toLowerCase()) &&
-        (filter === "All" ||
-          item.world_type?.toLowerCase() === filter.toLowerCase() ||
-          (filter === "Live" && item.is_live))
+        (filter === "All" || item.world_type?.toLowerCase() === filter.toLowerCase() || (filter === "Live" && item.is_live))
       );
     });
   }, [items, search, filter]);
+
+  const liveCount = filtered.filter((i) => i.is_live).length;
+  const eventCount = filtered.filter((i) => `${i.world_type || ""}`.toLowerCase().includes("event")).length;
+  const castingCount = filtered.filter((i) => `${i.world_type || ""}`.toLowerCase().includes("casting")).length;
 
   return (
     <main className="worldPage">
@@ -292,48 +244,58 @@ export default function WorldPage() {
       <style>{`
         .worldPage {
           min-height:100vh;
-          background:
-            radial-gradient(circle at 20% 0%, rgba(57,255,136,.14), transparent 28%),
-            radial-gradient(circle at 80% 12%, rgba(123,97,255,.18), transparent 30%),
-            linear-gradient(180deg, #050705 0%, #000 45%, #000 100%);
           color:white;
           padding-bottom:120px;
+          background:
+            radial-gradient(circle at 15% 8%, rgba(82,247,200,.22), transparent 30%),
+            radial-gradient(circle at 85% 4%, rgba(124,108,255,.28), transparent 34%),
+            radial-gradient(circle at 50% 90%, rgba(49,215,255,.12), transparent 34%),
+            linear-gradient(180deg, #0d1526 0%, #111827 45%, #090d16 100%);
+          overflow:hidden;
         }
 
         .worldHero {
-          padding:22px 16px 14px;
-        }
-
-        .worldHeroTop {
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:12px;
-        }
-
-        .worldBadge {
-          border:1px solid rgba(57,255,136,.32);
-          background:rgba(57,255,136,.08);
-          color:#39ff88;
-          border-radius:999px;
-          padding:8px 11px;
-          font-size:12px;
-          font-weight:900;
-          white-space:nowrap;
+          padding:22px 16px 12px;
         }
 
         .worldTitle {
           font-size:42px;
-          line-height:.95;
+          line-height:.9;
+          letter-spacing:-1.6px;
           margin:0;
-          letter-spacing:-1.5px;
         }
 
         .worldSub {
-          color:rgba(255,255,255,.67);
+          color:rgba(255,255,255,.72);
           line-height:1.45;
           margin:12px 0 0;
-          max-width:680px;
+        }
+
+        .statRow {
+          display:grid;
+          grid-template-columns:repeat(3, 1fr);
+          gap:10px;
+          padding:0 16px 14px;
+        }
+
+        .statCard {
+          border:1px solid rgba(255,255,255,.14);
+          background:rgba(255,255,255,.08);
+          backdrop-filter:blur(16px);
+          border-radius:20px;
+          padding:12px;
+          box-shadow:0 18px 45px rgba(0,0,0,.2);
+        }
+
+        .statCard b {
+          display:block;
+          font-size:22px;
+        }
+
+        .statCard span {
+          color:rgba(255,255,255,.62);
+          font-size:12px;
+          font-weight:800;
         }
 
         .worldControls {
@@ -345,38 +307,53 @@ export default function WorldPage() {
         .worldSearch {
           width:100%;
           box-sizing:border-box;
-          border:1px solid rgba(255,255,255,.12);
-          background:rgba(255,255,255,.065);
+          border:1px solid rgba(255,255,255,.18);
+          background:rgba(255,255,255,.1);
           color:white;
-          border-radius:18px;
+          border-radius:20px;
           padding:15px 16px;
           outline:none;
           font-size:16px;
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+        }
+
+        .worldMessage {
+          color:#52f7c8;
+          margin:0;
+          font-size:13px;
+          font-weight:750;
         }
 
         .worldFilters {
           display:flex;
           gap:10px;
           overflow-x:auto;
-          padding:0 16px 14px;
+          padding:0 16px 16px;
         }
 
         .worldFilters::-webkit-scrollbar {
           display:none;
         }
 
-        .worldMapShell {
-          height:62vh;
-          min-height:430px;
+        .worldMapStage {
           margin:0 16px;
-          border-radius:30px;
+          perspective:950px;
+        }
+
+        .worldMapShell {
+          height:58vh;
+          min-height:420px;
+          border-radius:34px;
           overflow:hidden;
-          border:1px solid rgba(57,255,136,.28);
+          border:1px solid rgba(255,255,255,.18);
           box-shadow:
-            0 0 0 1px rgba(255,255,255,.04) inset,
-            0 0 55px rgba(57,255,136,.16),
-            0 30px 80px rgba(0,0,0,.45);
+            0 32px 80px rgba(0,0,0,.38),
+            0 0 70px rgba(82,247,200,.13),
+            inset 0 1px 0 rgba(255,255,255,.14);
+          transform:rotateX(8deg);
+          transform-origin:center top;
           position:relative;
+          background:#101827;
         }
 
         .worldMapShell:before {
@@ -385,46 +362,70 @@ export default function WorldPage() {
           inset:0;
           pointer-events:none;
           z-index:450;
-          background:linear-gradient(180deg, rgba(0,0,0,.18), transparent 25%, rgba(0,0,0,.18));
+          background:
+            linear-gradient(180deg, rgba(255,255,255,.1), transparent 22%, rgba(0,0,0,.12)),
+            radial-gradient(circle at 50% 15%, transparent 0%, rgba(124,108,255,.12) 45%, rgba(0,0,0,.22) 100%);
+        }
+
+        .worldMapShell:after {
+          content:"UTV WORLD";
+          position:absolute;
+          left:18px;
+          top:16px;
+          z-index:460;
+          font-size:12px;
+          font-weight:950;
+          letter-spacing:2px;
+          color:rgba(255,255,255,.72);
+          background:rgba(8,13,24,.58);
+          border:1px solid rgba(255,255,255,.16);
+          border-radius:999px;
+          padding:8px 12px;
+          backdrop-filter:blur(14px);
         }
 
         .worldLoading {
           height:100%;
           display:grid;
           place-items:center;
-          background:#020202;
+          background:#101827;
           color:white;
           text-align:center;
         }
 
-        .worldPulse {
-          font-size:44px;
-          animation:pulseWorld 1.5s infinite ease-in-out;
+        .orb {
+          width:74px;height:74px;border-radius:50%;
+          display:grid;place-items:center;
+          font-weight:950;
+          background:radial-gradient(circle at 30% 25%, white, #52f7c8 25%, #7c6cff 70%);
+          box-shadow:0 0 50px rgba(82,247,200,.38);
+          animation:floatOrb 2.2s infinite ease-in-out;
         }
 
-        @keyframes pulseWorld {
-          0%,100% { transform:scale(1); opacity:.7; }
-          50% { transform:scale(1.13); opacity:1; }
+        @keyframes floatOrb {
+          0%,100% { transform:translateY(0) scale(1); }
+          50% { transform:translateY(-8px) scale(1.05); }
         }
 
         .worldList {
           display:grid;
           gap:14px;
-          padding:16px;
+          padding:26px 16px 16px;
         }
 
         .worldCard {
-          border:1px solid rgba(255,255,255,.1);
-          background:linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
-          border-radius:24px;
+          border:1px solid rgba(255,255,255,.14);
+          background:linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.055));
+          backdrop-filter:blur(16px);
+          border-radius:26px;
           padding:16px;
-          box-shadow:0 16px 44px rgba(0,0,0,.28);
+          box-shadow:0 20px 48px rgba(0,0,0,.24);
         }
 
         .worldType {
           margin:0 0 8px;
-          font-weight:900;
-          color:#39ff88;
+          font-weight:950;
+          color:#52f7c8;
         }
 
         .worldCard h2 {
@@ -433,33 +434,28 @@ export default function WorldPage() {
         }
 
         .worldDesc {
-          color:rgba(255,255,255,.66);
+          color:rgba(255,255,255,.7);
           line-height:1.45;
         }
 
         .worldCity {
-          color:#d4af37;
-          font-weight:900;
+          color:#f4c542;
+          font-weight:950;
         }
 
         @media (min-width: 900px) {
-          .worldHero,
-          .worldControls,
-          .worldFilters,
-          .worldList {
-            max-width:1100px;
-            margin-left:auto;
-            margin-right:auto;
-          }
-
-          .worldMapShell {
-            max-width:1100px;
+          .worldHero,.statRow,.worldControls,.worldFilters,.worldMapStage,.worldList {
+            max-width:1120px;
             margin-left:auto;
             margin-right:auto;
           }
 
           .worldControls {
             grid-template-columns:220px 1fr;
+          }
+
+          .worldMessage {
+            grid-column:1 / -1;
           }
 
           .worldList {
@@ -469,14 +465,23 @@ export default function WorldPage() {
       `}</style>
 
       <section className="worldHero">
-        <div className="worldHeroTop">
-          <h1 className="worldTitle">UTV World</h1>
-          <div className="worldBadge">{filtered.length} showing</div>
-        </div>
+        <h1 className="worldTitle">UTV World</h1>
+        <p className="worldSub">A live 3D-style map for creators, events, casting, music, shows, sports, business, and what’s moving near you.</p>
+      </section>
 
-        <p className="worldSub">
-          Find live streams, events, casting calls, services, creators, and opportunities around the map.
-        </p>
+      <section className="statRow">
+        <div className="statCard">
+          <b>{liveCount}</b>
+          <span>Live Now</span>
+        </div>
+        <div className="statCard">
+          <b>{eventCount}</b>
+          <span>Events</span>
+        </div>
+        <div className="statCard">
+          <b>{castingCount}</b>
+          <span>Casting</span>
+        </div>
       </section>
 
       <section className="worldControls">
@@ -484,31 +489,23 @@ export default function WorldPage() {
           {locationOn ? "📍 Location On" : "📍 Turn Location On"}
         </button>
 
-        <input
-          className="worldSearch"
-          placeholder="Search city, event, casting..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <input className="worldSearch" placeholder="Search city, event, casting..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
-        <p style={{ color: "#39ff88", margin: 0, fontSize: 13 }}>{locationMessage}</p>
+        <p className="worldMessage">{locationMessage}</p>
       </section>
 
       <section className="worldFilters">
         {filters.map((name) => (
-          <button
-            key={name}
-            className={filter === name ? "btn" : "btn secondary"}
-            onClick={() => setFilter(name)}
-            style={{ minWidth: 112 }}
-          >
+          <button key={name} className={filter === name ? "btn" : "btn secondary"} onClick={() => setFilter(name)} style={{ minWidth: 112 }}>
             {name}
           </button>
         ))}
       </section>
 
-      <section className="worldMapShell">
-        <WorldMap items={filtered} userLocation={userLocation} locationOn={locationOn} />
+      <section className="worldMapStage">
+        <div className="worldMapShell">
+          <WorldMap items={filtered} userLocation={userLocation} locationOn={locationOn} />
+        </div>
       </section>
 
       <section className="worldList">
@@ -528,10 +525,7 @@ export default function WorldPage() {
             </p>
 
             {item.creator_email && (
-              <button
-                className="btn secondary"
-                onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
-              >
+              <button className="btn secondary" onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}>
                 View Creator
               </button>
             )}
