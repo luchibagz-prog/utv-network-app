@@ -142,14 +142,15 @@ export default function WatchPage() {
           background:linear-gradient(180deg,#07111e,#000);
         }
 
-        .hero {
-          position:relative;
-          min-height:56vh;
-          display:flex;
-          align-items:flex-end;
-          padding:100px 16px 28px;
-          overflow:hidden;
-        }
+       .hero {
+  position:relative;
+  min-height:360px;
+  height:42vh;
+  display:flex;
+  align-items:flex-end;
+  padding:90px 16px 24px;
+  overflow:hidden;
+}
 
         .heroBg {
           position:absolute;
@@ -161,7 +162,8 @@ export default function WatchPage() {
         .heroBg video {
           width:100%;
           height:100%;
-          object-fit:cover;
+          object-fit:contain;
+          background:#000;
           filter:brightness(.72) contrast(1.15) saturate(1.2);
         }
 

@@ -1,20 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
 const heroHeaders = ["/utv-logo.png", "/utv-banner.png", "/bbgroundup.png", "/utv1.png", "/utv2art.png"];
 
+function mediaImage(item?: any) {
+  if (!item) return "";
+  return item.thumbnail_url || item.cover_url || item.image_url || item.poster_url || item.flyer_url || "";
+}
+
+function mediaVideo(item?: any) {
+  if (!item) return "";
+  return item.video_url || item.file_url || item.media_url || item.url || "";
+}
+
 export default function FeedPage() {
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const [items, setItems] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [commentText, setCommentText] = useState<Record<string, string>>({});
+  const [muted, setMuted] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadFeed();
@@ -27,21 +40,40 @@ export default function FeedPage() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) {
+            video.play().catch(() => {});
+          } else {
+            video.pause();
+          }
+        });
+      },
+      { threshold: 0.65 }
+    );
+
+    Object.values(videoRefs.current).forEach((video) => {
+      if (video) observer.observe(video);
+    });
+
+    return () => observer.disconnect();
+  }, [items]);
+
   async function loadProfiles(emails: string[]) {
     const uniqueEmails = Array.from(new Set(emails.filter(Boolean)));
     if (uniqueEmails.length === 0) return;
 
-    const { data } = await supabase
-      .from("creator_profiles")
-      .select("*")
-      .in("email", uniqueEmails);
+    const { data } = await supabase.from("creator_profiles").select("*").in("email", uniqueEmails);
 
     const map: Record<string, any> = {};
     (data || []).forEach((profile) => {
       map[profile.email] = profile;
     });
 
-    setProfiles(map);
+    setProfiles((prev) => ({ ...prev, ...map }));
   }
 
   async function loadStories() {
@@ -51,26 +83,32 @@ export default function FeedPage() {
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
 
-    setStories(data || []);
-    loadProfiles((data || []).map((story) => story.user_email));
+    const safeStories = (data || []).filter(Boolean);
+    setStories(safeStories);
+    loadProfiles(safeStories.map((story) => story.user_email));
   }
 
   async function loadFeed() {
-    const { data } = await supabase
+    setLoading(true);
+
+    const { data, error } = await supabase
       .from("uploads")
       .select("*")
       .eq("approved", true)
       .order("created_at", { ascending: false });
 
-    const feedItems = (data || []).filter((item) => {
+    if (error) {
+      console.error(error);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    const feedItems = (data || []).filter(Boolean).filter((item) => {
       const category = (item.category || "").toLowerCase();
       const visibility = (item.visibility || "feed").toLowerCase();
 
-      return (
-        visibility !== "profile" &&
-        !category.includes("movie") &&
-        !category.includes("show")
-      );
+      return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
     });
 
     setItems(feedItems);
@@ -80,6 +118,8 @@ export default function FeedPage() {
       loadLikes(item.id);
       loadComments(item.id);
     });
+
+    setLoading(false);
   }
 
   async function loadLikes(id: string) {
@@ -98,8 +138,9 @@ export default function FeedPage() {
       .eq("upload_id", id)
       .order("created_at", { ascending: true });
 
-    setComments((prev) => ({ ...prev, [id]: data || [] }));
-    loadProfiles((data || []).map((comment) => comment.user_email));
+    const safeComments = (data || []).filter(Boolean);
+    setComments((prev) => ({ ...prev, [id]: safeComments }));
+    loadProfiles(safeComments.map((comment) => comment.user_email));
   }
 
   async function likePost(id: string) {
@@ -117,11 +158,7 @@ export default function FeedPage() {
     });
 
     if (error) {
-      await supabase
-        .from("feed_likes")
-        .delete()
-        .eq("upload_id", id)
-        .eq("user_email", userEmail);
+      await supabase.from("feed_likes").delete().eq("upload_id", id).eq("user_email", userEmail);
     }
 
     loadLikes(id);
@@ -129,7 +166,6 @@ export default function FeedPage() {
 
   async function addComment(id: string) {
     const text = commentText[id];
-
     if (!text?.trim()) return;
 
     const { data } = await supabase.auth.getUser();
@@ -160,7 +196,7 @@ export default function FeedPage() {
 
     if (navigator.share) {
       await navigator.share({
-        title: item.title,
+        title: item.title || "UTV",
         text: item.description || "Check this out on UTV",
         url,
       });
@@ -170,50 +206,234 @@ export default function FeedPage() {
     }
   }
 
-  function profileName(email: string) {
-    const profile = profiles[email];
+  function profileName(email?: string) {
+    const profile = profiles[email || ""];
     return profile?.display_name || profile?.username || email || "UTV Creator";
   }
 
-  function profileAvatar(email: string) {
-    return profiles[email]?.avatar_url || "";
+  function profileAvatar(email?: string) {
+    return profiles[email || ""]?.avatar_url || "";
   }
 
-  const filtered = items.filter((item) => {
+  const filtered = items.filter(Boolean).filter((item) => {
     const text = `${item.title || ""} ${item.category || ""} ${item.description || ""} ${profileName(item.creator_email)}`.toLowerCase();
     return text.includes(search.toLowerCase());
   });
 
   return (
-    <main style={{ background: "#000", minHeight: "100vh", paddingBottom: 120 }}>
+    <main className="feedPage">
       <UTVNav />
 
-      <img
-        src={heroHeaders[heroIndex]}
-        alt="UTV"
-        style={{
-          width: "100%",
-          height: "42vh",
-          minHeight: 280,
-          objectFit: "cover",
-          display: "block",
-          filter: "brightness(1.22) contrast(1.12) saturate(1.25)",
-        }}
-      />
+      <style>{`
+        .feedPage {
+          min-height:100vh;
+          padding-bottom:120px;
+          color:white;
+          background:linear-gradient(180deg,#07111e,#000);
+        }
 
-      <section style={{ display: "flex", gap: 14, overflowX: "auto", padding: "16px" }}>
-        <button
-          onClick={() => (window.location.href = "/submit?type=story")}
-          style={{
-            minWidth: 82,
-            height: 82,
-            borderRadius: "50%",
-            border: "2px solid #39ff88",
-            background: "rgba(255,255,255,0.08)",
-            color: "white",
-            fontWeight: "bold",
-          }}
-        >
+        .feedHero img {
+          width:100%;
+          height:34vh;
+          min-height:240px;
+          object-fit:cover;
+          display:block;
+          filter:brightness(1.2) contrast(1.12) saturate(1.22);
+        }
+
+        .stories {
+          display:flex;
+          gap:14px;
+          overflow-x:auto;
+          padding:16px;
+        }
+
+        .stories::-webkit-scrollbar {
+          display:none;
+        }
+
+        .storyBtn {
+          min-width:82px;
+          height:82px;
+          border-radius:50%;
+          border:3px solid #7b61ff;
+          padding:3px;
+          background:transparent;
+          overflow:hidden;
+          color:white;
+          font-weight:900;
+        }
+
+        .addStory {
+          border:2px solid #52f7c8;
+          background:rgba(255,255,255,.08);
+        }
+
+        .storyBtn img,
+        .storyBtn video {
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          border-radius:50%;
+        }
+
+        .searchWrap {
+          padding:0 16px 14px;
+        }
+
+        .feedSearch {
+          width:100%;
+          box-sizing:border-box;
+          padding:16px;
+          border-radius:22px;
+          border:1px solid rgba(255,255,255,.18);
+          background:rgba(255,255,255,.1);
+          color:white;
+          font-size:16px;
+          outline:none;
+        }
+
+        .feedList {
+          display:grid;
+          gap:24px;
+        }
+
+        .feedPost {
+          border-bottom:1px solid rgba(255,255,255,.1);
+          padding-bottom:24px;
+        }
+
+        .postHeader {
+          display:flex;
+          align-items:center;
+          gap:12px;
+          padding:0 16px 12px;
+        }
+
+        .avatar {
+          width:48px;
+          height:48px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #52f7c8;
+          background:rgba(255,255,255,.08);
+          display:grid;
+          place-items:center;
+        }
+
+        .postHeader h3 {
+          margin:0;
+          font-size:17px;
+        }
+
+        .postHeader p {
+          margin:2px 0 0;
+          color:#ffd166;
+          font-size:13px;
+          font-weight:900;
+        }
+
+        .mediaWrap {
+          position:relative;
+          background:#000;
+        }
+
+        .postMedia {
+          width:100%;
+          max-height:760px;
+          object-fit:cover;
+          display:block;
+          background:#000;
+        }
+
+        .muteBadge {
+          position:absolute;
+          right:14px;
+          bottom:14px;
+          width:42px;
+          height:42px;
+          border-radius:50%;
+          border:1px solid rgba(255,255,255,.2);
+          background:rgba(0,0,0,.55);
+          color:white;
+          backdrop-filter:blur(10px);
+        }
+
+        .postBody {
+          padding:14px 16px 0;
+        }
+
+        .postBody h2 {
+          margin:0 0 6px;
+          font-size:24px;
+        }
+
+        .postBody p {
+          color:rgba(255,255,255,.78);
+          line-height:1.45;
+          font-size:16px;
+        }
+
+        .actions {
+          display:flex;
+          gap:12px;
+          margin-top:14px;
+        }
+
+        .actions button {
+          flex:1;
+        }
+
+        .commentBox {
+          margin-top:14px;
+          background:rgba(255,255,255,.04);
+          border:1px solid rgba(255,255,255,.1);
+          border-radius:18px;
+          padding:12px;
+        }
+
+        .commentInput {
+          display:flex;
+          gap:8px;
+        }
+
+        .commentList {
+          margin-top:12px;
+          display:grid;
+          gap:8px;
+        }
+
+        .comment {
+          display:flex;
+          gap:10px;
+          background:rgba(0,0,0,.35);
+          border-radius:14px;
+          padding:10px 12px;
+        }
+
+        .commentName {
+          margin:0;
+          color:#ffd166;
+          font-weight:900;
+          font-size:13px;
+        }
+
+        .commentText {
+          margin:4px 0 0;
+          color:white;
+        }
+
+        .emptyState {
+          margin:16px;
+        }
+      `}</style>
+
+      <section className="feedHero">
+        <img src={heroHeaders[heroIndex]} alt="UTV" />
+      </section>
+
+      <section className="stories">
+        <button className="storyBtn addStory" onClick={() => (window.location.href = "/submit?type=story")}>
           + Story
         </button>
 
@@ -221,212 +441,103 @@ export default function FeedPage() {
           const avatar = profileAvatar(story.user_email);
 
           return (
-            <button
-              key={story.id}
-              onClick={() => (window.location.href = `/stories/${story.id}`)}
-              style={{
-                minWidth: 82,
-                height: 82,
-                borderRadius: "50%",
-                border: "3px solid #7b61ff",
-                padding: 3,
-                background: "transparent",
-                overflow: "hidden",
-              }}
-            >
+            <button key={story.id} className="storyBtn" onClick={() => (window.location.href = `/stories/${story.id}`)}>
               {avatar ? (
-                <img
-                  src={avatar}
-                  alt="Story"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-                />
+                <img src={avatar} alt="Story" />
               ) : story.media_type === "video" ? (
-                <video
-                  src={story.media_url}
-                  muted
-                  playsInline
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-                />
+                <video src={story.media_url} muted playsInline />
               ) : (
-                <img
-                  src={story.media_url}
-                  alt="Story"
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-                />
+                <img src={story.media_url} alt="Story" />
               )}
             </button>
           );
         })}
       </section>
 
-      <section style={{ padding: "0 16px 14px" }}>
-        <input
-          className="input"
-          placeholder="Search UTV..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <section className="searchWrap">
+        <input className="feedSearch" placeholder="Search UTV..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </section>
 
-      <section style={{ display: "grid", gap: 32 }}>
-        {filtered.length === 0 ? (
-          <div className="card" style={{ margin: 16 }}>
+      <section className="feedList">
+        {loading ? (
+          <div className="card emptyState">
+            <h2>Loading Feed...</h2>
+            <p style={{ color: "var(--muted)" }}>Getting the latest posts.</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="card emptyState">
             <h2>No posts yet</h2>
             <p style={{ color: "var(--muted)" }}>New posts will show here first.</p>
           </div>
         ) : (
           filtered.map((item) => {
-            const image =
-              item.thumbnail_url ||
-              item.cover_url ||
-              item.image_url ||
-              item.poster_url ||
-              item.flyer_url ||
-              "";
-
-            const video =
-              item.video_url ||
-              item.file_url ||
-              item.media_url ||
-              item.url ||
-              "";
-
+            const image = mediaImage(item);
+            const video = mediaVideo(item);
             const creator = item.creator_email;
             const avatar = profileAvatar(creator);
+            const isMuted = muted[item.id] ?? true;
 
             return (
-              <article
-                key={item.id}
-                style={{
-                  paddingBottom: 24,
-                  borderBottom: "1px solid rgba(255,255,255,0.12)",
-                }}
-              >
-                <div
-                  onClick={() => (window.location.href = `/u/${encodeURIComponent(creator)}`)}
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "center",
-                    padding: "0 16px 12px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {avatar ? (
-                    <img
-                      src={avatar}
-                      alt={profileName(creator)}
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: "50%",
-                        objectFit: "cover",
-                        border: "2px solid #39ff88",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: "50%",
-                        display: "grid",
-                        placeItems: "center",
-                        background: "rgba(255,255,255,.08)",
-                      }}
-                    >
-                      👤
-                    </div>
-                  )}
+              <article key={item.id} className="feedPost">
+                <div className="postHeader" onClick={() => (window.location.href = `/u/${encodeURIComponent(creator)}`)}>
+                  {avatar ? <img className="avatar" src={avatar} alt={profileName(creator)} /> : <div className="avatar">👤</div>}
 
                   <div>
-                    <h3 style={{ margin: 0 }}>{profileName(creator)}</h3>
-                    <p style={{ margin: 0, color: "#d4af37", fontSize: 13 }}>
-                      {item.category || "UTV Feed"}
-                    </p>
+                    <h3>{profileName(creator)}</h3>
+                    <p>{item.category || "UTV Feed"}</p>
                   </div>
                 </div>
 
-                {video ? (
-                  <video
-                    src={video}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    style={{
-                      width: "100%",
-                      maxHeight: 760,
-                      objectFit: "cover",
-                      background: "#000",
-                      display: "block",
-                    }}
-                  />
-                ) : image ? (
-                  <img
-                    src={image}
-                    alt={item.title}
-                    onClick={() => (window.location.href = `/watch/${item.id}`)}
-                    style={{
-                      width: "100%",
-                      maxHeight: 760,
-                      objectFit: "cover",
-                      display: "block",
-                      cursor: "pointer",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      height: 340,
-                      display: "grid",
-                      placeItems: "center",
-                      background: "linear-gradient(135deg,#111,#24113d)",
-                      fontSize: 54,
-                    }}
-                  >
-                    UTV
-                  </div>
-                )}
-
-                <div style={{ padding: "14px 16px 0" }}>
-                  <h2 style={{ margin: "0 0 6px", fontSize: 26 }}>{item.title}</h2>
-
-                  {item.description && (
-                    <p style={{ color: "rgba(255,255,255,0.78)", lineHeight: 1.45, fontSize: 17 }}>
-                      {item.description}
-                    </p>
+                <div className="mediaWrap">
+                  {video ? (
+                    <>
+                      <video
+                        ref={(el) => {
+                          videoRefs.current[item.id] = el;
+                        }}
+                        className="postMedia"
+                        src={video}
+                        muted={isMuted}
+                        playsInline
+                        loop
+                        preload="metadata"
+                        onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}
+                      />
+                      <button className="muteBadge" onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}>
+                        {isMuted ? "🔇" : "🔊"}
+                      </button>
+                    </>
+                  ) : image ? (
+                    <img className="postMedia" src={image} alt={item.title || "UTV post"} onClick={() => (window.location.href = `/watch/${item.id}`)} />
+                  ) : (
+                    <div className="postMedia" style={{ height: 340, display: "grid", placeItems: "center", fontSize: 54 }}>
+                      UTV
+                    </div>
                   )}
+                </div>
 
-                  <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
-                    <button className="btn secondary" onClick={() => likePost(item.id)} style={{ flex: 1 }}>
+                <div className="postBody">
+                  <h2>{item.title || "Untitled"}</h2>
+
+                  {item.description && <p>{item.description}</p>}
+
+                  <div className="actions">
+                    <button className="btn secondary" onClick={() => likePost(item.id)}>
                       ♡ {likes[item.id] || 0}
                     </button>
 
-                    <button className="btn secondary" onClick={() => sharePost(item)} style={{ flex: 1 }}>
+                    <button className="btn secondary" onClick={() => sharePost(item)}>
                       ↗ Share
                     </button>
                   </div>
 
-                  <div
-                    style={{
-                      marginTop: 14,
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 18,
-                      padding: 12,
-                    }}
-                  >
-                    <div style={{ display: "flex", gap: 8 }}>
+                  <div className="commentBox">
+                    <div className="commentInput">
                       <input
                         className="input"
                         placeholder="Add a comment..."
                         value={commentText[item.id] || ""}
-                        onChange={(e) =>
-                          setCommentText((prev) => ({
-                            ...prev,
-                            [item.id]: e.target.value,
-                          }))
-                        }
+                        onChange={(e) => setCommentText((prev) => ({ ...prev, [item.id]: e.target.value }))}
                         style={{ marginTop: 0 }}
                       />
 
@@ -435,56 +546,23 @@ export default function FeedPage() {
                       </button>
                     </div>
 
-                    <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+                    <div className="commentList">
                       {(comments[item.id] || []).length === 0 ? (
                         <p style={{ color: "var(--muted)", margin: 0 }}>No comments yet.</p>
                       ) : (
                         (comments[item.id] || []).slice(-5).map((comment) => (
-                          <div
-                            key={comment.id}
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              background: "rgba(0,0,0,0.35)",
-                              borderRadius: 14,
-                              padding: "10px 12px",
-                            }}
-                          >
+                          <div className="comment" key={comment.id}>
                             {profileAvatar(comment.user_email) ? (
-                              <img
-                                src={profileAvatar(comment.user_email)}
-                                alt="Comment"
-                                onClick={() =>
-                                  (window.location.href = `/u/${encodeURIComponent(comment.user_email)}`)
-                                }
-                                style={{
-                                  width: 34,
-                                  height: 34,
-                                  borderRadius: "50%",
-                                  objectFit: "cover",
-                                  cursor: "pointer",
-                                }}
-                              />
+                              <img className="avatar" style={{ width: 34, height: 34 }} src={profileAvatar(comment.user_email)} alt="Comment" />
                             ) : (
-                              <div style={{ width: 34, height: 34 }}>👤</div>
+                              <div className="avatar" style={{ width: 34, height: 34 }}>
+                                👤
+                              </div>
                             )}
 
                             <div>
-                              <p
-                                onClick={() =>
-                                  (window.location.href = `/u/${encodeURIComponent(comment.user_email)}`)
-                                }
-                                style={{
-                                  margin: 0,
-                                  color: "#d4af37",
-                                  fontWeight: "bold",
-                                  fontSize: 13,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {profileName(comment.user_email)}
-                              </p>
-                              <p style={{ margin: "4px 0 0", color: "white" }}>{comment.comment}</p>
+                              <p className="commentName">{profileName(comment.user_email)}</p>
+                              <p className="commentText">{comment.comment}</p>
                             </div>
                           </div>
                         ))
