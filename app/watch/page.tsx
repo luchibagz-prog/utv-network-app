@@ -28,7 +28,7 @@ export default function WatchPage() {
 
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
-    }, 4500);
+    }, 4200);
 
     return () => clearInterval(timer);
   }, []);
@@ -42,64 +42,31 @@ export default function WatchPage() {
       .eq("approved", true)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(error);
-      setUploads([]);
-    } else {
-      setUploads((data || []).filter(Boolean));
-    }
-
+    setUploads(error ? [] : (data || []).filter(Boolean));
     setLoading(false);
   }
 
   const filtered = useMemo(() => {
-    return uploads.filter(Boolean).filter((item) => {
-      const text = `${item?.title || ""} ${item?.category || ""} ${item?.description || ""} ${item?.creator_name || ""}`.toLowerCase();
+    return uploads.filter((item) => {
+      const text = `${item?.title || ""} ${item?.category || ""} ${item?.description || ""}`.toLowerCase();
       return text.includes(search.toLowerCase());
     });
   }, [uploads, search]);
 
-  const heroItem = filtered[0] || null;
-
-  const top10 = [...filtered]
-    .filter(Boolean)
-    .sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0))
-    .slice(0, 10);
-
-  const originals = filtered.filter((item) =>
-    `${item?.category || ""} ${item?.title || ""}`.toLowerCase().includes("show")
-  );
-
-  const movies = filtered.filter((item) =>
-    `${item?.category || ""}`.toLowerCase().includes("movie")
-  );
-
-  const podcasts = filtered.filter((item) =>
-    `${item?.category || ""}`.toLowerCase().includes("podcast")
-  );
-
-  const music = filtered.filter((item) =>
-    `${item?.category || ""}`.toLowerCase().includes("music")
-  );
-
+  const top10 = [...filtered].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0)).slice(0, 10);
+  const originals = filtered.filter((i) => `${i?.category || ""} ${i?.title || ""}`.toLowerCase().includes("show"));
+  const movies = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("movie"));
+  const podcasts = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("podcast"));
+  const music = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("music"));
   const recent = filtered.slice(0, 18);
 
-  function Row({
-    title,
-    items,
-    numbered = false,
-  }: {
-    title: string;
-    items: any[];
-    numbered?: boolean;
-  }) {
+  function Row({ title, items, numbered = false }: { title: string; items: any[]; numbered?: boolean }) {
     const safeItems = (items || []).filter(Boolean);
-    if (safeItems.length === 0) return null;
+    if (!safeItems.length) return null;
 
     return (
       <section className="watchRow">
         <h2>{title}</h2>
-
         <div className="watchScroller">
           {safeItems.map((item, index) => {
             const image = mediaImage(item);
@@ -108,18 +75,10 @@ export default function WatchPage() {
             return (
               <Link key={item.id || index} href={`/watch/${item.id}`} className="watchCard">
                 <div className="poster">
-                  {image ? (
-                    <img src={image} alt={item.title || "UTV"} />
-                  ) : video ? (
-                    <video src={video} muted playsInline preload="metadata" />
-                  ) : (
-                    <div className="fallback">UTV</div>
-                  )}
-
+                  {image ? <img src={image} alt={item.title || "UTV"} /> : video ? <video src={video} muted playsInline preload="metadata" /> : <div className="fallback">UTV</div>}
                   {numbered && <span className="rank">{index + 1}</span>}
                   <span className="play">▶</span>
                 </div>
-
                 <h3>{item.title || "Untitled"}</h3>
                 <p>{item.category || "UTV"}</p>
               </Link>
@@ -142,15 +101,16 @@ export default function WatchPage() {
           background:linear-gradient(180deg,#07111e,#000);
         }
 
-       .hero {
-  position:relative;
-  min-height:420px;
-  height:52vh;
-  display:flex;
-  align-items:flex-end;
-  padding:90px 16px 24px;
-  overflow:hidden;
-}
+        .hero {
+          position:relative;
+          min-height:300px;
+          height:44vh;
+          display:flex;
+          align-items:flex-end;
+          padding:90px 16px 28px;
+          overflow:hidden;
+          background:#000;
+        }
 
         .heroBg {
           position:absolute;
@@ -158,20 +118,20 @@ export default function WatchPage() {
           z-index:0;
         }
 
-        .heroBg img,
-        .heroBg video {
+        .heroBg img {
           width:100%;
           height:100%;
           object-fit:cover;
           object-position:center;
-         filter:brightness(1.05) contrast(1.12) saturate(1.25);
+          display:block;
+          filter:brightness(1.25) contrast(1.14) saturate(1.25);
         }
 
         .heroBg::after {
           content:"";
           position:absolute;
           inset:0;
-          background:linear-gradient(180deg,rgba(0,0,0,.2),#07111e 95%);
+          background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.25),#07111e 96%);
         }
 
         .heroContent {
@@ -195,15 +155,8 @@ export default function WatchPage() {
         }
 
         .hero p {
-          color:rgba(255,255,255,.76);
+          color:rgba(255,255,255,.78);
           line-height:1.5;
-        }
-
-        .heroActions {
-          display:flex;
-          gap:10px;
-          flex-wrap:wrap;
-          margin-top:16px;
         }
 
         .searchWrap {
@@ -229,11 +182,12 @@ export default function WatchPage() {
         .watchRow h2 {
           padding-left:16px;
           margin-bottom:12px;
+          font-size:34px;
         }
 
         .watchScroller {
           display:flex;
-          gap:14px;
+          gap:16px;
           overflow-x:auto;
           padding:0 16px 12px;
         }
@@ -243,15 +197,15 @@ export default function WatchPage() {
         }
 
         .watchCard {
-          min-width:270px;
-          max-width:270px;
+          min-width:235px;
+          max-width:235px;
           color:white;
           text-decoration:none;
         }
 
         .poster {
           position:relative;
-          height:165px;
+          height:145px;
           border-radius:20px;
           overflow:hidden;
           background:#111;
@@ -261,10 +215,11 @@ export default function WatchPage() {
 
         .poster img,
         .poster video {
-         width:100%;
-         height:100%;
-         object-fit:contain;
-         background:#000;
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          display:block;
+        }
 
         .fallback {
           height:100%;
@@ -298,20 +253,20 @@ export default function WatchPage() {
           border-radius:50%;
           display:grid;
           place-items:center;
-          background:rgba(255,255,255,.18);
+          background:rgba(255,255,255,.22);
           backdrop-filter:blur(10px);
         }
 
         .watchCard h3 {
           margin:10px 0 4px;
-          font-size:16px;
+          font-size:18px;
         }
 
         .watchCard p {
           margin:0;
           color:#ffd166;
           font-weight:800;
-          font-size:13px;
+          font-size:14px;
         }
 
         .emptyState {
@@ -321,47 +276,23 @@ export default function WatchPage() {
 
       <section className="hero">
         <div className="heroBg">
-          {heroItem && mediaVideo(heroItem) ? (
-            <video src={mediaVideo(heroItem)} autoPlay muted loop playsInline />
-          ) : (
-            <img src={mediaImage(heroItem) || heroHeaders[heroIndex]} alt="UTV" />
-          )}
+          <img src={heroHeaders[heroIndex]} alt="UTV Watch" />
         </div>
 
         <div className="heroContent">
           <div className="heroTag">UTV STREAMING</div>
-          <h1>{heroItem?.title || "Watch UTV"}</h1>
-          <p>
-            {heroItem?.description ||
-              "Stream originals, shows, movies, podcasts, music videos, live events, and creator content."}
-          </p>
-
-          <div className="heroActions">
-            {heroItem?.id && (
-              <Link href={`/watch/${heroItem.id}`} className="btn">
-                ▶ Watch Now
-              </Link>
-            )}
-            <Link href="/submit" className="btn secondary">
-              + Upload Content
-            </Link>
-          </div>
+          <h1>Watch UTV</h1>
+          <p>Stream originals, shows, movies, podcasts, music videos, live events, and creator content.</p>
         </div>
       </section>
 
       <section className="searchWrap">
-        <input
-          className="searchInput"
-          placeholder="Search shows, movies, podcasts..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <input className="searchInput" placeholder="Search shows, movies, podcasts..." value={search} onChange={(e) => setSearch(e.target.value)} />
       </section>
 
       {loading ? (
         <section className="card emptyState">
           <h2>Loading UTV...</h2>
-          <p style={{ color: "var(--muted)" }}>Getting latest content.</p>
         </section>
       ) : filtered.length === 0 ? (
         <section className="card emptyState">
