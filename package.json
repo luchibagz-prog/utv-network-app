@@ -9,10 +9,12 @@
     "@stripe/stripe-js": "^9.9.0",
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",
+    "leaflet": "^1.9.4",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-leaflet": "^5.0.0",
     "stripe": "^22.3.0",
     "web-push": "^3.6.7"
   },
