@@ -144,8 +144,8 @@ export default function WatchPage() {
 
        .hero {
   position:relative;
-  min-height:360px;
-  height:42vh;
+  min-height:420px;
+  height:52vh;
   display:flex;
   align-items:flex-end;
   padding:90px 16px 24px;
@@ -162,8 +162,8 @@ export default function WatchPage() {
         .heroBg video {
           width:100%;
           height:100%;
-          object-fit:contain;
-          background:#000;
+          object-fit:cover;
+          object-position:center;
           filter:brightness(.72) contrast(1.15) saturate(1.2);
         }
 
@@ -243,15 +243,15 @@ export default function WatchPage() {
         }
 
         .watchCard {
-          min-width:210px;
-          max-width:210px;
+          min-width:235px;
+          max-width:235px;
           color:white;
           text-decoration:none;
         }
 
         .poster {
           position:relative;
-          height:128px;
+          height:140px;
           border-radius:20px;
           overflow:hidden;
           background:#111;
