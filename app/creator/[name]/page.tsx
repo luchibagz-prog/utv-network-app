@@ -2,7 +2,10 @@ import Link from "next/link";
 import { supabase } from "../../../lib/supabaseClient";
 
 function slugify(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return (text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export default async function CreatorProfilePage({
@@ -11,20 +14,29 @@ export default async function CreatorProfilePage({
   params: Promise<{ name: string }>;
 }) {
   const { name } = await params;
+  const safeName = name || "";
 
-  const { data: uploads } = await supabase
-    .from("uploads")
-    .select("*")
-    .eq("approved", true)
-    .order("created_at", { ascending: false });
+  let creatorUploads: any[] = [];
 
-  const creatorUploads =
-    uploads?.filter((item) => slugify(item.creator_name || "") === name) || [];
+  try {
+    const { data } = await supabase
+      .from("uploads")
+      .select("*")
+      .eq("approved", true)
+      .order("created_at", { ascending: false });
 
-  const creator = creatorUploads[0];
+    creatorUploads =
+      data?.filter((item) => slugify(item.creator_name || "") === safeName) ||
+      [];
+  } catch (error) {
+    console.error("Creator page load failed:", error);
+    creatorUploads = [];
+  }
+
+  const creator = creatorUploads[0] || null;
 
   const totalViews = creatorUploads.reduce(
-    (sum, item) => sum + (item.views || 0),
+    (sum, item) => sum + Number(item.views || 0),
     0
   );
 
@@ -38,7 +50,7 @@ export default async function CreatorProfilePage({
         {creator?.creator_avatar && (
           <img
             src={creator.creator_avatar}
-            alt={creator.creator_name}
+            alt={creator.creator_name || "Creator"}
             style={{
               width: 110,
               height: 110,
@@ -49,7 +61,7 @@ export default async function CreatorProfilePage({
           />
         )}
 
-        <h1>{creator?.creator_name || name.replaceAll("-", " ")}</h1>
+        <h1>{creator?.creator_name || safeName.replaceAll("-", " ")}</h1>
 
         <p>{creator?.creator_bio || "UTV Creator"}</p>
 
@@ -60,21 +72,28 @@ export default async function CreatorProfilePage({
 
       <h2>Content from this creator</h2>
 
-      <div className="grid">
-        {creatorUploads.map((item) => (
-          <Link key={item.id} href={`/watch/${item.id}`} className="card">
-            {item.cover_url && (
-              <img
-                src={item.cover_url}
-                alt={item.title}
-                style={{ width: "100%", borderRadius: 14 }}
-              />
-            )}
-            <h3>{item.title}</h3>
-            <p>{item.category}</p>
-          </Link>
-        ))}
-      </div>
+      {creatorUploads.length === 0 ? (
+        <section className="card" style={{ marginTop: 16 }}>
+          <h3>No public content yet</h3>
+          <p>This creator profile is live, but no approved uploads are showing yet.</p>
+        </section>
+      ) : (
+        <div className="grid">
+          {creatorUploads.map((item) => (
+            <Link key={item.id} href={`/watch/${item.id}`} className="card">
+              {item.cover_url && (
+                <img
+                  src={item.cover_url}
+                  alt={item.title || "UTV content"}
+                  style={{ width: "100%", borderRadius: 14 }}
+                />
+              )}
+              <h3>{item.title || "Untitled"}</h3>
+              <p>{item.category || "UTV"}</p>
+            </Link>
+          ))}
+        </div>
+      )}
     </main>
   );
 }
