@@ -22,43 +22,50 @@ const filters = [
   "Comedy",
 ];
 
-function pinLabel(type: string, live: boolean) {
-  if (live) return "LIVE";
-  const t = (type || "").toLowerCase();
-  if (t.includes("event")) return "EV";
-  if (t.includes("casting")) return "CA";
-  if (t.includes("build")) return "BT";
-  if (t.includes("music")) return "MU";
-  if (t.includes("podcast")) return "PO";
-  if (t.includes("business")) return "BU";
-  if (t.includes("sports")) return "SP";
-  if (t.includes("comedy")) return "CO";
-  return "UTV";
+function categoryIcon(type?: string, live?: boolean) {
+  if (live) return "🔴";
+  const t = `${type || ""}`.toLowerCase();
+  if (t.includes("event")) return "🎉";
+  if (t.includes("casting")) return "🎭";
+  if (t.includes("build")) return "🤝";
+  if (t.includes("business")) return "💼";
+  if (t.includes("music")) return "🎵";
+  if (t.includes("podcast")) return "🎙️";
+  if (t.includes("sports")) return "🏀";
+  if (t.includes("comedy")) return "😂";
+  return "🌎";
 }
 
-function pinColor(type: string, live: boolean) {
+function pinColor(type?: string, live?: boolean) {
   if (live) return "#ff315f";
-  const t = (type || "").toLowerCase();
+  const t = `${type || ""}`.toLowerCase();
   if (t.includes("event")) return "#9b7cff";
   if (t.includes("casting")) return "#ffd166";
   if (t.includes("build")) return "#39ff88";
   if (t.includes("business")) return "#31d7ff";
   if (t.includes("music")) return "#ff5eea";
+  if (t.includes("podcast")) return "#31d7ff";
   if (t.includes("sports")) return "#ff9f2f";
   if (t.includes("comedy")) return "#f72585";
   return "#52f7c8";
+}
+
+function getImage(item: any) {
+  return (
+    item.flyer_url ||
+    item.cover_url ||
+    item.thumbnail_url ||
+    item.image_url ||
+    item.poster_url ||
+    ""
+  );
 }
 
 function getPostPosition(item: any, index: number) {
   const latitude = Number(item.latitude);
   const longitude = Number(item.longitude);
 
-  if (
-    !Number.isNaN(latitude) &&
-    !Number.isNaN(longitude) &&
-    latitude !== 0 &&
-    longitude !== 0
-  ) {
+  if (!Number.isNaN(latitude) && !Number.isNaN(longitude) && latitude && longitude) {
     return { latitude, longitude };
   }
 
@@ -81,13 +88,8 @@ export default function WorldPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [locationOn, setLocationOn] = useState(false);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
-  const [locationMessage, setLocationMessage] = useState(
-    "Location is private. Turn it on to explore near you."
-  );
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationMessage, setLocationMessage] = useState("Location is private. Turn it on to explore near you.");
   const [selected, setSelected] = useState<any | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -102,25 +104,22 @@ export default function WorldPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("World load error:", error);
+      console.error(error);
       setItems([]);
       return;
     }
 
-    setItems(data || []);
+    setItems((data || []).filter(Boolean));
   }
 
   function handleMapLoad() {
     setMapReady(true);
-
     const map = mapRef.current?.getMap?.();
     if (!map) return;
 
     try {
       const layers = map.getStyle()?.layers || [];
-      const labelLayer = layers.find(
-        (layer: any) => layer.type === "symbol" && layer.layout?.["text-field"]
-      );
+      const labelLayer = layers.find((layer: any) => layer.type === "symbol" && layer.layout?.["text-field"]);
 
       if (!map.getLayer("utv-3d-buildings")) {
         map.addLayer(
@@ -132,33 +131,17 @@ export default function WorldPage() {
             type: "fill-extrusion",
             minzoom: 14,
             paint: {
-              "fill-extrusion-color": "#1b2a44",
-              "fill-extrusion-height": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                14,
-                0,
-                16,
-                ["get", "height"],
-              ],
-              "fill-extrusion-base": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                14,
-                0,
-                16,
-                ["get", "min_height"],
-              ],
-              "fill-extrusion-opacity": 0.55,
+              "fill-extrusion-color": "#203452",
+              "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 14, 0, 16, ["get", "height"]],
+              "fill-extrusion-base": ["interpolate", ["linear"], ["zoom"], 14, 0, 16, ["get", "min_height"]],
+              "fill-extrusion-opacity": 0.58,
             },
           },
           labelLayer?.id
         );
       }
     } catch (error) {
-      console.log("3D building layer skipped:", error);
+      console.log("3D skipped:", error);
     }
   }
 
@@ -197,26 +180,17 @@ export default function WorldPage() {
 
         setUserLocation(nextLocation);
         setLocationOn(true);
-        setLocationMessage(
-          "Location on. Your dot is private and only visible to you."
-        );
-
+        setLocationMessage("Location on. Your dot is private and only visible to you.");
         flyToLocation(nextLocation);
       },
-      () => {
-        setLocationMessage(
-          "Location denied. You can still explore public UTV World."
-        );
-      },
+      () => setLocationMessage("Location denied. You can still explore public UTV World."),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }
 
   const filtered = useMemo(() => {
     return items.filter((item) => {
-      const text = `${item.title || ""} ${item.description || ""} ${
-        item.city || ""
-      } ${item.state || ""} ${item.world_type || ""}`.toLowerCase();
+      const text = `${item.title || ""} ${item.description || ""} ${item.city || ""} ${item.state || ""} ${item.world_type || ""}`.toLowerCase();
 
       return (
         text.includes(search.toLowerCase()) &&
@@ -228,16 +202,11 @@ export default function WorldPage() {
   }, [items, search, filter]);
 
   const liveCount = filtered.filter((i) => i.is_live).length;
-  const eventCount = filtered.filter((i) =>
-    `${i.world_type || ""}`.toLowerCase().includes("event")
-  ).length;
-  const castingCount = filtered.filter((i) =>
-    `${i.world_type || ""}`.toLowerCase().includes("casting")
-  ).length;
-  const buildCount = filtered.filter((i) =>
-    `${i.world_type || ""}`.toLowerCase().includes("build")
-  ).length;
-    return (
+  const eventCount = filtered.filter((i) => `${i.world_type || ""}`.toLowerCase().includes("event")).length;
+  const castingCount = filtered.filter((i) => `${i.world_type || ""}`.toLowerCase().includes("casting")).length;
+  const buildCount = filtered.filter((i) => `${i.world_type || ""}`.toLowerCase().includes("build")).length;
+
+  return (
     <main className="worldPage">
       <UTVNav />
 
@@ -249,15 +218,13 @@ export default function WorldPage() {
           background:
             radial-gradient(circle at 15% 0%, rgba(57,255,136,.22), transparent 28%),
             radial-gradient(circle at 88% 6%, rgba(155,124,255,.34), transparent 35%),
-            radial-gradient(circle at 50% 100%, rgba(49,215,255,.12), transparent 38%),
-            linear-gradient(180deg, #09182b 0%, #13223a 45%, #070b13 100%);
+            linear-gradient(180deg,#09182b,#070b13);
           overflow:hidden;
         }
 
         .worldTop {
           padding:18px 16px 12px;
           display:flex;
-          align-items:flex-end;
           justify-content:space-between;
           gap:14px;
         }
@@ -274,11 +241,10 @@ export default function WorldPage() {
           color:rgba(255,255,255,.72);
           font-size:14px;
           line-height:1.38;
-          max-width:720px;
         }
 
         .worldStatus {
-          flex:0 0 auto;
+          height:max-content;
           border:1px solid rgba(255,255,255,.18);
           background:rgba(255,255,255,.09);
           backdrop-filter:blur(18px);
@@ -287,7 +253,6 @@ export default function WorldPage() {
           color:#52f7c8;
           font-weight:950;
           font-size:12px;
-          box-shadow:0 12px 34px rgba(0,0,0,.22);
         }
 
         .worldControls {
@@ -306,11 +271,6 @@ export default function WorldPage() {
           padding:15px 16px;
           outline:none;
           font-size:16px;
-          box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
-        }
-
-        .worldSearch::placeholder {
-          color:rgba(255,255,255,.46);
         }
 
         .worldMessage {
@@ -318,18 +278,6 @@ export default function WorldPage() {
           margin:0;
           font-size:13px;
           font-weight:850;
-          line-height:1.35;
-        }
-
-        .worldFilters {
-          display:flex;
-          gap:10px;
-          overflow-x:auto;
-          padding:0 16px 12px;
-        }
-
-        .worldFilters::-webkit-scrollbar {
-          display:none;
         }
 
         .worldMapStage {
@@ -340,29 +288,14 @@ export default function WorldPage() {
         .worldMapShell {
           height:72vh;
           min-height:540px;
-          border-radius:36px;
+          border-radius:34px;
           overflow:hidden;
           border:1px solid rgba(255,255,255,.21);
-          box-shadow:
-            0 36px 95px rgba(0,0,0,.42),
-            0 0 100px rgba(82,247,200,.15),
-            0 0 100px rgba(155,124,255,.13),
-            inset 0 1px 0 rgba(255,255,255,.16);
-          transform:rotateX(3.5deg);
+          box-shadow:0 36px 95px rgba(0,0,0,.42), 0 0 100px rgba(82,247,200,.15);
+          transform:rotateX(2.5deg);
           transform-origin:center top;
           position:relative;
           background:#12213a;
-        }
-
-        .worldMapShell:before {
-          content:"";
-          position:absolute;
-          inset:0;
-          pointer-events:none;
-          z-index:3;
-          background:
-            linear-gradient(180deg, rgba(255,255,255,.08), transparent 18%, rgba(0,0,0,.18)),
-            radial-gradient(circle at 50% 20%, transparent 0%, rgba(155,124,255,.08) 48%, rgba(0,0,0,.2) 100%);
         }
 
         .mapBadge {
@@ -373,71 +306,46 @@ export default function WorldPage() {
           font-size:11px;
           font-weight:950;
           letter-spacing:2px;
-          color:rgba(255,255,255,.82);
-          background:rgba(8,13,24,.56);
+          background:rgba(8,13,24,.62);
           border:1px solid rgba(255,255,255,.18);
           border-radius:999px;
           padding:9px 13px;
           backdrop-filter:blur(16px);
-          box-shadow:0 14px 35px rgba(0,0,0,.24);
         }
-      .worldFloatingFilters {
-        position: absolute;
-        top: 58px;
-        left: 14px;
-        right: 14px;
-        z-index: 5;
 
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 6px;
+        .worldFloatingFilters {
+          position:absolute;
+          top:58px;
+          left:14px;
+          right:14px;
+          z-index:5;
+          display:flex;
+          gap:10px;
+          overflow-x:auto;
+          padding-bottom:6px;
+          scrollbar-width:none;
+        }
 
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+        .worldFloatingFilters::-webkit-scrollbar { display:none; }
 
-      .worldFloatingFilters::-webkit-scrollbar {
-        display: none;
-      }
+        .worldFilter {
+          flex:0 0 auto;
+          padding:10px 16px;
+          border-radius:999px;
+          border:1px solid rgba(255,255,255,.12);
+          background:rgba(12,18,32,.64);
+          backdrop-filter:blur(18px);
+          color:rgba(255,255,255,.82);
+          font-weight:850;
+          font-size:12px;
+        }
 
-      .worldFilter {
-        flex: 0 0 auto;
+        .worldFilter.active {
+          color:#06120d;
+          background:linear-gradient(135deg,#52f7c8,#9b7cff);
+          box-shadow:0 0 28px rgba(82,247,200,.35);
+        }
 
-        padding: 10px 16px;
-        border-radius: 999px;
-
-        border: 1px solid rgba(255,255,255,.12);
-
-        background: rgba(12,18,32,.60);
-
-        backdrop-filter: blur(18px);
-
-        color: rgba(255,255,255,.82);
-
-        font-weight: 800;
-        font-size: 12px;
-
-        transition: .25s;
-      }
-
-      .worldFilter:hover {
-        transform: translateY(-1px);
-      }
-
-      .worldFilter.active {
-        color: black;
-
-        background:
-          linear-gradient(
-            135deg,
-            #52f7c8,
-            #9b7cff
-          );
-
-        box-shadow:
-          0 0 28px rgba(82,247,200,.35);
-      }
         .worldHud {
           position:absolute;
           left:14px;
@@ -445,56 +353,40 @@ export default function WorldPage() {
           bottom:14px;
           z-index:4;
           display:grid;
-          grid-template-columns:repeat(4, 1fr);
+          grid-template-columns:repeat(4,1fr);
           gap:8px;
         }
 
         .hudItem {
           border:1px solid rgba(255,255,255,.16);
-          background:rgba(8,13,24,.58);
+          background:rgba(8,13,24,.6);
           backdrop-filter:blur(18px);
           border-radius:18px;
           padding:10px 8px;
-          box-shadow:0 16px 40px rgba(0,0,0,.26);
         }
 
         .hudItem b {
           display:block;
           font-size:18px;
-          line-height:1;
         }
 
         .hudItem span {
           display:block;
-          margin-top:5px;
           color:rgba(255,255,255,.64);
           font-size:10px;
           font-weight:900;
-          white-space:nowrap;
-        }
-
-        .mapMissing {
-          height:100%;
-          display:grid;
-          place-items:center;
-          text-align:center;
-          padding:24px;
-          background:#12213a;
         }
 
         .utvPin {
-          width:48px;
-          height:48px;
-          border-radius:999px;
+          width:50px;
+          height:50px;
+          border-radius:50%;
           display:grid;
           place-items:center;
-          color:white;
-          font-size:10px;
-          font-weight:950;
-          letter-spacing:.3px;
+          font-size:22px;
           border:1px solid rgba(255,255,255,.82);
           cursor:pointer;
-          transform:translate(-50%, -50%);
+          transform:translate(-50%,-50%);
           animation:pinFloat 2.5s infinite ease-in-out;
           position:relative;
         }
@@ -505,32 +397,27 @@ export default function WorldPage() {
           inset:-10px;
           border-radius:999px;
           border:1px solid currentColor;
-          opacity:.28;
-          animation:ringPulse 2.5s infinite ease-out;
+          opacity:.32;
+          animation:ringPulse 2.4s infinite ease-out;
         }
 
         .utvPinLive {
-          animation:livePulse 1.55s infinite ease-in-out;
-        }
-
-        .utvPinLive:after {
-          opacity:.45;
-          animation:ringPulse 1.55s infinite ease-out;
+          animation:livePulse 1.45s infinite ease-in-out;
         }
 
         @keyframes pinFloat {
-          0%,100% { transform:translate(-50%, -50%) scale(1); }
-          50% { transform:translate(-50%, -57%) scale(1.07); }
+          0%,100% { transform:translate(-50%,-50%) scale(1); }
+          50% { transform:translate(-50%,-58%) scale(1.08); }
         }
 
         @keyframes livePulse {
-          0%,100% { transform:translate(-50%, -50%) scale(1); }
-          50% { transform:translate(-50%, -58%) scale(1.17); }
+          0%,100% { transform:translate(-50%,-50%) scale(1); }
+          50% { transform:translate(-50%,-60%) scale(1.18); }
         }
 
         @keyframes ringPulse {
-          0% { transform:scale(.7); opacity:.38; }
-          100% { transform:scale(1.55); opacity:0; }
+          0% { transform:scale(.7); opacity:.45; }
+          100% { transform:scale(1.65); opacity:0; }
         }
 
         .userDot {
@@ -539,15 +426,30 @@ export default function WorldPage() {
           border-radius:999px;
           background:#52f7c8;
           border:3px solid white;
-          box-shadow:
-            0 0 0 10px rgba(82,247,200,.18),
-            0 0 35px rgba(82,247,200,.75);
-          transform:translate(-50%, -50%);
+          box-shadow:0 0 0 10px rgba(82,247,200,.18), 0 0 35px rgba(82,247,200,.75);
+          transform:translate(-50%,-50%);
+        }
+
+        .mapMissing {
+          height:100%;
+          display:grid;
+          place-items:center;
+          text-align:center;
+          padding:24px;
         }
 
         .worldPopup {
-          min-width:220px;
+          min-width:240px;
           color:white;
+        }
+
+        .popupImg {
+          width:100%;
+          height:125px;
+          object-fit:cover;
+          border-radius:16px;
+          margin-bottom:10px;
+          background:#000;
         }
 
         .worldPopupTitle {
@@ -573,36 +475,21 @@ export default function WorldPage() {
           margin-top:12px;
           width:100%;
           border:1px solid rgba(82,247,200,.45);
-          background:linear-gradient(135deg, rgba(82,247,200,.24), rgba(155,124,255,.26));
+          background:linear-gradient(135deg,rgba(82,247,200,.24),rgba(155,124,255,.26));
           color:white;
           border-radius:14px;
           padding:10px 12px;
           font-weight:950;
-          cursor:pointer;
         }
 
         .mapboxgl-popup-content {
-          background:rgba(10,18,33,.92) !important;
+          background:rgba(10,18,33,.94) !important;
           border:1px solid rgba(255,255,255,.16);
           border-radius:20px !important;
           backdrop-filter:blur(18px);
-          box-shadow:0 20px 60px rgba(0,0,0,.38);
         }
 
-        .mapboxgl-popup-tip {
-          border-top-color:rgba(10,18,33,.92) !important;
-        }
-
-        .mapboxgl-popup-close-button {
-          color:white;
-          font-size:20px;
-          padding:6px 10px;
-        }
-
-        .mapboxgl-ctrl-logo,
-        .mapboxgl-ctrl-attrib {
-          opacity:.45;
-        }
+        .mapboxgl-popup-close-button { color:white; }
 
         .worldList {
           display:grid;
@@ -611,12 +498,24 @@ export default function WorldPage() {
         }
 
         .worldCard {
+          overflow:hidden;
           border:1px solid rgba(255,255,255,.14);
-          background:linear-gradient(145deg, rgba(255,255,255,.115), rgba(255,255,255,.055));
+          background:linear-gradient(145deg,rgba(255,255,255,.115),rgba(255,255,255,.055));
           backdrop-filter:blur(16px);
           border-radius:26px;
-          padding:16px;
           box-shadow:0 20px 48px rgba(0,0,0,.24);
+        }
+
+        .worldCardImage {
+          width:100%;
+          height:190px;
+          object-fit:cover;
+          background:#000;
+          display:block;
+        }
+
+        .worldCardBody {
+          padding:16px;
         }
 
         .worldType {
@@ -640,33 +539,41 @@ export default function WorldPage() {
           font-weight:950;
         }
 
-        @media (max-width: 430px) {
-          .worldTitle {
-            font-size:38px;
+        .postWorldBtn {
+          position:fixed;
+          right:16px;
+          bottom:92px;
+          z-index:20;
+          border:0;
+          border-radius:999px;
+          padding:14px 16px;
+          color:#06120d;
+          font-weight:950;
+          background:linear-gradient(135deg,#52f7c8,#9b7cff);
+          box-shadow:0 18px 45px rgba(0,0,0,.35);
+        }
+
+        @media (max-width:430px) {
+          .worldTop {
+            flex-direction:column;
           }
 
-          .worldTop {
-            align-items:flex-start;
-            flex-direction:column;
+          .worldTitle {
+            font-size:38px;
           }
 
           .worldMapShell {
             height:70vh;
             min-height:510px;
-            border-radius:30px;
           }
 
           .worldHud {
-            grid-template-columns:repeat(2, 1fr);
+            grid-template-columns:repeat(2,1fr);
           }
         }
 
-        @media (min-width: 900px) {
-          .worldTop,
-          .worldControls,
-          .worldFilters,
-          .worldMapStage,
-          .worldList {
+        @media (min-width:900px) {
+          .worldTop,.worldControls,.worldMapStage,.worldList {
             max-width:1180px;
             margin-left:auto;
             margin-right:auto;
@@ -676,12 +583,8 @@ export default function WorldPage() {
             grid-template-columns:230px 1fr;
           }
 
-          .worldMessage {
-            grid-column:1 / -1;
-          }
-
           .worldList {
-            grid-template-columns:repeat(3, 1fr);
+            grid-template-columns:repeat(3,1fr);
           }
         }
       `}</style>
@@ -690,14 +593,11 @@ export default function WorldPage() {
         <div>
           <h1 className="worldTitle">UTV World</h1>
           <p className="worldSub">
-            A private-first creator map for live streams, events, casting,
-            business, music, sports, and what’s moving around you.
+            Discover live streams, events, casting, businesses, music, sports, comedy, and creator opportunities around you.
           </p>
         </div>
 
-        <div className="worldStatus">
-          {mapReady ? "WORLD ONLINE" : "LOADING WORLD"}
-        </div>
+        <div className="worldStatus">{mapReady ? "WORLD ONLINE" : "LOADING WORLD"}</div>
       </section>
 
       <section className="worldControls">
@@ -715,10 +615,10 @@ export default function WorldPage() {
         <p className="worldMessage">{locationMessage}</p>
       </section>
 
-
       <section className="worldMapStage">
         <div className="worldMapShell">
           <div className="mapBadge">UTV WORLD</div>
+
           <div className="worldFloatingFilters">
             {filters.map((name) => (
               <button
@@ -730,30 +630,19 @@ export default function WorldPage() {
               </button>
             ))}
           </div>
+
           <div className="worldHud">
-            <div className="hudItem">
-              <b>{liveCount}</b>
-              <span>Live</span>
-            </div>
-            <div className="hudItem">
-              <b>{eventCount}</b>
-              <span>Events</span>
-            </div>
-            <div className="hudItem">
-              <b>{castingCount}</b>
-              <span>Casting</span>
-            </div>
-            <div className="hudItem">
-              <b>{buildCount}</b>
-              <span>Build</span>
-            </div>
+            <div className="hudItem"><b>{liveCount}</b><span>Live</span></div>
+            <div className="hudItem"><b>{eventCount}</b><span>Events</span></div>
+            <div className="hudItem"><b>{castingCount}</b><span>Casting</span></div>
+            <div className="hudItem"><b>{buildCount}</b><span>Build</span></div>
           </div>
 
           {!MAPBOX_TOKEN ? (
             <div className="mapMissing">
               <div>
                 <h2>Mapbox token missing</h2>
-                <p>Add NEXT_PUBLIC_MAPBOX_TOKEN to .env.local and Vercel.</p>
+                <p>Add NEXT_PUBLIC_MAPBOX_TOKEN to Vercel.</p>
               </div>
             </div>
           ) : (
@@ -775,11 +664,7 @@ export default function WorldPage() {
               <NavigationControl position="bottom-right" showCompass showZoom />
 
               {locationOn && userLocation && (
-                <Marker
-                  longitude={userLocation.longitude}
-                  latitude={userLocation.latitude}
-                  anchor="center"
-                >
+                <Marker longitude={userLocation.longitude} latitude={userLocation.latitude} anchor="center">
                   <div className="userDot" title="Your private location" />
                 </Marker>
               )}
@@ -787,31 +672,20 @@ export default function WorldPage() {
               {filtered.map((item, index) => {
                 const pos = getPostPosition(item, index);
                 const color = pinColor(item.world_type, item.is_live);
-                const label = pinLabel(item.world_type, item.is_live);
+                const icon = categoryIcon(item.world_type, item.is_live);
 
                 return (
-                  <Marker
-                    key={item.id || index}
-                    longitude={pos.longitude}
-                    latitude={pos.latitude}
-                    anchor="center"
-                  >
+                  <Marker key={item.id || index} longitude={pos.longitude} latitude={pos.latitude} anchor="center">
                     <div
                       className={`utvPin ${item.is_live ? "utvPinLive" : ""}`}
-                      onClick={() =>
-                        setSelected({
-                          ...item,
-                          longitude: pos.longitude,
-                          latitude: pos.latitude,
-                        })
-                      }
+                      onClick={() => setSelected({ ...item, longitude: pos.longitude, latitude: pos.latitude })}
                       style={{
                         color,
-                        background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,.96), ${color} 24%, rgba(10,18,33,.95) 72%)`,
+                        background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,.96), ${color} 28%, rgba(10,18,33,.96) 76%)`,
                         boxShadow: `0 0 0 8px ${color}22, 0 0 36px ${color}, 0 18px 32px rgba(0,0,0,.34)`,
                       }}
                     >
-                      {label}
+                      {icon}
                     </div>
                   </Marker>
                 );
@@ -825,29 +699,24 @@ export default function WorldPage() {
                   onClose={() => setSelected(null)}
                 >
                   <div className="worldPopup">
+                    {getImage(selected) && <img className="popupImg" src={getImage(selected)} alt={selected.title || "UTV World"} />}
+
                     <div className="worldPopupTitle">
-                      {selected.title || "Untitled"}
+                      {categoryIcon(selected.world_type, selected.is_live)} {selected.title || "Untitled"}
                     </div>
 
                     <div className="worldPopupMeta">
-                      {selected.world_type || "World"}{" "}
-                      {selected.is_live ? "• LIVE NOW" : ""}
+                      {selected.world_type || "World"} {selected.is_live ? "• LIVE NOW" : ""}
                       <br />
                       📍 {publicLocationText(selected)}
                     </div>
 
-                    <div className="privacyLine">
-                      Public post. User private location is never shared.
-                    </div>
+                    <div className="privacyLine">Your private location is never shared.</div>
 
                     {selected.creator_email && (
                       <button
                         className="worldPopupButton"
-                        onClick={() =>
-                          (window.location.href = `/u/${encodeURIComponent(
-                            selected.creator_email
-                          )}`)
-                        }
+                        onClick={() => (window.location.href = `/u/${encodeURIComponent(selected.creator_email)}`)}
                       >
                         View Creator
                       </button>
@@ -860,37 +729,41 @@ export default function WorldPage() {
         </div>
       </section>
 
+      <button className="postWorldBtn" onClick={() => (window.location.href = "/world/new")}>
+        + Post
+      </button>
+
       <section className="worldList">
-        {filtered.map((item) => (
-          <div key={item.id} className="worldCard">
-            <p className="worldType">
-              {pinLabel(item.world_type, item.is_live)}{" "}
-              {item.world_type || "World"}
-              {item.is_live ? " • LIVE NOW" : ""}
-            </p>
+        {filtered.map((item) => {
+          const image = getImage(item);
+          return (
+            <div key={item.id} className="worldCard">
+              {image && <img className="worldCardImage" src={image} alt={item.title || "UTV World"} />}
 
-            <h2>{item.title || "Untitled"}</h2>
+              <div className="worldCardBody">
+                <p className="worldType">
+                  {categoryIcon(item.world_type, item.is_live)} {item.world_type || "World"}
+                  {item.is_live ? " • LIVE NOW" : ""}
+                </p>
 
-            {item.description && (
-              <p className="worldDesc">{item.description}</p>
-            )}
+                <h2>{item.title || "Untitled"}</h2>
 
-            <p className="worldCity">📍 {publicLocationText(item)}</p>
+                {item.description && <p className="worldDesc">{item.description}</p>}
 
-            {item.creator_email && (
-              <button
-                className="btn secondary"
-                onClick={() =>
-                  (window.location.href = `/u/${encodeURIComponent(
-                    item.creator_email
-                  )}`)
-                }
-              >
-                View Creator
-              </button>
-            )}
-          </div>
-        ))}
+                <p className="worldCity">📍 {publicLocationText(item)}</p>
+
+                {item.creator_email && (
+                  <button
+                    className="btn secondary"
+                    onClick={() => (window.location.href = `/u/${encodeURIComponent(item.creator_email)}`)}
+                  >
+                    View Creator
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </section>
     </main>
   );
