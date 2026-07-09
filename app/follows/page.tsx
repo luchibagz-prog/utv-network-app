@@ -1,17 +1,15 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-function FollowContent() {
+export default function FollowsPage() {
   const router = useRouter();
-  const params = useSearchParams();
 
-  const email = params.get("email") || "";
-  const type = params.get("type") || "followers";
-
+  const [email, setEmail] = useState("");
+  const [type, setType] = useState("followers");
   const [people, setPeople] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
@@ -23,18 +21,35 @@ function FollowContent() {
   async function loadPeople() {
     setLoading(true);
 
-    const column = type === "following" ? "follower_email" : "following_email";
-    const pullColumn = type === "following" ? "following_email" : "follower_email";
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get("email") || "";
+    const urlType = params.get("type") || "followers";
+
+    const { data: userData } = await supabase.auth.getUser();
+    const currentEmail = userData.user?.email || "";
+
+    const finalEmail = urlEmail || currentEmail;
+
+    if (!finalEmail) {
+      router.push("/login");
+      return;
+    }
+
+    setEmail(finalEmail);
+    setType(urlType);
+
+    const matchColumn = urlType === "following" ? "follower_email" : "following_email";
+    const personColumn = urlType === "following" ? "following_email" : "follower_email";
 
     const { data } = await supabase
       .from("follows")
       .select("*")
-      .eq(column, email);
+      .eq(matchColumn, finalEmail);
 
-    const followRows = data || [];
-    setPeople(followRows);
+    const rows = data || [];
+    setPeople(rows);
 
-    const emails = followRows.map((x) => x[pullColumn]).filter(Boolean);
+    const emails = rows.map((x) => x[personColumn]).filter(Boolean);
 
     if (emails.length) {
       const { data: profileData } = await supabase
@@ -53,104 +68,74 @@ function FollowContent() {
     setLoading(false);
   }
 
-  function personEmail(row: any) {
+  function getPersonEmail(row: any) {
     return type === "following" ? row.following_email : row.follower_email;
   }
 
   return (
-    <main className="followsPage">
+    <main style={{ minHeight: "100vh", background: "#000", color: "white", paddingBottom: 120 }}>
       <UTVNav />
 
-      <style>{`
-        .followsPage {
-          min-height:100vh;
-          padding-bottom:120px;
-          color:white;
-          background:linear-gradient(180deg,#07111e,#000);
-        }
-
-        .top {
-          padding:18px 16px;
-        }
-
-        .top h1 {
-          margin:0;
-          font-size:38px;
-        }
-
-        .list {
-          display:grid;
-          gap:12px;
-          padding:0 16px 18px;
-        }
-
-        .card {
-          display:flex;
-          align-items:center;
-          gap:12px;
-          padding:14px;
-          border-radius:22px;
-          background:rgba(255,255,255,.07);
-          border:1px solid rgba(255,255,255,.12);
-        }
-
-        .avatar {
-          width:54px;
-          height:54px;
-          border-radius:50%;
-          object-fit:cover;
-          background:#111;
-          display:grid;
-          place-items:center;
-          border:2px solid #52f7c8;
-        }
-
-        .info {
-          flex:1;
-          min-width:0;
-        }
-
-        .info h3 {
-          margin:0;
-        }
-
-        .info p {
-          margin:4px 0 0;
-          color:rgba(255,255,255,.6);
-          font-size:13px;
-        }
-      `}</style>
-
-      <section className="top">
+      <section style={{ padding: 18 }}>
         <h1>{type === "following" ? "Following" : "Followers"}</h1>
+        <p style={{ color: "var(--muted)" }}>{email}</p>
       </section>
 
-      <section className="list">
+      <section style={{ display: "grid", gap: 12, padding: 16 }}>
         {loading ? (
-          <p>Loading...</p>
+          <div className="card">
+            <h2>Loading...</h2>
+          </div>
         ) : people.length === 0 ? (
-          <p>No {type} yet.</p>
+          <div className="card">
+            <h2>No {type} yet</h2>
+          </div>
         ) : (
           people.map((row) => {
-            const userEmail = personEmail(row);
-            const p = profiles[userEmail] || {};
-            const name = p.display_name || p.username || userEmail;
+            const personEmail = getPersonEmail(row);
+            const p = profiles[personEmail] || {};
+            const name = p.display_name || p.username || personEmail;
 
             return (
               <div
+                key={row.id || personEmail}
                 className="card"
-                key={row.id || userEmail}
-                onClick={() => router.push(`/u/${encodeURIComponent(userEmail)}`)}
+                onClick={() => router.push(`/u/${encodeURIComponent(personEmail)}`)}
+                style={{ display: "flex", alignItems: "center", gap: 12 }}
               >
                 {p.avatar_url ? (
-                  <img className="avatar" src={p.avatar_url} alt={name} />
+                  <img
+                    src={p.avatar_url}
+                    alt={name}
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2px solid #52f7c8",
+                    }}
+                  />
                 ) : (
-                  <div className="avatar">👤</div>
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "50%",
+                      background: "#222",
+                      display: "grid",
+                      placeItems: "center",
+                      border: "2px solid #52f7c8",
+                    }}
+                  >
+                    👤
+                  </div>
                 )}
 
-                <div className="info">
-                  <h3>{name}</h3>
-                  <p>@{p.username || userEmail?.split("@")[0]}</p>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>{name}</h3>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
+                    @{p.username || personEmail.split("@")[0]}
+                  </p>
                 </div>
 
                 <button className="btn secondary">View</button>
@@ -160,12 +145,5 @@ function FollowContent() {
         )}
       </section>
     </main>
-  );
-}
-export default function FollowsPage() {
-  return (
-    <Suspense fallback={<main style={{ padding: 24, color: "white" }}>Loading...</main>}>
-      <FollowContent />
-    </Suspense>
   );
 }
