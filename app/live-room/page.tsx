@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
+const BUCKETS = ["uploads", "live-replays", "replays", "live-recordings"];
+
 export default function LiveRoomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -27,7 +29,6 @@ export default function LiveRoomPage() {
 
   useEffect(() => {
     startCamera("user");
-
     return () => {
       stopCamera();
       clearInterval(timerRef.current);
@@ -74,9 +75,7 @@ export default function LiveRoomPage() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    if (videoRef.current) videoRef.current.srcObject = null;
 
     setIsCameraOn(false);
     setIsLive(false);
@@ -121,7 +120,6 @@ export default function LiveRoomPage() {
     }
 
     setWorldPostId(worldPost.id);
-
     chunksRef.current = [];
 
     const recorder = new MediaRecorder(streamRef.current);
@@ -173,6 +171,25 @@ export default function LiveRoomPage() {
     }
   }
 
+  async function uploadReplayFile(file: File) {
+    let lastError = "";
+
+    for (const bucket of BUCKETS) {
+      const filePath = `live-replays/${Date.now()}-${file.name}`;
+
+      const { error } = await supabase.storage.from(bucket).upload(filePath, file);
+
+      if (!error) {
+        const fileUrl = supabase.storage.from(bucket).getPublicUrl(filePath).data.publicUrl;
+        return { fileUrl, bucket, filePath };
+      }
+
+      lastError = error.message;
+    }
+
+    throw new Error(lastError || "Could not upload replay.");
+  }
+
   async function postReplay(visibility: "feed" | "profile") {
     if (!recordingFile) return;
 
@@ -186,41 +203,51 @@ export default function LiveRoomPage() {
     }
 
     const userEmail = data.user.email || "";
-    const fileName = `live-replays/${Date.now()}-${recordingFile.name}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("uploads")
-      .upload(fileName, recordingFile);
+    try {
+      const { fileUrl } = await uploadReplayFile(recordingFile);
 
-    if (uploadError) {
-      alert(uploadError.message);
+      const replayPayload = {
+        title: title || "UTV Live Replay",
+        description: caption || "Live replay on UTV.",
+        category: "Live Replay",
+        creator_email: userEmail,
+        video_url: fileUrl,
+        media_url: fileUrl,
+        file_url: fileUrl,
+        thumbnail_url: "",
+        cover_url: "",
+        visibility,
+        approved: true,
+        content_type: "Live Replay",
+        needs_approval: false,
+      };
+
+      const { error: uploadRowError } = await supabase.from("uploads").insert(replayPayload);
+
+      if (uploadRowError) throw uploadRowError;
+
+      await supabase.from("world_posts").insert({
+        creator_email: userEmail,
+        title: title || "UTV Live Replay",
+        description: caption || "Replay from UTV Live.",
+        world_type: "Live Replay",
+        city,
+        state: stateName,
+        location: "UTV Live Replay",
+        is_live: false,
+        video_url: fileUrl,
+        media_url: fileUrl,
+        cover_url: "",
+        flyer_url: "",
+      });
+
       setPosting(false);
-      return;
+      window.location.href = visibility === "feed" ? "/feed" : "/profile";
+    } catch (error: any) {
+      alert(error.message || "Replay failed to post.");
+      setPosting(false);
     }
-
-    const fileUrl = supabase.storage.from("uploads").getPublicUrl(fileName).data.publicUrl;
-
-    const { error } = await supabase.from("uploads").insert({
-      title: title || "UTV Live Replay",
-      description: caption,
-      category: "Live Replay",
-      creator_email: userEmail,
-      video_url: fileUrl,
-      thumbnail_url: "",
-      visibility,
-      approved: true,
-      content_type: "Live Replay",
-      needs_approval: false,
-    });
-
-    setPosting(false);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    window.location.href = visibility === "feed" ? "/feed" : "/profile";
   }
 
   function deleteReplay() {
@@ -426,7 +453,7 @@ export default function LiveRoomPage() {
             disabled={posting}
             style={{ width: "100%", marginTop: 14 }}
           >
-            {posting ? "Posting..." : "Post Replay to Feed + Profile"}
+            {posting ? "Posting..." : "Post Replay to Feed + Profile + World"}
           </button>
 
           <button
@@ -435,7 +462,7 @@ export default function LiveRoomPage() {
             disabled={posting}
             style={{ width: "100%", marginTop: 12 }}
           >
-            Post Replay to Profile Only
+            Post Replay to Profile + World Only
           </button>
 
           <a
