@@ -4,19 +4,30 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 
+const CEO_EMAIL = "luchibagz@gmail.com";
+
 export default function AdminPage() {
   const [uploads, setUploads] = useState<any[]>([]);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("utv-admin");
-    if (saved === "yes") {
+    checkAdmin();
+  }, []);
+
+  async function checkAdmin() {
+    const { data } = await supabase.auth.getUser();
+    const userEmail = data.user?.email || "";
+    setEmail(userEmail);
+
+    if (userEmail === CEO_EMAIL || localStorage.getItem("utv-admin") === "yes") {
       setAuthed(true);
       loadUploads();
     }
-  }, []);
+  }
 
   function login() {
     if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
@@ -53,9 +64,7 @@ export default function AdminPage() {
   }
 
   async function deleteUpload(id: string) {
-    const yes = confirm("Delete this from UTV?");
-    if (!yes) return;
-
+    if (!confirm("Delete this from UTV?")) return;
     await supabase.from("uploads").delete().eq("id", id);
     loadUploads();
   }
@@ -71,19 +80,30 @@ export default function AdminPage() {
         <section className="card" style={{ maxWidth: 520, margin: "60px auto" }}>
           <img src="/utv-logo.png" alt="UTV" className="utvLogo" />
           <h1>UTV Admin</h1>
-          <p style={{ color: "var(--muted)" }}>Enter admin password.</p>
+          <p style={{ color: "var(--muted)" }}>
+            Logged in as: {email || "Not logged in"}
+          </p>
 
-          <input
-            className="input"
-            type="password"
-            placeholder="Admin password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="input"
+              type={showPass ? "text" : "password"}
+              placeholder="Admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button className="btn secondary" onClick={() => setShowPass(!showPass)}>
+              {showPass ? "Hide" : "Show"}
+            </button>
+          </div>
 
           <button className="btn" onClick={login}>
             Enter Admin
           </button>
+
+          <Link href="/forgot-password" className="btn secondary" style={{ display: "block", textAlign: "center" }}>
+            Forgot Password
+          </Link>
 
           {message && <p>{message}</p>}
         </section>
@@ -100,9 +120,9 @@ export default function AdminPage() {
 
         <div className="navLinks" style={{ flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/watch" className="btn secondary">Watch</Link>
-          <Link href="/creator" className="btn secondary">Upload</Link>
+          <Link href="/studio" className="btn secondary">Studio</Link>
           <Link href="/events" className="btn secondary">Events</Link>
-          <button className="btn secondary" onClick={logout}>Logout</button>
+          <button className="btn secondary" onClick={logout}>Logout Admin</button>
         </div>
       </nav>
 
@@ -110,7 +130,7 @@ export default function AdminPage() {
         <p style={{ color: "var(--muted)", marginBottom: 8 }}>UTV Command Center</p>
         <h1>Admin Dashboard</h1>
         <p style={{ color: "var(--muted)" }}>
-          Approve, feature, delete, and manage all UTV content from your phone.
+          CEO access active: {email}
         </p>
       </section>
 
@@ -124,33 +144,19 @@ export default function AdminPage() {
 
       <section className="card">
         <h2>Content Queue</h2>
-        <p style={{ color: "var(--muted)" }}>
-          Pending uploads need approval before going live.
-        </p>
 
         <div className="creatorContentList">
           {uploads.map((item) => (
             <div
               key={item.id}
               className="creatorContentItem"
-              style={{
-                display: "flex",
-                gap: 14,
-                alignItems: "center",
-                flexWrap: "wrap",
-                width: "100%",
-              }}
+              style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", width: "100%" }}
             >
-              {item.cover_url ? (
+              {item.cover_url || item.thumbnail_url || item.poster_url ? (
                 <img
-                  src={item.cover_url}
+                  src={item.cover_url || item.thumbnail_url || item.poster_url}
                   alt={item.title}
-                  style={{
-                    width: 100,
-                    height: 135,
-                    objectFit: "cover",
-                    borderRadius: 14,
-                  }}
+                  style={{ width: 100, height: 135, objectFit: "cover", borderRadius: 14 }}
                 />
               ) : (
                 <div style={{ width: 100, height: 135, background: "#111", borderRadius: 14 }} />
@@ -158,34 +164,22 @@ export default function AdminPage() {
 
               <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                 <h3>{item.title || "Untitled"}</h3>
-
                 <p style={{ color: "var(--muted)" }}>
-                  {item.is_event || item.category === "live-event" ? "Event" : item.category || "content"} • 👁 {item.views || 0}
+                  {item.category || "content"} • 👁 {item.views || 0}
                 </p>
-
                 <p style={{ color: "var(--muted)" }}>
-                  {item.city || "No city"} {item.event_date ? `• ${item.event_date}` : ""}
+                  {item.creator_email || "No creator"} • {item.city || "No city"}
                 </p>
-
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                  <strong>{item.approved ? "Live" : "Pending"}</strong>
-                  {item.featured && <strong>Featured</strong>}
-                  {(item.is_event || item.category === "live-event") && <strong>Event</strong>}
-                </div>
+                <strong>{item.approved ? "Live" : "Pending"}</strong>
+                {item.featured && <strong> • Featured</strong>}
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  className="btn secondary"
-                  onClick={() => approve(item.id, !item.approved)}
-                >
+                <button className="btn secondary" onClick={() => approve(item.id, !item.approved)}>
                   {item.approved ? "Unapprove" : "Approve"}
                 </button>
 
-                <button
-                  className="btn secondary"
-                  onClick={() => toggleFeature(item.id, item.featured)}
-                >
+                <button className="btn secondary" onClick={() => toggleFeature(item.id, item.featured)}>
                   {item.featured ? "Unfeature" : "Feature"}
                 </button>
 
@@ -193,10 +187,7 @@ export default function AdminPage() {
                   View
                 </Link>
 
-                <button
-                  className="btn secondary"
-                  onClick={() => deleteUpload(item.id)}
-                >
+                <button className="btn secondary" onClick={() => deleteUpload(item.id)}>
                   Delete
                 </button>
               </div>
