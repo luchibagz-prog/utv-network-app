@@ -8,13 +8,18 @@ import { supabase } from "../../lib/supabaseClient";
 export default function SearchPage() {
   const router = useRouter();
 
+  const [q, setQ] = useState("");
   const [me, setMe] = useState("");
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [creators, setCreators] = useState<any[]>([]);
+  const [uploads, setUploads] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [world, setWorld] = useState<any[]>([]);
   const [following, setFollowing] = useState<Record<string, boolean>>({});
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setQ(params.get("q") || "");
     loadSearch();
   }, []);
 
@@ -25,28 +30,26 @@ export default function SearchPage() {
     const userEmail = userData.user?.email || "";
     setMe(userEmail);
 
-    const { data } = await supabase
-      .from("creator_profiles")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(80);
+    const [profileRes, uploadRes, eventRes, worldRes, followRes] = await Promise.all([
+      supabase.from("creator_profiles").select("*").limit(100),
+      supabase.from("uploads").select("*").eq("approved", true).limit(100),
+      supabase.from("events").select("*").limit(100),
+      supabase.from("world_posts").select("*").limit(100),
+      userEmail
+        ? supabase.from("follows").select("*").eq("follower_email", userEmail)
+        : Promise.resolve({ data: [] } as any),
+    ]);
 
-    const list = (data || []).filter(Boolean);
-    setProfiles(list);
+    setCreators(profileRes.data || []);
+    setUploads(uploadRes.data || []);
+    setEvents(eventRes.data || []);
+    setWorld(worldRes.data || []);
 
-    if (userEmail) {
-      const { data: follows } = await supabase
-        .from("follows")
-        .select("*")
-        .eq("follower_email", userEmail);
-
-      const map: Record<string, boolean> = {};
-      (follows || []).forEach((f) => {
-        map[f.following_email] = true;
-      });
-
-      setFollowing(map);
-    }
+    const map: Record<string, boolean> = {};
+    (followRes.data || []).forEach((f: any) => {
+      map[f.following_email] = true;
+    });
+    setFollowing(map);
 
     setLoading(false);
   }
@@ -76,6 +79,7 @@ export default function SearchPage() {
     });
 
     await supabase.from("notifications").insert({
+      user_email: email,
       type: "follow",
       title: "New Follower",
       message: `${me} followed you on UTV.`,
@@ -86,16 +90,33 @@ export default function SearchPage() {
     setFollowing((prev) => ({ ...prev, [email]: true }));
   }
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
+  function match(text: string) {
+    return text.toLowerCase().includes(q.toLowerCase());
+  }
 
-    return profiles.filter((p) => {
-      const text = `${p.display_name || ""} ${p.username || ""} ${p.email || ""} ${p.category || ""} ${p.bio || ""}`.toLowerCase();
-      return text.includes(q);
-    });
-  }, [profiles, search]);
+  const creatorResults = useMemo(() => {
+    return creators.filter((x) =>
+      match(`${x.display_name || ""} ${x.username || ""} ${x.email || ""} ${x.category || ""} ${x.bio || ""}`)
+    );
+  }, [creators, q]);
 
-  const suggested = filtered.filter((p) => p.email !== me).slice(0, 30);
+  const uploadResults = useMemo(() => {
+    return uploads.filter((x) =>
+      match(`${x.title || ""} ${x.category || ""} ${x.description || ""} ${x.creator_email || ""}`)
+    );
+  }, [uploads, q]);
+
+  const eventResults = useMemo(() => {
+    return events.filter((x) =>
+      match(`${x.title || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""} ${x.creator_email || ""}`)
+    );
+  }, [events, q]);
+
+  const worldResults = useMemo(() => {
+    return world.filter((x) =>
+      match(`${x.title || ""} ${x.world_type || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""} ${x.creator_email || ""}`)
+    );
+  }, [world, q]);
 
   return (
     <main className="searchPage">
@@ -112,83 +133,53 @@ export default function SearchPage() {
             linear-gradient(180deg,#07111e,#000);
         }
 
-        .top {
-          padding:18px 16px 12px;
-        }
-
-        .top h1 {
-          margin:0;
-          font-size:42px;
-          letter-spacing:-1.5px;
-        }
-
-        .top p {
-          color:rgba(255,255,255,.65);
-          line-height:1.45;
-          margin:8px 0 0;
-        }
-
-        .searchWrap {
-          padding:0 16px 14px;
-        }
+        .top { padding:18px 16px 12px; }
+        .top h1 { margin:0; font-size:42px; }
+        .top p { color:rgba(255,255,255,.65); }
 
         .searchInput {
           width:100%;
           box-sizing:border-box;
           padding:16px;
           border-radius:999px;
-          border:1px solid rgba(255,255,255,.15);
+          border:1px solid rgba(255,255,255,.16);
           background:rgba(255,255,255,.09);
           color:white;
-          outline:none;
           font-size:16px;
+          outline:none;
         }
 
-        .list {
-          display:grid;
-          gap:12px;
-          padding:0 16px 18px;
-        }
+        .wrap { padding:0 16px 18px; }
+        .sectionTitle { margin:20px 0 10px; font-size:22px; }
 
-        .creatorCard {
+        .cardRow {
           display:flex;
-          align-items:center;
           gap:12px;
-          border:1px solid rgba(255,255,255,.13);
-          background:rgba(255,255,255,.07);
-          backdrop-filter:blur(18px);
-          border-radius:24px;
+          align-items:center;
           padding:14px;
-          box-shadow:0 18px 45px rgba(0,0,0,.24);
+          border-radius:22px;
+          border:1px solid rgba(255,255,255,.12);
+          background:rgba(255,255,255,.07);
+          margin-bottom:10px;
         }
 
         .avatar {
-          width:58px;
-          height:58px;
+          width:54px;
+          height:54px;
           border-radius:50%;
           object-fit:cover;
           background:#111;
           border:2px solid #52f7c8;
           display:grid;
           place-items:center;
-          font-size:24px;
           flex:0 0 auto;
         }
 
-        .creatorInfo {
-          min-width:0;
-          flex:1;
-          cursor:pointer;
-        }
-
-        .creatorInfo h3 {
-          margin:0;
-          font-size:17px;
-        }
-
-        .creatorInfo p {
+        .info { flex:1; min-width:0; cursor:pointer; }
+        .info h3 { margin:0; font-size:17px; }
+        .info p {
           margin:4px 0 0;
-          color:rgba(255,255,255,.6);
+          color:rgba(255,255,255,.62);
           font-size:13px;
           white-space:nowrap;
           overflow:hidden;
@@ -202,7 +193,6 @@ export default function SearchPage() {
           font-weight:950;
           color:#06120d;
           background:linear-gradient(135deg,#52f7c8,#7b61ff);
-          flex:0 0 auto;
         }
 
         .followBtn.following {
@@ -210,92 +200,83 @@ export default function SearchPage() {
           border:1px solid rgba(255,255,255,.18);
           background:rgba(255,255,255,.09);
         }
-
-        .empty {
-          margin:16px;
-          padding:18px;
-          border-radius:24px;
-          background:rgba(255,255,255,.07);
-          border:1px solid rgba(255,255,255,.13);
-        }
-
-        @media (min-width:900px) {
-          .top,
-          .searchWrap,
-          .list {
-            max-width:850px;
-            margin-left:auto;
-            margin-right:auto;
-          }
-        }
       `}</style>
 
       <section className="top">
-        <h1>Search</h1>
-        <p>Find creators, artists, businesses, podcasts, sports, comedy, and people building on UTV.</p>
+        <h1>Search UTV</h1>
+        <p>Find creators, content, events, casting, live posts, services, and bookings.</p>
       </section>
 
-      <section className="searchWrap">
+      <section className="wrap">
         <input
           className="searchInput"
-          placeholder="Search creators..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search creators, titles, events, services..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
         />
-      </section>
 
-      {loading ? (
-        <section className="empty">
-          <h2>Loading creators...</h2>
-        </section>
-      ) : suggested.length === 0 ? (
-        <section className="empty">
-          <h2>No creators found</h2>
-          <p style={{ color: "rgba(255,255,255,.62)" }}>Try another search.</p>
-        </section>
-      ) : (
-        <section className="list">
-          {suggested.map((p) => {
-            const name = p.display_name || p.username || "UTV Creator";
+        {loading ? (
+          <h2 className="sectionTitle">Loading...</h2>
+        ) : (
+          <>
+            <h2 className="sectionTitle">Creators</h2>
+            {creatorResults.slice(0, 20).map((p) => {
+              const name = p.display_name || p.username || "UTV Creator";
 
-            return (
-              <div className="creatorCard" key={p.email}>
-                {p.avatar_url ? (
-                  <img
-                    className="avatar"
-                    src={p.avatar_url}
-                    alt={name}
-                    onClick={() => router.push(`/u/${encodeURIComponent(p.email)}`)}
-                  />
-                ) : (
-                  <div
-                    className="avatar"
-                    onClick={() => router.push(`/u/${encodeURIComponent(p.email)}`)}
-                  >
-                    👤
+              return (
+                <div className="cardRow" key={p.email}>
+                  {p.avatar_url ? <img className="avatar" src={p.avatar_url} /> : <div className="avatar">👤</div>}
+
+                  <div className="info" onClick={() => router.push(`/u/${encodeURIComponent(p.email)}`)}>
+                    <h3>{name}</h3>
+                    <p>@{p.username || p.email?.split("@")[0]} • {p.category || "Creator"}</p>
                   </div>
-                )}
 
-                <div
-                  className="creatorInfo"
-                  onClick={() => router.push(`/u/${encodeURIComponent(p.email)}`)}
-                >
-                  <h3>{name}</h3>
-                  <p>@{p.username || p.email?.split("@")[0]} • {p.category || "Creator"}</p>
-                  {p.bio && <p>{p.bio}</p>}
+                  <button
+                    className={following[p.email] ? "followBtn following" : "followBtn"}
+                    onClick={() => toggleFollow(p.email)}
+                  >
+                    {following[p.email] ? "Following" : "Follow"}
+                  </button>
                 </div>
+              );
+            })}
 
-                <button
-                  className={following[p.email] ? "followBtn following" : "followBtn"}
-                  onClick={() => toggleFollow(p.email)}
-                >
-                  {following[p.email] ? "Following" : "Follow"}
-                </button>
+            <h2 className="sectionTitle">Content</h2>
+            {uploadResults.slice(0, 25).map((x) => (
+              <div className="cardRow" key={x.id} onClick={() => router.push(`/watch/${x.id}`)}>
+                <div className="avatar">🎬</div>
+                <div className="info">
+                  <h3>{x.title || "Untitled"}</h3>
+                  <p>{x.category || "UTV"} • {x.creator_email}</p>
+                </div>
               </div>
-            );
-          })}
-        </section>
-      )}
+            ))}
+
+            <h2 className="sectionTitle">Events / Casting</h2>
+            {eventResults.slice(0, 25).map((x) => (
+              <div className="cardRow" key={x.id}>
+                <div className="avatar">🎉</div>
+                <div className="info">
+                  <h3>{x.title || "Event"}</h3>
+                  <p>{x.city}, {x.state} • {x.event_date || "Date TBA"}</p>
+                </div>
+              </div>
+            ))}
+
+            <h2 className="sectionTitle">World</h2>
+            {worldResults.slice(0, 25).map((x) => (
+              <div className="cardRow" key={x.id}>
+                <div className="avatar">🌍</div>
+                <div className="info">
+                  <h3>{x.title || "World Post"}</h3>
+                  <p>{x.world_type || "World"} • {x.city || "City TBA"}</p>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </section>
     </main>
   );
-} 
+}
