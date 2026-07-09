@@ -64,10 +64,10 @@ export default function MessagesPage() {
       return;
     }
 
-    const safeMessages = (inbox || []).filter(Boolean);
+    const safeMessages = inbox || [];
     setMessages(safeMessages);
 
-    loadProfiles(
+    await loadProfiles(
       safeMessages.flatMap((msg) => [msg.sender_email, msg.receiver_email])
     );
 
@@ -91,6 +91,10 @@ export default function MessagesPage() {
 
   function profileAvatar(userEmail: string) {
     return profiles[userEmail]?.avatar_url || "";
+  }
+
+  function openProfile(userEmail: string) {
+    router.push(`/u/${encodeURIComponent(userEmail)}`);
   }
 
   const threads = useMemo(() => {
@@ -147,9 +151,10 @@ export default function MessagesPage() {
     }
 
     await supabase.from("notifications").insert({
+      user_email: receiverEmail,
       type: "message",
       title: "New Message",
-      message: `${profileName(email)} sent a new message.`,
+      message: `${profileName(email)} sent you a message.`,
       link: "/messages",
       is_read: false,
     });
@@ -237,7 +242,13 @@ export default function MessagesPage() {
           align-items:center;
           gap:12px;
           padding:14px;
-          cursor:pointer;
+        }
+
+        .avatarBtn {
+          border:0;
+          padding:0;
+          background:transparent;
+          flex:0 0 auto;
         }
 
         .avatar {
@@ -250,12 +261,13 @@ export default function MessagesPage() {
           display:grid;
           place-items:center;
           font-size:22px;
-          flex:0 0 auto;
+          color:white;
         }
 
         .threadInfo {
           min-width:0;
           flex:1;
+          cursor:pointer;
         }
 
         .threadInfo h3 {
@@ -272,10 +284,26 @@ export default function MessagesPage() {
           font-size:14px;
         }
 
+        .rightSide {
+          display:flex;
+          flex-direction:column;
+          gap:8px;
+          align-items:flex-end;
+        }
+
         .time {
           color:rgba(255,255,255,.45);
           font-size:11px;
           font-weight:800;
+        }
+
+        .miniChatBtn {
+          border:1px solid rgba(255,255,255,.15);
+          background:rgba(255,255,255,.08);
+          color:white;
+          border-radius:999px;
+          padding:8px 12px;
+          font-weight:900;
         }
 
         .chatBody {
@@ -392,26 +420,45 @@ export default function MessagesPage() {
 
             return (
               <div className="threadCard" key={thread.user}>
-                <div
-                  className="threadHead"
-                  onClick={() => setOpenThread(isOpen ? "" : thread.user)}
-                >
-                  {avatar ? (
-                    <img className="avatar" src={avatar} alt={profileName(thread.user)} />
-                  ) : (
-                    <div className="avatar">👤</div>
-                  )}
+                <div className="threadHead">
+                  <button
+                    className="avatarBtn"
+                    onClick={() => openProfile(thread.user)}
+                    aria-label="Open profile"
+                  >
+                    {avatar ? (
+                      <img
+                        className="avatar"
+                        src={avatar}
+                        alt={profileName(thread.user)}
+                      />
+                    ) : (
+                      <div className="avatar">👤</div>
+                    )}
+                  </button>
 
-                  <div className="threadInfo">
+                  <div
+                    className="threadInfo"
+                    onClick={() => openProfile(thread.user)}
+                  >
                     <h3>{profileName(thread.user)}</h3>
                     <p>{thread.latest?.message || "New conversation"}</p>
                   </div>
 
-                  <span className="time">
-                    {thread.latest?.created_at
-                      ? new Date(thread.latest.created_at).toLocaleDateString()
-                      : ""}
-                  </span>
+                  <div className="rightSide">
+                    <span className="time">
+                      {thread.latest?.created_at
+                        ? new Date(thread.latest.created_at).toLocaleDateString()
+                        : ""}
+                    </span>
+
+                    <button
+                      className="miniChatBtn"
+                      onClick={() => setOpenThread(isOpen ? "" : thread.user)}
+                    >
+                      {isOpen ? "Close" : "Chat"}
+                    </button>
+                  </div>
                 </div>
 
                 {isOpen && (
@@ -439,7 +486,10 @@ export default function MessagesPage() {
                           }))
                         }
                       />
-                      <button className="sendBtn" onClick={() => sendReply(thread.user)}>
+                      <button
+                        className="sendBtn"
+                        onClick={() => sendReply(thread.user)}
+                      >
                         ➤
                       </button>
                     </div>
