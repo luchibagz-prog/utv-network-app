@@ -8,13 +8,11 @@ import { supabase } from "../../lib/supabaseClient";
 const heroHeaders = ["/utv-logo.png", "/utv-banner.png", "/bbgroundup.png", "/utv1.png", "/utv2art.png"];
 
 function mediaImage(item?: any) {
-  if (!item) return "";
-  return item.thumbnail_url || item.cover_url || item.image_url || item.poster_url || item.flyer_url || "";
+  return item?.thumbnail_url || item?.cover_url || item?.image_url || item?.poster_url || item?.flyer_url || "";
 }
 
 function mediaVideo(item?: any) {
-  if (!item) return "";
-  return item.video_url || item.file_url || item.media_url || item.url || "";
+  return item?.video_url || item?.file_url || item?.media_url || item?.url || "";
 }
 
 export default function WatchPage() {
@@ -40,9 +38,10 @@ export default function WatchPage() {
       .from("uploads")
       .select("*")
       .eq("approved", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(200);
 
-    setUploads(error ? [] : (data || []).filter(Boolean));
+    setUploads(error ? [] : data || []);
     setLoading(false);
   }
 
@@ -54,11 +53,16 @@ export default function WatchPage() {
   }, [uploads, search]);
 
   const top10 = [...filtered].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0)).slice(0, 10);
-  const originals = filtered.filter((i) => `${i?.category || ""} ${i?.title || ""}`.toLowerCase().includes("show"));
-  const movies = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("movie"));
-  const podcasts = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("podcast"));
-  const music = filtered.filter((i) => `${i?.category || ""}`.toLowerCase().includes("music"));
-  const recent = filtered.slice(0, 18);
+  const originals = filtered.filter((i) => `${i.category || ""} ${i.title || ""}`.toLowerCase().includes("original") || `${i.category || ""}`.toLowerCase().includes("show"));
+  const shows = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("show"));
+  const movies = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("movie"));
+  const podcasts = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("podcast"));
+  const music = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("music"));
+  const live = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("live"));
+  const comedy = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("comedy") || `${i.category || ""}`.toLowerCase().includes("skit"));
+  const sports = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("sport"));
+  const business = filtered.filter((i) => `${i.category || ""}`.toLowerCase().includes("business"));
+  const recent = filtered.slice(0, 20);
 
   function Row({ title, items, numbered = false }: { title: string; items: any[]; numbered?: boolean }) {
     const safeItems = (items || []).filter(Boolean);
@@ -75,10 +79,18 @@ export default function WatchPage() {
             return (
               <Link key={item.id || index} href={`/watch/${item.id}`} className="watchCard">
                 <div className="poster">
-                  {image ? <img src={image} alt={item.title || "UTV"} /> : video ? <video src={video} muted playsInline preload="metadata" /> : <div className="fallback">UTV</div>}
+                  {image ? (
+                    <img src={image} alt={item.title || "UTV"} />
+                  ) : video ? (
+                    <video src={video} muted playsInline preload="metadata" />
+                  ) : (
+                    <div className="fallback">UTV</div>
+                  )}
+
                   {numbered && <span className="rank">{index + 1}</span>}
                   <span className="play">▶</span>
                 </div>
+
                 <h3>{item.title || "Untitled"}</h3>
                 <p>{item.category || "UTV"}</p>
               </Link>
@@ -103,8 +115,8 @@ export default function WatchPage() {
 
         .hero {
           position:relative;
-          min-height:300px;
-          height:44vh;
+          min-height:285px;
+          height:42vh;
           display:flex;
           align-items:flex-end;
           padding:90px 16px 28px;
@@ -122,16 +134,15 @@ export default function WatchPage() {
           width:100%;
           height:100%;
           object-fit:cover;
-          object-position:center;
           display:block;
-          filter:brightness(1.25) contrast(1.14) saturate(1.25);
+          filter:brightness(1.22) contrast(1.14) saturate(1.25);
         }
 
         .heroBg::after {
           content:"";
           position:absolute;
           inset:0;
-          background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.25),#07111e 96%);
+          background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.3),#07111e 96%);
         }
 
         .heroContent {
@@ -159,6 +170,30 @@ export default function WatchPage() {
           line-height:1.5;
         }
 
+        .heroActions {
+          display:flex;
+          gap:10px;
+          margin-top:14px;
+        }
+
+        .heroActions a {
+          text-decoration:none;
+          border-radius:999px;
+          padding:12px 16px;
+          font-weight:950;
+        }
+
+        .primary {
+          color:#06120d;
+          background:linear-gradient(135deg,#52f7c8,#7b61ff);
+        }
+
+        .secondary {
+          color:white;
+          background:rgba(255,255,255,.1);
+          border:1px solid rgba(255,255,255,.18);
+        }
+
         .searchWrap {
           padding:16px;
         }
@@ -182,7 +217,7 @@ export default function WatchPage() {
         .watchRow h2 {
           padding-left:16px;
           margin-bottom:12px;
-          font-size:34px;
+          font-size:30px;
         }
 
         .watchScroller {
@@ -282,12 +317,22 @@ export default function WatchPage() {
         <div className="heroContent">
           <div className="heroTag">UTV STREAMING</div>
           <h1>Watch UTV</h1>
-          <p>Stream originals, shows, movies, podcasts, music videos, live events, and creator content.</p>
+          <p>Stream originals, shows, movies, podcasts, music videos, live events, sports, comedy, and creator content.</p>
+
+          <div className="heroActions">
+            <Link className="primary" href="/submit">Upload</Link>
+            <Link className="secondary" href="/studio">Creator Studio</Link>
+          </div>
         </div>
       </section>
 
       <section className="searchWrap">
-        <input className="searchInput" placeholder="Search shows, movies, podcasts..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          className="searchInput"
+          placeholder="Search shows, movies, podcasts, music..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </section>
 
       {loading ? (
@@ -301,13 +346,18 @@ export default function WatchPage() {
         </section>
       ) : (
         <>
-          <Row title="Top 10 on UTV" items={top10} numbered />
-          <Row title="UTV Originals" items={originals} />
-          <Row title="Movies" items={movies} />
-          <Row title="Podcasts" items={podcasts} />
-          <Row title="Music Videos" items={music} />
-          <Row title="Recently Added" items={recent} />
-          <Row title="All Streaming" items={filtered} />
+          <Row title="🔥 Top 10 on UTV" items={top10} numbered />
+          <Row title="⭐ UTV Originals" items={originals} />
+          <Row title="📺 Shows" items={shows} />
+          <Row title="🎥 Movies" items={movies} />
+          <Row title="🎙 Podcasts" items={podcasts} />
+          <Row title="🎵 Music Videos" items={music} />
+          <Row title="🔴 Live & Replays" items={live} />
+          <Row title="😂 Comedy & Skits" items={comedy} />
+          <Row title="🏀 Sports" items={sports} />
+          <Row title="💼 Business" items={business} />
+          <Row title="🆕 Recently Added" items={recent} />
+          <Row title="🎬 All Streaming" items={filtered} />
         </>
       )}
     </main>
