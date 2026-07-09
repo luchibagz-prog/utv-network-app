@@ -16,7 +16,7 @@ function mediaVideo(item?: any) {
   return item.video_url || item.file_url || item.media_url || item.url || "";
 }
 
-export default function FeedPage() {
+export default function  FeedPage() {
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const [items, setItems] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
