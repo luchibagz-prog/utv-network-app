@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -16,10 +17,18 @@ function mediaVideo(item?: any) {
   return item.video_url || item.file_url || item.media_url || item.url || "";
 }
 
-export default function  FeedPage() {
+export default function FeedPage() {
+  const router = useRouter();
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+
+  const [viewerEmail, setViewerEmail] = useState("");
+  const [feedTab, setFeedTab] = useState("forYou");
+
   const [items, setItems] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]);
+  const [suggestedCreators, setSuggestedCreators] = useState<any[]>([]);
+  const [followingEmails, setFollowingEmails] = useState<string[]>([]);
+
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, any[]>>({});
@@ -30,8 +39,7 @@ export default function  FeedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFeed();
-    loadStories();
+    loadEverything();
 
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
@@ -59,11 +67,42 @@ export default function  FeedPage() {
     return () => observer.disconnect();
   }, [items]);
 
+  async function loadEverything() {
+    setLoading(true);
+
+    const { data: auth } = await supabase.auth.getUser();
+    const email = auth.user?.email || "";
+    setViewerEmail(email);
+
+    let follows: any[] = [];
+
+    if (email) {
+      const { data } = await supabase
+        .from("follows")
+        .select("*")
+        .eq("follower_email", email);
+
+      follows = data || [];
+      setFollowingEmails(follows.map((x) => x.following_email).filter(Boolean));
+    }
+
+    await Promise.all([
+      loadFeed(follows.map((x) => x.following_email).filter(Boolean)),
+      loadStories(follows.map((x) => x.following_email).filter(Boolean)),
+      loadSuggestedCreators(email, follows.map((x) => x.following_email).filter(Boolean)),
+    ]);
+
+    setLoading(false);
+  }
+
   async function loadProfiles(emails: string[]) {
     const uniqueEmails = Array.from(new Set(emails.filter(Boolean)));
     if (!uniqueEmails.length) return;
 
-    const { data } = await supabase.from("creator_profiles").select("*").in("email", uniqueEmails);
+    const { data } = await supabase
+      .from("creator_profiles")
+      .select("*")
+      .in("email", uniqueEmails);
 
     const map: Record<string, any> = {};
     (data || []).forEach((profile) => {
@@ -73,49 +112,95 @@ export default function  FeedPage() {
     setProfiles((prev) => ({ ...prev, ...map }));
   }
 
-  async function loadStories() {
+  async function loadSuggestedCreators(myEmail: string, following: string[]) {
+    const { data } = await supabase
+      .from("creator_profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    const filtered = (data || []).filter(
+      (p) => p.email && p.email !== myEmail && !following.includes(p.email)
+    );
+
+    setSuggestedCreators(filtered.slice(0, 10));
+    loadProfiles(filtered.map((p) => p.email));
+  }
+
+  async function loadStories(following: string[]) {
     const { data } = await supabase
       .from("stories")
       .select("*")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
 
-    const safeStories = (data || []).filter(Boolean);
-    setStories(safeStories);
-    loadProfiles(safeStories.map((story) => story.user_email));
+    const safeStories = data || [];
+
+    const sortedStories = safeStories.sort((a, b) => {
+      const aFollow = following.includes(a.user_email) ? 1 : 0;
+      const bFollow = following.includes(b.user_email) ? 1 : 0;
+
+      if (aFollow !== bFollow) return bFollow - aFollow;
+
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    setStories(sortedStories);
+    loadProfiles(sortedStories.map((story) => story.user_email));
   }
 
-  async function loadFeed() {
-    setLoading(true);
-
+  async function loadFeed(following: string[]) {
     const { data, error } = await supabase
       .from("uploads")
       .select("*")
       .eq("approved", true)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(150);
 
     if (error) {
       console.error(error);
       setItems([]);
-      setLoading(false);
       return;
     }
 
-    const feedItems = (data || []).filter(Boolean).filter((item) => {
+    const feedItems = (data || []).filter((item) => {
       const category = (item.category || "").toLowerCase();
       const visibility = (item.visibility || "feed").toLowerCase();
       return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
     });
 
-    setItems(feedItems);
-    loadProfiles(feedItems.map((item) => item.creator_email));
+    const scored = feedItems
+      .map((item) => {
+        const creator = item.creator_email || "";
+        const category = (item.category || "").toLowerCase();
 
-    feedItems.forEach((item) => {
+        let score = 20;
+
+        if (following.includes(creator)) score += 100;
+        if (category.includes("live")) score += 30;
+        if (category.includes("event")) score += 18;
+        if (category.includes("music")) score += 15;
+        if (category.includes("podcast")) score += 12;
+
+        const ageHours =
+          (Date.now() - new Date(item.created_at || Date.now()).getTime()) / 1000 / 60 / 60;
+
+        score += Math.max(0, 24 - ageHours);
+
+        return { ...item, _score: score };
+      })
+      .sort((a, b) => {
+        if (b._score !== a._score) return b._score - a._score;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+    setItems(scored);
+    loadProfiles(scored.map((item) => item.creator_email));
+
+    scored.forEach((item) => {
       loadLikes(item.id);
       loadComments(item.id);
     });
-
-    setLoading(false);
   }
 
   async function loadLikes(id: string) {
@@ -134,12 +219,12 @@ export default function  FeedPage() {
       .eq("upload_id", id)
       .order("created_at", { ascending: true });
 
-    const safeComments = (data || []).filter(Boolean);
+    const safeComments = data || [];
     setComments((prev) => ({ ...prev, [id]: safeComments }));
     loadProfiles(safeComments.map((comment) => comment.user_email));
   }
 
-  async function likePost(id: string) {
+  async function likePost(id: string, creatorEmail?: string) {
     const { data } = await supabase.auth.getUser();
     const userEmail = data.user?.email;
 
@@ -160,13 +245,25 @@ export default function  FeedPage() {
       setLikes((prev) => ({ ...prev, [id]: Math.max((prev[id] || 1) - 1, 0) }));
     } else {
       await supabase.from("feed_likes").insert({ upload_id: id, user_email: userEmail });
+
+      if (creatorEmail && creatorEmail !== userEmail) {
+        await supabase.from("notifications").insert({
+          user_email: creatorEmail,
+          type: "like",
+          title: "New Like",
+          message: `${profileName(userEmail)} liked your post.`,
+          link: `/watch/${id}`,
+          is_read: false,
+        });
+      }
+
       setLikes((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     }
 
     loadLikes(id);
   }
 
-  async function addComment(id: string) {
+  async function addComment(id: string, creatorEmail?: string) {
     const text = commentText[id];
     if (!text?.trim()) return;
 
@@ -189,6 +286,17 @@ export default function  FeedPage() {
       return;
     }
 
+    if (creatorEmail && creatorEmail !== userEmail) {
+      await supabase.from("notifications").insert({
+        user_email: creatorEmail,
+        type: "comment",
+        title: "New Comment",
+        message: `${profileName(userEmail)} commented on your post.`,
+        link: `/watch/${id}`,
+        is_read: false,
+      });
+    }
+
     setCommentText((prev) => ({ ...prev, [id]: "" }));
     loadComments(id);
   }
@@ -208,6 +316,35 @@ export default function  FeedPage() {
     }
   }
 
+  async function followCreator(emailToFollow: string) {
+    if (!viewerEmail) {
+      router.push("/login");
+      return;
+    }
+
+    if (!emailToFollow || emailToFollow === viewerEmail) return;
+
+    const exists = followingEmails.includes(emailToFollow);
+
+    if (exists) return;
+
+    await supabase.from("follows").insert({
+      follower_email: viewerEmail,
+      following_email: emailToFollow,
+    });
+
+    await supabase.from("notifications").insert({
+      user_email: emailToFollow,
+      type: "follow",
+      title: "New Follower",
+      message: `${profileName(viewerEmail)} followed you.`,
+      link: `/u/${encodeURIComponent(viewerEmail)}`,
+      is_read: false,
+    });
+
+    setFollowingEmails((prev) => [...prev, emailToFollow]);
+  }
+
   function profileName(email?: string) {
     const profile = profiles[email || ""];
     return profile?.display_name || profile?.username || email || "UTV Creator";
@@ -217,12 +354,38 @@ export default function  FeedPage() {
     return profiles[email || ""]?.avatar_url || "";
   }
 
-  const filtered = items.filter(Boolean).filter((item) => {
-    const text = `${item.title || ""} ${item.category || ""} ${item.description || ""} ${profileName(item.creator_email)}`.toLowerCase();
-    return text.includes(search.toLowerCase());
-  });
+  function openProfile(email?: string) {
+    if (!email) return;
+    router.push(`/u/${encodeURIComponent(email)}`);
+  }
 
-  return (
+  const filtered = useMemo(() => {
+    let base = items;
+
+    if (feedTab === "following") {
+      base = items.filter((x) => followingEmails.includes(x.creator_email));
+    }
+
+    if (feedTab === "utv") {
+      base = items.filter((x) => {
+        const text = `${x.category || ""} ${x.title || ""}`.toLowerCase();
+        return text.includes("original") || text.includes("utv") || text.includes("podcast") || text.includes("music");
+      });
+    }
+
+    if (feedTab === "near") {
+      base = items.filter((x) => {
+        const text = `${x.city || ""} ${x.state || ""} ${x.description || ""}`.toLowerCase();
+        return text.includes("sacramento") || text.includes("california") || text.includes("ca");
+      });
+    }
+
+    return base.filter((item) => {
+      const text = `${item.title || ""} ${item.category || ""} ${item.description || ""} ${profileName(item.creator_email)}`.toLowerCase();
+      return text.includes(search.toLowerCase());
+    });
+  }, [items, search, feedTab, followingEmails, profiles]);
+    return (
     <main className="feedPage">
       <UTVNav />
 
@@ -239,11 +402,33 @@ export default function  FeedPage() {
 
         .feedHero img {
           width:100%;
-          height:32vh;
-          min-height:225px;
+          height:28vh;
+          min-height:190px;
           object-fit:cover;
           display:block;
           filter:brightness(1.2) contrast(1.12) saturate(1.22);
+        }
+
+        .feedTabs {
+          display:flex;
+          gap:10px;
+          overflow-x:auto;
+          padding:14px 16px 4px;
+        }
+
+        .feedTabs button {
+          flex:0 0 auto;
+          border:1px solid rgba(255,255,255,.14);
+          background:rgba(255,255,255,.08);
+          color:white;
+          border-radius:999px;
+          padding:10px 14px;
+          font-weight:900;
+        }
+
+        .feedTabs button.active {
+          color:#06120d;
+          background:linear-gradient(135deg,#52f7c8,#7b61ff);
         }
 
         .stories {
@@ -252,8 +437,6 @@ export default function  FeedPage() {
           overflow-x:auto;
           padding:16px;
         }
-
-        .stories::-webkit-scrollbar { display:none; }
 
         .storyBtn {
           min-width:82px;
@@ -278,6 +461,34 @@ export default function  FeedPage() {
           height:100%;
           object-fit:cover;
           border-radius:50%;
+        }
+
+        .suggested {
+          display:flex;
+          gap:12px;
+          overflow-x:auto;
+          padding:0 16px 16px;
+        }
+
+        .suggestedCard {
+          min-width:150px;
+          border:1px solid rgba(255,255,255,.13);
+          background:rgba(255,255,255,.07);
+          border-radius:22px;
+          padding:12px;
+          text-align:center;
+        }
+
+        .suggestedAvatar {
+          width:58px;
+          height:58px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid #52f7c8;
+          background:#111;
+          display:grid;
+          place-items:center;
+          margin:0 auto 8px;
         }
 
         .searchWrap { padding:0 16px 14px; }
@@ -309,6 +520,7 @@ export default function  FeedPage() {
           align-items:center;
           gap:12px;
           padding:0 16px 12px;
+          cursor:pointer;
         }
 
         .avatar {
@@ -322,11 +534,7 @@ export default function  FeedPage() {
           place-items:center;
         }
 
-        .postHeader h3 {
-          margin:0;
-          font-size:17px;
-        }
-
+        .postHeader h3 { margin:0; font-size:17px; }
         .postHeader p {
           margin:2px 0 0;
           color:#ffd166;
@@ -334,11 +542,7 @@ export default function  FeedPage() {
           font-weight:900;
         }
 
-        .mediaWrap {
-          position:relative;
-          background:#000;
-        }
-
+        .mediaWrap { position:relative; background:#000; }
         .postMedia {
           width:100%;
           max-height:760px;
@@ -357,17 +561,10 @@ export default function  FeedPage() {
           border:1px solid rgba(255,255,255,.2);
           background:rgba(0,0,0,.55);
           color:white;
-          backdrop-filter:blur(10px);
         }
 
-        .postBody {
-          padding:14px 16px 0;
-        }
-
-        .postBody h2 {
-          margin:0 0 6px;
-          font-size:23px;
-        }
+        .postBody { padding:14px 16px 0; }
+        .postBody h2 { margin:0 0 6px; font-size:23px; }
 
         .caption {
           color:rgba(255,255,255,.78);
@@ -399,10 +596,7 @@ export default function  FeedPage() {
           font-weight:800;
         }
 
-        .commentBox {
-          margin-top:12px;
-        }
-
+        .commentBox { margin-top:12px; }
         .viewComments {
           color:rgba(255,255,255,.55);
           font-size:14px;
@@ -425,6 +619,7 @@ export default function  FeedPage() {
 
         .commentLine b {
           color:#ffd166;
+          cursor:pointer;
         }
 
         .commentComposer {
@@ -446,10 +641,6 @@ export default function  FeedPage() {
           font-size:15px;
         }
 
-        .commentComposer input::placeholder {
-          color:rgba(255,255,255,.45);
-        }
-
         .sendBtn {
           width:36px;
           height:36px;
@@ -467,8 +658,15 @@ export default function  FeedPage() {
         <img src={heroHeaders[heroIndex]} alt="UTV" />
       </section>
 
+      <section className="feedTabs">
+        <button className={feedTab === "forYou" ? "active" : ""} onClick={() => setFeedTab("forYou")}>🔥 For You</button>
+        <button className={feedTab === "following" ? "active" : ""} onClick={() => setFeedTab("following")}>⭐ Following</button>
+        <button className={feedTab === "near" ? "active" : ""} onClick={() => setFeedTab("near")}>📍 Near You</button>
+        <button className={feedTab === "utv" ? "active" : ""} onClick={() => setFeedTab("utv")}>📺 UTV</button>
+      </section>
+
       <section className="stories">
-        <button className="storyBtn addStory" onClick={() => (window.location.href = "/submit?type=story")}>
+        <button className="storyBtn addStory" onClick={() => router.push("/submit?type=story")}>
           + Story
         </button>
 
@@ -476,7 +674,11 @@ export default function  FeedPage() {
           const avatar = profileAvatar(story.user_email);
 
           return (
-            <button key={story.id} className="storyBtn" onClick={() => (window.location.href = `/stories/${story.id}`)}>
+            <button
+              key={story.id}
+              className="storyBtn"
+              onClick={() => router.push(`/stories/${story.id}`)}
+            >
               {avatar ? (
                 <img src={avatar} alt="Story" />
               ) : story.media_type === "video" ? (
@@ -487,10 +689,58 @@ export default function  FeedPage() {
             </button>
           );
         })}
+
+        {suggestedCreators.slice(0, 8).map((creator) => (
+          <button
+            key={creator.email}
+            className="storyBtn"
+            onClick={() => openProfile(creator.email)}
+            title={creator.display_name || creator.username || "Suggested Creator"}
+          >
+            {creator.avatar_url ? (
+              <img src={creator.avatar_url} alt={creator.display_name || "Creator"} />
+            ) : (
+              "👤"
+            )}
+          </button>
+        ))}
       </section>
 
+      {suggestedCreators.length > 0 && (
+        <section className="suggested">
+          {suggestedCreators.slice(0, 8).map((creator) => (
+            <div className="suggestedCard" key={creator.email}>
+              {creator.avatar_url ? (
+                <img className="suggestedAvatar" src={creator.avatar_url} />
+              ) : (
+                <div className="suggestedAvatar">👤</div>
+              )}
+
+              <b>{creator.display_name || creator.username || "UTV Creator"}</b>
+              <p style={{ color: "rgba(255,255,255,.6)", fontSize: 12 }}>
+                @{creator.username || creator.email?.split("@")[0]}
+              </p>
+
+              <button className="btn" onClick={() => followCreator(creator.email)}>
+                Follow
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="searchWrap">
-        <input className="feedSearch" placeholder="Search UTV..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          className="feedSearch"
+          placeholder="Search UTV..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && search.trim()) {
+              router.push(`/search?q=${encodeURIComponent(search.trim())}`);
+            }
+          }}
+        />
       </section>
 
       <section className="feedList">
@@ -502,7 +752,7 @@ export default function  FeedPage() {
         ) : filtered.length === 0 ? (
           <div className="card emptyState">
             <h2>No posts yet</h2>
-            <p style={{ color: "var(--muted)" }}>New posts will show here first.</p>
+            <p style={{ color: "var(--muted)" }}>Follow creators or check For You.</p>
           </div>
         ) : (
           filtered.map((item) => {
@@ -515,7 +765,7 @@ export default function  FeedPage() {
 
             return (
               <article key={item.id} className="feedPost">
-                <div className="postHeader" onClick={() => (window.location.href = `/u/${encodeURIComponent(creator)}`)}>
+                <div className="postHeader" onClick={() => openProfile(creator)}>
                   {avatar ? <img className="avatar" src={avatar} alt={profileName(creator)} /> : <div className="avatar">👤</div>}
                   <div>
                     <h3>{profileName(creator)} <span style={{ color: "#52f7c8" }}>●</span></h3>
@@ -523,7 +773,7 @@ export default function  FeedPage() {
                   </div>
                 </div>
 
-                <div className="mediaWrap" onDoubleClick={() => likePost(item.id)}>
+                <div className="mediaWrap" onDoubleClick={() => likePost(item.id, creator)}>
                   {video ? (
                     <>
                       <video
@@ -543,7 +793,7 @@ export default function  FeedPage() {
                       </button>
                     </>
                   ) : image ? (
-                    <img className="postMedia" src={image} alt={item.title || "UTV post"} onClick={() => (window.location.href = `/watch/${item.id}`)} />
+                    <img className="postMedia" src={image} alt={item.title || "UTV post"} onClick={() => router.push(`/watch/${item.id}`)} />
                   ) : (
                     <div className="postMedia" style={{ height: 340, display: "grid", placeItems: "center", fontSize: 54 }}>
                       UTV
@@ -553,7 +803,7 @@ export default function  FeedPage() {
 
                 <div className="postBody">
                   <div className="actionRow">
-                    <button className="iconBtn" onClick={() => likePost(item.id)}>♡</button>
+                    <button className="iconBtn" onClick={() => likePost(item.id, creator)}>♡</button>
                     <button className="iconBtn">💬</button>
                     <button className="iconBtn" onClick={() => sharePost(item)}>↗</button>
                     <button className="iconBtn" style={{ marginLeft: "auto" }}>🔖</button>
@@ -574,7 +824,10 @@ export default function  FeedPage() {
                     <div className="commentPreview">
                       {postComments.slice(-2).map((comment) => (
                         <p className="commentLine" key={comment.id}>
-                          <b>{profileName(comment.user_email)}</b> {comment.comment}
+                          <b onClick={() => openProfile(comment.user_email)}>
+                            {profileName(comment.user_email)}
+                          </b>{" "}
+                          {comment.comment}
                         </p>
                       ))}
                     </div>
@@ -586,7 +839,7 @@ export default function  FeedPage() {
                         value={commentText[item.id] || ""}
                         onChange={(e) => setCommentText((prev) => ({ ...prev, [item.id]: e.target.value }))}
                       />
-                      <button className="sendBtn" onClick={() => addComment(item.id)}>➤</button>
+                      <button className="sendBtn" onClick={() => addComment(item.id, creator)}>➤</button>
                     </div>
                   </div>
                 </div>
