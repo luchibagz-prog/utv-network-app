@@ -8,14 +8,21 @@ import { supabase } from "../../../lib/supabaseClient";
 export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
+
   const creatorEmail = decodeURIComponent(String(params.email || ""));
 
   const [viewerEmail, setViewerEmail] = useState("");
+
   const [profile, setProfile] = useState<any>(null);
+
   const [uploads, setUploads] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [crew, setCrew] = useState(0);
-  const [following, setFollowing] = useState(false);
+
+  const [followers, setFollowers] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
+  const [isFollowing, setIsFollowing] = useState(false);
+
   const [tab, setTab] = useState("feed");
 
   useEffect(() => {
@@ -23,9 +30,15 @@ export default function PublicProfilePage() {
   }, []);
 
   async function loadPage() {
-    const { data: userData } = await supabase.auth.getUser();
-    const currentEmail = userData.user?.email || "";
+    const { data: auth } = await supabase.auth.getUser();
+
+    const currentEmail = auth.user?.email || "";
+
     setViewerEmail(currentEmail);
+
+    //----------------------------------
+    // Profile
+    //----------------------------------
 
     const { data: creatorProfile } = await supabase
       .from("creator_profiles")
@@ -35,6 +48,10 @@ export default function PublicProfilePage() {
 
     setProfile(creatorProfile);
 
+    //----------------------------------
+    // Uploads
+    //----------------------------------
+
     const { data: uploadData } = await supabase
       .from("uploads")
       .select("*")
@@ -42,6 +59,10 @@ export default function PublicProfilePage() {
       .order("created_at", { ascending: false });
 
     setUploads(uploadData || []);
+
+    //----------------------------------
+    // Events
+    //----------------------------------
 
     const { data: eventData } = await supabase
       .from("events")
@@ -51,26 +72,51 @@ export default function PublicProfilePage() {
 
     setEvents(eventData || []);
 
-    const { count } = await supabase
+    //----------------------------------
+    // Followers
+    //----------------------------------
+
+    const { count: followerCount } = await supabase
       .from("follows")
-      .select("*", { count: "exact", head: true })
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
       .eq("following_email", creatorEmail);
 
-    setCrew(count || 0);
+    setFollowers(followerCount || 0);
+
+    //----------------------------------
+    // Following
+    //----------------------------------
+
+    const { count: followingTotal } = await supabase
+      .from("follows")
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
+      .eq("follower_email", creatorEmail);
+
+    setFollowingCount(followingTotal || 0);
+
+    //----------------------------------
+    // Am I Following?
+    //----------------------------------
 
     if (currentEmail) {
-      const { data: followData } = await supabase
+      const { data: follow } = await supabase
         .from("follows")
         .select("*")
         .eq("follower_email", currentEmail)
         .eq("following_email", creatorEmail)
         .maybeSingle();
 
-      setFollowing(!!followData);
+      setIsFollowing(!!follow);
     }
   }
 
-  async function followCreator() {
+  async function toggleFollow() {
     if (!viewerEmail) {
       router.push("/login");
       return;
@@ -78,15 +124,17 @@ export default function PublicProfilePage() {
 
     if (viewerEmail === creatorEmail) return;
 
-    if (following) {
+    if (isFollowing) {
       await supabase
         .from("follows")
         .delete()
         .eq("follower_email", viewerEmail)
         .eq("following_email", creatorEmail);
 
-      setFollowing(false);
-      setCrew((prev) => Math.max(prev - 1, 0));
+      setIsFollowing(false);
+
+      setFollowers((x) => Math.max(x - 1, 0));
+
       return;
     }
 
@@ -98,15 +146,17 @@ export default function PublicProfilePage() {
     await supabase.from("notifications").insert({
       user_email: creatorEmail,
       type: "follow",
-      title: "New Crew Member",
-      message: `${viewerEmail} joined your crew on UTV.`,
+      title: "New Follower",
+      message: `${viewerEmail} followed you.`,
+      link: `/u/${encodeURIComponent(viewerEmail)}`,
+      is_read: false,
     });
 
-    setFollowing(true);
-    setCrew((prev) => prev + 1);
-  }
+    setIsFollowing(true);
 
-  async function buildTogether() {
+    setFollowers((x) => x + 1);
+  }
+    async function buildTogether() {
     if (!viewerEmail) {
       router.push("/login");
       return;
@@ -125,6 +175,8 @@ export default function PublicProfilePage() {
       type: "collab",
       title: "Build Together Request",
       message: `${viewerEmail} wants to build something with you.`,
+      link: "/notifications",
+      is_read: false,
     });
 
     alert("Build Together request sent.");
@@ -133,7 +185,8 @@ export default function PublicProfilePage() {
   const displayName = profile?.display_name || "UTV Creator";
   const username = profile?.username || creatorEmail.split("@")[0];
   const avatar = profile?.avatar_url || "";
-  const background = profile?.profile_background || profile?.profile_background_url || "";
+  const background =
+    profile?.profile_background || profile?.profile_background_url || "";
   const song = profile?.profile_song || profile?.profile_song_url || "";
   const theme = profile?.theme_color || "#7b61ff";
   const accent = profile?.accent_color || "#37f2a3";
@@ -159,7 +212,7 @@ export default function PublicProfilePage() {
 
       <section
         style={{
-          margin: "16px",
+          margin: 16,
           borderRadius: 28,
           overflow: "hidden",
           border: "1px solid rgba(255,255,255,0.12)",
@@ -221,21 +274,24 @@ export default function PublicProfilePage() {
 
         <div style={{ padding: "72px 18px 20px" }}>
           <h1 style={{ margin: 0, fontSize: 34 }}>{displayName}</h1>
-
           <p style={{ color: "var(--muted)", marginTop: 4 }}>@{username}</p>
 
           <p style={{ color: "#d4af37", fontWeight: "bold" }}>
             {category} • UTV Creator
           </p>
 
-          <p style={{ color: "rgba(255,255,255,.82)", lineHeight: 1.5 }}>{bio}</p>
+          <p style={{ color: "rgba(255,255,255,.82)", lineHeight: 1.5 }}>
+            {bio}
+          </p>
 
-          {song && <audio controls src={song} style={{ width: "100%", marginTop: 12 }} />}
+          {song && (
+            <audio controls src={song} style={{ width: "100%", marginTop: 12 }} />
+          )}
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              gridTemplateColumns: "repeat(4, 1fr)",
               gap: 8,
               marginTop: 18,
               textAlign: "center",
@@ -246,9 +302,24 @@ export default function PublicProfilePage() {
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Posts</p>
             </div>
 
-            <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
-              <h2 style={{ margin: 0 }}>{crew}</h2>
-              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Crew</p>
+            <div
+              onClick={() =>
+                router.push(`/follows?email=${encodeURIComponent(creatorEmail)}&type=followers`)
+              }
+              style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10, cursor: "pointer" }}
+            >
+              <h2 style={{ margin: 0 }}>{followers}</h2>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Followers</p>
+            </div>
+
+            <div
+              onClick={() =>
+                router.push(`/follows?email=${encodeURIComponent(creatorEmail)}&type=following`)
+              }
+              style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10, cursor: "pointer" }}
+            >
+              <h2 style={{ margin: 0 }}>{followingCount}</h2>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>Following</p>
             </div>
 
             <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 16, padding: 10 }}>
@@ -258,9 +329,11 @@ export default function PublicProfilePage() {
           </div>
 
           <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
-            <button className="btn" onClick={followCreator}>
-              {following ? "Crew Member" : "Join Crew"}
-            </button>
+            {viewerEmail !== creatorEmail && (
+              <button className="btn" onClick={toggleFollow}>
+                {isFollowing ? "✓ Following" : "+ Follow"}
+              </button>
+            )}
 
             <button
               className="btn secondary"
@@ -284,6 +357,12 @@ export default function PublicProfilePage() {
               Build Together
             </button>
           </div>
+
+          {isFollowing && viewerEmail !== creatorEmail && (
+            <p style={{ color: "#52f7c8", fontWeight: "bold", marginTop: 12 }}>
+              You’re part of this creator’s UTV Crew.
+            </p>
+          )}
         </div>
       </section>
 
@@ -331,12 +410,16 @@ export default function PublicProfilePage() {
             <h2>About {displayName}</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.5 }}>{bio}</p>
             <p>{creatorEmail}</p>
-            <p style={{ color: "#d4af37" }}>UTV — The platform where creators build together.</p>
+            <p style={{ color: "#d4af37" }}>
+              UTV — The platform where creators build together.
+            </p>
           </div>
         ) : shownPosts.length === 0 ? (
           <div className="card">
             <h2>No posts yet</h2>
-            <p style={{ color: "var(--muted)" }}>This creator has not posted here yet.</p>
+            <p style={{ color: "var(--muted)" }}>
+              This creator has not posted here yet.
+            </p>
           </div>
         ) : (
           shownPosts.map((post) => {
@@ -361,8 +444,12 @@ export default function PublicProfilePage() {
 
                 <div style={{ padding: 16 }}>
                   <h2>{post.title}</h2>
-                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>{post.category || "UTV Post"}</p>
-                  {post.description && <p style={{ color: "var(--muted)" }}>{post.description}</p>}
+                  <p style={{ color: "#d4af37", fontWeight: "bold" }}>
+                    {post.category || "UTV Post"}
+                  </p>
+                  {post.description && (
+                    <p style={{ color: "var(--muted)" }}>{post.description}</p>
+                  )}
                 </div>
               </div>
             );
