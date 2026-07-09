@@ -74,7 +74,7 @@ export default function FeedPage() {
     const email = auth.user?.email || "";
     setViewerEmail(email);
 
-    let follows: any[] = [];
+    let following: string[] = [];
 
     if (email) {
       const { data } = await supabase
@@ -82,14 +82,14 @@ export default function FeedPage() {
         .select("*")
         .eq("follower_email", email);
 
-      follows = data || [];
-      setFollowingEmails(follows.map((x) => x.following_email).filter(Boolean));
+      following = (data || []).map((x) => x.following_email).filter(Boolean);
+      setFollowingEmails(following);
     }
 
     await Promise.all([
-      loadFeed(follows.map((x) => x.following_email).filter(Boolean)),
-      loadStories(follows.map((x) => x.following_email).filter(Boolean)),
-      loadSuggestedCreators(email, follows.map((x) => x.following_email).filter(Boolean)),
+      loadFeed(following),
+      loadStories(following),
+      loadSuggestedCreators(email, following),
     ]);
 
     setLoading(false);
@@ -117,13 +117,13 @@ export default function FeedPage() {
       .from("creator_profiles")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(40);
 
     const filtered = (data || []).filter(
       (p) => p.email && p.email !== myEmail && !following.includes(p.email)
     );
 
-    setSuggestedCreators(filtered.slice(0, 10));
+    setSuggestedCreators(filtered.slice(0, 12));
     loadProfiles(filtered.map((p) => p.email));
   }
 
@@ -166,6 +166,7 @@ export default function FeedPage() {
     const feedItems = (data || []).filter((item) => {
       const category = (item.category || "").toLowerCase();
       const visibility = (item.visibility || "feed").toLowerCase();
+
       return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
     });
 
@@ -323,10 +324,7 @@ export default function FeedPage() {
     }
 
     if (!emailToFollow || emailToFollow === viewerEmail) return;
-
-    const exists = followingEmails.includes(emailToFollow);
-
-    if (exists) return;
+    if (followingEmails.includes(emailToFollow)) return;
 
     await supabase.from("follows").insert({
       follower_email: viewerEmail,
@@ -343,6 +341,8 @@ export default function FeedPage() {
     });
 
     setFollowingEmails((prev) => [...prev, emailToFollow]);
+    setSuggestedCreators((prev) => prev.filter((x) => x.email !== emailToFollow));
+    loadEverything();
   }
 
   function profileName(email?: string) {
@@ -358,6 +358,38 @@ export default function FeedPage() {
     if (!email) return;
     router.push(`/u/${encodeURIComponent(email)}`);
   }
+
+  const storyBubbles = useMemo(() => {
+    const activeByUser: Record<string, any> = {};
+
+    stories.forEach((story) => {
+      if (!activeByUser[story.user_email]) {
+        activeByUser[story.user_email] = story;
+      }
+    });
+
+    const followedWithoutStories = followingEmails
+      .filter((email) => !activeByUser[email])
+      .map((email) => ({
+        id: `followed-${email}`,
+        user_email: email,
+        noStory: true,
+      }));
+
+    const activeStories = Object.values(activeByUser);
+
+    const suggestedNoStories = suggestedCreators
+      .filter((creator) => !activeByUser[creator.email])
+      .slice(0, 8)
+      .map((creator) => ({
+        id: `suggested-${creator.email}`,
+        user_email: creator.email,
+        noStory: true,
+        suggested: true,
+      }));
+
+    return [...activeStories, ...followedWithoutStories, ...suggestedNoStories];
+  }, [stories, followingEmails, suggestedCreators]);
 
   const filtered = useMemo(() => {
     let base = items;
@@ -438,8 +470,21 @@ export default function FeedPage() {
           padding:16px;
         }
 
-        .storyBtn {
+        .stories::-webkit-scrollbar,
+        .feedTabs::-webkit-scrollbar,
+        .suggested::-webkit-scrollbar {
+          display:none;
+        }
+
+        .storyWrap {
           min-width:82px;
+          display:grid;
+          justify-items:center;
+          gap:6px;
+        }
+
+        .storyBtn {
+          width:82px;
           height:82px;
           border-radius:50%;
           border:3px solid #7b61ff;
@@ -448,6 +493,15 @@ export default function FeedPage() {
           overflow:hidden;
           color:white;
           font-weight:900;
+        }
+
+        .storyBtn.activeStory {
+          border-color:#52f7c8;
+          box-shadow:0 0 22px rgba(82,247,200,.35);
+        }
+
+        .storyBtn.noStory {
+          border-color:rgba(255,255,255,.22);
         }
 
         .addStory {
@@ -461,6 +515,16 @@ export default function FeedPage() {
           height:100%;
           object-fit:cover;
           border-radius:50%;
+        }
+
+        .storyName {
+          max-width:82px;
+          font-size:11px;
+          color:rgba(255,255,255,.75);
+          overflow:hidden;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+          text-align:center;
         }
 
         .suggested {
@@ -535,6 +599,7 @@ export default function FeedPage() {
         }
 
         .postHeader h3 { margin:0; font-size:17px; }
+
         .postHeader p {
           margin:2px 0 0;
           color:#ffd166;
@@ -543,6 +608,7 @@ export default function FeedPage() {
         }
 
         .mediaWrap { position:relative; background:#000; }
+
         .postMedia {
           width:100%;
           max-height:760px;
@@ -564,7 +630,11 @@ export default function FeedPage() {
         }
 
         .postBody { padding:14px 16px 0; }
-        .postBody h2 { margin:0 0 6px; font-size:23px; }
+
+        .postBody h2 {
+          margin:0 0 6px;
+          font-size:23px;
+        }
 
         .caption {
           color:rgba(255,255,255,.78);
@@ -597,6 +667,7 @@ export default function FeedPage() {
         }
 
         .commentBox { margin-top:12px; }
+
         .viewComments {
           color:rgba(255,255,255,.55);
           font-size:14px;
@@ -666,44 +737,42 @@ export default function FeedPage() {
       </section>
 
       <section className="stories">
-        <button className="storyBtn addStory" onClick={() => router.push("/submit?type=story")}>
-          + Story
-        </button>
+        <div className="storyWrap">
+          <button className="storyBtn addStory" onClick={() => router.push("/submit?type=story")}>
+            +
+          </button>
+          <span className="storyName">Your Story</span>
+        </div>
 
-        {stories.map((story) => {
+        {storyBubbles.map((story) => {
           const avatar = profileAvatar(story.user_email);
+          const name = profileName(story.user_email);
 
           return (
-            <button
-              key={story.id}
-              className="storyBtn"
-              onClick={() => router.push(`/stories/${story.id}`)}
-            >
-              {avatar ? (
-                <img src={avatar} alt="Story" />
-              ) : story.media_type === "video" ? (
-                <video src={story.media_url} muted playsInline />
-              ) : (
-                <img src={story.media_url} alt="Story" />
-              )}
-            </button>
+            <div className="storyWrap" key={story.id}>
+              <button
+                className={story.noStory ? "storyBtn noStory" : "storyBtn activeStory"}
+                onClick={() =>
+                  story.noStory
+                    ? openProfile(story.user_email)
+                    : router.push(`/stories/${story.id}`)
+                }
+              >
+                {avatar ? (
+                  <img src={avatar} alt={name} />
+                ) : story.media_type === "video" && story.media_url ? (
+                  <video src={story.media_url} muted playsInline />
+                ) : story.media_url ? (
+                  <img src={story.media_url} alt={name} />
+                ) : (
+                  "👤"
+                )}
+              </button>
+
+              <span className="storyName">{name}</span>
+            </div>
           );
         })}
-
-        {suggestedCreators.slice(0, 8).map((creator) => (
-          <button
-            key={creator.email}
-            className="storyBtn"
-            onClick={() => openProfile(creator.email)}
-            title={creator.display_name || creator.username || "Suggested Creator"}
-          >
-            {creator.avatar_url ? (
-              <img src={creator.avatar_url} alt={creator.display_name || "Creator"} />
-            ) : (
-              "👤"
-            )}
-          </button>
-        ))}
       </section>
 
       {suggestedCreators.length > 0 && (
@@ -711,7 +780,7 @@ export default function FeedPage() {
           {suggestedCreators.slice(0, 8).map((creator) => (
             <div className="suggestedCard" key={creator.email}>
               {creator.avatar_url ? (
-                <img className="suggestedAvatar" src={creator.avatar_url} />
+                <img className="suggestedAvatar" src={creator.avatar_url} alt={creator.display_name || "Creator"} />
               ) : (
                 <div className="suggestedAvatar">👤</div>
               )}
@@ -766,7 +835,12 @@ export default function FeedPage() {
             return (
               <article key={item.id} className="feedPost">
                 <div className="postHeader" onClick={() => openProfile(creator)}>
-                  {avatar ? <img className="avatar" src={avatar} alt={profileName(creator)} /> : <div className="avatar">👤</div>}
+                  {avatar ? (
+                    <img className="avatar" src={avatar} alt={profileName(creator)} />
+                  ) : (
+                    <div className="avatar">👤</div>
+                  )}
+
                   <div>
                     <h3>{profileName(creator)} <span style={{ color: "#52f7c8" }}>●</span></h3>
                     <p>{item.category || "UTV Feed"}</p>
@@ -788,12 +862,18 @@ export default function FeedPage() {
                         preload="metadata"
                         onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}
                       />
+
                       <button className="muteBadge" onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}>
                         {isMuted ? "🔇" : "🔊"}
                       </button>
                     </>
                   ) : image ? (
-                    <img className="postMedia" src={image} alt={item.title || "UTV post"} onClick={() => router.push(`/watch/${item.id}`)} />
+                    <img
+                      className="postMedia"
+                      src={image}
+                      alt={item.title || "UTV post"}
+                      onClick={() => router.push(`/watch/${item.id}`)}
+                    />
                   ) : (
                     <div className="postMedia" style={{ height: 340, display: "grid", placeItems: "center", fontSize: 54 }}>
                       UTV
@@ -814,6 +894,7 @@ export default function FeedPage() {
                   </div>
 
                   <h2>{item.title || "Untitled"}</h2>
+
                   {item.description && <p className="caption">{item.description}</p>}
 
                   <div className="commentBox">
@@ -837,9 +918,17 @@ export default function FeedPage() {
                       <input
                         placeholder="Add a comment..."
                         value={commentText[item.id] || ""}
-                        onChange={(e) => setCommentText((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                        onChange={(e) =>
+                          setCommentText((prev) => ({
+                            ...prev,
+                            [item.id]: e.target.value,
+                          }))
+                        }
                       />
-                      <button className="sendBtn" onClick={() => addComment(item.id, creator)}>➤</button>
+
+                      <button className="sendBtn" onClick={() => addComment(item.id, creator)}>
+                        ➤
+                      </button>
                     </div>
                   </div>
                 </div>
