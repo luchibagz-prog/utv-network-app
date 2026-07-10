@@ -1,25 +1,58 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-const heroHeaders = ["/utv-logo.png", "/utv-banner.png", "/bbgroundup.png", "/utv1.png", "/utv2art.png"];
+const heroHeaders = [
+  "/utv-logo.png",
+  "/utv-banner.png",
+  "/bbgroundup.png",
+  "/utv1.png",
+  "/utv2art.png",
+];
 
 function mediaImage(item?: any) {
   if (!item) return "";
-  return item.thumbnail_url || item.cover_url || item.image_url || item.poster_url || item.flyer_url || "";
+
+  return (
+    item.thumbnail_url ||
+    item.cover_url ||
+    item.image_url ||
+    item.poster_url ||
+    item.flyer_url ||
+    ""
+  );
 }
 
 function mediaVideo(item?: any) {
   if (!item) return "";
-  return item.video_url || item.file_url || item.media_url || item.url || "";
+
+  return (
+    item.video_url ||
+    item.file_url ||
+    item.media_url ||
+    item.url ||
+    ""
+  );
+}
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url || "");
 }
 
 export default function FeedPage() {
   const router = useRouter();
+
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const [viewerEmail, setViewerEmail] = useState("");
   const [feedTab, setFeedTab] = useState("forYou");
@@ -31,72 +64,117 @@ export default function FeedPage() {
 
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [likes, setLikes] = useState<Record<string, number>>({});
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [comments, setComments] = useState<Record<string, any[]>>({});
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [muted, setMuted] = useState<Record<string, boolean>>({});
+
   const [search, setSearch] = useState("");
   const [heroIndex, setHeroIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadEverything();
 
-    const timer = setInterval(() => {
-      setHeroIndex((prev) => (prev + 1) % heroHeaders.length);
+    const heroTimer = window.setInterval(() => {
+      setHeroIndex((current) => {
+        return (current + 1) % heroHeaders.length;
+      });
     }, 4200);
 
-    return () => clearInterval(timer);
+    return () => {
+      window.clearInterval(heroTimer);
+      observerRef.current?.disconnect();
+    };
   }, []);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
+  const observeVideos = useCallback(() => {
+    observerRef.current?.disconnect();
+
+    observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const video = entry.target as HTMLVideoElement;
-          if (entry.isIntersecting) video.play().catch(() => {});
-          else video.pause();
+
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+            Object.values(videoRefs.current).forEach((otherVideo) => {
+              if (otherVideo && otherVideo !== video) {
+                otherVideo.pause();
+              }
+            });
+
+            video.play().catch(() => {
+              // Mobile browsers may wait for the user to tap.
+            });
+          } else {
+            video.pause();
+          }
         });
       },
-      { threshold: 0.65 }
+      {
+        threshold: [0.25, 0.55, 0.75],
+        rootMargin: "80px 0px 80px 0px",
+      }
     );
 
     Object.values(videoRefs.current).forEach((video) => {
-      if (video) observer.observe(video);
+      if (video) {
+        observerRef.current?.observe(video);
+      }
     });
+  }, []);
 
-    return () => observer.disconnect();
-  }, [items]);
+  useEffect(() => {
+    const timer = window.setTimeout(observeVideos, 120);
 
-  async function loadEverything() {
-    setLoading(true);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [items, observeVideos]);
+
+  async function loadEverything(showLoader = true) {
+    if (showLoader) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
 
     const { data: auth } = await supabase.auth.getUser();
     const email = auth.user?.email || "";
+
     setViewerEmail(email);
 
     let following: string[] = [];
 
     if (email) {
-      const { data } = await supabase
+      const { data: followRows } = await supabase
         .from("follows")
-        .select("*")
+        .select("following_email")
         .eq("follower_email", email);
 
-      following = (data || []).map((x) => x.following_email).filter(Boolean);
+      following = (followRows || [])
+        .map((row) => row.following_email)
+        .filter(Boolean);
+
       setFollowingEmails(following);
     }
 
     await Promise.all([
-      loadFeed(following),
+      loadFeed(following, email),
       loadStories(following),
       loadSuggestedCreators(email, following),
     ]);
 
     setLoading(false);
+    setRefreshing(false);
   }
 
   async function loadProfiles(emails: string[]) {
-    const uniqueEmails = Array.from(new Set(emails.filter(Boolean)));
+    const uniqueEmails = Array.from(
+      new Set(emails.filter(Boolean))
+    );
+
     if (!uniqueEmails.length) return;
 
     const { data } = await supabase
@@ -104,113 +182,192 @@ export default function FeedPage() {
       .select("*")
       .in("email", uniqueEmails);
 
-    const map: Record<string, any> = {};
+    const profileMap: Record<string, any> = {};
+
     (data || []).forEach((profile) => {
-      map[profile.email] = profile;
+      profileMap[profile.email] = profile;
     });
 
-    setProfiles((prev) => ({ ...prev, ...map }));
+    setProfiles((current) => ({
+      ...current,
+      ...profileMap,
+    }));
   }
 
-  async function loadSuggestedCreators(myEmail: string, following: string[]) {
+  async function loadSuggestedCreators(
+    myEmail: string,
+    following: string[]
+  ) {
     const { data } = await supabase
       .from("creator_profiles")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(40);
 
-    const filtered = (data || []).filter(
-      (p) => p.email && p.email !== myEmail && !following.includes(p.email)
-    );
+    const creators = (data || []).filter((profile) => {
+      return (
+        profile.email &&
+        profile.email !== myEmail &&
+        !following.includes(profile.email)
+      );
+    });
 
-    setSuggestedCreators(filtered.slice(0, 12));
-    loadProfiles(filtered.map((p) => p.email));
+    setSuggestedCreators(creators.slice(0, 12));
+
+    await loadProfiles(
+      creators.map((profile) => profile.email)
+    );
   }
 
   async function loadStories(following: string[]) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("stories")
       .select("*")
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
 
-    const safeStories = data || [];
+    if (error) {
+      console.error("Story load error:", error);
+      setStories([]);
+      return;
+    }
 
-    const sortedStories = safeStories.sort((a, b) => {
-      const aFollow = following.includes(a.user_email) ? 1 : 0;
-      const bFollow = following.includes(b.user_email) ? 1 : 0;
+    const sorted = [...(data || [])].sort((a, b) => {
+      const aFollowing = following.includes(a.user_email) ? 1 : 0;
+      const bFollowing = following.includes(b.user_email) ? 1 : 0;
 
-      if (aFollow !== bFollow) return bFollow - aFollow;
+      if (aFollowing !== bFollowing) {
+        return bFollowing - aFollowing;
+      }
 
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+      );
     });
 
-    setStories(sortedStories);
-    loadProfiles(sortedStories.map((story) => story.user_email));
+    setStories(sorted);
+
+    await loadProfiles(
+      sorted.map((story) => story.user_email)
+    );
   }
 
-  async function loadFeed(following: string[]) {
+  async function loadFeed(
+    following: string[],
+    currentEmail: string
+  ) {
     const { data, error } = await supabase
       .from("uploads")
       .select("*")
       .eq("approved", true)
       .order("created_at", { ascending: false })
-      .limit(150);
+      .limit(100);
 
     if (error) {
-      console.error(error);
+      console.error("Feed load error:", error);
       setItems([]);
       return;
     }
 
     const feedItems = (data || []).filter((item) => {
-      const category = (item.category || "").toLowerCase();
-      const visibility = (item.visibility || "feed").toLowerCase();
+      const category = String(item.category || "").toLowerCase();
+      const visibility = String(
+        item.visibility || "feed"
+      ).toLowerCase();
 
-      return visibility !== "profile" && !category.includes("movie") && !category.includes("show");
+      return (
+        visibility !== "profile" &&
+        !category.includes("movie") &&
+        !category.includes("show")
+      );
     });
 
-    const scored = feedItems
+    const ranked = feedItems
       .map((item) => {
         const creator = item.creator_email || "";
-        const category = (item.category || "").toLowerCase();
+        const category = String(
+          item.category || ""
+        ).toLowerCase();
 
         let score = 20;
 
         if (following.includes(creator)) score += 100;
-        if (category.includes("live")) score += 30;
-        if (category.includes("event")) score += 18;
-        if (category.includes("music")) score += 15;
+        if (creator === currentEmail) score += 8;
+        if (category.includes("live")) score += 32;
+        if (category.includes("event")) score += 20;
+        if (category.includes("music")) score += 16;
         if (category.includes("podcast")) score += 12;
 
+        const createdAt = new Date(
+          item.created_at || Date.now()
+        ).getTime();
+
         const ageHours =
-          (Date.now() - new Date(item.created_at || Date.now()).getTime()) / 1000 / 60 / 60;
+          (Date.now() - createdAt) / 1000 / 60 / 60;
 
-        score += Math.max(0, 24 - ageHours);
+        score += Math.max(0, 30 - ageHours);
 
-        return { ...item, _score: score };
+        return {
+          ...item,
+          _score: score,
+        };
       })
       .sort((a, b) => {
-        if (b._score !== a._score) return b._score - a._score;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (b._score !== a._score) {
+          return b._score - a._score;
+        }
+
+        return (
+          new Date(b.created_at).getTime() -
+          new Date(a.created_at).getTime()
+        );
       });
 
-    setItems(scored);
-    loadProfiles(scored.map((item) => item.creator_email));
+    setItems(ranked);
 
-    scored.forEach((item) => {
-      loadLikes(item.id);
-      loadComments(item.id);
-    });
+    await loadProfiles(
+      ranked.map((item) => item.creator_email)
+    );
+
+    await Promise.all(
+      ranked.slice(0, 40).map(async (item) => {
+        await Promise.all([
+          loadLikes(item.id, currentEmail),
+          loadComments(item.id),
+        ]);
+      })
+    );
   }
 
-  async function loadLikes(id: string) {
+  async function loadLikes(id: string, email = viewerEmail) {
     const { count } = await supabase
       .from("feed_likes")
-      .select("*", { count: "exact", head: true })
+      .select("*", {
+        count: "exact",
+        head: true,
+      })
       .eq("upload_id", id);
 
-    setLikes((prev) => ({ ...prev, [id]: count || 0 }));
+    setLikes((current) => ({
+      ...current,
+      [id]: count || 0,
+    }));
+
+    if (email) {
+      const { data } = await supabase
+        .from("feed_likes")
+        .select("id")
+        .eq("upload_id", id)
+        .eq("user_email", email)
+        .maybeSingle();
+
+      setLikedPosts((current) => ({
+        ...current,
+        [id]: Boolean(data),
+      }));
+    }
   }
 
   async function loadComments(id: string) {
@@ -220,100 +377,155 @@ export default function FeedPage() {
       .eq("upload_id", id)
       .order("created_at", { ascending: true });
 
-    const safeComments = data || [];
-    setComments((prev) => ({ ...prev, [id]: safeComments }));
-    loadProfiles(safeComments.map((comment) => comment.user_email));
+    const commentRows = data || [];
+
+    setComments((current) => ({
+      ...current,
+      [id]: commentRows,
+    }));
+
+    await loadProfiles(
+      commentRows.map((comment) => comment.user_email)
+    );
   }
 
-  async function likePost(id: string, creatorEmail?: string) {
-    const { data } = await supabase.auth.getUser();
-    const userEmail = data.user?.email;
+  async function likePost(
+    id: string,
+    creatorEmail?: string
+  ) {
+    const { data: auth } = await supabase.auth.getUser();
+    const userEmail = auth.user?.email;
 
     if (!userEmail) {
-      alert("Login to like posts.");
+      router.push("/login");
       return;
     }
 
-    const { data: existingLike } = await supabase
+    const currentlyLiked = likedPosts[id];
+
+    setLikedPosts((current) => ({
+      ...current,
+      [id]: !currentlyLiked,
+    }));
+
+    setLikes((current) => ({
+      ...current,
+      [id]: Math.max(
+        0,
+        (current[id] || 0) + (currentlyLiked ? -1 : 1)
+      ),
+    }));
+
+    if (currentlyLiked) {
+      await supabase
+        .from("feed_likes")
+        .delete()
+        .eq("upload_id", id)
+        .eq("user_email", userEmail);
+
+      return;
+    }
+
+    const { error } = await supabase
       .from("feed_likes")
-      .select("id")
-      .eq("upload_id", id)
-      .eq("user_email", userEmail)
-      .maybeSingle();
-
-    if (existingLike) {
-      await supabase.from("feed_likes").delete().eq("upload_id", id).eq("user_email", userEmail);
-      setLikes((prev) => ({ ...prev, [id]: Math.max((prev[id] || 1) - 1, 0) }));
-    } else {
-      await supabase.from("feed_likes").insert({ upload_id: id, user_email: userEmail });
-
-      if (creatorEmail && creatorEmail !== userEmail) {
-        await supabase.from("notifications").insert({
-          user_email: creatorEmail,
-          type: "like",
-          title: "New Like",
-          message: `${profileName(userEmail)} liked your post.`,
-          link: `/watch/${id}`,
-          is_read: false,
-        });
-      }
-
-      setLikes((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-    }
-
-    loadLikes(id);
-  }
-
-  async function addComment(id: string, creatorEmail?: string) {
-    const text = commentText[id];
-    if (!text?.trim()) return;
-
-    const { data } = await supabase.auth.getUser();
-    const userEmail = data.user?.email;
-
-    if (!userEmail) {
-      alert("Login to comment.");
-      return;
-    }
-
-    const { error } = await supabase.from("feed_comments").insert({
-      upload_id: id,
-      user_email: userEmail,
-      comment: text.trim(),
-    });
+      .insert({
+        upload_id: id,
+        user_email: userEmail,
+      });
 
     if (error) {
-      alert(error.message);
+      setLikedPosts((current) => ({
+        ...current,
+        [id]: false,
+      }));
+
+      await loadLikes(id, userEmail);
       return;
     }
 
     if (creatorEmail && creatorEmail !== userEmail) {
       await supabase.from("notifications").insert({
         user_email: creatorEmail,
-        type: "comment",
-        title: "New Comment",
-        message: `${profileName(userEmail)} commented on your post.`,
+        type: "like",
+        title: "New Like",
+        message: `${profileName(
+          userEmail
+        )} liked your post.`,
         link: `/watch/${id}`,
         is_read: false,
       });
     }
+  }
 
-    setCommentText((prev) => ({ ...prev, [id]: "" }));
-    loadComments(id);
+  async function addComment(
+    id: string,
+    creatorEmail?: string
+  ) {
+    const text = commentText[id]?.trim();
+
+    if (!text) return;
+
+    const { data: auth } = await supabase.auth.getUser();
+    const userEmail = auth.user?.email;
+
+    if (!userEmail) {
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("feed_comments")
+      .insert({
+        upload_id: id,
+        user_email: userEmail,
+        comment: text,
+      });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setCommentText((current) => ({
+      ...current,
+      [id]: "",
+    }));
+
+    await loadComments(id);
+
+    if (creatorEmail && creatorEmail !== userEmail) {
+      await supabase.from("notifications").insert({
+        user_email: creatorEmail,
+        type: "comment",
+        title: "New Comment",
+        message: `${profileName(
+          userEmail
+        )} commented on your post.`,
+        link: `/watch/${id}`,
+        is_read: false,
+      });
+    }
   }
 
   async function sharePost(item: any) {
     const url = `${window.location.origin}/watch/${item.id}`;
 
-    if (navigator.share) {
-      await navigator.share({
-        title: item.title || "UTV",
-        text: item.description || "Check this out on UTV",
-        url,
-      });
-    } else {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: item.title || "UTV",
+          text:
+            item.description || "Check this out on UTV",
+          url,
+        });
+
+        return;
+      }
+
       await navigator.clipboard.writeText(url);
-      alert("Link copied.");
+      alert("UTV link copied.");
+    } catch {
+      // User closed native share window.
     }
   }
 
@@ -323,13 +535,36 @@ export default function FeedPage() {
       return;
     }
 
-    if (!emailToFollow || emailToFollow === viewerEmail) return;
-    if (followingEmails.includes(emailToFollow)) return;
+    if (
+      !emailToFollow ||
+      emailToFollow === viewerEmail ||
+      followingEmails.includes(emailToFollow)
+    ) {
+      return;
+    }
 
-    await supabase.from("follows").insert({
-      follower_email: viewerEmail,
-      following_email: emailToFollow,
-    });
+    const { error } = await supabase
+      .from("follows")
+      .insert({
+        follower_email: viewerEmail,
+        following_email: emailToFollow,
+      });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setFollowingEmails((current) => [
+      ...current,
+      emailToFollow,
+    ]);
+
+    setSuggestedCreators((current) =>
+      current.filter(
+        (creator) => creator.email !== emailToFollow
+      )
+    );
 
     await supabase.from("notifications").insert({
       user_email: emailToFollow,
@@ -339,15 +574,17 @@ export default function FeedPage() {
       link: `/u/${encodeURIComponent(viewerEmail)}`,
       is_read: false,
     });
-
-    setFollowingEmails((prev) => [...prev, emailToFollow]);
-    setSuggestedCreators((prev) => prev.filter((x) => x.email !== emailToFollow));
-    loadEverything();
   }
 
   function profileName(email?: string) {
     const profile = profiles[email || ""];
-    return profile?.display_name || profile?.username || email || "UTV Creator";
+
+    return (
+      profile?.display_name ||
+      profile?.username ||
+      email?.split("@")[0] ||
+      "UTV Creator"
+    );
   }
 
   function profileAvatar(email?: string) {
@@ -356,391 +593,764 @@ export default function FeedPage() {
 
   function openProfile(email?: string) {
     if (!email) return;
+
     router.push(`/u/${encodeURIComponent(email)}`);
   }
 
+  function registerVideo(
+    id: string,
+    video: HTMLVideoElement | null
+  ) {
+    videoRefs.current[id] = video;
+
+    if (video) {
+      video.muted = muted[id] ?? true;
+      video.playsInline = true;
+
+      observerRef.current?.observe(video);
+    }
+  }
+
+  function toggleVideoSound(id: string) {
+    const video = videoRefs.current[id];
+
+    setMuted((current) => {
+      const nextMuted = !(current[id] ?? true);
+
+      if (video) {
+        video.muted = nextMuted;
+
+        if (video.paused) {
+          video.play().catch(() => {});
+        }
+      }
+
+      return {
+        ...current,
+        [id]: nextMuted,
+      };
+    });
+  }
+
+  function toggleVideoPlay(id: string) {
+    const video = videoRefs.current[id];
+
+    if (!video) return;
+
+    if (video.paused) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }
+
   const storyBubbles = useMemo(() => {
-    const activeByUser: Record<string, any> = {};
+    const activeByCreator: Record<string, any> = {};
 
     stories.forEach((story) => {
-      if (!activeByUser[story.user_email]) {
-        activeByUser[story.user_email] = story;
+      if (!activeByCreator[story.user_email]) {
+        activeByCreator[story.user_email] = story;
       }
     });
 
+    const activeStories = Object.values(activeByCreator);
+
     const followedWithoutStories = followingEmails
-      .filter((email) => !activeByUser[email])
+      .filter((email) => !activeByCreator[email])
       .map((email) => ({
         id: `followed-${email}`,
         user_email: email,
         noStory: true,
       }));
 
-    const activeStories = Object.values(activeByUser);
-
-    const suggestedNoStories = suggestedCreators
-      .filter((creator) => !activeByUser[creator.email])
-      .slice(0, 8)
+    const suggestedWithoutStories = suggestedCreators
+      .filter(
+        (creator) => !activeByCreator[creator.email]
+      )
+      .slice(0, 6)
       .map((creator) => ({
         id: `suggested-${creator.email}`,
         user_email: creator.email,
         noStory: true,
-        suggested: true,
       }));
 
-    return [...activeStories, ...followedWithoutStories, ...suggestedNoStories];
+    return [
+      ...activeStories,
+      ...followedWithoutStories,
+      ...suggestedWithoutStories,
+    ];
   }, [stories, followingEmails, suggestedCreators]);
 
-  const filtered = useMemo(() => {
+  const filteredItems = useMemo(() => {
     let base = items;
 
     if (feedTab === "following") {
-      base = items.filter((x) => followingEmails.includes(x.creator_email));
+      base = items.filter((item) =>
+        followingEmails.includes(item.creator_email)
+      );
     }
 
     if (feedTab === "utv") {
-      base = items.filter((x) => {
-        const text = `${x.category || ""} ${x.title || ""}`.toLowerCase();
-        return text.includes("original") || text.includes("utv") || text.includes("podcast") || text.includes("music");
+      base = items.filter((item) => {
+        const text = `${item.category || ""} ${
+          item.title || ""
+        }`.toLowerCase();
+
+        return (
+          text.includes("utv") ||
+          text.includes("original") ||
+          text.includes("music") ||
+          text.includes("podcast")
+        );
       });
     }
 
     if (feedTab === "near") {
-      base = items.filter((x) => {
-        const text = `${x.city || ""} ${x.state || ""} ${x.description || ""}`.toLowerCase();
-        return text.includes("sacramento") || text.includes("california") || text.includes("ca");
+      base = items.filter((item) => {
+        const text = `${item.city || ""} ${
+          item.state || ""
+        } ${item.description || ""}`.toLowerCase();
+
+        return (
+          text.includes("sacramento") ||
+          text.includes("california") ||
+          text.includes(" ca")
+        );
       });
     }
 
+    const query = search.trim().toLowerCase();
+
+    if (!query) return base;
+
     return base.filter((item) => {
-      const text = `${item.title || ""} ${item.category || ""} ${item.description || ""} ${profileName(item.creator_email)}`.toLowerCase();
-      return text.includes(search.toLowerCase());
+      const text = `${item.title || ""} ${
+        item.category || ""
+      } ${item.description || ""} ${profileName(
+        item.creator_email
+      )}`.toLowerCase();
+
+      return text.includes(query);
     });
-  }, [items, search, feedTab, followingEmails, profiles]);
+  }, [
+    items,
+    feedTab,
+    followingEmails,
+    search,
+    profiles,
+  ]);
     return (
     <main className="feedPage">
       <UTVNav />
 
       <style>{`
+        * {
+          box-sizing: border-box;
+        }
+
+        button,
+        input {
+          font: inherit;
+        }
+
+        button {
+          cursor: pointer;
+        }
+
         .feedPage {
-          min-height:100vh;
-          padding-bottom:120px;
-          color:white;
+          min-height: 100vh;
+          padding-bottom: 120px;
+          overflow-x: hidden;
+          color: white;
           background:
-            radial-gradient(circle at 10% 0%, rgba(57,255,136,.16), transparent 28%),
+            radial-gradient(circle at 10% 0%, rgba(57,255,136,.15), transparent 28%),
             radial-gradient(circle at 90% 5%, rgba(123,97,255,.18), transparent 35%),
-            linear-gradient(180deg,#07111e,#000);
+            linear-gradient(180deg, #07111e, #000);
+        }
+
+        .feedHero {
+          position: relative;
+          height: 220px;
+          overflow: hidden;
+          background: #000;
         }
 
         .feedHero img {
-          width:100%;
-          height:28vh;
-          min-height:190px;
-          object-fit:cover;
-          display:block;
-          filter:brightness(1.2) contrast(1.12) saturate(1.22);
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          filter: brightness(1.18) contrast(1.12) saturate(1.2);
+        }
+
+        .feedHero::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: linear-gradient(
+            180deg,
+            transparent 45%,
+            rgba(7,17,30,.3),
+            #07111e
+          );
+        }
+
+        .refreshRow {
+          display: flex;
+          justify-content: flex-end;
+          padding: 8px 16px 0;
+        }
+
+        .refreshButton {
+          padding: 9px 13px;
+          color: white;
+          border: 1px solid rgba(255,255,255,.14);
+          border-radius: 999px;
+          background: rgba(255,255,255,.07);
+          font-weight: 850;
         }
 
         .feedTabs {
-          display:flex;
-          gap:10px;
-          overflow-x:auto;
-          padding:14px 16px 4px;
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding: 12px 16px 5px;
+          scrollbar-width: none;
+        }
+
+        .feedTabs::-webkit-scrollbar,
+        .stories::-webkit-scrollbar,
+        .suggested::-webkit-scrollbar {
+          display: none;
         }
 
         .feedTabs button {
-          flex:0 0 auto;
-          border:1px solid rgba(255,255,255,.14);
-          background:rgba(255,255,255,.08);
-          color:white;
-          border-radius:999px;
-          padding:10px 14px;
-          font-weight:900;
+          flex: 0 0 auto;
+          padding: 10px 14px;
+          color: white;
+          border: 1px solid rgba(255,255,255,.14);
+          border-radius: 999px;
+          background: rgba(255,255,255,.07);
+          font-weight: 900;
         }
 
         .feedTabs button.active {
-          color:#06120d;
-          background:linear-gradient(135deg,#52f7c8,#7b61ff);
+          color: #06120d;
+          border-color: transparent;
+          background: linear-gradient(135deg, #52f7c8, #7b61ff);
         }
 
         .stories {
-          display:flex;
-          gap:14px;
-          overflow-x:auto;
-          padding:16px;
-        }
-
-        .stories::-webkit-scrollbar,
-        .feedTabs::-webkit-scrollbar,
-        .suggested::-webkit-scrollbar {
-          display:none;
+          display: flex;
+          gap: 14px;
+          overflow-x: auto;
+          padding: 16px;
+          scrollbar-width: none;
         }
 
         .storyWrap {
-          min-width:82px;
-          display:grid;
-          justify-items:center;
-          gap:6px;
+          min-width: 76px;
+          display: grid;
+          justify-items: center;
+          gap: 6px;
         }
 
-        .storyBtn {
-          width:82px;
-          height:82px;
-          border-radius:50%;
-          border:3px solid #7b61ff;
-          padding:3px;
-          background:transparent;
-          overflow:hidden;
-          color:white;
-          font-weight:900;
+        .storyButton {
+          width: 76px;
+          height: 76px;
+          padding: 3px;
+          overflow: hidden;
+          color: white;
+          border: 3px solid #52f7c8;
+          border-radius: 50%;
+          background: transparent;
+          box-shadow: 0 0 20px rgba(82,247,200,.22);
         }
 
-        .storyBtn.activeStory {
-          border-color:#52f7c8;
-          box-shadow:0 0 22px rgba(82,247,200,.35);
+        .storyButton.noStory {
+          border-color: rgba(255,255,255,.22);
+          box-shadow: none;
         }
 
-        .storyBtn.noStory {
-          border-color:rgba(255,255,255,.22);
+        .storyButton.addStory {
+          display: grid;
+          place-items: center;
+          font-size: 32px;
+          border-color: #7b61ff;
+          background: linear-gradient(
+            135deg,
+            rgba(82,247,200,.18),
+            rgba(123,97,255,.2)
+          );
         }
 
-        .addStory {
-          border:2px solid #52f7c8;
-          background:rgba(255,255,255,.08);
-        }
-
-        .storyBtn img,
-        .storyBtn video {
-          width:100%;
-          height:100%;
-          object-fit:cover;
-          border-radius:50%;
+        .storyButton img,
+        .storyButton video {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          border-radius: 50%;
+          pointer-events: none;
         }
 
         .storyName {
-          max-width:82px;
-          font-size:11px;
-          color:rgba(255,255,255,.75);
-          overflow:hidden;
-          text-overflow:ellipsis;
-          white-space:nowrap;
-          text-align:center;
+          max-width: 76px;
+          overflow: hidden;
+          color: rgba(255,255,255,.76);
+          font-size: 11px;
+          text-align: center;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .suggested {
-          display:flex;
-          gap:12px;
-          overflow-x:auto;
-          padding:0 16px 16px;
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          padding: 0 16px 18px;
+          scrollbar-width: none;
         }
 
         .suggestedCard {
-          min-width:150px;
-          border:1px solid rgba(255,255,255,.13);
-          background:rgba(255,255,255,.07);
-          border-radius:22px;
-          padding:12px;
-          text-align:center;
+          min-width: 154px;
+          padding: 14px;
+          text-align: center;
+          border: 1px solid rgba(255,255,255,.13);
+          border-radius: 22px;
+          background: rgba(255,255,255,.065);
+          backdrop-filter: blur(15px);
+        }
+
+        .suggestedProfile {
+          width: 100%;
+          padding: 0;
+          color: white;
+          border: 0;
+          background: transparent;
         }
 
         .suggestedAvatar {
-          width:58px;
-          height:58px;
-          border-radius:50%;
-          object-fit:cover;
-          border:2px solid #52f7c8;
-          background:#111;
-          display:grid;
-          place-items:center;
-          margin:0 auto 8px;
+          width: 60px;
+          height: 60px;
+          display: grid;
+          place-items: center;
+          margin: 0 auto 9px;
+          object-fit: cover;
+          border: 2px solid #52f7c8;
+          border-radius: 50%;
+          background: #111;
         }
 
-        .searchWrap { padding:0 16px 14px; }
+        .suggestedCard b {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .suggestedCard p {
+          margin: 5px 0 11px;
+          overflow: hidden;
+          color: rgba(255,255,255,.55);
+          font-size: 12px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .followButton {
+          width: 100%;
+          padding: 10px;
+          color: #06120d;
+          border: 0;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #52f7c8, #7b61ff);
+          font-weight: 950;
+        }
+
+        .searchWrap {
+          padding: 0 16px 16px;
+        }
 
         .feedSearch {
-          width:100%;
-          box-sizing:border-box;
-          padding:16px;
-          border-radius:22px;
-          border:1px solid rgba(255,255,255,.18);
-          background:rgba(255,255,255,.1);
-          color:white;
-          font-size:16px;
-          outline:none;
+          width: 100%;
+          padding: 15px 16px;
+          color: white;
+          border: 1px solid rgba(255,255,255,.16);
+          border-radius: 20px;
+          outline: none;
+          background: rgba(255,255,255,.08);
+          font-size: 16px;
+        }
+
+        .feedSearch::placeholder {
+          color: rgba(255,255,255,.45);
         }
 
         .feedList {
-          display:grid;
-          gap:26px;
+          display: grid;
+          gap: 24px;
         }
 
         .feedPost {
-          border-bottom:1px solid rgba(255,255,255,.1);
-          padding-bottom:24px;
+          overflow: hidden;
+          border-top: 1px solid rgba(255,255,255,.08);
+          border-bottom: 1px solid rgba(255,255,255,.1);
+          background: rgba(255,255,255,.015);
         }
 
         .postHeader {
-          display:flex;
-          align-items:center;
-          gap:12px;
-          padding:0 16px 12px;
-          cursor:pointer;
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          width: 100%;
+          padding: 13px 16px;
+          color: white;
+          text-align: left;
+          border: 0;
+          background: transparent;
         }
 
-        .avatar {
-          width:48px;
-          height:48px;
-          border-radius:50%;
-          object-fit:cover;
-          border:2px solid #52f7c8;
-          background:rgba(255,255,255,.08);
-          display:grid;
-          place-items:center;
+        .postHeader:active {
+          background: rgba(255,255,255,.05);
         }
 
-        .postHeader h3 { margin:0; font-size:17px; }
-
-        .postHeader p {
-          margin:2px 0 0;
-          color:#ffd166;
-          font-size:13px;
-          font-weight:900;
+        .postAvatar {
+          width: 46px;
+          height: 46px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          object-fit: cover;
+          border: 2px solid #52f7c8;
+          border-radius: 50%;
+          background: rgba(255,255,255,.08);
         }
 
-        .mediaWrap { position:relative; background:#000; }
+        .postCreator {
+          min-width: 0;
+          flex: 1;
+        }
+
+        .postCreator h3 {
+          margin: 0;
+          overflow: hidden;
+          font-size: 16px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .postCreator p {
+          margin: 3px 0 0;
+          color: #ffd166;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .profileArrow {
+          color: rgba(255,255,255,.5);
+          font-size: 20px;
+        }
+
+        .mediaWrap {
+          position: relative;
+          min-height: 260px;
+          overflow: hidden;
+          background: #000;
+        }
 
         .postMedia {
-          width:100%;
-          max-height:760px;
-          object-fit:cover;
-          display:block;
-          background:#000;
+          width: 100%;
+          max-height: 76vh;
+          min-height: 280px;
+          display: block;
+          object-fit: cover;
+          background: #000;
         }
 
-        .muteBadge {
-          position:absolute;
-          right:14px;
-          bottom:14px;
-          width:42px;
-          height:42px;
-          border-radius:50%;
-          border:1px solid rgba(255,255,255,.2);
-          background:rgba(0,0,0,.55);
-          color:white;
+        video.postMedia {
+          cursor: pointer;
         }
 
-        .postBody { padding:14px 16px 0; }
-
-        .postBody h2 {
-          margin:0 0 6px;
-          font-size:23px;
+        .mediaProfileButton {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          z-index: 6;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          max-width: 60%;
+          padding: 7px 10px;
+          color: white;
+          border: 1px solid rgba(255,255,255,.18);
+          border-radius: 999px;
+          background: rgba(0,0,0,.52);
+          backdrop-filter: blur(12px);
         }
 
-        .caption {
-          color:rgba(255,255,255,.78);
-          line-height:1.45;
-          font-size:16px;
-          margin:0;
+        .mediaProfileButton span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .soundButton {
+          position: absolute;
+          right: 14px;
+          bottom: 14px;
+          z-index: 7;
+          width: 43px;
+          height: 43px;
+          color: white;
+          border: 1px solid rgba(255,255,255,.2);
+          border-radius: 50%;
+          background: rgba(0,0,0,.58);
+          backdrop-filter: blur(12px);
+        }
+
+        .tapHint {
+          position: absolute;
+          right: 66px;
+          bottom: 25px;
+          z-index: 5;
+          padding: 5px 8px;
+          color: rgba(255,255,255,.72);
+          border-radius: 999px;
+          background: rgba(0,0,0,.42);
+          font-size: 10px;
+          pointer-events: none;
+        }
+
+        .fallbackMedia {
+          height: 340px;
+          display: grid;
+          place-items: center;
+          color: white;
+          font-size: 48px;
+          font-weight: 950;
+          background:
+            radial-gradient(circle at center, rgba(123,97,255,.32), transparent 45%),
+            linear-gradient(135deg, #111, #050505);
+        }
+
+        .postBody {
+          padding: 13px 16px 17px;
         }
 
         .actionRow {
-          display:flex;
-          align-items:center;
-          gap:18px;
-          margin-top:14px;
+          display: flex;
+          align-items: center;
+          gap: 18px;
         }
 
-        .iconBtn {
-          border:0;
-          background:transparent;
-          color:white;
-          font-size:23px;
-          padding:0;
-          cursor:pointer;
+        .actionButton {
+          padding: 0;
+          color: white;
+          border: 0;
+          background: transparent;
+          font-size: 25px;
+        }
+
+        .actionButton.liked {
+          filter: drop-shadow(0 0 7px rgba(255,92,168,.65));
+        }
+
+        .saveButton {
+          margin-left: auto;
         }
 
         .actionMeta {
-          margin-top:8px;
-          color:rgba(255,255,255,.72);
-          font-size:13px;
-          font-weight:800;
+          margin: 9px 0 0;
+          color: rgba(255,255,255,.68);
+          font-size: 13px;
+          font-weight: 800;
         }
 
-        .commentBox { margin-top:12px; }
+        .postTitle {
+          margin: 9px 0 4px;
+          font-size: 21px;
+        }
+
+        .caption {
+          margin: 0;
+          color: rgba(255,255,255,.78);
+          font-size: 15px;
+          line-height: 1.45;
+          white-space: pre-wrap;
+        }
+
+        .creatorCaptionButton {
+          padding: 0;
+          color: #ffd166;
+          border: 0;
+          background: transparent;
+          font-weight: 900;
+        }
+
+        .commentSection {
+          margin-top: 12px;
+        }
 
         .viewComments {
-          color:rgba(255,255,255,.55);
-          font-size:14px;
-          font-weight:800;
-          margin:0 0 10px;
+          margin: 0 0 9px;
+          color: rgba(255,255,255,.5);
+          font-size: 13px;
+          font-weight: 800;
         }
 
         .commentPreview {
-          display:grid;
-          gap:7px;
-          margin-bottom:10px;
+          display: grid;
+          gap: 6px;
+          margin-bottom: 10px;
         }
 
         .commentLine {
-          margin:0;
-          color:white;
-          font-size:14px;
-          line-height:1.35;
+          margin: 0;
+          color: rgba(255,255,255,.86);
+          font-size: 14px;
+          line-height: 1.4;
         }
 
-        .commentLine b {
-          color:#ffd166;
-          cursor:pointer;
+        .commentUser {
+          padding: 0;
+          color: #ffd166;
+          border: 0;
+          background: transparent;
+          font-weight: 900;
         }
 
         .commentComposer {
-          display:flex;
-          align-items:center;
-          gap:9px;
-          border:1px solid rgba(255,255,255,.12);
-          background:rgba(255,255,255,.065);
-          border-radius:999px;
-          padding:8px 9px 8px 12px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 8px 7px 12px;
+          border: 1px solid rgba(255,255,255,.12);
+          border-radius: 999px;
+          background: rgba(255,255,255,.055);
         }
 
         .commentComposer input {
-          flex:1;
-          border:0;
-          outline:none;
-          background:transparent;
-          color:white;
-          font-size:15px;
+          flex: 1;
+          min-width: 0;
+          padding: 7px 0;
+          color: white;
+          border: 0;
+          outline: none;
+          background: transparent;
         }
 
-        .sendBtn {
-          width:36px;
-          height:36px;
-          border-radius:50%;
-          border:0;
-          background:linear-gradient(135deg,#52f7c8,#7b61ff);
-          color:#07111e;
-          font-weight:950;
+        .sendComment {
+          width: 37px;
+          height: 37px;
+          color: #06120d;
+          border: 0;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #52f7c8, #7b61ff);
+          font-weight: 950;
         }
 
-        .emptyState { margin:16px; }
+        .emptyState {
+          margin: 16px;
+          padding: 20px;
+          border: 1px solid rgba(255,255,255,.12);
+          border-radius: 22px;
+          background: rgba(255,255,255,.06);
+        }
+
+        .skeleton {
+          overflow: hidden;
+          position: relative;
+        }
+
+        .skeleton::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-100%);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255,255,255,.1),
+            transparent
+          );
+          animation: skeletonMove 1.25s infinite;
+        }
+
+        @keyframes skeletonMove {
+          to {
+            transform: translateX(100%);
+          }
+        }
+
+        @media (min-width: 760px) {
+          .feedPage {
+            max-width: 680px;
+            margin: 0 auto;
+            box-shadow: 0 0 70px rgba(0,0,0,.45);
+          }
+        }
       `}</style>
 
       <section className="feedHero">
-        <img src={heroHeaders[heroIndex]} alt="UTV" />
+        <img
+          src={heroHeaders[heroIndex]}
+          alt="UTV"
+          loading="eager"
+          fetchPriority="high"
+        />
+      </section>
+
+      <section className="refreshRow">
+        <button
+          className="refreshButton"
+          onClick={() => loadEverything(false)}
+          disabled={refreshing}
+        >
+          {refreshing ? "Refreshing..." : "↻ Refresh"}
+        </button>
       </section>
 
       <section className="feedTabs">
-        <button className={feedTab === "forYou" ? "active" : ""} onClick={() => setFeedTab("forYou")}>🔥 For You</button>
-        <button className={feedTab === "following" ? "active" : ""} onClick={() => setFeedTab("following")}>⭐ Following</button>
-        <button className={feedTab === "near" ? "active" : ""} onClick={() => setFeedTab("near")}>📍 Near You</button>
-        <button className={feedTab === "utv" ? "active" : ""} onClick={() => setFeedTab("utv")}>📺 UTV</button>
+        <button
+          className={feedTab === "forYou" ? "active" : ""}
+          onClick={() => setFeedTab("forYou")}
+        >
+          🔥 For You
+        </button>
+
+        <button
+          className={feedTab === "following" ? "active" : ""}
+          onClick={() => setFeedTab("following")}
+        >
+          ⭐ Following
+        </button>
+
+        <button
+          className={feedTab === "near" ? "active" : ""}
+          onClick={() => setFeedTab("near")}
+        >
+          📍 Near You
+        </button>
+
+        <button
+          className={feedTab === "utv" ? "active" : ""}
+          onClick={() => setFeedTab("utv")}
+        >
+          📺 UTV
+        </button>
       </section>
 
       <section className="stories">
         <div className="storyWrap">
-          <button className="storyBtn addStory" onClick={() => router.push("/submit?type=story")}>
+          <button
+            className="storyButton addStory"
+            onClick={() => router.push("/submit?type=story")}
+          >
             +
           </button>
+
           <span className="storyName">Your Story</span>
         </div>
 
@@ -751,19 +1361,40 @@ export default function FeedPage() {
           return (
             <div className="storyWrap" key={story.id}>
               <button
-                className={story.noStory ? "storyBtn noStory" : "storyBtn activeStory"}
-                onClick={() =>
+                className={
                   story.noStory
-                    ? openProfile(story.user_email)
-                    : router.push(`/stories/${story.id}`)
+                    ? "storyButton noStory"
+                    : "storyButton"
                 }
+                onClick={() => {
+                  if (story.noStory) {
+                    openProfile(story.user_email);
+                    return;
+                  }
+
+                  router.push(`/stories/${story.id}`);
+                }}
               >
                 {avatar ? (
-                  <img src={avatar} alt={name} />
-                ) : story.media_type === "video" && story.media_url ? (
-                  <video src={story.media_url} muted playsInline />
+                  <img
+                    src={avatar}
+                    alt={name}
+                    loading="lazy"
+                  />
+                ) : story.media_type === "video" &&
+                  story.media_url ? (
+                  <video
+                    src={story.media_url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
                 ) : story.media_url ? (
-                  <img src={story.media_url} alt={name} />
+                  <img
+                    src={story.media_url}
+                    alt={name}
+                    loading="lazy"
+                  />
                 ) : (
                   "👤"
                 )}
@@ -778,22 +1409,46 @@ export default function FeedPage() {
       {suggestedCreators.length > 0 && (
         <section className="suggested">
           {suggestedCreators.slice(0, 8).map((creator) => (
-            <div className="suggestedCard" key={creator.email}>
-              {creator.avatar_url ? (
-                <img className="suggestedAvatar" src={creator.avatar_url} alt={creator.display_name || "Creator"} />
-              ) : (
-                <div className="suggestedAvatar">👤</div>
-              )}
+            <article className="suggestedCard" key={creator.email}>
+              <button
+                className="suggestedProfile"
+                onClick={() => openProfile(creator.email)}
+              >
+                {creator.avatar_url ? (
+                  <img
+                    className="suggestedAvatar"
+                    src={creator.avatar_url}
+                    alt={
+                      creator.display_name ||
+                      creator.username ||
+                      "Creator"
+                    }
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="suggestedAvatar">👤</div>
+                )}
 
-              <b>{creator.display_name || creator.username || "UTV Creator"}</b>
-              <p style={{ color: "rgba(255,255,255,.6)", fontSize: 12 }}>
-                @{creator.username || creator.email?.split("@")[0]}
-              </p>
+                <b>
+                  {creator.display_name ||
+                    creator.username ||
+                    "UTV Creator"}
+                </b>
 
-              <button className="btn" onClick={() => followCreator(creator.email)}>
+                <p>
+                  @
+                  {creator.username ||
+                    creator.email?.split("@")[0]}
+                </p>
+              </button>
+
+              <button
+                className="followButton"
+                onClick={() => followCreator(creator.email)}
+              >
                 Follow
               </button>
-            </div>
+            </article>
           ))}
         </section>
       )}
@@ -801,113 +1456,270 @@ export default function FeedPage() {
       <section className="searchWrap">
         <input
           className="feedSearch"
-          placeholder="Search UTV..."
+          placeholder="Search creators, videos, services..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && search.trim()) {
-              router.push(`/search?q=${encodeURIComponent(search.trim())}`);
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && search.trim()) {
+              router.push(
+                `/search?q=${encodeURIComponent(search.trim())}`
+              );
             }
           }}
         />
       </section>
 
-      <section className="feedList">
-        {loading ? (
-          <div className="card emptyState">
-            <h2>Loading Feed...</h2>
-            <p style={{ color: "var(--muted)" }}>Getting the latest posts.</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="card emptyState">
-            <h2>No posts yet</h2>
-            <p style={{ color: "var(--muted)" }}>Follow creators or check For You.</p>
-          </div>
-        ) : (
-          filtered.map((item) => {
+      {loading ? (
+        <section className="feedList">
+          {[1, 2].map((item) => (
+            <article className="feedPost skeleton" key={item}>
+              <div
+                style={{
+                  height: 72,
+                  background: "rgba(255,255,255,.055)",
+                }}
+              />
+
+              <div
+                style={{
+                  height: 440,
+                  background: "rgba(255,255,255,.035)",
+                }}
+              />
+
+              <div
+                style={{
+                  height: 130,
+                  background: "rgba(255,255,255,.055)",
+                }}
+              />
+            </article>
+          ))}
+        </section>
+      ) : filteredItems.length === 0 ? (
+        <section className="emptyState">
+          <h2>No posts found</h2>
+          <p style={{ color: "rgba(255,255,255,.6)" }}>
+            Try another tab or search, or follow more creators.
+          </p>
+        </section>
+      ) : (
+        <section className="feedList">
+          {filteredItems.map((item) => {
+            const creatorEmail =
+              item.creator_email || item.user_email || "";
+
+            const creatorName = profileName(creatorEmail);
+            const creatorAvatar = profileAvatar(creatorEmail);
+
             const image = mediaImage(item);
-            const video = mediaVideo(item);
-            const creator = item.creator_email;
-            const avatar = profileAvatar(creator);
-            const isMuted = muted[item.id] ?? true;
+            const videoUrl = mediaVideo(item);
+
+            const useVideo =
+              Boolean(videoUrl) &&
+              (isVideoUrl(videoUrl) ||
+                item.video_url ||
+                String(item.content_type || "")
+                  .toLowerCase()
+                  .includes("video"));
+
             const postComments = comments[item.id] || [];
+            const isMuted = muted[item.id] ?? true;
+            const isLiked = likedPosts[item.id] || false;
 
             return (
-              <article key={item.id} className="feedPost">
-                <div className="postHeader" onClick={() => openProfile(creator)}>
-                  {avatar ? (
-                    <img className="avatar" src={avatar} alt={profileName(creator)} />
+              <article className="feedPost" key={item.id}>
+                <button
+                  className="postHeader"
+                  onClick={() => openProfile(creatorEmail)}
+                >
+                  {creatorAvatar ? (
+                    <img
+                      className="postAvatar"
+                      src={creatorAvatar}
+                      alt={creatorName}
+                      loading="lazy"
+                    />
                   ) : (
-                    <div className="avatar">👤</div>
+                    <div className="postAvatar">👤</div>
                   )}
 
-                  <div>
-                    <h3>{profileName(creator)} <span style={{ color: "#52f7c8" }}>●</span></h3>
-                    <p>{item.category || "UTV Feed"}</p>
-                  </div>
-                </div>
+                  <div className="postCreator">
+                    <h3>{creatorName}</h3>
 
-                <div className="mediaWrap" onDoubleClick={() => likePost(item.id, creator)}>
-                  {video ? (
+                    <p>
+                      {item.category || "UTV Creator"}
+                    </p>
+                  </div>
+
+                  <span className="profileArrow">›</span>
+                </button>
+
+                <div className="mediaWrap">
+                  <button
+                    className="mediaProfileButton"
+                    onClick={() => openProfile(creatorEmail)}
+                  >
+                    <span>👤</span>
+                    <span>{creatorName}</span>
+                  </button>
+
+                  {useVideo ? (
                     <>
                       <video
-                        ref={(el) => {
-                          videoRefs.current[item.id] = el;
-                        }}
+                        ref={(video) =>
+                          registerVideo(item.id, video)
+                        }
                         className="postMedia"
-                        src={video}
+                        src={videoUrl}
+                        poster={image || undefined}
                         muted={isMuted}
+                        autoPlay
                         playsInline
                         loop
                         preload="metadata"
-                        onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}
+                        onClick={() =>
+                          toggleVideoPlay(item.id)
+                        }
+                        onCanPlay={(event) => {
+                          const video =
+                            event.currentTarget;
+
+                          if (
+                            video.getBoundingClientRect().top <
+                              window.innerHeight &&
+                            video.getBoundingClientRect().bottom >
+                              0
+                          ) {
+                            video.play().catch(() => {});
+                          }
+                        }}
                       />
 
-                      <button className="muteBadge" onClick={() => setMuted((prev) => ({ ...prev, [item.id]: !isMuted }))}>
+                      <button
+                        className="soundButton"
+                        onClick={() =>
+                          toggleVideoSound(item.id)
+                        }
+                        aria-label={
+                          isMuted ? "Turn sound on" : "Mute video"
+                        }
+                      >
                         {isMuted ? "🔇" : "🔊"}
                       </button>
+
+                      <span className="tapHint">
+                        Tap video to pause
+                      </span>
                     </>
                   ) : image ? (
                     <img
                       className="postMedia"
                       src={image}
                       alt={item.title || "UTV post"}
-                      onClick={() => router.push(`/watch/${item.id}`)}
+                      loading="lazy"
+                      onClick={() =>
+                        router.push(`/watch/${item.id}`)
+                      }
                     />
                   ) : (
-                    <div className="postMedia" style={{ height: 340, display: "grid", placeItems: "center", fontSize: 54 }}>
-                      UTV
-                    </div>
+                    <div className="fallbackMedia">UTV</div>
                   )}
                 </div>
 
                 <div className="postBody">
                   <div className="actionRow">
-                    <button className="iconBtn" onClick={() => likePost(item.id, creator)}>♡</button>
-                    <button className="iconBtn">💬</button>
-                    <button className="iconBtn" onClick={() => sharePost(item)}>↗</button>
-                    <button className="iconBtn" style={{ marginLeft: "auto" }}>🔖</button>
+                    <button
+                      className={
+                        isLiked
+                          ? "actionButton liked"
+                          : "actionButton"
+                      }
+                      onClick={() =>
+                        likePost(item.id, creatorEmail)
+                      }
+                      aria-label="Like post"
+                    >
+                      {isLiked ? "❤️" : "♡"}
+                    </button>
+
+                    <button
+                      className="actionButton"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          `comment-${item.id}`
+                        ) as HTMLInputElement | null;
+
+                        input?.focus();
+                      }}
+                      aria-label="Comment"
+                    >
+                      💬
+                    </button>
+
+                    <button
+                      className="actionButton"
+                      onClick={() => sharePost(item)}
+                      aria-label="Share post"
+                    >
+                      ↗
+                    </button>
+
+                    <button
+                      className="actionButton saveButton"
+                      onClick={() =>
+                        router.push(`/watch/${item.id}`)
+                      }
+                      aria-label="Open post"
+                    >
+                      ▣
+                    </button>
                   </div>
 
-                  <div className="actionMeta">
-                    {likes[item.id] || 0} likes • {postComments.length} comments
-                  </div>
+                  <p className="actionMeta">
+                    {likes[item.id] || 0} likes ·{" "}
+                    {postComments.length} comments
+                  </p>
 
-                  <h2>{item.title || "Untitled"}</h2>
+                  {item.title && (
+                    <h2 className="postTitle">{item.title}</h2>
+                  )}
 
-                  {item.description && <p className="caption">{item.description}</p>}
+                  {item.description && (
+                    <p className="caption">
+                      <button
+                        className="creatorCaptionButton"
+                        onClick={() =>
+                          openProfile(creatorEmail)
+                        }
+                      >
+                        {creatorName}
+                      </button>{" "}
+                      {item.description}
+                    </p>
+                  )}
 
-                  <div className="commentBox">
+                  <section className="commentSection">
                     {postComments.length > 2 && (
-                      <p className="viewComments">View all {postComments.length} comments</p>
+                      <p className="viewComments">
+                        View all {postComments.length} comments
+                      </p>
                     )}
 
                     <div className="commentPreview">
                       {postComments.slice(-2).map((comment) => (
-                        <p className="commentLine" key={comment.id}>
-                          <b onClick={() => openProfile(comment.user_email)}>
+                        <p
+                          className="commentLine"
+                          key={comment.id}
+                        >
+                          <button
+                            className="commentUser"
+                            onClick={() =>
+                              openProfile(comment.user_email)
+                            }
+                          >
                             {profileName(comment.user_email)}
-                          </b>{" "}
+                          </button>{" "}
                           {comment.comment}
                         </p>
                       ))}
@@ -915,28 +1727,40 @@ export default function FeedPage() {
 
                     <div className="commentComposer">
                       <span>😊</span>
+
                       <input
+                        id={`comment-${item.id}`}
                         placeholder="Add a comment..."
                         value={commentText[item.id] || ""}
-                        onChange={(e) =>
-                          setCommentText((prev) => ({
-                            ...prev,
-                            [item.id]: e.target.value,
+                        onChange={(event) =>
+                          setCommentText((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
                           }))
                         }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            addComment(item.id, creatorEmail);
+                          }
+                        }}
                       />
 
-                      <button className="sendBtn" onClick={() => addComment(item.id, creator)}>
+                      <button
+                        className="sendComment"
+                        onClick={() =>
+                          addComment(item.id, creatorEmail)
+                        }
+                      >
                         ➤
                       </button>
                     </div>
-                  </div>
+                  </section>
                 </div>
               </article>
             );
-          })
-        )}
-      </section>
+          })}
+        </section>
+      )}
     </main>
   );
 }
