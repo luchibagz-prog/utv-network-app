@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-type Destination = "story" | "feed" | "profile" | "world";
+type Destination = "feed" | "profile" | "world";
 type CameraFacing = "user" | "environment";
 
 type TextLayer = {
@@ -33,27 +33,27 @@ type StickerLayer = {
 
 const createOptions = [
   {
-    title: "Feed Post",
-    icon: "📱",
-    desc: "Share a photo, video, or update.",
-    type: "feed",
-  },
-  {
     title: "Story",
     icon: "📖",
-    desc: "Share a 24-hour story.",
+    desc: "Share a photo or video for 24 hours.",
     type: "story",
+  },
+  {
+    title: "Feed Post",
+    icon: "📱",
+    desc: "Post a photo, video, or update.",
+    type: "feed",
   },
   {
     title: "Paste Link",
     icon: "🔗",
-    desc: "Share YouTube, Vimeo, MP4, images, or flyers.",
+    desc: "Share hosted videos, images, or flyers.",
     type: "link",
   },
   {
     title: "TV Show",
     icon: "🎬",
-    desc: "Upload a premium episode.",
+    desc: "Upload a show or episode.",
     type: "show",
   },
   {
@@ -71,7 +71,7 @@ const createOptions = [
   {
     title: "Music Video",
     icon: "🎵",
-    desc: "Post music and visuals.",
+    desc: "Share music and visuals.",
     type: "music",
   },
   {
@@ -178,14 +178,14 @@ function isAudioLink(url: string) {
 }
 
 function isEmbedLink(url: string) {
-  const lower = url.toLowerCase();
+  const value = url.toLowerCase();
 
   return (
-    lower.includes("youtube.com") ||
-    lower.includes("youtu.be") ||
-    lower.includes("vimeo.com") ||
-    lower.includes("tiktok.com") ||
-    lower.includes("instagram.com")
+    value.includes("youtube.com") ||
+    value.includes("youtu.be") ||
+    value.includes("vimeo.com") ||
+    value.includes("tiktok.com") ||
+    value.includes("instagram.com")
   );
 }
 
@@ -196,6 +196,8 @@ export default function SubmitPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
 
   const draggingTextRef = useRef<{
     id: string;
@@ -213,10 +215,11 @@ export default function SubmitPage() {
     originalY: number;
   } | null>(null);
 
-  const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const drawingRef = useRef(false);
+  const [mode, setMode] = useState<
+    "hub" | "camera" | "editor" | "link"
+  >("hub");
 
-  const [mode, setMode] = useState("hub");
+  const [creationType, setCreationType] = useState("feed");
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -230,6 +233,7 @@ export default function SubmitPage() {
 
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
   const [selectedTextId, setSelectedTextId] = useState("");
+
   const [stickers, setStickers] = useState<StickerLayer[]>([]);
   const [selectedStickerId, setSelectedStickerId] = useState("");
 
@@ -244,12 +248,9 @@ export default function SubmitPage() {
   const [musicArtist, setMusicArtist] = useState("");
   const [showMusicPanel, setShowMusicPanel] = useState(false);
 
-  const [storyDuration, setStoryDuration] = useState(5);
-
   const [destinations, setDestinations] = useState<
     Record<Destination, boolean>
   >({
-    story: false,
     feed: true,
     profile: true,
     world: false,
@@ -266,6 +267,8 @@ export default function SubmitPage() {
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
 
+  const isStory = creationType === "story";
+
   const selectedText = textLayers.find(
     (layer) => layer.id === selectedTextId
   );
@@ -277,7 +280,7 @@ export default function SubmitPage() {
   const selectedDestinations = useMemo(() => {
     return Object.entries(destinations)
       .filter(([, selected]) => selected)
-      .map(([name]) => name);
+      .map(([destination]) => destination);
   }, [destinations]);
 
   const previewUrl = preview || linkUrl.trim();
@@ -316,6 +319,21 @@ export default function SubmitPage() {
     };
   }, [preview, musicPreview]);
 
+  useEffect(() => {
+    if (mode !== "editor") return;
+
+    const timer = window.setTimeout(() => {
+      resizeDrawingCanvas();
+    }, 100);
+
+    window.addEventListener("resize", resizeDrawingCanvas);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", resizeDrawingCanvas);
+    };
+  }, [mode]);
+
   function resetCreator() {
     if (preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
@@ -328,6 +346,8 @@ export default function SubmitPage() {
     stopCamera();
 
     setMode("hub");
+    setCreationType("feed");
+
     setFile(null);
     setPreview("");
     setLinkUrl("");
@@ -339,6 +359,7 @@ export default function SubmitPage() {
 
     setTextLayers([]);
     setSelectedTextId("");
+
     setStickers([]);
     setSelectedStickerId("");
 
@@ -352,10 +373,7 @@ export default function SubmitPage() {
     setMusicArtist("");
     setShowMusicPanel(false);
 
-    setStoryDuration(5);
-
     setDestinations({
-      story: false,
       feed: true,
       profile: true,
       world: false,
@@ -380,18 +398,17 @@ export default function SubmitPage() {
       link: "Feed",
     };
 
+    setCreationType(type);
     setCategory(categoryMap[type] || "Feed");
 
     if (type === "story") {
       setDestinations({
-        story: true,
         feed: false,
         profile: false,
         world: false,
       });
     } else {
       setDestinations({
-        story: false,
         feed: true,
         profile: true,
         world: false,
@@ -406,9 +423,9 @@ export default function SubmitPage() {
 
     setMode("camera");
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       startCamera();
-    }, 200);
+    }, 150);
   }
 
   async function startCamera(
@@ -459,40 +476,41 @@ export default function SubmitPage() {
   }
 
   async function flipCamera() {
-    const next =
+    const nextFacing =
       cameraFacing === "user" ? "environment" : "user";
 
-    await startCamera(next);
+    await startCamera(nextFacing);
   }
 
   function pickFile(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const picked = event.target.files?.[0];
+    const selectedFile = event.target.files?.[0];
 
-    if (!picked) return;
+    if (!selectedFile) return;
 
     if (preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
     }
 
-    setFile(picked);
-    setPreview(URL.createObjectURL(picked));
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
     setLinkUrl("");
+
     stopCamera();
-    setMode("preview");
+    setMode("editor");
     setMessage("");
   }
 
   function pickMusicFile(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const picked = event.target.files?.[0];
+    const selectedFile = event.target.files?.[0];
 
-    if (!picked) return;
+    if (!selectedFile) return;
 
-    if (!picked.type.startsWith("audio/")) {
-      setMessage("Choose an MP3, M4A, WAV, AAC, or OGG audio file.");
+    if (!selectedFile.type.startsWith("audio/")) {
+      setMessage("Choose an audio file from your phone.");
       return;
     }
 
@@ -500,13 +518,13 @@ export default function SubmitPage() {
       URL.revokeObjectURL(musicPreview);
     }
 
-    setMusicFile(picked);
-    setMusicPreview(URL.createObjectURL(picked));
+    setMusicFile(selectedFile);
+    setMusicPreview(URL.createObjectURL(selectedFile));
     setMusicUrl("");
 
     if (!musicTitle) {
       setMusicTitle(
-        picked.name.replace(/\.[^/.]+$/, "")
+        selectedFile.name.replace(/\.[^/.]+$/, "")
       );
     }
 
@@ -566,8 +584,9 @@ export default function SubmitPage() {
 
         setFile(capturedFile);
         setPreview(URL.createObjectURL(blob));
+
         stopCamera();
-        setMode("preview");
+        setMode("editor");
       },
       "image/jpeg",
       0.92
@@ -626,7 +645,7 @@ export default function SubmitPage() {
       streamRef.current = null;
       recorderRef.current = null;
       setRecording(false);
-      setMode("preview");
+      setMode("editor");
     };
 
     recorder.start();
@@ -651,13 +670,13 @@ export default function SubmitPage() {
   }
 
   function addTextLayer() {
-    const value = window.prompt("Type your text");
+    const text = window.prompt("Type your story text");
 
-    if (!value?.trim()) return;
+    if (!text?.trim()) return;
 
     const layer: TextLayer = {
       id: makeId("text"),
-      text: value.trim(),
+      text: text.trim(),
       color: "#ffffff",
       size: 32,
       x: 50,
@@ -667,6 +686,7 @@ export default function SubmitPage() {
 
     setTextLayers((current) => [...current, layer]);
     setSelectedTextId(layer.id);
+    setSelectedStickerId("");
   }
 
   function updateSelectedText(
@@ -677,7 +697,10 @@ export default function SubmitPage() {
     setTextLayers((current) =>
       current.map((layer) =>
         layer.id === selectedTextId
-          ? { ...layer, ...changes }
+          ? {
+              ...layer,
+              ...changes,
+            }
           : layer
       )
     );
@@ -704,6 +727,7 @@ export default function SubmitPage() {
 
     setStickers((current) => [...current, sticker]);
     setSelectedStickerId(sticker.id);
+    setSelectedTextId("");
   }
 
   function updateSelectedSticker(
@@ -714,7 +738,10 @@ export default function SubmitPage() {
     setStickers((current) =>
       current.map((sticker) =>
         sticker.id === selectedStickerId
-          ? { ...sticker, ...changes }
+          ? {
+              ...sticker,
+              ...changes,
+            }
           : sticker
       )
     );
@@ -732,13 +759,10 @@ export default function SubmitPage() {
     setSelectedStickerId("");
   }
     function beginTextDrag(
-    event:
-      | React.PointerEvent<HTMLDivElement>
-      | React.TouchEvent<HTMLDivElement>,
+    event: React.PointerEvent<HTMLDivElement>,
     layer: TextLayer
   ) {
-    const point =
-      "touches" in event ? event.touches[0] : event;
+    const point = event;
 
     draggingTextRef.current = {
       id: layer.id,
@@ -752,17 +776,10 @@ export default function SubmitPage() {
     setSelectedStickerId("");
   }
 
-  function moveText(
-    event:
-      | React.PointerEvent<HTMLDivElement>
-      | React.TouchEvent<HTMLDivElement>
-  ) {
+  function moveText(event: React.PointerEvent<HTMLDivElement>) {
     const drag = draggingTextRef.current;
 
     if (!drag) return;
-
-    const point =
-      "touches" in event ? event.touches[0] : event;
 
     const bounds =
       event.currentTarget.parentElement?.getBoundingClientRect();
@@ -770,10 +787,10 @@ export default function SubmitPage() {
     if (!bounds) return;
 
     const moveX =
-      ((point.clientX - drag.startX) / bounds.width) * 100;
+      ((event.clientX - drag.startX) / bounds.width) * 100;
 
     const moveY =
-      ((point.clientY - drag.startY) / bounds.height) * 100;
+      ((event.clientY - drag.startY) / bounds.height) * 100;
 
     setTextLayers((current) =>
       current.map((layer) =>
@@ -799,18 +816,13 @@ export default function SubmitPage() {
   }
 
   function beginStickerDrag(
-    event:
-      | React.PointerEvent<HTMLDivElement>
-      | React.TouchEvent<HTMLDivElement>,
+    event: React.PointerEvent<HTMLDivElement>,
     sticker: StickerLayer
   ) {
-    const point =
-      "touches" in event ? event.touches[0] : event;
-
     draggingStickerRef.current = {
       id: sticker.id,
-      startX: point.clientX,
-      startY: point.clientY,
+      startX: event.clientX,
+      startY: event.clientY,
       originalX: sticker.x,
       originalY: sticker.y,
     };
@@ -820,16 +832,11 @@ export default function SubmitPage() {
   }
 
   function moveSticker(
-    event:
-      | React.PointerEvent<HTMLDivElement>
-      | React.TouchEvent<HTMLDivElement>
+    event: React.PointerEvent<HTMLDivElement>
   ) {
     const drag = draggingStickerRef.current;
 
     if (!drag) return;
-
-    const point =
-      "touches" in event ? event.touches[0] : event;
 
     const bounds =
       event.currentTarget.parentElement?.getBoundingClientRect();
@@ -837,10 +844,10 @@ export default function SubmitPage() {
     if (!bounds) return;
 
     const moveX =
-      ((point.clientX - drag.startX) / bounds.width) * 100;
+      ((event.clientX - drag.startX) / bounds.width) * 100;
 
     const moveY =
-      ((point.clientY - drag.startY) / bounds.height) * 100;
+      ((event.clientY - drag.startY) / bounds.height) * 100;
 
     setStickers((current) =>
       current.map((sticker) =>
@@ -880,15 +887,13 @@ export default function SubmitPage() {
 
     if (!context) return;
 
-    context.scale(ratio, ratio);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.lineCap = "round";
     context.lineJoin = "round";
   }
 
   function beginDrawing(
-    event:
-      | React.PointerEvent<HTMLCanvasElement>
-      | React.TouchEvent<HTMLCanvasElement>
+    event: React.PointerEvent<HTMLCanvasElement>
   ) {
     if (!drawingEnabled) return;
 
@@ -897,25 +902,18 @@ export default function SubmitPage() {
 
     if (!canvas || !context) return;
 
-    const point =
-      "touches" in event ? event.touches[0] : event;
-
     const bounds = canvas.getBoundingClientRect();
 
     context.beginPath();
     context.moveTo(
-      point.clientX - bounds.left,
-      point.clientY - bounds.top
+      event.clientX - bounds.left,
+      event.clientY - bounds.top
     );
 
     drawingRef.current = true;
   }
 
-  function draw(
-    event:
-      | React.PointerEvent<HTMLCanvasElement>
-      | React.TouchEvent<HTMLCanvasElement>
-  ) {
+  function draw(event: React.PointerEvent<HTMLCanvasElement>) {
     if (!drawingEnabled || !drawingRef.current) return;
 
     const canvas = drawingCanvasRef.current;
@@ -923,17 +921,14 @@ export default function SubmitPage() {
 
     if (!canvas || !context) return;
 
-    const point =
-      "touches" in event ? event.touches[0] : event;
-
     const bounds = canvas.getBoundingClientRect();
 
     context.strokeStyle = drawingColor;
     context.lineWidth = drawingWidth;
 
     context.lineTo(
-      point.clientX - bounds.left,
-      point.clientY - bounds.top
+      event.clientX - bounds.left,
+      event.clientY - bounds.top
     );
 
     context.stroke();
@@ -949,12 +944,9 @@ export default function SubmitPage() {
 
     if (!canvas || !context) return;
 
-    context.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+    const bounds = canvas.getBoundingClientRect();
+
+    context.clearRect(0, 0, bounds.width, bounds.height);
   }
 
   function drawingDataUrl() {
@@ -989,9 +981,11 @@ export default function SubmitPage() {
       throw error;
     }
 
-    return supabase.storage
+    const { data } = supabase.storage
       .from(bucket)
-      .getPublicUrl(filePath).data.publicUrl;
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   }
 
   async function uploadMedia(): Promise<{
@@ -1058,9 +1052,9 @@ export default function SubmitPage() {
     return "";
   }
 
-  async function submitPost() {
-    if (!selectedDestinations.length) {
-      setMessage("Choose where you want to share this.");
+  async function shareStory() {
+    if (!file && !linkUrl.trim()) {
+      setMessage("Choose a photo or video first.");
       return;
     }
 
@@ -1078,33 +1072,92 @@ export default function SubmitPage() {
         return;
       }
 
-      const userEmail = user.email;
       const media = await uploadMedia();
       const finalMusicUrl = await uploadMusic();
 
-      const serializedTextLayers = textLayers.map(
-        (layer) => ({
-          id: layer.id,
-          text: layer.text,
-          color: layer.color,
-          size: layer.size,
-          x: layer.x,
-          y: layer.y,
-          shadow: layer.shadow,
-        })
-      );
+      const { data: storyRow, error: storyError } =
+        await supabase
+          .from("stories")
+          .insert({
+            user_email: user.email,
+            media_url: media.mediaUrl,
+            media_type:
+              media.mediaType === "image"
+                ? "image"
+                : "video",
+            caption: caption.trim(),
+            music_url: finalMusicUrl || null,
+            music_title:
+              [musicTitle.trim(), musicArtist.trim()]
+                .filter(Boolean)
+                .join(" — ") || null,
+            text_overlay: textLayers,
+            stickers,
+            drawing_data: drawingDataUrl() || null,
+            duration_seconds: 10,
+            expires_at: new Date(
+              Date.now() + 24 * 60 * 60 * 1000
+            ).toISOString(),
+          })
+          .select("id")
+          .single();
 
-      const serializedStickers = stickers.map(
-        (sticker) => ({
-          id: sticker.id,
-          value: sticker.value,
-          size: sticker.size,
-          x: sticker.x,
-          y: sticker.y,
-        })
-      );
+      if (storyError) {
+        throw storyError;
+      }
 
-      const finalCaption = caption.trim();
+      setMessage("Story shared.");
+
+      window.setTimeout(() => {
+        if (storyRow?.id) {
+          router.push(`/stories/${storyRow.id}`);
+        } else {
+          router.push("/feed");
+        }
+      }, 500);
+    } catch (error: any) {
+      console.error(error);
+
+      setMessage(
+        error?.message || "Could not share your story."
+      );
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function shareRegularPost() {
+    if (!file && !linkUrl.trim()) {
+      setMessage("Choose a photo, video, or link first.");
+      return;
+    }
+
+    if (!selectedDestinations.length) {
+      setMessage("Choose where you want to share.");
+      return;
+    }
+
+    setPosting(true);
+    setMessage("");
+
+    try {
+      const { data: authData } =
+        await supabase.auth.getUser();
+
+      const user = authData.user;
+
+      if (!user?.email) {
+        router.push("/login");
+        return;
+      }
+
+      const media = await uploadMedia();
+
+      const isVideo =
+        media.mediaType === "video" ||
+        media.mediaType === "embed" ||
+        media.mediaType === "link";
+
       const premiumCategories = [
         "Show",
         "Movie",
@@ -1114,11 +1167,6 @@ export default function SubmitPage() {
 
       const needsApproval =
         premiumCategories.includes(category);
-
-      const isVideo =
-        media.mediaType === "video" ||
-        media.mediaType === "embed" ||
-        media.mediaType === "link";
 
       let uploadId = "";
 
@@ -1135,9 +1183,9 @@ export default function SubmitPage() {
             .from("uploads")
             .insert({
               title: title.trim() || "UTV Post",
-              description: finalCaption,
+              description: caption.trim(),
               category,
-              creator_email: userEmail,
+              creator_email: user.email,
               video_url: isVideo ? media.mediaUrl : "",
               thumbnail_url:
                 media.thumbnail ||
@@ -1156,46 +1204,20 @@ export default function SubmitPage() {
             .select("id")
             .single();
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          throw uploadError;
+        }
 
         uploadId = uploadRow?.id || "";
-      }
-
-      if (destinations.story) {
-        const { error: storyError } = await supabase
-          .from("stories")
-          .insert({
-            user_email: userEmail,
-            media_url: media.mediaUrl,
-            media_type:
-              media.mediaType === "image"
-                ? "image"
-                : "video",
-            caption: finalCaption,
-            music_url: finalMusicUrl || null,
-            music_title:
-              [musicTitle.trim(), musicArtist.trim()]
-                .filter(Boolean)
-                .join(" — ") || null,
-            text_overlay: serializedTextLayers,
-            stickers: serializedStickers,
-            drawing_data: drawingDataUrl() || null,
-            duration_seconds: storyDuration,
-            expires_at: new Date(
-              Date.now() + 24 * 60 * 60 * 1000
-            ).toISOString(),
-          });
-
-        if (storyError) throw storyError;
       }
 
       if (destinations.world) {
         const { error: worldError } = await supabase
           .from("world_posts")
           .insert({
-            creator_email: userEmail,
+            creator_email: user.email,
             title: title.trim() || "UTV World Post",
-            description: finalCaption,
+            description: caption.trim(),
             world_type: worldType || category || "Feed",
             city,
             state: stateName,
@@ -1219,245 +1241,86 @@ export default function SubmitPage() {
                 : "",
           });
 
-        if (worldError) throw worldError;
+        if (worldError) {
+          throw worldError;
+        }
       }
 
-      setMessage("Posted successfully.");
+      setMessage(
+        needsApproval
+          ? "Submitted for approval."
+          : "Posted successfully."
+      );
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         if (
           destinations.world &&
           !destinations.feed &&
-          !destinations.story
+          !destinations.profile
         ) {
           router.push("/world");
-          return;
-        }
-
-        if (
+        } else if (
           destinations.profile &&
-          !destinations.feed &&
-          !destinations.story &&
-          !destinations.world
+          !destinations.feed
         ) {
           router.push("/profile");
-          return;
-        }
-
-        if (
-          destinations.story &&
-          !destinations.feed &&
-          !destinations.profile &&
-          !destinations.world
-        ) {
+        } else if (uploadId) {
           router.push("/feed");
-          return;
-        }
-
-        if (uploadId) {
+        } else {
           router.push("/feed");
-          return;
         }
-
-        router.push("/feed");
-      }, 700);
+      }, 600);
     } catch (error: any) {
       console.error(error);
 
       setMessage(
-        error?.message ||
-          "Could not post your content to UTV."
+        error?.message || "Could not post to UTV."
       );
     } finally {
       setPosting(false);
     }
   }
-    useEffect(() => {
-    if (mode !== "preview") return;
 
-    const timer = window.setTimeout(() => {
-      resizeDrawingCanvas();
-    }, 100);
+  async function submitCreation() {
+    if (isStory) {
+      await shareStory();
+      return;
+    }
 
-    window.addEventListener("resize", resizeDrawingCanvas);
-
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("resize", resizeDrawingCanvas);
-    };
-  }, [mode]);
+    await shareRegularPost();
+  }
+    /* ===========================
+     RENDER
+     =========================== */
 
   if (mode === "hub") {
     return (
       <main className="submitPage">
         <UTVNav />
-        <style>{styles}</style>
 
-        <section className="createHero">
-          <p className="eyebrow">UTV CREATOR</p>
-          <h1>Create on UTV</h1>
-          <p>
-            Record, upload from your phone, share a link, create a story,
-            promote an event, or go live.
-          </p>
-        </section>
-
-        <section className="createGrid">
-          {createOptions.map((item) => (
+        <section className="creatorGrid">
+          {createOptions.map((option) => (
             <button
-              key={item.title}
-              className="createCard"
-              onClick={() =>
-                item.route
-                  ? router.push(item.route)
-                  : startCreate(item.type || "feed")
-              }
+              key={option.title}
+              className="creatorCard"
+              onClick={() => {
+                if (option.route) {
+                  router.push(option.route);
+                  return;
+                }
+
+                startCreate(option.type);
+              }}
             >
-              <span className="createIcon">{item.icon}</span>
-              <h3>{item.title}</h3>
-              <p>{item.desc}</p>
+              <span className="creatorIcon">
+                {option.icon}
+              </span>
+
+              <h3>{option.title}</h3>
+
+              <p>{option.desc}</p>
             </button>
           ))}
-        </section>
-      </main>
-    );
-  }
-
-  if (mode === "link") {
-    return (
-      <main className="submitPage">
-        <UTVNav />
-        <style>{styles}</style>
-
-        <section className="linkShell">
-          <button className="glassBtn backButton" onClick={resetCreator}>
-            ← Back
-          </button>
-
-          <p className="eyebrow">LINK UPLOAD</p>
-          <h1>Share a Link</h1>
-
-          <p className="muted">
-            Paste a direct video, image, YouTube, Vimeo, TikTok, Instagram, or
-            hosted media link.
-          </p>
-
-          <input
-            className="field"
-            placeholder="Paste media link"
-            value={linkUrl}
-            onChange={(event) => setLinkUrl(event.target.value)}
-          />
-
-          <input
-            className="field"
-            placeholder="Cover or flyer URL — optional"
-            value={coverUrl}
-            onChange={(event) => setCoverUrl(event.target.value)}
-          />
-
-          <input
-            className="field"
-            placeholder="Title — optional"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-
-          <textarea
-            className="field captionField"
-            placeholder="Caption — optional"
-            value={caption}
-            onChange={(event) => setCaption(event.target.value)}
-          />
-
-          <select
-            className="field"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-          >
-            {categoryOptions.map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-
-          <section className="destinationPanel">
-            <h3>Share To</h3>
-
-            <div className="destinationGrid">
-              {(["story", "feed", "profile", "world"] as Destination[]).map(
-                (destination) => (
-                  <button
-                    key={destination}
-                    className={
-                      destinations[destination]
-                        ? "destination activeDestination"
-                        : "destination"
-                    }
-                    onClick={() => toggleDestination(destination)}
-                  >
-                    {destination === "story"
-                      ? "📖 Story"
-                      : destination === "feed"
-                      ? "📱 Feed"
-                      : destination === "profile"
-                      ? "👤 Profile"
-                      : "🌍 World"}
-                  </button>
-                )
-              )}
-            </div>
-          </section>
-
-          {destinations.world && (
-            <section className="worldFields">
-              <select
-                className="field"
-                value={worldType}
-                onChange={(event) => setWorldType(event.target.value)}
-              >
-                <option>Feed</option>
-                <option>Live</option>
-                <option>Event</option>
-                <option>Casting</option>
-                <option>Build Together</option>
-                <option>Music</option>
-                <option>Podcast</option>
-                <option>Business</option>
-                <option>Sports</option>
-                <option>Comedy</option>
-              </select>
-
-              <div className="twoColumns">
-                <input
-                  className="field"
-                  placeholder="City"
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                />
-
-                <input
-                  className="field"
-                  placeholder="State"
-                  value={stateName}
-                  onChange={(event) => setStateName(event.target.value)}
-                />
-              </div>
-            </section>
-          )}
-
-          <button
-            className="publishBtn"
-            onClick={submitPost}
-            disabled={
-              posting ||
-              !linkUrl.trim() ||
-              selectedDestinations.length === 0
-            }
-          >
-            {posting ? "Posting..." : "Share to UTV"}
-          </button>
-
-          {message && <p className="notice">{message}</p>}
         </section>
       </main>
     );
@@ -1465,47 +1328,33 @@ export default function SubmitPage() {
 
   if (mode === "camera") {
     return (
-      <main className="cameraPage">
-        <style>{styles}</style>
+      <main className="storyCamera">
 
         <video
           ref={videoRef}
           autoPlay
-          playsInline
           muted
-          className="cameraVideo"
-          style={{
-            transform:
-              cameraFacing === "user" ? "scaleX(-1)" : "none",
-          }}
+          playsInline
+          className="cameraPreview"
         />
 
-        <div className="cameraShade" />
+        <div className="cameraTop">
 
-        <button
-          className="cameraTopBtn cameraBack"
-          onClick={resetCreator}
-        >
-          ✕
-        </button>
+          <button onClick={resetCreator}>
+            ✕
+          </button>
 
-        <button
-          className="cameraTopBtn cameraFlip"
-          onClick={flipCamera}
-        >
-          🔄
-        </button>
+          <button onClick={flipCamera}>
+            🔄
+          </button>
 
-        <div className="cameraHeading">
-          <strong>
-            {destinations.story ? "Create Story" : "Create Post"}
-          </strong>
         </div>
 
-        <div className="cameraControls">
-          <label className="cameraAction">
-            <span>🖼️</span>
-            <small>Gallery</small>
+        <div className="cameraBottom">
+
+          <label className="galleryButton">
+
+            🖼
 
             <input
               hidden
@@ -1513,1258 +1362,277 @@ export default function SubmitPage() {
               accept="image/*,video/*"
               onChange={pickFile}
             />
+
           </label>
 
-          <button
-            className="captureButton"
-            onClick={capturePhoto}
-            aria-label="Take photo"
-          >
-            <span />
-          </button>
+          {!recording ? (
 
-          <button
-            className={
-              recording
-                ? "cameraAction recordingAction"
-                : "cameraAction"
-            }
-            onClick={recording ? stopRecording : startRecording}
-          >
-            <span>{recording ? "⏹️" : "🎥"}</span>
-            <small>{recording ? "Stop" : "Record"}</small>
-          </button>
+            <button
+              className="captureButton"
+              onClick={capturePhoto}
+            />
+
+          ) : (
+
+            <button
+              className="captureButton recording"
+              onClick={stopRecording}
+            />
+
+          )}
+
+          {!recording ? (
+
+            <button
+              className="videoButton"
+              onClick={startRecording}
+            >
+              🎥
+            </button>
+
+          ) : (
+
+            <button
+              className="videoButton"
+              onClick={stopRecording}
+            >
+              ■
+            </button>
+
+          )}
+
         </div>
 
-        {message && <p className="cameraNotice">{message}</p>}
       </main>
     );
   }
 
   return (
-    <main className="editorPage">
-      <style>{styles}</style>
 
-      <section className="editorStage">
-        <header className="editorTop">
-          <button
-            className="editorIconBtn"
-            onClick={() => {
-              setFile(null);
-              setPreview("");
-              setMode("camera");
+    <main className="storyEditor">
 
-              setTimeout(() => {
-                startCamera();
-              }, 200);
-            }}
-          >
-            ←
-          </button>
+      <div className="storyCanvas">
 
-          <strong>
-            {destinations.story ? "Edit Story" : "Edit Post"}
-          </strong>
+        {previewIsVideo ? (
 
-          <button
-            className="nextBtn"
-            onClick={() =>
-              document
-                .getElementById("publish-panel")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-          >
-            Next
-          </button>
-        </header>
-
-        <div
-          className="mediaCanvas"
-          onClick={() => {
-            setSelectedTextId("");
-            setSelectedStickerId("");
-          }}
-        >
-          {previewIsVideo ? (
-            <video
-              className="editorMedia"
-              src={previewUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-            />
-          ) : previewIsImage ? (
-            <img
-              className="editorMedia"
-              src={previewUrl}
-              alt="UTV preview"
-            />
-          ) : (
-            <div className="emptyPreview">
-              <span>🎬</span>
-              <p>Media preview</p>
-            </div>
-          )}
-
-          {textLayers.map((layer) => (
-            <div
-              key={layer.id}
-              className={
-                selectedTextId === layer.id
-                  ? "layerText selectedLayer"
-                  : "layerText"
-              }
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                beginTextDrag(event, layer);
-              }}
-              onPointerMove={moveText}
-              onPointerUp={endTextDrag}
-              onPointerCancel={endTextDrag}
-              style={{
-                left: `${layer.x}%`,
-                top: `${layer.y}%`,
-                color: layer.color,
-                fontSize: `${layer.size}px`,
-                textShadow: layer.shadow
-                  ? "0 3px 12px rgba(0,0,0,.95)"
-                  : "none",
-              }}
-            >
-              {layer.text}
-            </div>
-          ))}
-
-          {stickers.map((sticker) => (
-            <div
-              key={sticker.id}
-              className={
-                selectedStickerId === sticker.id
-                  ? "stickerLayer selectedLayer"
-                  : "stickerLayer"
-              }
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                beginStickerDrag(event, sticker);
-              }}
-              onPointerMove={moveSticker}
-              onPointerUp={endStickerDrag}
-              onPointerCancel={endStickerDrag}
-              style={{
-                left: `${sticker.x}%`,
-                top: `${sticker.y}%`,
-                fontSize: `${sticker.size}px`,
-              }}
-            >
-              {sticker.value}
-            </div>
-          ))}
-
-          <canvas
-            ref={drawingCanvasRef}
-            className={
-              drawingEnabled
-                ? "drawingCanvas drawingActive"
-                : "drawingCanvas"
-            }
-            onPointerDown={beginDrawing}
-            onPointerMove={draw}
-            onPointerUp={endDrawing}
-            onPointerCancel={endDrawing}
+          <video
+            src={previewUrl}
+            controls
+            playsInline
+            className="editorMedia"
           />
 
-          {(musicFile || musicUrl.trim()) && (
-            <div className="musicBadge">
-              <span>🎵</span>
-              <div>
-                <strong>{musicTitle || "Story Music"}</strong>
-                {musicArtist && <small>{musicArtist}</small>}
-              </div>
-            </div>
-          )}
-        </div>
+        ) : (
 
-        <section className="editorTools">
-          <div className="mainTools">
-            <button className="toolCircle" onClick={addTextLayer}>
-              Aa
-            </button>
+          <img
+            src={previewUrl}
+            className="editorMedia"
+          />
 
-            <button
-              className="toolCircle"
-              onClick={() => setShowMusicPanel((current) => !current)}
-            >
-              🎵
-            </button>
-
-            <button
-              className={
-                drawingEnabled
-                  ? "toolCircle activeTool"
-                  : "toolCircle"
-              }
-              onClick={() => setDrawingEnabled((current) => !current)}
-            >
-              ✏️
-            </button>
-
-            <button
-              className="toolCircle"
-              onClick={() => addSticker("🔥")}
-            >
-              😊
-            </button>
-
-            <button
-              className="toolCircle"
-              onClick={() => {
-                deleteSelectedText();
-                deleteSelectedSticker();
-              }}
-            >
-              🗑️
-            </button>
-          </div>
-
-          {selectedText && (
-            <section className="layerControls">
-              <input
-                className="toolInput"
-                value={selectedText.text}
-                onChange={(event) =>
-                  updateSelectedText({
-                    text: event.target.value,
-                  })
-                }
-              />
-
-              <div className="colorRow">
-                {textColors.map((color) => (
-                  <button
-                    key={color}
-                    className={
-                      selectedText.color === color
-                        ? "colorDot selectedColor"
-                        : "colorDot"
-                    }
-                    style={{ background: color }}
-                    onClick={() =>
-                      updateSelectedText({ color })
-                    }
-                  />
-                ))}
-              </div>
-
-              <div className="controlRow">
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    updateSelectedText({
-                      size: Math.max(16, selectedText.size - 4),
-                    })
-                  }
-                >
-                  A−
-                </button>
-
-                <span>{selectedText.size}px</span>
-
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    updateSelectedText({
-                      size: Math.min(72, selectedText.size + 4),
-                    })
-                  }
-                >
-                  A+
-                </button>
-
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    updateSelectedText({
-                      shadow: !selectedText.shadow,
-                    })
-                  }
-                >
-                  ✨
-                </button>
-              </div>
-            </section>
-          )}
-
-          {selectedSticker && (
-            <section className="layerControls">
-              <div className="controlRow">
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    updateSelectedSticker({
-                      size: Math.max(
-                        24,
-                        selectedSticker.size - 6
-                      ),
-                    })
-                  }
-                >
-                  −
-                </button>
-
-                <span>{selectedSticker.size}px</span>
-
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    updateSelectedSticker({
-                      size: Math.min(
-                        110,
-                        selectedSticker.size + 6
-                      ),
-                    })
-                  }
-                >
-                  +
-                </button>
-              </div>
-            </section>
-          )}
-
-          <div className="stickerTray">
-            {stickerChoices.map((sticker) => (
-              <button
-                key={sticker}
-                onClick={() => addSticker(sticker)}
-              >
-                {sticker}
-              </button>
-            ))}
-          </div>
-
-          {drawingEnabled && (
-            <section className="drawingTools">
-              <div className="colorRow">
-                {textColors.map((color) => (
-                  <button
-                    key={color}
-                    className={
-                      drawingColor === color
-                        ? "colorDot selectedColor"
-                        : "colorDot"
-                    }
-                    style={{ background: color }}
-                    onClick={() => setDrawingColor(color)}
-                  />
-                ))}
-              </div>
-
-              <div className="controlRow">
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    setDrawingWidth((current) =>
-                      Math.max(2, current - 1)
-                    )
-                  }
-                >
-                  Thin
-                </button>
-
-                <span>{drawingWidth}px</span>
-
-                <button
-                  className="miniTool"
-                  onClick={() =>
-                    setDrawingWidth((current) =>
-                      Math.min(20, current + 1)
-                    )
-                  }
-                >
-                  Thick
-                </button>
-
-                <button className="miniTool" onClick={clearDrawing}>
-                  Clear
-                </button>
-              </div>
-            </section>
-          )}
-
-          {showMusicPanel && (
-            <section className="musicPanel">
-              <h3>Add Music</h3>
-
-              <label className="musicUpload">
-                <span>📁 Choose audio from phone</span>
-                <small>MP3, M4A, WAV, AAC, or OGG</small>
-
-                <input
-                  hidden
-                  type="file"
-                  accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg"
-                  onChange={pickMusicFile}
-                />
-              </label>
-
-              <input
-                className="toolInput"
-                placeholder="Or paste a direct audio URL"
-                value={musicUrl}
-                onChange={(event) => {
-                  setMusicUrl(event.target.value);
-                  setMusicFile(null);
-                  setMusicPreview("");
-                }}
-              />
-
-              <input
-                className="toolInput"
-                placeholder="Song title"
-                value={musicTitle}
-                onChange={(event) =>
-                  setMusicTitle(event.target.value)
-                }
-              />
-
-              <input
-                className="toolInput"
-                placeholder="Artist name"
-                value={musicArtist}
-                onChange={(event) =>
-                  setMusicArtist(event.target.value)
-                }
-              />
-
-              {(musicPreview || musicUrl.trim()) && (
-                <audio
-                  controls
-                  src={musicPreview || musicUrl.trim()}
-                  className="audioPreview"
-                />
-              )}
-
-              {(musicFile || musicUrl.trim()) && (
-                <button className="removeMusicBtn" onClick={removeMusic}>
-                  Remove Music
-                </button>
-              )}
-            </section>
-          )}
-        </section>
-      </section>
-
-      <section className="publishPanel" id="publish-panel">
-        <div className="publishHandle" />
-
-        <h2>Share Your Creation</h2>
-
-        <input
-          className="cleanField"
-          placeholder="Title — optional"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-
-        <textarea
-          className="cleanField captionField"
-          placeholder="Caption — optional"
-          value={caption}
-          onChange={(event) => setCaption(event.target.value)}
-        />
-
-        <select
-          className="cleanField"
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-        >
-          {categoryOptions.map((option) => (
-            <option key={option}>{option}</option>
-          ))}
-        </select>
-
-        {destinations.story && (
-          <section className="durationPanel">
-            <h3>Story Duration</h3>
-
-            <div className="durationChoices">
-              {[5, 10, 15].map((seconds) => (
-                <button
-                  key={seconds}
-                  className={
-                    storyDuration === seconds
-                      ? "durationBtn activeDestination"
-                      : "durationBtn"
-                  }
-                  onClick={() => setStoryDuration(seconds)}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </div>
-          </section>
         )}
 
-        <section className="destinationPanel">
+        <canvas
+          ref={drawingCanvasRef}
+          className="drawingLayer"
+          onPointerDown={beginDrawing}
+          onPointerMove={draw}
+          onPointerUp={endDrawing}
+          onPointerLeave={endDrawing}
+        />
+
+        {textLayers.map((layer)=>(
+          <div
+            key={layer.id}
+            className="storyText"
+            onPointerDown={(e)=>beginTextDrag(e,layer)}
+            onPointerMove={moveText}
+            onPointerUp={endTextDrag}
+            style={{
+              left:`${layer.x}%`,
+              top:`${layer.y}%`,
+              color:layer.color,
+              fontSize:layer.size
+            }}
+          >
+            {layer.text}
+          </div>
+        ))}
+
+        {stickers.map((sticker)=>(
+          <div
+            key={sticker.id}
+            className="storySticker"
+            onPointerDown={(e)=>beginStickerDrag(e,sticker)}
+            onPointerMove={moveSticker}
+            onPointerUp={endStickerDrag}
+            style={{
+              left:`${sticker.x}%`,
+              top:`${sticker.y}%`,
+              fontSize:sticker.size
+            }}
+          >
+            {sticker.value}
+          </div>
+        ))}
+
+      </div>
+
+      <div className="storyToolbar">
+
+        <button onClick={addTextLayer}>
+          Aa
+        </button>
+
+        <button onClick={()=>setShowMusicPanel(true)}>
+          🎵
+        </button>
+
+        <button onClick={()=>setDrawingEnabled(!drawingEnabled)}>
+          ✏️
+        </button>
+
+        <button onClick={()=>{
+          const emoji=window.prompt("Sticker");
+
+          if(emoji){
+            addSticker(emoji);
+          }
+        }}>
+          😊
+        </button>
+
+      </div>
+
+      <textarea
+        placeholder="Say something..."
+        value={caption}
+        onChange={(e)=>setCaption(e.target.value)}
+      />
+
+      {!isStory && (
+
+        <>
+
+          <input
+            placeholder="Title"
+            value={title}
+            onChange={(e)=>setTitle(e.target.value)}
+          />
+
+          <select
+            value={category}
+            onChange={(e)=>setCategory(e.target.value)}
+          >
+            {categoryOptions.map((c)=>(
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+
+        </>
+
+      )}
+
+      {showMusicPanel && (
+
+        <section className="musicPanel">
+
+          <input
+            placeholder="Song title"
+            value={musicTitle}
+            onChange={(e)=>setMusicTitle(e.target.value)}
+          />
+
+          <input
+            placeholder="Artist"
+            value={musicArtist}
+            onChange={(e)=>setMusicArtist(e.target.value)}
+          />
+
+          <input
+            type="file"
+            accept="audio/*"
+            onChange={pickMusicFile}
+          />
+
+          <input
+            placeholder="or paste MP3 URL"
+            value={musicUrl}
+            onChange={(e)=>setMusicUrl(e.target.value)}
+          />
+
+        </section>
+
+      )}
+
+      {!isStory && (
+
+        <section className="publishPanel">
+
           <h3>Share To</h3>
 
-          <div className="destinationGrid">
-            {(["story", "feed", "profile", "world"] as Destination[]).map(
-              (destination) => (
-                <button
-                  key={destination}
-                  className={
-                    destinations[destination]
-                      ? "destination activeDestination"
-                      : "destination"
-                  }
-                  onClick={() => toggleDestination(destination)}
-                >
-                  {destination === "story"
-                    ? "📖 Story"
-                    : destination === "feed"
-                    ? "📱 Feed"
-                    : destination === "profile"
-                    ? "👤 Profile"
-                    : "🌍 World"}
-                </button>
-              )
-            )}
-          </div>
+          <label>
+
+            <input
+              type="checkbox"
+              checked={destinations.feed}
+              onChange={()=>toggleDestination("feed")}
+            />
+
+            Feed
+
+          </label>
+
+          <label>
+
+            <input
+              type="checkbox"
+              checked={destinations.profile}
+              onChange={()=>toggleDestination("profile")}
+            />
+
+            Profile
+
+          </label>
+
+          <label>
+
+            <input
+              type="checkbox"
+              checked={destinations.world}
+              onChange={()=>toggleDestination("world")}
+            />
+
+            World
+
+          </label>
+
         </section>
 
-        {destinations.world && (
-          <section className="worldFields">
-            <select
-              className="cleanField"
-              value={worldType}
-              onChange={(event) =>
-                setWorldType(event.target.value)
-              }
-            >
-              <option>Feed</option>
-              <option>Live</option>
-              <option>Event</option>
-              <option>Casting</option>
-              <option>Build Together</option>
-              <option>Music</option>
-              <option>Podcast</option>
-              <option>Business</option>
-              <option>Sports</option>
-              <option>Comedy</option>
-            </select>
+      )}
 
-            <div className="twoColumns">
-              <input
-                className="cleanField"
-                placeholder="City"
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-              />
+      <button
+        className="shareButton"
+        disabled={posting}
+        onClick={submitCreation}
+      >
 
-              <input
-                className="cleanField"
-                placeholder="State"
-                value={stateName}
-                onChange={(event) => setStateName(event.target.value)}
-              />
-            </div>
-          </section>
-        )}
+        {posting
+          ? "Posting..."
+          : isStory
+          ? "Share Story"
+          : "Post to UTV"}
 
-        <p className="destinationSummary">
-          Sharing to:{" "}
-          {selectedDestinations.length
-            ? selectedDestinations.join(", ")
-            : "Choose at least one destination"}
+      </button>
+
+      {message && (
+
+        <p className="submitMessage">
+          {message}
         </p>
 
-        <button
-          className="publishBtn"
-          onClick={submitPost}
-          disabled={
-            posting ||
-            selectedDestinations.length === 0 ||
-            (!file && !linkUrl.trim())
-          }
-        >
-          {posting ? "Posting to UTV..." : "Share to UTV"}
-        </button>
+      )}
 
-        <button className="cancelBtn" onClick={resetCreator}>
-          Cancel
-        </button>
-
-        {message && <p className="notice">{message}</p>}
-      </section>
     </main>
+
   );
 }
-
-const styles = `
-  * {
-    box-sizing: border-box;
-  }
-
-  button,
-  input,
-  textarea,
-  select {
-    font: inherit;
-  }
-
-  button {
-    cursor: pointer;
-  }
-
-  button:disabled {
-    cursor: not-allowed;
-    opacity: .55;
-  }
-
-  .submitPage {
-    min-height: 100vh;
-    padding-bottom: 120px;
-    color: white;
-    background:
-      radial-gradient(circle at 10% 0%, rgba(82,247,200,.17), transparent 30%),
-      radial-gradient(circle at 90% 7%, rgba(123,97,255,.24), transparent 35%),
-      linear-gradient(180deg, #07111e, #000);
-  }
-
-  .eyebrow {
-    margin: 0 0 8px;
-    color: #52f7c8;
-    font-size: 12px;
-    font-weight: 950;
-    letter-spacing: 2px;
-  }
-
-  .createHero {
-    margin: 16px;
-    padding: 24px;
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 28px;
-    background: rgba(255,255,255,.07);
-    backdrop-filter: blur(20px);
-  }
-
-  .createHero h1,
-  .linkShell h1 {
-    margin: 0;
-    font-size: 40px;
-    letter-spacing: -1.5px;
-  }
-
-  .createHero p,
-  .muted {
-    color: rgba(255,255,255,.65);
-    line-height: 1.5;
-  }
-
-  .createGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    padding: 0 16px 20px;
-  }
-
-  .createCard {
-    min-height: 158px;
-    padding: 16px;
-    color: white;
-    text-align: left;
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 24px;
-    background: rgba(255,255,255,.065);
-    backdrop-filter: blur(16px);
-  }
-
-  .createCard:active {
-    transform: scale(.98);
-  }
-
-  .createIcon {
-    font-size: 34px;
-  }
-
-  .createCard h3 {
-    margin: 12px 0 5px;
-    font-size: 17px;
-  }
-
-  .createCard p {
-    margin: 0;
-    color: rgba(255,255,255,.58);
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  .linkShell {
-    display: grid;
-    gap: 13px;
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 22px 16px 120px;
-  }
-
-  .field,
-  .cleanField,
-  .toolInput {
-    width: 100%;
-    padding: 15px 16px;
-    color: white;
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 18px;
-    outline: none;
-    background: rgba(255,255,255,.08);
-  }
-
-  .field option,
-  .cleanField option {
-    color: black;
-  }
-
-  .captionField {
-    min-height: 105px;
-    resize: vertical;
-  }
-
-  .glassBtn,
-  .editorIconBtn,
-  .nextBtn,
-  .toolCircle {
-    color: white;
-    border: 1px solid rgba(255,255,255,.18);
-    background: rgba(0,0,0,.48);
-    backdrop-filter: blur(14px);
-  }
-
-  .backButton {
-    width: max-content;
-    padding: 10px 14px;
-    border-radius: 999px;
-  }
-
-  .cameraPage {
-    position: fixed;
-    inset: 0;
-    z-index: 500;
-    overflow: hidden;
-    background: #000;
-  }
-
-  .cameraVideo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .cameraShade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      rgba(0,0,0,.48),
-      transparent 22%,
-      transparent 68%,
-      rgba(0,0,0,.65)
-    );
-  }
-
-  .cameraTopBtn {
-    position: absolute;
-    top: max(18px, env(safe-area-inset-top));
-    z-index: 3;
-    width: 48px;
-    height: 48px;
-    color: white;
-    border: 1px solid rgba(255,255,255,.25);
-    border-radius: 50%;
-    background: rgba(0,0,0,.5);
-    backdrop-filter: blur(15px);
-  }
-
-  .cameraBack {
-    left: 18px;
-  }
-
-  .cameraFlip {
-    right: 18px;
-  }
-
-  .cameraHeading {
-    position: absolute;
-    top: max(31px, env(safe-area-inset-top));
-    left: 50%;
-    z-index: 3;
-    transform: translateX(-50%);
-  }
-
-  .cameraControls {
-    position: absolute;
-    right: 22px;
-    bottom: max(32px, env(safe-area-inset-bottom));
-    left: 22px;
-    z-index: 4;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    gap: 22px;
-  }
-
-  .cameraAction {
-    min-height: 66px;
-    display: grid;
-    place-items: center;
-    gap: 3px;
-    color: white;
-    border: 0;
-    background: transparent;
-    font-weight: 850;
-  }
-
-  .cameraAction span {
-    font-size: 28px;
-  }
-
-  .cameraAction small {
-    font-size: 11px;
-  }
-
-  .captureButton {
-    width: 86px;
-    height: 86px;
-    padding: 7px;
-    border: 4px solid white;
-    border-radius: 50%;
-    background: transparent;
-  }
-
-  .captureButton span {
-    width: 100%;
-    height: 100%;
-    display: block;
-    border-radius: 50%;
-    background: white;
-  }
-
-  .recordingAction {
-    color: #ff5f57;
-    animation: recordingPulse 1s infinite;
-  }
-
-  @keyframes recordingPulse {
-    50% {
-      transform: scale(1.08);
-    }
-  }
-
-  .cameraNotice {
-    position: absolute;
-    right: 20px;
-    bottom: 140px;
-    left: 20px;
-    z-index: 5;
-    padding: 12px;
-    text-align: center;
-    border-radius: 16px;
-    background: rgba(0,0,0,.65);
-  }
-
-  .editorPage {
-    min-height: 100vh;
-    padding-bottom: 70px;
-    color: white;
-    background: #000;
-  }
-
-  .editorStage {
-    min-height: 100vh;
-  }
-
-  .editorTop {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    display: grid;
-    grid-template-columns: 52px 1fr 70px;
-    align-items: center;
-    gap: 10px;
-    padding: max(14px, env(safe-area-inset-top)) 14px 12px;
-    background: rgba(0,0,0,.82);
-    backdrop-filter: blur(18px);
-  }
-
-  .editorTop strong {
-    text-align: center;
-  }
-
-  .editorIconBtn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-  }
-
-  .nextBtn {
-    padding: 10px 13px;
-    color: #52f7c8;
-    border-radius: 999px;
-    font-weight: 950;
-  }
-
-  .mediaCanvas {
-    position: relative;
-    width: 100%;
-    height: calc(100vh - 175px);
-    min-height: 480px;
-    overflow: hidden;
-    touch-action: none;
-    background: #090909;
-  }
-
-  .editorMedia {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: contain;
-    background: #000;
-  }
-
-  .emptyPreview {
-    height: 100%;
-    display: grid;
-    place-content: center;
-    text-align: center;
-    color: rgba(255,255,255,.55);
-  }
-
-  .emptyPreview span {
-    font-size: 58px;
-  }
-
-  .layerText,
-  .stickerLayer {
-    position: absolute;
-    z-index: 15;
-    transform: translate(-50%, -50%);
-    cursor: grab;
-    user-select: none;
-    touch-action: none;
-  }
-
-  .layerText {
-    max-width: 88%;
-    padding: 7px 11px;
-    font-weight: 950;
-    text-align: center;
-    white-space: pre-wrap;
-  }
-
-  .selectedLayer {
-    outline: 2px dashed rgba(82,247,200,.9);
-    outline-offset: 5px;
-  }
-
-  .drawingCanvas {
-    position: absolute;
-    inset: 0;
-    z-index: 12;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  .drawingActive {
-    pointer-events: auto;
-    touch-action: none;
-  }
-
-  .musicBadge {
-    position: absolute;
-    left: 16px;
-    bottom: 16px;
-    z-index: 18;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    max-width: 72%;
-    padding: 9px 12px;
-    border-radius: 999px;
-    background: rgba(0,0,0,.65);
-    backdrop-filter: blur(15px);
-  }
-
-  .musicBadge div {
-    display: grid;
-  }
-
-  .musicBadge small {
-    color: rgba(255,255,255,.65);
-  }
-
-  .editorTools {
-    padding: 14px 14px 20px;
-    background: linear-gradient(180deg, #050505, #111);
-  }
-
-  .mainTools,
-  .toolRow {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    overflow-x: auto;
-  }
-
-  .toolCircle {
-    flex: 0 0 auto;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    font-weight: 950;
-  }
-
-  .activeTool {
-    border-color: #52f7c8;
-    box-shadow: 0 0 18px rgba(82,247,200,.35);
-  }
-
-  .layerControls,
-  .drawingTools,
-  .musicPanel {
-    display: grid;
-    gap: 12px;
-    margin-top: 15px;
-    padding: 14px;
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 20px;
-    background: rgba(255,255,255,.055);
-  }
-
-  .colorRow {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    overflow-x: auto;
-  }
-
-  .colorDot {
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    border: 2px solid rgba(255,255,255,.7);
-    border-radius: 50%;
-  }
-
-  .selectedColor {
-    outline: 3px solid #52f7c8;
-    outline-offset: 3px;
-  }
-
-  .controlRow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .miniTool {
-    padding: 9px 12px;
-    color: white;
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 999px;
-    background: rgba(255,255,255,.08);
-    font-weight: 850;
-  }
-
-  .stickerTray {
-    display: flex;
-    gap: 10px;
-    margin-top: 14px;
-    overflow-x: auto;
-  }
-
-  .stickerTray button {
-    flex: 0 0 auto;
-    width: 46px;
-    height: 46px;
-    font-size: 25px;
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 50%;
-    background: rgba(255,255,255,.07);
-  }
-
-  .musicUpload {
-    display: grid;
-    gap: 4px;
-    padding: 15px;
-    text-align: center;
-    border: 1px dashed rgba(82,247,200,.6);
-    border-radius: 18px;
-    background: rgba(82,247,200,.06);
-    cursor: pointer;
-  }
-
-  .musicUpload small {
-    color: rgba(255,255,255,.55);
-  }
-
-  .audioPreview {
-    width: 100%;
-  }
-
-  .removeMusicBtn {
-    padding: 12px;
-    color: white;
-    border: 1px solid rgba(255,95,87,.45);
-    border-radius: 16px;
-    background: rgba(255,95,87,.14);
-    font-weight: 900;
-  }
-
-  .publishPanel {
-    display: grid;
-    gap: 13px;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 18px 16px 120px;
-    border-radius: 30px 30px 0 0;
-    background:
-      radial-gradient(circle at top, rgba(82,247,200,.1), transparent 25%),
-      linear-gradient(180deg, #101826, #020304);
-  }
-
-  .publishHandle {
-    width: 44px;
-    height: 5px;
-    margin: 0 auto 4px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.3);
-  }
-
-  .publishPanel h2 {
-    margin: 4px 0 2px;
-    font-size: 28px;
-  }
-
-  .destinationPanel,
-  .durationPanel {
-    padding: 15px;
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 22px;
-    background: rgba(255,255,255,.055);
-  }
-
-  .destinationPanel h3,
-  .durationPanel h3 {
-    margin: 0 0 12px;
-  }
-
-  .destinationGrid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 9px;
-  }
-
-  .destination,
-  .durationBtn {
-    padding: 13px 10px;
-    color: rgba(255,255,255,.72);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 16px;
-    background: rgba(0,0,0,.25);
-    font-weight: 850;
-  }
-
-  .activeDestination {
-    color: #06120d;
-    border-color: transparent;
-    background: linear-gradient(135deg, #52f7c8, #7b61ff);
-  }
-
-  .durationChoices {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 9px;
-  }
-
-  .worldFields {
-    display: grid;
-    gap: 11px;
-  }
-
-  .twoColumns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .destinationSummary {
-    margin: 0;
-    color: rgba(255,255,255,.58);
-    font-size: 13px;
-    text-transform: capitalize;
-  }
-
-  .publishBtn,
-  .cancelBtn {
-    width: 100%;
-    padding: 16px;
-    border: 0;
-    border-radius: 19px;
-    font-weight: 950;
-    font-size: 16px;
-  }
-
-  .publishBtn {
-    color: #06120d;
-    background: linear-gradient(135deg, #52f7c8, #7b61ff);
-  }
-
-  .cancelBtn {
-    color: white;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(255,255,255,.07);
-  }
-
-  .notice {
-    margin: 0;
-    padding: 13px;
-    color: #52f7c8;
-    text-align: center;
-    border-radius: 16px;
-    background: rgba(82,247,200,.08);
-    font-weight: 850;
-  }
-
-  @media (min-width: 800px) {
-    .createGrid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      max-width: 1150px;
-      margin: 0 auto;
-    }
-
-    .createHero {
-      max-width: 1118px;
-      margin-right: auto;
-      margin-left: auto;
-    }
-
-    .mediaCanvas {
-      max-width: 620px;
-      height: 760px;
-      min-height: 0;
-      margin: 0 auto;
-      border-right: 1px solid rgba(255,255,255,.1);
-      border-left: 1px solid rgba(255,255,255,.1);
-    }
-
-    .editorTools {
-      max-width: 620px;
-      margin: 0 auto;
-    }
-  }
-`;
