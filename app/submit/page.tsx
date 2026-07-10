@@ -1308,8 +1308,7 @@ export default function SubmitPage() {
                   router.push(option.route);
                   return;
                 }
-
-                startCreate(option.type);
+      startCreate(option.type || "feed");
               }}
             >
               <span className="creatorIcon">
