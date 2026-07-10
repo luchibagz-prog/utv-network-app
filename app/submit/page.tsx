@@ -1,12 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
 type Destination = "story" | "feed" | "profile" | "world";
 type CameraFacing = "user" | "environment";
+
+type TextLayer = {
+  id: string;
+  text: string;
+  color: string;
+  size: number;
+  x: number;
+  y: number;
+  shadow: boolean;
+};
+
+type StickerLayer = {
+  id: string;
+  value: string;
+  size: number;
+  x: number;
+  y: number;
+};
 
 const createOptions = [
   {
@@ -24,19 +47,19 @@ const createOptions = [
   {
     title: "Paste Link",
     icon: "🔗",
-    desc: "Post YouTube, Vimeo, MP4, images, or flyers.",
+    desc: "Share YouTube, Vimeo, MP4, images, or flyers.",
     type: "link",
   },
   {
     title: "TV Show",
     icon: "🎬",
-    desc: "Upload premium episodes.",
+    desc: "Upload a premium episode.",
     type: "show",
   },
   {
     title: "Movie",
     icon: "🎥",
-    desc: "Upload a film or short.",
+    desc: "Upload a movie or short film.",
     type: "movie",
   },
   {
@@ -48,7 +71,7 @@ const createOptions = [
   {
     title: "Music Video",
     icon: "🎵",
-    desc: "Share music and visuals.",
+    desc: "Post music and visuals.",
     type: "music",
   },
   {
@@ -114,6 +137,27 @@ const textColors = [
   "#111111",
 ];
 
+const stickerChoices = [
+  "🔥",
+  "💯",
+  "🎬",
+  "🎵",
+  "⭐",
+  "👑",
+  "😂",
+  "❤️",
+  "📍",
+  "🎤",
+  "🏆",
+  "✨",
+];
+
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
 function cleanFileName(name: string) {
   return name
     .replaceAll(" ", "-")
@@ -127,6 +171,10 @@ function isImageLink(url: string) {
 
 function isVideoLink(url: string) {
   return /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(url);
+}
+
+function isAudioLink(url: string) {
+  return /\.(mp3|m4a|wav|aac|ogg)(\?.*)?$/i.test(url);
 }
 
 function isEmbedLink(url: string) {
@@ -148,15 +196,28 @@ export default function SubmitPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const dragRef = useRef({
-    dragging: false,
-    startX: 0,
-    startY: 0,
-    originalX: 50,
-    originalY: 50,
-  });
+
+  const draggingTextRef = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    originalX: number;
+    originalY: number;
+  } | null>(null);
+
+  const draggingStickerRef = useRef<{
+    id: string;
+    startX: number;
+    startY: number;
+    originalX: number;
+    originalY: number;
+  } | null>(null);
+
+  const drawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawingRef = useRef(false);
 
   const [mode, setMode] = useState("hub");
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
@@ -165,15 +226,25 @@ export default function SubmitPage() {
 
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
-  const [overlayText, setOverlayText] = useState("");
-
-  const [textColor, setTextColor] = useState("#ffffff");
-  const [textSize, setTextSize] = useState(30);
-  const [textX, setTextX] = useState(50);
-  const [textY, setTextY] = useState(50);
-  const [textShadow, setTextShadow] = useState(true);
-
   const [category, setCategory] = useState("Feed");
+
+  const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [selectedTextId, setSelectedTextId] = useState("");
+  const [stickers, setStickers] = useState<StickerLayer[]>([]);
+  const [selectedStickerId, setSelectedStickerId] = useState("");
+
+  const [drawingEnabled, setDrawingEnabled] = useState(false);
+  const [drawingColor, setDrawingColor] = useState("#ffffff");
+  const [drawingWidth, setDrawingWidth] = useState(5);
+
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [musicPreview, setMusicPreview] = useState("");
+  const [musicUrl, setMusicUrl] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
+  const [musicArtist, setMusicArtist] = useState("");
+  const [showMusicPanel, setShowMusicPanel] = useState(false);
+
+  const [storyDuration, setStoryDuration] = useState(5);
 
   const [destinations, setDestinations] = useState<
     Record<Destination, boolean>
@@ -195,7 +266,30 @@ export default function SubmitPage() {
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const isStoryMode = destinations.story && !destinations.feed;
+  const selectedText = textLayers.find(
+    (layer) => layer.id === selectedTextId
+  );
+
+  const selectedSticker = stickers.find(
+    (sticker) => sticker.id === selectedStickerId
+  );
+
+  const selectedDestinations = useMemo(() => {
+    return Object.entries(destinations)
+      .filter(([, selected]) => selected)
+      .map(([name]) => name);
+  }, [destinations]);
+
+  const previewUrl = preview || linkUrl.trim();
+
+  const previewIsVideo =
+    Boolean(file?.type.startsWith("video")) ||
+    isVideoLink(previewUrl) ||
+    isEmbedLink(previewUrl);
+
+  const previewIsImage =
+    Boolean(file?.type.startsWith("image")) ||
+    isImageLink(previewUrl);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -205,7 +299,9 @@ export default function SubmitPage() {
       startCreate(type);
     }
 
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+    };
   }, []);
 
   useEffect(() => {
@@ -213,18 +309,20 @@ export default function SubmitPage() {
       if (preview.startsWith("blob:")) {
         URL.revokeObjectURL(preview);
       }
-    };
-  }, [preview]);
 
-  const selectedDestinations = useMemo(() => {
-    return Object.entries(destinations)
-      .filter(([, selected]) => selected)
-      .map(([name]) => name);
-  }, [destinations]);
+      if (musicPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(musicPreview);
+      }
+    };
+  }, [preview, musicPreview]);
 
   function resetCreator() {
     if (preview.startsWith("blob:")) {
       URL.revokeObjectURL(preview);
+    }
+
+    if (musicPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreview);
     }
 
     stopCamera();
@@ -234,21 +332,35 @@ export default function SubmitPage() {
     setPreview("");
     setLinkUrl("");
     setCoverUrl("");
+
     setTitle("");
     setCaption("");
-    setOverlayText("");
-    setTextColor("#ffffff");
-    setTextSize(30);
-    setTextX(50);
-    setTextY(50);
-    setTextShadow(true);
     setCategory("Feed");
+
+    setTextLayers([]);
+    setSelectedTextId("");
+    setStickers([]);
+    setSelectedStickerId("");
+
+    setDrawingEnabled(false);
+    clearDrawing();
+
+    setMusicFile(null);
+    setMusicPreview("");
+    setMusicUrl("");
+    setMusicTitle("");
+    setMusicArtist("");
+    setShowMusicPanel(false);
+
+    setStoryDuration(5);
+
     setDestinations({
       story: false,
       feed: true,
       profile: true,
       world: false,
     });
+
     setWorldType("Feed");
     setCity("");
     setStateName("");
@@ -258,7 +370,7 @@ export default function SubmitPage() {
   function startCreate(type: string) {
     const categoryMap: Record<string, string> = {
       feed: "Feed",
-      story: "Story",
+      story: "Feed",
       show: "Show",
       movie: "Movie",
       podcast: "Podcast",
@@ -337,7 +449,9 @@ export default function SubmitPage() {
       recorderRef.current.stop();
     }
 
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current?.getTracks().forEach((track) => {
+      track.stop();
+    });
 
     streamRef.current = null;
     recorderRef.current = null;
@@ -351,7 +465,9 @@ export default function SubmitPage() {
     await startCamera(next);
   }
 
-  function pickFile(event: React.ChangeEvent<HTMLInputElement>) {
+  function pickFile(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
     const picked = event.target.files?.[0];
 
     if (!picked) return;
@@ -366,6 +482,48 @@ export default function SubmitPage() {
     stopCamera();
     setMode("preview");
     setMessage("");
+  }
+
+  function pickMusicFile(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const picked = event.target.files?.[0];
+
+    if (!picked) return;
+
+    if (!picked.type.startsWith("audio/")) {
+      setMessage("Choose an MP3, M4A, WAV, AAC, or OGG audio file.");
+      return;
+    }
+
+    if (musicPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreview);
+    }
+
+    setMusicFile(picked);
+    setMusicPreview(URL.createObjectURL(picked));
+    setMusicUrl("");
+
+    if (!musicTitle) {
+      setMusicTitle(
+        picked.name.replace(/\.[^/.]+$/, "")
+      );
+    }
+
+    setShowMusicPanel(true);
+    setMessage("");
+  }
+
+  function removeMusic() {
+    if (musicPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreview);
+    }
+
+    setMusicFile(null);
+    setMusicPreview("");
+    setMusicUrl("");
+    setMusicTitle("");
+    setMusicArtist("");
   }
 
   function capturePhoto() {
@@ -461,9 +619,9 @@ export default function SubmitPage() {
       setFile(recordedFile);
       setPreview(URL.createObjectURL(blob));
 
-      streamRef.current
-        ?.getTracks()
-        .forEach((track) => track.stop());
+      streamRef.current?.getTracks().forEach((track) => {
+        track.stop();
+      });
 
       streamRef.current = null;
       recorderRef.current = null;
@@ -492,21 +650,106 @@ export default function SubmitPage() {
     }));
   }
 
-  function beginTextDrag(
+  function addTextLayer() {
+    const value = window.prompt("Type your text");
+
+    if (!value?.trim()) return;
+
+    const layer: TextLayer = {
+      id: makeId("text"),
+      text: value.trim(),
+      color: "#ffffff",
+      size: 32,
+      x: 50,
+      y: 40,
+      shadow: true,
+    };
+
+    setTextLayers((current) => [...current, layer]);
+    setSelectedTextId(layer.id);
+  }
+
+  function updateSelectedText(
+    changes: Partial<TextLayer>
+  ) {
+    if (!selectedTextId) return;
+
+    setTextLayers((current) =>
+      current.map((layer) =>
+        layer.id === selectedTextId
+          ? { ...layer, ...changes }
+          : layer
+      )
+    );
+  }
+
+  function deleteSelectedText() {
+    if (!selectedTextId) return;
+
+    setTextLayers((current) =>
+      current.filter((layer) => layer.id !== selectedTextId)
+    );
+
+    setSelectedTextId("");
+  }
+
+  function addSticker(value: string) {
+    const sticker: StickerLayer = {
+      id: makeId("sticker"),
+      value,
+      size: 48,
+      x: 50,
+      y: 55,
+    };
+
+    setStickers((current) => [...current, sticker]);
+    setSelectedStickerId(sticker.id);
+  }
+
+  function updateSelectedSticker(
+    changes: Partial<StickerLayer>
+  ) {
+    if (!selectedStickerId) return;
+
+    setStickers((current) =>
+      current.map((sticker) =>
+        sticker.id === selectedStickerId
+          ? { ...sticker, ...changes }
+          : sticker
+      )
+    );
+  }
+
+  function deleteSelectedSticker() {
+    if (!selectedStickerId) return;
+
+    setStickers((current) =>
+      current.filter(
+        (sticker) => sticker.id !== selectedStickerId
+      )
+    );
+
+    setSelectedStickerId("");
+  }
+    function beginTextDrag(
     event:
       | React.PointerEvent<HTMLDivElement>
-      | React.TouchEvent<HTMLDivElement>
+      | React.TouchEvent<HTMLDivElement>,
+    layer: TextLayer
   ) {
     const point =
       "touches" in event ? event.touches[0] : event;
 
-    dragRef.current = {
-      dragging: true,
+    draggingTextRef.current = {
+      id: layer.id,
       startX: point.clientX,
       startY: point.clientY,
-      originalX: textX,
-      originalY: textY,
+      originalX: layer.x,
+      originalY: layer.y,
     };
+
+    setSelectedTextId(layer.id);
+    setSelectedStickerId("");
   }
 
   function moveText(
@@ -514,45 +757,244 @@ export default function SubmitPage() {
       | React.PointerEvent<HTMLDivElement>
       | React.TouchEvent<HTMLDivElement>
   ) {
-    if (!dragRef.current.dragging) return;
+    const drag = draggingTextRef.current;
+
+    if (!drag) return;
 
     const point =
       "touches" in event ? event.touches[0] : event;
 
-    const container =
+    const bounds =
       event.currentTarget.parentElement?.getBoundingClientRect();
 
-    if (!container) return;
+    if (!bounds) return;
 
-    const differenceX =
-      ((point.clientX - dragRef.current.startX) /
-        container.width) *
-      100;
+    const moveX =
+      ((point.clientX - drag.startX) / bounds.width) * 100;
 
-    const differenceY =
-      ((point.clientY - dragRef.current.startY) /
-        container.height) *
-      100;
+    const moveY =
+      ((point.clientY - drag.startY) / bounds.height) * 100;
 
-    setTextX(
-      Math.min(
-        92,
-        Math.max(8, dragRef.current.originalX + differenceX)
-      )
-    );
-
-    setTextY(
-      Math.min(
-        92,
-        Math.max(8, dragRef.current.originalY + differenceY)
+    setTextLayers((current) =>
+      current.map((layer) =>
+        layer.id === drag.id
+          ? {
+              ...layer,
+              x: Math.min(
+                94,
+                Math.max(6, drag.originalX + moveX)
+              ),
+              y: Math.min(
+                94,
+                Math.max(6, drag.originalY + moveY)
+              ),
+            }
+          : layer
       )
     );
   }
 
   function endTextDrag() {
-    dragRef.current.dragging = false;
+    draggingTextRef.current = null;
   }
-    async function uploadMedia(): Promise<{
+
+  function beginStickerDrag(
+    event:
+      | React.PointerEvent<HTMLDivElement>
+      | React.TouchEvent<HTMLDivElement>,
+    sticker: StickerLayer
+  ) {
+    const point =
+      "touches" in event ? event.touches[0] : event;
+
+    draggingStickerRef.current = {
+      id: sticker.id,
+      startX: point.clientX,
+      startY: point.clientY,
+      originalX: sticker.x,
+      originalY: sticker.y,
+    };
+
+    setSelectedStickerId(sticker.id);
+    setSelectedTextId("");
+  }
+
+  function moveSticker(
+    event:
+      | React.PointerEvent<HTMLDivElement>
+      | React.TouchEvent<HTMLDivElement>
+  ) {
+    const drag = draggingStickerRef.current;
+
+    if (!drag) return;
+
+    const point =
+      "touches" in event ? event.touches[0] : event;
+
+    const bounds =
+      event.currentTarget.parentElement?.getBoundingClientRect();
+
+    if (!bounds) return;
+
+    const moveX =
+      ((point.clientX - drag.startX) / bounds.width) * 100;
+
+    const moveY =
+      ((point.clientY - drag.startY) / bounds.height) * 100;
+
+    setStickers((current) =>
+      current.map((sticker) =>
+        sticker.id === drag.id
+          ? {
+              ...sticker,
+              x: Math.min(
+                94,
+                Math.max(6, drag.originalX + moveX)
+              ),
+              y: Math.min(
+                94,
+                Math.max(6, drag.originalY + moveY)
+              ),
+            }
+          : sticker
+      )
+    );
+  }
+
+  function endStickerDrag() {
+    draggingStickerRef.current = null;
+  }
+
+  function resizeDrawingCanvas() {
+    const canvas = drawingCanvasRef.current;
+
+    if (!canvas) return;
+
+    const bounds = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.width = Math.max(1, bounds.width * ratio);
+    canvas.height = Math.max(1, bounds.height * ratio);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    context.scale(ratio, ratio);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+  }
+
+  function beginDrawing(
+    event:
+      | React.PointerEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>
+  ) {
+    if (!drawingEnabled) return;
+
+    const canvas = drawingCanvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const point =
+      "touches" in event ? event.touches[0] : event;
+
+    const bounds = canvas.getBoundingClientRect();
+
+    context.beginPath();
+    context.moveTo(
+      point.clientX - bounds.left,
+      point.clientY - bounds.top
+    );
+
+    drawingRef.current = true;
+  }
+
+  function draw(
+    event:
+      | React.PointerEvent<HTMLCanvasElement>
+      | React.TouchEvent<HTMLCanvasElement>
+  ) {
+    if (!drawingEnabled || !drawingRef.current) return;
+
+    const canvas = drawingCanvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    const point =
+      "touches" in event ? event.touches[0] : event;
+
+    const bounds = canvas.getBoundingClientRect();
+
+    context.strokeStyle = drawingColor;
+    context.lineWidth = drawingWidth;
+
+    context.lineTo(
+      point.clientX - bounds.left,
+      point.clientY - bounds.top
+    );
+
+    context.stroke();
+  }
+
+  function endDrawing() {
+    drawingRef.current = false;
+  }
+
+  function clearDrawing() {
+    const canvas = drawingCanvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) return;
+
+    context.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  }
+
+  function drawingDataUrl() {
+    const canvas = drawingCanvasRef.current;
+
+    if (!canvas) return "";
+
+    try {
+      return canvas.toDataURL("image/png");
+    } catch {
+      return "";
+    }
+  }
+
+  async function uploadFileToBucket(
+    bucket: string,
+    folder: string,
+    selectedFile: File
+  ) {
+    const filePath = `${folder}/${Date.now()}-${cleanFileName(
+      selectedFile.name
+    )}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, selectedFile, {
+        upsert: false,
+        contentType: selectedFile.type,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    return supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath).data.publicUrl;
+  }
+
+  async function uploadMedia(): Promise<{
     mediaUrl: string;
     mediaType: "image" | "video" | "embed" | "link";
     thumbnail: string;
@@ -579,34 +1021,45 @@ export default function SubmitPage() {
       throw new Error("Choose a photo or video first.");
     }
 
-    const filePath = `creator-posts/${Date.now()}-${cleanFileName(
-      file.name
-    )}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("uploads")
-      .upload(filePath, file, {
-        upsert: false,
-        contentType: file.type,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const { data } = supabase.storage
-      .from("uploads")
-      .getPublicUrl(filePath);
+    const mediaUrl = await uploadFileToBucket(
+      "uploads",
+      "creator-posts",
+      file
+    );
 
     return {
-      mediaUrl: data.publicUrl,
-      mediaType: file.type.startsWith("image") ? "image" : "video",
+      mediaUrl,
+      mediaType: file.type.startsWith("image")
+        ? "image"
+        : "video",
       thumbnail: coverUrl.trim(),
     };
   }
 
+  async function uploadMusic() {
+    if (musicFile) {
+      return uploadFileToBucket(
+        "story-music",
+        "audio",
+        musicFile
+      );
+    }
+
+    if (musicUrl.trim()) {
+      if (!isAudioLink(musicUrl.trim())) {
+        throw new Error(
+          "Use a direct MP3, M4A, WAV, AAC, or OGG music link."
+        );
+      }
+
+      return musicUrl.trim();
+    }
+
+    return "";
+  }
+
   async function submitPost() {
-    if (selectedDestinations.length === 0) {
+    if (!selectedDestinations.length) {
       setMessage("Choose where you want to share this.");
       return;
     }
@@ -615,7 +1068,9 @@ export default function SubmitPage() {
     setMessage("");
 
     try {
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData } =
+        await supabase.auth.getUser();
+
       const user = authData.user;
 
       if (!user?.email) {
@@ -625,11 +1080,31 @@ export default function SubmitPage() {
 
       const userEmail = user.email;
       const media = await uploadMedia();
+      const finalMusicUrl = await uploadMusic();
 
-      const finalCaption = overlayText.trim()
-        ? [caption.trim(), overlayText.trim()].filter(Boolean).join("\n\n")
-        : caption.trim();
+      const serializedTextLayers = textLayers.map(
+        (layer) => ({
+          id: layer.id,
+          text: layer.text,
+          color: layer.color,
+          size: layer.size,
+          x: layer.x,
+          y: layer.y,
+          shadow: layer.shadow,
+        })
+      );
 
+      const serializedStickers = stickers.map(
+        (sticker) => ({
+          id: sticker.id,
+          value: sticker.value,
+          size: sticker.size,
+          x: sticker.x,
+          y: sticker.y,
+        })
+      );
+
+      const finalCaption = caption.trim();
       const premiumCategories = [
         "Show",
         "Movie",
@@ -637,11 +1112,16 @@ export default function SubmitPage() {
         "Live Event",
       ];
 
-      const needsApproval = premiumCategories.includes(category);
+      const needsApproval =
+        premiumCategories.includes(category);
+
+      const isVideo =
+        media.mediaType === "video" ||
+        media.mediaType === "embed" ||
+        media.mediaType === "link";
 
       let uploadId = "";
 
-      // Feed and profile use the uploads table.
       if (destinations.feed || destinations.profile) {
         const visibility =
           destinations.feed && destinations.profile
@@ -650,12 +1130,7 @@ export default function SubmitPage() {
             ? "profile"
             : "feed";
 
-        const isVideo =
-          media.mediaType === "video" ||
-          media.mediaType === "embed" ||
-          media.mediaType === "link";
-
-        const { data: uploadRow, error: uploadInsertError } =
+        const { data: uploadRow, error: uploadError } =
           await supabase
             .from("uploads")
             .insert({
@@ -681,14 +1156,11 @@ export default function SubmitPage() {
             .select("id")
             .single();
 
-        if (uploadInsertError) {
-          throw uploadInsertError;
-        }
+        if (uploadError) throw uploadError;
 
         uploadId = uploadRow?.id || "";
       }
 
-      // Story uses the stories table.
       if (destinations.story) {
         const { error: storyError } = await supabase
           .from("stories")
@@ -696,25 +1168,28 @@ export default function SubmitPage() {
             user_email: userEmail,
             media_url: media.mediaUrl,
             media_type:
-              media.mediaType === "image" ? "image" : "video",
+              media.mediaType === "image"
+                ? "image"
+                : "video",
             caption: finalCaption,
+            music_url: finalMusicUrl || null,
+            music_title:
+              [musicTitle.trim(), musicArtist.trim()]
+                .filter(Boolean)
+                .join(" — ") || null,
+            text_overlay: serializedTextLayers,
+            stickers: serializedStickers,
+            drawing_data: drawingDataUrl() || null,
+            duration_seconds: storyDuration,
             expires_at: new Date(
               Date.now() + 24 * 60 * 60 * 1000
             ).toISOString(),
           });
 
-        if (storyError) {
-          throw storyError;
-        }
+        if (storyError) throw storyError;
       }
 
-      // World uses the world_posts table.
       if (destinations.world) {
-        const isVideo =
-          media.mediaType === "video" ||
-          media.mediaType === "embed" ||
-          media.mediaType === "link";
-
         const { error: worldError } = await supabase
           .from("world_posts")
           .insert({
@@ -726,7 +1201,9 @@ export default function SubmitPage() {
             state: stateName,
             location:
               city || stateName
-                ? `${city}${city && stateName ? ", " : ""}${stateName}`
+                ? `${city}${
+                    city && stateName ? ", " : ""
+                  }${stateName}`
                 : "UTV World",
             is_live: false,
             video_url: isVideo ? media.mediaUrl : "",
@@ -742,49 +1219,75 @@ export default function SubmitPage() {
                 : "",
           });
 
-        if (worldError) {
-          throw worldError;
-        }
+        if (worldError) throw worldError;
       }
 
       setMessage("Posted successfully.");
 
       setTimeout(() => {
-        if (destinations.story && !destinations.feed) {
-          router.push("/feed");
-        } else if (
+        if (
+          destinations.world &&
+          !destinations.feed &&
+          !destinations.story
+        ) {
+          router.push("/world");
+          return;
+        }
+
+        if (
           destinations.profile &&
           !destinations.feed &&
+          !destinations.story &&
           !destinations.world
         ) {
           router.push("/profile");
-        } else if (destinations.world && !destinations.feed) {
-          router.push("/world");
-        } else if (uploadId) {
-          router.push("/feed");
-        } else {
-          router.push("/feed");
+          return;
         }
+
+        if (
+          destinations.story &&
+          !destinations.feed &&
+          !destinations.profile &&
+          !destinations.world
+        ) {
+          router.push("/feed");
+          return;
+        }
+
+        if (uploadId) {
+          router.push("/feed");
+          return;
+        }
+
+        router.push("/feed");
       }, 700);
     } catch (error: any) {
       console.error(error);
-      setMessage(error?.message || "Could not post to UTV.");
+
+      setMessage(
+        error?.message ||
+          "Could not post your content to UTV."
+      );
     } finally {
       setPosting(false);
     }
   }
+    useEffect(() => {
+    if (mode !== "preview") return;
 
-  const previewUrl = preview || linkUrl.trim();
+    const timer = window.setTimeout(() => {
+      resizeDrawingCanvas();
+    }, 100);
 
-  const previewIsVideo =
-    Boolean(file?.type.startsWith("video")) ||
-    isVideoLink(previewUrl) ||
-    isEmbedLink(previewUrl);
+    window.addEventListener("resize", resizeDrawingCanvas);
 
-  const previewIsImage =
-    Boolean(file?.type.startsWith("image")) ||
-    isImageLink(previewUrl);
-      if (mode === "hub") {
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", resizeDrawingCanvas);
+    };
+  }, [mode]);
+
+  if (mode === "hub") {
     return (
       <main className="submitPage">
         <UTVNav />
@@ -792,10 +1295,10 @@ export default function SubmitPage() {
 
         <section className="createHero">
           <p className="eyebrow">UTV CREATOR</p>
-          <h1>Create Something</h1>
+          <h1>Create on UTV</h1>
           <p>
-            Record, upload, post a story, share a link, promote an event, or go
-            live.
+            Record, upload from your phone, share a link, create a story,
+            promote an event, or go live.
           </p>
         </section>
 
@@ -835,8 +1338,8 @@ export default function SubmitPage() {
           <h1>Share a Link</h1>
 
           <p className="muted">
-            Paste a YouTube, Vimeo, TikTok, Instagram, MP4, image, or hosted
-            media link.
+            Paste a direct video, image, YouTube, Vimeo, TikTok, Instagram, or
+            hosted media link.
           </p>
 
           <input
@@ -862,7 +1365,7 @@ export default function SubmitPage() {
 
           <textarea
             className="field captionField"
-            placeholder="Write a caption — optional"
+            placeholder="Caption — optional"
             value={caption}
             onChange={(event) => setCaption(event.target.value)}
           />
@@ -873,9 +1376,7 @@ export default function SubmitPage() {
             onChange={(event) => setCategory(event.target.value)}
           >
             {categoryOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
+              <option key={option}>{option}</option>
             ))}
           </select>
 
@@ -883,49 +1384,27 @@ export default function SubmitPage() {
             <h3>Share To</h3>
 
             <div className="destinationGrid">
-              <button
-                className={
-                  destinations.feed
-                    ? "destination activeDestination"
-                    : "destination"
-                }
-                onClick={() => toggleDestination("feed")}
-              >
-                📱 Feed
-              </button>
-
-              <button
-                className={
-                  destinations.profile
-                    ? "destination activeDestination"
-                    : "destination"
-                }
-                onClick={() => toggleDestination("profile")}
-              >
-                👤 Profile
-              </button>
-
-              <button
-                className={
-                  destinations.story
-                    ? "destination activeDestination"
-                    : "destination"
-                }
-                onClick={() => toggleDestination("story")}
-              >
-                📖 Story
-              </button>
-
-              <button
-                className={
-                  destinations.world
-                    ? "destination activeDestination"
-                    : "destination"
-                }
-                onClick={() => toggleDestination("world")}
-              >
-                🌍 World
-              </button>
+              {(["story", "feed", "profile", "world"] as Destination[]).map(
+                (destination) => (
+                  <button
+                    key={destination}
+                    className={
+                      destinations[destination]
+                        ? "destination activeDestination"
+                        : "destination"
+                    }
+                    onClick={() => toggleDestination(destination)}
+                  >
+                    {destination === "story"
+                      ? "📖 Story"
+                      : destination === "feed"
+                      ? "📱 Feed"
+                      : destination === "profile"
+                      ? "👤 Profile"
+                      : "🌍 World"}
+                  </button>
+                )
+              )}
             </div>
           </section>
 
@@ -969,7 +1448,11 @@ export default function SubmitPage() {
           <button
             className="publishBtn"
             onClick={submitPost}
-            disabled={posting || !linkUrl.trim()}
+            disabled={
+              posting ||
+              !linkUrl.trim() ||
+              selectedDestinations.length === 0
+            }
           >
             {posting ? "Posting..." : "Share to UTV"}
           </button>
@@ -1014,11 +1497,13 @@ export default function SubmitPage() {
         </button>
 
         <div className="cameraHeading">
-          <p>{category === "Story" ? "Create Story" : "Create Post"}</p>
+          <strong>
+            {destinations.story ? "Create Story" : "Create Post"}
+          </strong>
         </div>
 
         <div className="cameraControls">
-          <label className="cameraAction galleryAction">
+          <label className="cameraAction">
             <span>🖼️</span>
             <small>Gallery</small>
 
@@ -1061,13 +1546,12 @@ export default function SubmitPage() {
       <style>{styles}</style>
 
       <section className="editorStage">
-        <div className="editorTop">
+        <header className="editorTop">
           <button
             className="editorIconBtn"
             onClick={() => {
               setFile(null);
               setPreview("");
-              setOverlayText("");
               setMode("camera");
 
               setTimeout(() => {
@@ -1079,22 +1563,28 @@ export default function SubmitPage() {
           </button>
 
           <strong>
-            {isStoryMode ? "Edit Story" : "Edit Post"}
+            {destinations.story ? "Edit Story" : "Edit Post"}
           </strong>
 
           <button
             className="nextBtn"
-            onClick={() => {
+            onClick={() =>
               document
                 .getElementById("publish-panel")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
+                ?.scrollIntoView({ behavior: "smooth" })
+            }
           >
             Next
           </button>
-        </div>
+        </header>
 
-        <div className="mediaCanvas">
+        <div
+          className="mediaCanvas"
+          onClick={() => {
+            setSelectedTextId("");
+            setSelectedStickerId("");
+          }}
+        >
           {previewIsVideo ? (
             <video
               className="editorMedia"
@@ -1118,103 +1608,350 @@ export default function SubmitPage() {
             </div>
           )}
 
-          {overlayText && (
+          {textLayers.map((layer) => (
             <div
-              className="draggableText"
-              onPointerDown={beginTextDrag}
+              key={layer.id}
+              className={
+                selectedTextId === layer.id
+                  ? "layerText selectedLayer"
+                  : "layerText"
+              }
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                beginTextDrag(event, layer);
+              }}
               onPointerMove={moveText}
               onPointerUp={endTextDrag}
               onPointerCancel={endTextDrag}
-              onTouchStart={beginTextDrag}
-              onTouchMove={moveText}
-              onTouchEnd={endTextDrag}
               style={{
-                left: `${textX}%`,
-                top: `${textY}%`,
-                color: textColor,
-                fontSize: `${textSize}px`,
-                textShadow: textShadow
+                left: `${layer.x}%`,
+                top: `${layer.y}%`,
+                color: layer.color,
+                fontSize: `${layer.size}px`,
+                textShadow: layer.shadow
                   ? "0 3px 12px rgba(0,0,0,.95)"
                   : "none",
               }}
             >
-              {overlayText}
+              {layer.text}
+            </div>
+          ))}
+
+          {stickers.map((sticker) => (
+            <div
+              key={sticker.id}
+              className={
+                selectedStickerId === sticker.id
+                  ? "stickerLayer selectedLayer"
+                  : "stickerLayer"
+              }
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                beginStickerDrag(event, sticker);
+              }}
+              onPointerMove={moveSticker}
+              onPointerUp={endStickerDrag}
+              onPointerCancel={endStickerDrag}
+              style={{
+                left: `${sticker.x}%`,
+                top: `${sticker.y}%`,
+                fontSize: `${sticker.size}px`,
+              }}
+            >
+              {sticker.value}
+            </div>
+          ))}
+
+          <canvas
+            ref={drawingCanvasRef}
+            className={
+              drawingEnabled
+                ? "drawingCanvas drawingActive"
+                : "drawingCanvas"
+            }
+            onPointerDown={beginDrawing}
+            onPointerMove={draw}
+            onPointerUp={endDrawing}
+            onPointerCancel={endDrawing}
+          />
+
+          {(musicFile || musicUrl.trim()) && (
+            <div className="musicBadge">
+              <span>🎵</span>
+              <div>
+                <strong>{musicTitle || "Story Music"}</strong>
+                {musicArtist && <small>{musicArtist}</small>}
+              </div>
             </div>
           )}
         </div>
 
         <section className="editorTools">
-          <div className="toolRow">
-            <button
-              className="toolCircle"
-              onClick={() => {
-                const text = window.prompt(
-                  "Add text to your photo or video",
-                  overlayText
-                );
-
-                if (text !== null) {
-                  setOverlayText(text);
-                }
-              }}
-            >
+          <div className="mainTools">
+            <button className="toolCircle" onClick={addTextLayer}>
               Aa
             </button>
 
             <button
               className="toolCircle"
-              onClick={() =>
-                setOverlayText((current) => `${current} 🔥`)
+              onClick={() => setShowMusicPanel((current) => !current)}
+            >
+              🎵
+            </button>
+
+            <button
+              className={
+                drawingEnabled
+                  ? "toolCircle activeTool"
+                  : "toolCircle"
               }
+              onClick={() => setDrawingEnabled((current) => !current)}
+            >
+              ✏️
+            </button>
+
+            <button
+              className="toolCircle"
+              onClick={() => addSticker("🔥")}
             >
               😊
             </button>
 
             <button
               className="toolCircle"
-              onClick={() => setTextShadow((current) => !current)}
-            >
-              ✨
-            </button>
-
-            <button
-              className="toolCircle"
-              onClick={() =>
-                setTextSize((current) =>
-                  current >= 56 ? 22 : current + 6
-                )
-              }
-            >
-              A+
-            </button>
-
-            <button
-              className="toolCircle"
-              onClick={() => setOverlayText("")}
+              onClick={() => {
+                deleteSelectedText();
+                deleteSelectedSticker();
+              }}
             >
               🗑️
             </button>
           </div>
 
-          <div className="colorRow">
-            {textColors.map((color) => (
-              <button
-                key={color}
-                className={
-                  textColor === color
-                    ? "colorDot selectedColor"
-                    : "colorDot"
+          {selectedText && (
+            <section className="layerControls">
+              <input
+                className="toolInput"
+                value={selectedText.text}
+                onChange={(event) =>
+                  updateSelectedText({
+                    text: event.target.value,
+                  })
                 }
-                style={{ background: color }}
-                onClick={() => setTextColor(color)}
-                aria-label={`Use ${color}`}
               />
+
+              <div className="colorRow">
+                {textColors.map((color) => (
+                  <button
+                    key={color}
+                    className={
+                      selectedText.color === color
+                        ? "colorDot selectedColor"
+                        : "colorDot"
+                    }
+                    style={{ background: color }}
+                    onClick={() =>
+                      updateSelectedText({ color })
+                    }
+                  />
+                ))}
+              </div>
+
+              <div className="controlRow">
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    updateSelectedText({
+                      size: Math.max(16, selectedText.size - 4),
+                    })
+                  }
+                >
+                  A−
+                </button>
+
+                <span>{selectedText.size}px</span>
+
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    updateSelectedText({
+                      size: Math.min(72, selectedText.size + 4),
+                    })
+                  }
+                >
+                  A+
+                </button>
+
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    updateSelectedText({
+                      shadow: !selectedText.shadow,
+                    })
+                  }
+                >
+                  ✨
+                </button>
+              </div>
+            </section>
+          )}
+
+          {selectedSticker && (
+            <section className="layerControls">
+              <div className="controlRow">
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    updateSelectedSticker({
+                      size: Math.max(
+                        24,
+                        selectedSticker.size - 6
+                      ),
+                    })
+                  }
+                >
+                  −
+                </button>
+
+                <span>{selectedSticker.size}px</span>
+
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    updateSelectedSticker({
+                      size: Math.min(
+                        110,
+                        selectedSticker.size + 6
+                      ),
+                    })
+                  }
+                >
+                  +
+                </button>
+              </div>
+            </section>
+          )}
+
+          <div className="stickerTray">
+            {stickerChoices.map((sticker) => (
+              <button
+                key={sticker}
+                onClick={() => addSticker(sticker)}
+              >
+                {sticker}
+              </button>
             ))}
           </div>
 
-          <p className="dragTip">
-            Drag your text anywhere on the image or video.
-          </p>
+          {drawingEnabled && (
+            <section className="drawingTools">
+              <div className="colorRow">
+                {textColors.map((color) => (
+                  <button
+                    key={color}
+                    className={
+                      drawingColor === color
+                        ? "colorDot selectedColor"
+                        : "colorDot"
+                    }
+                    style={{ background: color }}
+                    onClick={() => setDrawingColor(color)}
+                  />
+                ))}
+              </div>
+
+              <div className="controlRow">
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    setDrawingWidth((current) =>
+                      Math.max(2, current - 1)
+                    )
+                  }
+                >
+                  Thin
+                </button>
+
+                <span>{drawingWidth}px</span>
+
+                <button
+                  className="miniTool"
+                  onClick={() =>
+                    setDrawingWidth((current) =>
+                      Math.min(20, current + 1)
+                    )
+                  }
+                >
+                  Thick
+                </button>
+
+                <button className="miniTool" onClick={clearDrawing}>
+                  Clear
+                </button>
+              </div>
+            </section>
+          )}
+
+          {showMusicPanel && (
+            <section className="musicPanel">
+              <h3>Add Music</h3>
+
+              <label className="musicUpload">
+                <span>📁 Choose audio from phone</span>
+                <small>MP3, M4A, WAV, AAC, or OGG</small>
+
+                <input
+                  hidden
+                  type="file"
+                  accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg"
+                  onChange={pickMusicFile}
+                />
+              </label>
+
+              <input
+                className="toolInput"
+                placeholder="Or paste a direct audio URL"
+                value={musicUrl}
+                onChange={(event) => {
+                  setMusicUrl(event.target.value);
+                  setMusicFile(null);
+                  setMusicPreview("");
+                }}
+              />
+
+              <input
+                className="toolInput"
+                placeholder="Song title"
+                value={musicTitle}
+                onChange={(event) =>
+                  setMusicTitle(event.target.value)
+                }
+              />
+
+              <input
+                className="toolInput"
+                placeholder="Artist name"
+                value={musicArtist}
+                onChange={(event) =>
+                  setMusicArtist(event.target.value)
+                }
+              />
+
+              {(musicPreview || musicUrl.trim()) && (
+                <audio
+                  controls
+                  src={musicPreview || musicUrl.trim()}
+                  className="audioPreview"
+                />
+              )}
+
+              {(musicFile || musicUrl.trim()) && (
+                <button className="removeMusicBtn" onClick={removeMusic}>
+                  Remove Music
+                </button>
+              )}
+            </section>
+          )}
         </section>
       </section>
 
@@ -1225,14 +1962,14 @@ export default function SubmitPage() {
 
         <input
           className="cleanField"
-          placeholder="Add a title — optional"
+          placeholder="Title — optional"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
 
         <textarea
           className="cleanField captionField"
-          placeholder="Write a caption — optional"
+          placeholder="Caption — optional"
           value={caption}
           onChange={(event) => setCaption(event.target.value)}
         />
@@ -1243,59 +1980,57 @@ export default function SubmitPage() {
           onChange={(event) => setCategory(event.target.value)}
         >
           {categoryOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
+            <option key={option}>{option}</option>
           ))}
         </select>
+
+        {destinations.story && (
+          <section className="durationPanel">
+            <h3>Story Duration</h3>
+
+            <div className="durationChoices">
+              {[5, 10, 15].map((seconds) => (
+                <button
+                  key={seconds}
+                  className={
+                    storyDuration === seconds
+                      ? "durationBtn activeDestination"
+                      : "durationBtn"
+                  }
+                  onClick={() => setStoryDuration(seconds)}
+                >
+                  {seconds}s
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="destinationPanel">
           <h3>Share To</h3>
 
           <div className="destinationGrid">
-            <button
-              className={
-                destinations.story
-                  ? "destination activeDestination"
-                  : "destination"
-              }
-              onClick={() => toggleDestination("story")}
-            >
-              📖 Story
-            </button>
-
-            <button
-              className={
-                destinations.feed
-                  ? "destination activeDestination"
-                  : "destination"
-              }
-              onClick={() => toggleDestination("feed")}
-            >
-              📱 Feed
-            </button>
-
-            <button
-              className={
-                destinations.profile
-                  ? "destination activeDestination"
-                  : "destination"
-              }
-              onClick={() => toggleDestination("profile")}
-            >
-              👤 Profile
-            </button>
-
-            <button
-              className={
-                destinations.world
-                  ? "destination activeDestination"
-                  : "destination"
-              }
-              onClick={() => toggleDestination("world")}
-            >
-              🌍 World
-            </button>
+            {(["story", "feed", "profile", "world"] as Destination[]).map(
+              (destination) => (
+                <button
+                  key={destination}
+                  className={
+                    destinations[destination]
+                      ? "destination activeDestination"
+                      : "destination"
+                  }
+                  onClick={() => toggleDestination(destination)}
+                >
+                  {destination === "story"
+                    ? "📖 Story"
+                    : destination === "feed"
+                    ? "📱 Feed"
+                    : destination === "profile"
+                    ? "👤 Profile"
+                    : "🌍 World"}
+                </button>
+              )
+            )}
           </div>
         </section>
 
@@ -1304,7 +2039,9 @@ export default function SubmitPage() {
             <select
               className="cleanField"
               value={worldType}
-              onChange={(event) => setWorldType(event.target.value)}
+              onChange={(event) =>
+                setWorldType(event.target.value)
+              }
             >
               <option>Feed</option>
               <option>Live</option>
@@ -1382,8 +2119,8 @@ const styles = `
   }
 
   button:disabled {
-    opacity: .55;
     cursor: not-allowed;
+    opacity: .55;
   }
 
   .submitPage {
@@ -1473,7 +2210,8 @@ const styles = `
   }
 
   .field,
-  .cleanField {
+  .cleanField,
+  .toolInput {
     width: 100%;
     padding: 15px 16px;
     color: white;
@@ -1559,15 +2297,10 @@ const styles = `
 
   .cameraHeading {
     position: absolute;
-    top: max(28px, env(safe-area-inset-top));
+    top: max(31px, env(safe-area-inset-top));
     left: 50%;
     z-index: 3;
     transform: translateX(-50%);
-  }
-
-  .cameraHeading p {
-    margin: 0;
-    font-weight: 900;
   }
 
   .cameraControls {
@@ -1636,7 +2369,6 @@ const styles = `
     left: 20px;
     z-index: 5;
     padding: 12px;
-    color: white;
     text-align: center;
     border-radius: 16px;
     background: rgba(0,0,0,.65);
@@ -1651,19 +2383,18 @@ const styles = `
 
   .editorStage {
     min-height: 100vh;
-    background: #000;
   }
 
   .editorTop {
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: 30;
     display: grid;
     grid-template-columns: 52px 1fr 70px;
     align-items: center;
     gap: 10px;
     padding: max(14px, env(safe-area-inset-top)) 14px 12px;
-    background: rgba(0,0,0,.78);
+    background: rgba(0,0,0,.82);
     backdrop-filter: blur(18px);
   }
 
@@ -1714,22 +2445,64 @@ const styles = `
     font-size: 58px;
   }
 
-  .draggableText {
+  .layerText,
+  .stickerLayer {
     position: absolute;
-    z-index: 10;
-    max-width: 86%;
-    padding: 6px 10px;
-    font-weight: 950;
-    text-align: center;
-    white-space: pre-wrap;
+    z-index: 15;
     transform: translate(-50%, -50%);
     cursor: grab;
     user-select: none;
     touch-action: none;
   }
 
-  .draggableText:active {
-    cursor: grabbing;
+  .layerText {
+    max-width: 88%;
+    padding: 7px 11px;
+    font-weight: 950;
+    text-align: center;
+    white-space: pre-wrap;
+  }
+
+  .selectedLayer {
+    outline: 2px dashed rgba(82,247,200,.9);
+    outline-offset: 5px;
+  }
+
+  .drawingCanvas {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .drawingActive {
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  .musicBadge {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 18;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    max-width: 72%;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.65);
+    backdrop-filter: blur(15px);
+  }
+
+  .musicBadge div {
+    display: grid;
+  }
+
+  .musicBadge small {
+    color: rgba(255,255,255,.65);
   }
 
   .editorTools {
@@ -1737,6 +2510,7 @@ const styles = `
     background: linear-gradient(180deg, #050505, #111);
   }
 
+  .mainTools,
   .toolRow {
     display: flex;
     justify-content: center;
@@ -1752,14 +2526,32 @@ const styles = `
     font-weight: 950;
   }
 
+  .activeTool {
+    border-color: #52f7c8;
+    box-shadow: 0 0 18px rgba(82,247,200,.35);
+  }
+
+  .layerControls,
+  .drawingTools,
+  .musicPanel {
+    display: grid;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    background: rgba(255,255,255,.055);
+  }
+
   .colorRow {
     display: flex;
     justify-content: center;
     gap: 12px;
-    margin-top: 15px;
+    overflow-x: auto;
   }
 
   .colorDot {
+    flex: 0 0 auto;
     width: 28px;
     height: 28px;
     border: 2px solid rgba(255,255,255,.7);
@@ -1771,11 +2563,66 @@ const styles = `
     outline-offset: 3px;
   }
 
-  .dragTip {
-    margin: 15px 0 0;
-    color: rgba(255,255,255,.5);
-    font-size: 12px;
+  .controlRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .miniTool {
+    padding: 9px 12px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px;
+    background: rgba(255,255,255,.08);
+    font-weight: 850;
+  }
+
+  .stickerTray {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    overflow-x: auto;
+  }
+
+  .stickerTray button {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    font-size: 25px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+  }
+
+  .musicUpload {
+    display: grid;
+    gap: 4px;
+    padding: 15px;
     text-align: center;
+    border: 1px dashed rgba(82,247,200,.6);
+    border-radius: 18px;
+    background: rgba(82,247,200,.06);
+    cursor: pointer;
+  }
+
+  .musicUpload small {
+    color: rgba(255,255,255,.55);
+  }
+
+  .audioPreview {
+    width: 100%;
+  }
+
+  .removeMusicBtn {
+    padding: 12px;
+    color: white;
+    border: 1px solid rgba(255,95,87,.45);
+    border-radius: 16px;
+    background: rgba(255,95,87,.14);
+    font-weight: 900;
   }
 
   .publishPanel {
@@ -1803,14 +2650,16 @@ const styles = `
     font-size: 28px;
   }
 
-  .destinationPanel {
+  .destinationPanel,
+  .durationPanel {
     padding: 15px;
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 22px;
     background: rgba(255,255,255,.055);
   }
 
-  .destinationPanel h3 {
+  .destinationPanel h3,
+  .durationPanel h3 {
     margin: 0 0 12px;
   }
 
@@ -1820,7 +2669,8 @@ const styles = `
     gap: 9px;
   }
 
-  .destination {
+  .destination,
+  .durationBtn {
     padding: 13px 10px;
     color: rgba(255,255,255,.72);
     border: 1px solid rgba(255,255,255,.12);
@@ -1833,6 +2683,12 @@ const styles = `
     color: #06120d;
     border-color: transparent;
     background: linear-gradient(135deg, #52f7c8, #7b61ff);
+  }
+
+  .durationChoices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
   }
 
   .worldFields {
