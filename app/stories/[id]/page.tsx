@@ -26,14 +26,17 @@ type StoryItem = {
   duration_seconds?: number;
 };
 
-const reactions = ["❤️", "🔥", "😂", "👏", "💯"];
+const reactionChoices = ["❤️", "🔥", "😂", "👏", "💯"];
 
 function safeArray(value: unknown): any[] {
-  if (Array.isArray(value)) return value;
+  if (Array.isArray(value)) {
+    return value;
+  }
 
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
+
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
@@ -49,39 +52,60 @@ export default function StoryViewerPage() {
 
   const storyId = String(params.id || "");
 
-  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(
-    null
-  );
-
-  const startedAt = useRef(Date.now());
-  const pausedProgress = useRef(0);
+  const progressTimerRef =
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [story, setStory] = useState<StoryItem | null>(null);
-  const [stories, setStories] = useState<StoryItem[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const pointerStartRef = useRef({
+    x: 0,
+    y: 0,
+  });
 
-  const [viewerEmail, setViewerEmail] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const progressValueRef = useRef(0);
+  const progressStartedRef = useRef(Date.now());
 
-  const [reply, setReply] = useState("");
-  const [sending, setSending] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [story, setStory] =
+    useState<StoryItem | null>(null);
 
-  const textLayers = useMemo(
-    () => safeArray(story?.text_overlay),
-    [story?.text_overlay]
-  );
+  const [stories, setStories] =
+    useState<StoryItem[]>([]);
 
-  const stickerLayers = useMemo(
-    () => safeArray(story?.stickers),
-    [story?.stickers]
-  );
+  const [profile, setProfile] =
+    useState<any>(null);
+
+  const [viewerEmail, setViewerEmail] =
+    useState("");
+
+  const [progress, setProgress] =
+    useState(0);
+
+  const [paused, setPaused] =
+    useState(false);
+
+  const [muted, setMuted] =
+    useState(false);
+
+  const [reply, setReply] =
+    useState("");
+
+  const [sending, setSending] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const textLayers = useMemo(() => {
+    return safeArray(story?.text_overlay);
+  }, [story?.text_overlay]);
+
+  const stickerLayers = useMemo(() => {
+    return safeArray(story?.stickers);
+  }, [story?.stickers]);
 
   const currentIndex = useMemo(() => {
     return stories.findIndex(
@@ -104,7 +128,8 @@ export default function StoryViewerPage() {
     story?.user_email?.split("@")[0] ||
     "UTV Creator";
 
-  const creatorAvatar = profile?.avatar_url || "";
+  const creatorAvatar =
+    profile?.avatar_url || "";
 
   const closeStory = useCallback(() => {
     router.push("/feed");
@@ -123,13 +148,15 @@ export default function StoryViewerPage() {
       return;
     }
 
-    const next = stories[currentIndex + 1];
+    const nextStory =
+      stories[currentIndex + 1];
 
-    if (next) {
-      openStory(String(next.id));
-    } else {
+    if (!nextStory) {
       closeStory();
+      return;
     }
+
+    openStory(String(nextStory.id));
   }, [
     stories,
     currentIndex,
@@ -138,53 +165,76 @@ export default function StoryViewerPage() {
   ]);
 
   const goPrevious = useCallback(() => {
-    if (!stories.length || currentIndex <= 0) return;
-
-    const previous = stories[currentIndex - 1];
-
-    if (previous) {
-      openStory(String(previous.id));
+    if (!stories.length || currentIndex <= 0) {
+      return;
     }
-  }, [stories, currentIndex, openStory]);
+
+    const previousStory =
+      stories[currentIndex - 1];
+
+    if (previousStory) {
+      openStory(String(previousStory.id));
+    }
+  }, [
+    stories,
+    currentIndex,
+    openStory,
+  ]);
 
   useEffect(() => {
     loadStory();
   }, [storyId]);
 
   useEffect(() => {
-    if (!story || paused) return;
-
-    if (progressTimer.current) {
-      clearInterval(progressTimer.current);
+    if (!story || paused) {
+      return;
     }
 
-    startedAt.current =
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+    }
+
+    progressStartedRef.current =
       Date.now() -
-      pausedProgress.current * durationSeconds * 1000;
+      progressValueRef.current *
+        durationSeconds *
+        1000;
 
-    progressTimer.current = setInterval(() => {
-      const elapsed = Date.now() - startedAt.current;
+    progressTimerRef.current =
+      setInterval(() => {
+        const elapsed =
+          Date.now() -
+          progressStartedRef.current;
 
-      const nextProgress = Math.min(
-        1,
-        elapsed / (durationSeconds * 1000)
-      );
+        const nextProgress = Math.min(
+          1,
+          elapsed /
+            (durationSeconds * 1000)
+        );
 
-      pausedProgress.current = nextProgress;
-      setProgress(nextProgress * 100);
+        progressValueRef.current =
+          nextProgress;
 
-      if (nextProgress >= 1) {
-        if (progressTimer.current) {
-          clearInterval(progressTimer.current);
+        setProgress(
+          nextProgress * 100
+        );
+
+        if (nextProgress >= 1) {
+          if (progressTimerRef.current) {
+            clearInterval(
+              progressTimerRef.current
+            );
+          }
+
+          goNext();
         }
-
-        goNext();
-      }
-    }, 50);
+      }, 50);
 
     return () => {
-      if (progressTimer.current) {
-        clearInterval(progressTimer.current);
+      if (progressTimerRef.current) {
+        clearInterval(
+          progressTimerRef.current
+        );
       }
     };
   }, [
@@ -199,20 +249,22 @@ export default function StoryViewerPage() {
     setMessage("");
     setProgress(0);
 
-    pausedProgress.current = 0;
+    progressValueRef.current = 0;
 
     const { data: authData } =
       await supabase.auth.getUser();
 
-    const email = authData.user?.email || "";
+    const email =
+      authData.user?.email || "";
 
     setViewerEmail(email);
 
-    const now = new Date().toISOString();
+    const now =
+      new Date().toISOString();
 
     const [
-      { data: currentStory, error: storyError },
-      { data: activeStories, error: listError },
+      currentStoryResult,
+      storiesResult,
     ] = await Promise.all([
       supabase
         .from("stories")
@@ -224,29 +276,44 @@ export default function StoryViewerPage() {
         .from("stories")
         .select("*")
         .gt("expires_at", now)
-        .order("created_at", { ascending: true }),
+        .order("created_at", {
+          ascending: true,
+        }),
     ]);
 
-    if (storyError || !currentStory) {
-      console.error(storyError);
+    const currentStory =
+      currentStoryResult.data;
+
+    const activeStories =
+      storiesResult.data || [];
+
+    if (
+      currentStoryResult.error ||
+      !currentStory
+    ) {
+      console.error(
+        currentStoryResult.error
+      );
+
       setStory(null);
-      setStories(activeStories || []);
+      setStories(activeStories);
       setLoading(false);
+
       return;
     }
 
-    if (listError) {
-      console.error(listError);
-    }
-
     setStory(currentStory);
-    setStories(activeStories || []);
+    setStories(activeStories);
 
-    const { data: profileData } = await supabase
-      .from("creator_profiles")
-      .select("*")
-      .eq("email", currentStory.user_email)
-      .maybeSingle();
+    const { data: profileData } =
+      await supabase
+        .from("creator_profiles")
+        .select("*")
+        .eq(
+          "email",
+          currentStory.user_email
+        )
+        .maybeSingle();
 
     setProfile(profileData || null);
 
@@ -258,38 +325,49 @@ export default function StoryViewerPage() {
         .from("story_views")
         .upsert(
           {
-            story_id: currentStory.id,
+            story_id:
+              currentStory.id,
             viewer_email: email,
           },
           {
-            onConflict: "story_id,viewer_email",
+            onConflict:
+              "story_id,viewer_email",
             ignoreDuplicates: true,
           }
         );
     }
 
-    setPaused(false);
     setMuted(false);
+    setPaused(false);
     setLoading(false);
   }
 
   function pauseStory() {
-    pausedProgress.current = progress / 100;
+    progressValueRef.current =
+      progress / 100;
+
     setPaused(true);
 
     videoRef.current?.pause();
     audioRef.current?.pause();
 
-    if (progressTimer.current) {
-      clearInterval(progressTimer.current);
+    if (progressTimerRef.current) {
+      clearInterval(
+        progressTimerRef.current
+      );
     }
   }
 
   function resumeStory() {
     setPaused(false);
 
-    videoRef.current?.play().catch(() => {});
-    audioRef.current?.play().catch(() => {});
+    videoRef.current
+      ?.play()
+      .catch(() => {});
+
+    audioRef.current
+      ?.play()
+      .catch(() => {});
   }
 
   function toggleSound() {
@@ -298,36 +376,114 @@ export default function StoryViewerPage() {
     setMuted(nextMuted);
 
     if (videoRef.current) {
-      videoRef.current.muted = nextMuted;
+      videoRef.current.muted =
+        nextMuted;
 
       if (videoRef.current.paused) {
-        videoRef.current.play().catch(() => {});
+        videoRef.current
+          .play()
+          .catch(() => {});
       }
     }
 
     if (audioRef.current) {
-      audioRef.current.muted = nextMuted;
+      audioRef.current.muted =
+        nextMuted;
 
       if (audioRef.current.paused) {
-        audioRef.current.play().catch(() => {});
+        audioRef.current
+          .play()
+          .catch(() => {});
       }
     }
   }
 
+  function handlePointerDown(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    const target =
+      event.target as HTMLElement;
+
+    if (
+      target.closest("button") ||
+      target.closest("input")
+    ) {
+      return;
+    }
+
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+    };
+
+    pauseStory();
+  }
+
+  function handlePointerUp(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    const target =
+      event.target as HTMLElement;
+
+    if (
+      target.closest("button") ||
+      target.closest("input")
+    ) {
+      return;
+    }
+
+    const differenceX =
+      event.clientX -
+      pointerStartRef.current.x;
+
+    const differenceY =
+      event.clientY -
+      pointerStartRef.current.y;
+
+    if (Math.abs(differenceX) > 70) {
+      if (differenceX < 0) {
+        goNext();
+      } else {
+        goPrevious();
+      }
+
+      return;
+    }
+
+    if (
+      differenceY > 100 &&
+      Math.abs(differenceY) >
+        Math.abs(differenceX)
+    ) {
+      closeStory();
+      return;
+    }
+
+    resumeStory();
+  }
+
   async function deleteStory() {
-    if (!story || !isOwner) return;
+    if (!story || !isOwner) {
+      return;
+    }
 
-    const confirmed = window.confirm(
-      "Delete this story?"
-    );
+    const confirmed =
+      window.confirm(
+        "Delete this story?"
+      );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     const { error } = await supabase
       .from("stories")
       .delete()
       .eq("id", story.id)
-      .eq("user_email", viewerEmail);
+      .eq(
+        "user_email",
+        viewerEmail
+      );
 
     if (error) {
       setMessage(error.message);
@@ -336,190 +492,131 @@ export default function StoryViewerPage() {
 
     goNext();
   }
+    async function sendReply() {
+    if (!story || !viewerEmail) return;
 
-  async function sendReaction(reaction: string) {
-    if (!story) return;
+    const text = reply.trim();
 
-    if (!viewerEmail) {
-      router.push("/login");
-      return;
-    }
-
-    if (isOwner) return;
-
-    const { error } = await supabase
-      .from("story_reactions")
-      .upsert(
-        {
-          story_id: story.id,
-          user_email: viewerEmail,
-          reaction,
-        },
-        {
-          onConflict: "story_id,user_email",
-        }
-      );
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    await supabase.from("notifications").insert({
-      user_email: story.user_email,
-      type: "story_reaction",
-      title: "Story Reaction",
-      message: `${viewerEmail} reacted ${reaction} to your story.`,
-      link: `/stories/${story.id}`,
-      is_read: false,
-    });
-
-    setMessage(`Reaction sent ${reaction}`);
-
-    window.setTimeout(() => {
-      setMessage("");
-    }, 1400);
-  }
-
-  async function sendReply() {
-    if (!story) return;
-
-    const cleanReply = reply.trim();
-
-    if (!cleanReply) return;
-
-    if (!viewerEmail) {
-      router.push("/login");
-      return;
-    }
-
-    if (isOwner) {
-      setMessage("This is your story.");
-      return;
-    }
+    if (!text) return;
 
     setSending(true);
-    setMessage("");
 
-    const { error } = await supabase
-      .from("messages")
-      .insert({
-        sender_email: viewerEmail,
-        receiver_email: story.user_email,
-        message: cleanReply,
-        is_read: false,
-      });
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .insert({
+          sender_email: viewerEmail,
+          receiver_email: story.user_email,
+          message: text,
+        });
 
-    if (error) {
+      if (error) throw error;
+
+      await supabase
+        .from("notifications")
+        .insert({
+          user_email: story.user_email,
+          type: "story_reply",
+          title: "Story Reply",
+          message: `${creatorName} received a reply to a story.`,
+          is_read: false,
+        });
+
+      setReply("");
+      setMessage("Reply sent.");
+    } catch (error: any) {
       setMessage(error.message);
+    } finally {
       setSending(false);
-      return;
     }
-
-    await supabase.from("notifications").insert({
-      user_email: story.user_email,
-      type: "message",
-      title: "Story Reply",
-      message: `${viewerEmail} replied to your story.`,
-      link: "/messages",
-      is_read: false,
-    });
-
-    setReply("");
-    setMessage("Reply sent.");
-    setSending(false);
-
-    window.setTimeout(() => {
-      setMessage("");
-    }, 1400);
   }
-    if (loading) {
-    return (
-      <main className="storyState">
-        <style>{styles}</style>
 
-        <div className="storyLoader" />
-        <p>Loading story...</p>
+  async function sendReaction(
+    emoji: string
+  ) {
+    if (!viewerEmail || !story) return;
+
+    try {
+      await supabase
+        .from("story_reactions")
+        .insert({
+          story_id: story.id,
+          user_email: viewerEmail,
+          reaction: emoji,
+        });
+
+      await supabase
+        .from("notifications")
+        .insert({
+          user_email: story.user_email,
+          type: "story_reaction",
+          title: `${emoji} Story Reaction`,
+          message: `${viewerEmail.split("@")[0]} reacted to your story.`,
+          is_read: false,
+        });
+
+      setMessage(`${emoji} sent`);
+    } catch {}
+  }
+
+  if (loading) {
+    return (
+      <main
+        style={{
+          background: "#000",
+          color: "#fff",
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        Loading Story...
       </main>
     );
   }
 
   if (!story) {
     return (
-      <main className="storyState">
-        <style>{styles}</style>
-
-        <h2>Story unavailable</h2>
-
-        <button
-          className="returnButton"
-          onClick={closeStory}
-        >
-          Return to Feed
-        </button>
+      <main
+        style={{
+          background: "#000",
+          color: "#fff",
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        Story not found.
       </main>
     );
   }
 
   return (
     <main
-      className="storyPage"
-      onPointerDown={(event) => {
-        const target = event.target as HTMLElement;
+      className="storyViewer"
 
-        if (
-          target.closest("button") ||
-          target.closest("input")
-        ) {
-          return;
-        }
+      onPointerDown={handlePointerDown}
 
-        pauseStory();
-      }}
-      onPointerUp={(event) => {
-        const target = event.target as HTMLElement;
-
-        if (
-          target.closest("button") ||
-          target.closest("input")
-        ) {
-          return;
-        }
-
-        resumeStory();
-      }}
-      onPointerCancel={resumeStory}
+      onPointerUp={handlePointerUp}
     >
+
       <style>{styles}</style>
 
-      <section className="progressRow">
-        {stories.map((item, index) => {
-          const complete = index < currentIndex;
-          const active = index === currentIndex;
+      <div className="storyProgress">
 
-          return (
-            <div
-              className="progressTrack"
-              key={item.id}
-            >
-              <div
-                className="progressFill"
-                style={{
-                  width: complete
-                    ? "100%"
-                    : active
-                    ? `${progress}%`
-                    : "0%",
-                }}
-              />
-            </div>
-          );
-        })}
-      </section>
+        <div
+          className="storyProgressFill"
+          style={{
+            width: `${progress}%`,
+          }}
+        />
+
+      </div>
 
       <header className="storyHeader">
+
         <button
-          className="creatorButton"
+          className="storyCreator"
           onClick={() =>
             router.push(
               `/u/${encodeURIComponent(
@@ -528,230 +625,193 @@ export default function StoryViewerPage() {
             )
           }
         >
+
           {creatorAvatar ? (
             <img
               src={creatorAvatar}
-              alt={creatorName}
+              className="storyAvatar"
             />
           ) : (
-            <span className="avatarFallback">
+            <div className="storyAvatar">
               👤
-            </span>
+            </div>
           )}
 
           <div>
+
             <strong>{creatorName}</strong>
 
             <small>
-              {story.created_at
-                ? new Date(
-                    story.created_at
-                  ).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })
-                : "UTV Story"}
+              {story.music_title ||
+                "UTV Story"}
             </small>
+
           </div>
+
         </button>
 
-        <div className="headerActions">
+        <div className="storyHeaderButtons">
+
           <button
-            className="headerButton"
             onClick={toggleSound}
-            aria-label={
-              muted ? "Turn sound on" : "Mute story"
-            }
           >
-            {muted ? "🔇" : "🔊"}
+            {muted
+              ? "🔇"
+              : "🔊"}
           </button>
 
           {isOwner && (
             <button
-              className="headerButton deleteButton"
               onClick={deleteStory}
-              aria-label="Delete story"
             >
               🗑️
             </button>
           )}
 
           <button
-            className="headerButton"
             onClick={closeStory}
-            aria-label="Close story"
           >
             ✕
+
           </button>
+
         </div>
+
       </header>
 
       <section className="storyMedia">
-        {story.media_type === "video" ? (
+
+        {story.media_type ===
+        "video" ? (
           <video
             ref={videoRef}
             src={story.media_url}
             autoPlay
-            muted={muted}
             playsInline
-            preload="auto"
+            muted={muted}
+            controls={false}
+            className="storyVideo"
             onEnded={goNext}
           />
         ) : (
           <img
             src={story.media_url}
-            alt="UTV Story"
+            className="storyImage"
+          />
+        )}
+
+        {story.music_url && (
+          <audio
+            ref={audioRef}
+            src={story.music_url}
+            autoPlay
+            loop
+            muted={muted}
           />
         )}
 
         {story.drawing_data && (
           <img
-            className="drawingOverlay"
             src={story.drawing_data}
-            alt=""
+            className="drawingLayer"
           />
         )}
 
-        {textLayers.map((layer: any) => (
-          <div
-            key={layer.id}
-            className="textOverlay"
-            style={{
-              left: `${layer.x ?? 50}%`,
-              top: `${layer.y ?? 50}%`,
-              color: layer.color || "#fff",
-              fontSize: `${layer.size || 32}px`,
-              textShadow:
-                layer.shadow === false
-                  ? "none"
-                  : "0 3px 12px rgba(0,0,0,.95)",
-            }}
-          >
-            {layer.text}
-          </div>
-        ))}
-
-        {stickerLayers.map((sticker: any) => (
-          <div
-            key={sticker.id}
-            className="stickerOverlay"
-            style={{
-              left: `${sticker.x ?? 50}%`,
-              top: `${sticker.y ?? 50}%`,
-              fontSize: `${sticker.size || 48}px`,
-            }}
-          >
-            {sticker.value}
-          </div>
-        ))}
-
-        {story.music_url && (
-          <>
-            <audio
-              ref={audioRef}
-              src={story.music_url}
-              autoPlay
-              loop
-              muted={muted}
-            />
-
-            <div className="musicBadge">
-              <span>🎵</span>
-
-              <strong>
-                {story.music_title ||
-                  "UTV Story Music"}
-              </strong>
+        {textLayers.map(
+          (layer: any) => (
+            <div
+              key={layer.id}
+              className="storyTextLayer"
+              style={{
+                left: `${layer.x}%`,
+                top: `${layer.y}%`,
+                color: layer.color,
+                fontSize: layer.size,
+              }}
+            >
+              {layer.text}
             </div>
-          </>
+          )
         )}
 
-        {story.caption && (
-          <div className="storyCaption">
-            {story.caption}
-          </div>
+        {stickerLayers.map(
+          (sticker: any) => (
+            <div
+              key={sticker.id}
+              className="storySticker"
+              style={{
+                left: `${sticker.x}%`,
+                top: `${sticker.y}%`,
+                fontSize: sticker.size,
+              }}
+            >
+              {sticker.value}
+            </div>
+          )
         )}
 
-        <button
-          className="tapZone tapLeft"
-          aria-label="Previous story"
-          onClick={(event) => {
-            event.stopPropagation();
-            goPrevious();
-          }}
-        />
-
-        <button
-          className="tapZone tapRight"
-          aria-label="Next story"
-          onClick={(event) => {
-            event.stopPropagation();
-            goNext();
-          }}
-        />
       </section>
 
-      {!isOwner && (
-        <footer
-          className="storyFooter"
-          onPointerDown={(event) =>
-            event.stopPropagation()
-          }
-          onPointerUp={(event) =>
-            event.stopPropagation()
-          }
-        >
-          <div className="reactionRow">
-            {reactions.map((reaction) => (
+      {story.caption && (
+        <div className="storyCaption">
+          {story.caption}
+        </div>
+      )}
+
+      <section className="storyFooter">
+
+        <div className="reactionRow">
+
+          {reactionChoices.map(
+            (emoji) => (
               <button
-                key={reaction}
+                key={emoji}
                 onClick={() =>
-                  sendReaction(reaction)
+                  sendReaction(
+                    emoji
+                  )
                 }
               >
-                {reaction}
+                {emoji}
               </button>
-            ))}
-          </div>
+            )
+          )}
 
+        </div>
+
+        {!isOwner && (
           <div className="replyRow">
+
             <input
               value={reply}
-              placeholder={`Reply to ${creatorName}...`}
-              onChange={(event) =>
-                setReply(event.target.value)
+              placeholder="Reply..."
+              onChange={(e) =>
+                setReply(
+                  e.target.value
+                )
               }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  sendReply();
-                }
-              }}
             />
 
             <button
-              onClick={sendReply}
               disabled={sending}
+              onClick={sendReply}
             >
-              {sending ? "..." : "➤"}
+              Send
             </button>
+
           </div>
-        </footer>
-      )}
+        )}
 
-      {isOwner && (
-        <footer className="ownerFooter">
-          <span>👁 Your story</span>
-        </footer>
-      )}
+        {message && (
+          <p className="storyMessage">
+            {message}
+          </p>
+        )}
 
-      {message && (
-        <div className="storyToast">
-          {message}
-        </div>
-      )}
+      </section>
     </main>
   );
-}
+  }
 
 const styles = `
   * {
@@ -767,7 +827,7 @@ const styles = `
     cursor: pointer;
   }
 
-  .storyPage {
+  .storyViewer {
     position: fixed;
     inset: 0;
     z-index: 999;
@@ -775,68 +835,22 @@ const styles = `
     color: white;
     background: #000;
     user-select: none;
+    touch-action: none;
   }
 
-  .storyState {
-    min-height: 100vh;
-    display: grid;
-    place-content: center;
-    gap: 16px;
-    padding: 24px;
-    color: white;
-    text-align: center;
-    background: #000;
-  }
-
-  .storyLoader {
-    width: 46px;
-    height: 46px;
-    margin: auto;
-    border: 4px solid rgba(255,255,255,.18);
-    border-top-color: #52f7c8;
-    border-radius: 50%;
-    animation: spin .75s linear infinite;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .returnButton {
-    padding: 14px 18px;
-    color: #06120d;
-    border: 0;
-    border-radius: 999px;
-    background:
-      linear-gradient(
-        135deg,
-        #52f7c8,
-        #7b61ff
-      );
-    font-weight: 900;
-  }
-
-  .progressRow {
+  .storyProgress {
     position: absolute;
     top: max(10px, env(safe-area-inset-top));
-    right: 10px;
-    left: 10px;
+    right: 12px;
+    left: 12px;
     z-index: 60;
-    display: flex;
-    gap: 4px;
-  }
-
-  .progressTrack {
-    flex: 1;
-    height: 3px;
+    height: 4px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(255,255,255,.3);
+    background: rgba(255,255,255,.28);
   }
 
-  .progressFill {
+  .storyProgressFill {
     height: 100%;
     border-radius: inherit;
     background: white;
@@ -855,23 +869,23 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
   }
 
-  .creatorButton {
+  .storyCreator {
     min-width: 0;
-    max-width: 66%;
+    max-width: 67%;
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 5px;
+    padding: 4px;
     color: white;
     text-align: left;
     border: 0;
     background: transparent;
   }
 
-  .creatorButton img,
-  .avatarFallback {
+  .storyAvatar {
     width: 44px;
     height: 44px;
     flex: 0 0 auto;
@@ -880,30 +894,33 @@ const styles = `
     object-fit: cover;
     border: 2px solid #52f7c8;
     border-radius: 50%;
-    background: rgba(0,0,0,.5);
+    background: rgba(0,0,0,.46);
   }
 
-  .creatorButton div {
+  .storyCreator div {
     min-width: 0;
     display: grid;
   }
 
-  .creatorButton strong {
+  .storyCreator strong {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .creatorButton small {
+  .storyCreator small {
+    overflow: hidden;
     color: rgba(255,255,255,.68);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .headerActions {
+  .storyHeaderButtons {
     display: flex;
     gap: 7px;
   }
 
-  .headerButton {
+  .storyHeaderButtons button {
     width: 42px;
     height: 42px;
     display: grid;
@@ -915,10 +932,6 @@ const styles = `
     backdrop-filter: blur(12px);
   }
 
-  .deleteButton {
-    background: rgba(190,30,45,.62);
-  }
-
   .storyMedia {
     position: absolute;
     inset: 0;
@@ -926,16 +939,17 @@ const styles = `
     background: #000;
   }
 
-  .storyMedia > img:not(.drawingOverlay),
-  .storyMedia > video {
+  .storyVideo,
+  .storyImage {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
+    object-position: center;
     background: #000;
   }
 
-  .drawingOverlay {
+  .drawingLayer {
     position: absolute;
     inset: 0;
     z-index: 14;
@@ -945,8 +959,8 @@ const styles = `
     pointer-events: none;
   }
 
-  .textOverlay,
-  .stickerOverlay {
+  .storyTextLayer,
+  .storySticker {
     position: absolute;
     z-index: 18;
     max-width: 88%;
@@ -954,65 +968,26 @@ const styles = `
     pointer-events: none;
   }
 
-  .textOverlay {
+  .storyTextLayer {
     padding: 6px 10px;
     font-weight: 950;
     text-align: center;
     white-space: pre-wrap;
-  }
-
-  .musicBadge {
-    position: absolute;
-    left: 16px;
-    bottom: 154px;
-    z-index: 22;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    max-width: 72%;
-    padding: 9px 12px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgba(0,0,0,.58);
-    backdrop-filter: blur(14px);
-  }
-
-  .musicBadge strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-shadow: 0 3px 12px rgba(0,0,0,.95);
   }
 
   .storyCaption {
     position: absolute;
     right: 16px;
-    bottom: 106px;
+    bottom: 118px;
     left: 16px;
-    z-index: 21;
+    z-index: 22;
     padding: 13px 15px;
     border-radius: 18px;
     background: rgba(0,0,0,.52);
     backdrop-filter: blur(14px);
     font-size: 16px;
     line-height: 1.4;
-  }
-
-  .tapZone {
-    position: absolute;
-    top: 88px;
-    bottom: 116px;
-    z-index: 30;
-    width: 32%;
-    border: 0;
-    background: transparent;
-  }
-
-  .tapLeft {
-    left: 0;
-  }
-
-  .tapRight {
-    right: 0;
   }
 
   .storyFooter {
@@ -1069,11 +1044,11 @@ const styles = `
   }
 
   .replyRow button {
-    width: 42px;
-    height: 42px;
+    min-width: 64px;
+    padding: 0 14px;
     color: #06120d;
     border: 0;
-    border-radius: 50%;
+    border-radius: 999px;
     background:
       linear-gradient(
         135deg,
@@ -1083,36 +1058,19 @@ const styles = `
     font-weight: 950;
   }
 
-  .ownerFooter {
-    position: absolute;
-    bottom: max(
-      18px,
-      env(safe-area-inset-bottom)
-    );
-    left: 50%;
-    z-index: 65;
-    padding: 10px 15px;
+  .storyMessage {
+    margin: 0;
+    padding: 10px 14px;
+    color: #52f7c8;
+    text-align: center;
     border-radius: 999px;
-    background: rgba(0,0,0,.58);
+    background: rgba(0,0,0,.68);
     backdrop-filter: blur(14px);
-    transform: translateX(-50%);
-  }
-
-  .storyToast {
-    position: absolute;
-    top: 92px;
-    left: 50%;
-    z-index: 80;
-    max-width: calc(100% - 32px);
-    padding: 11px 15px;
-    border-radius: 999px;
-    background: rgba(0,0,0,.74);
-    backdrop-filter: blur(14px);
-    transform: translateX(-50%);
+    font-weight: 850;
   }
 
   @media (min-width: 700px) {
-    .storyPage {
+    .storyViewer {
       right: auto;
       left: 50%;
       width: min(460px, 100%);
