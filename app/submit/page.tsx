@@ -1630,19 +1630,89 @@ export default function SubmitPage() {
         </header>
 
         <section className="cameraViewport">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="cameraPreview"
-            style={{
-              transform:
-                cameraFacing === "user"
-                  ? "scaleX(-1)"
-                  : "none",
-            }}
-          />
+         <video
+  ref={videoRef}
+  autoPlay
+  muted
+  playsInline
+  disablePictureInPicture
+  controls={false}
+  className="cameraPreview"
+  style={{
+    position: "fixed",
+    inset: 0,
+    width: "100vw",
+    height: "100vh",
+    objectFit: "cover",
+    background: "#000",
+  }}
+/>
+<div className="cameraOverlay">
+  <div className="cameraTopBar">
+    <button
+      className="cameraCircleButton"
+      onClick={resetCreator}
+      aria-label="Close camera"
+    >
+      ✕
+    </button>
+
+    <div className="cameraLogo">
+      <strong>U TV</strong>
+      <span>{isStory ? "STORY" : "CREATE"}</span>
+    </div>
+
+    <button
+      className="cameraCircleButton"
+      onClick={flipCamera}
+      aria-label="Flip camera"
+    >
+      ⟳
+    </button>
+  </div>
+
+  <div className="cameraBottomBar">
+    <label className="cameraSideControl">
+      <span>🖼️</span>
+      <small>Gallery</small>
+
+      <input
+        hidden
+        type="file"
+        accept="image/*,video/*"
+        onChange={pickFile}
+      />
+    </label>
+
+    <button
+      className={
+        recording
+          ? "cameraCaptureButton recording"
+          : "cameraCaptureButton"
+      }
+      onClick={recording ? stopRecording : capturePhoto}
+      aria-label={recording ? "Stop recording" : "Take photo"}
+    >
+      <span />
+    </button>
+
+    <button
+      className="cameraSideControl"
+      onClick={recording ? stopRecording : startRecording}
+    >
+      <span>{recording ? "⏹️" : "🎥"}</span>
+      <small>{recording ? "Stop" : "Video"}</small>
+    </button>
+  </div>
+
+  <div className="cameraQuickModes">
+    <button onClick={() => setCreationType("story")}>Story</button>
+    <button onClick={() => setCreationType("feed")}>Post</button>
+    <button onClick={() => router.push("/live-room")}>Live</button>
+  </div>
+
+  {message && <div className="cameraError">{message}</div>}
+</div>
 
           <div className="cameraShade" />
 
@@ -3069,4 +3139,186 @@ const styles = `
       margin-left: auto;
     }
   }
+    .cameraOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.cameraTopBar,
+.cameraBottomBar,
+.cameraQuickModes,
+.cameraError {
+  pointer-events: auto;
+}
+
+.cameraTopBar {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  align-items: center;
+  gap: 12px;
+  padding:
+    max(14px, env(safe-area-inset-top))
+    16px
+    12px;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.86),
+    rgba(0,0,0,.28),
+    transparent
+  );
+}
+
+.cameraCircleButton {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 50%;
+  background: rgba(0,0,0,.52);
+  backdrop-filter: blur(12px);
+  font-size: 24px;
+}
+
+.cameraLogo {
+  display: grid;
+  justify-items: center;
+  line-height: 1;
+}
+
+.cameraLogo strong {
+  color: white;
+  font-size: 28px;
+  font-weight: 1000;
+  letter-spacing: -1px;
+}
+
+.cameraLogo span {
+  margin-top: 5px;
+  color: #52f7c8;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 2px;
+}
+
+.cameraBottomBar {
+  display: grid;
+  grid-template-columns: 1fr 94px 1fr;
+  align-items: center;
+  gap: 20px;
+  padding:
+    16px
+    28px
+    max(70px, calc(env(safe-area-inset-bottom) + 56px));
+  background: linear-gradient(
+    0deg,
+    rgba(0,0,0,.94),
+    rgba(0,0,0,.48),
+    transparent
+  );
+}
+
+.cameraSideControl {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  color: white;
+  border: 0;
+  background: transparent;
+  font-weight: 850;
+}
+
+.cameraSideControl span {
+  font-size: 28px;
+}
+
+.cameraSideControl small {
+  font-size: 11px;
+}
+
+.cameraCaptureButton {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+  padding: 7px;
+  border: 5px solid #7b61ff;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    0 0 0 3px white,
+    0 0 25px rgba(123,97,255,.45);
+}
+
+.cameraCaptureButton span {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: white;
+}
+
+.cameraCaptureButton.recording {
+  border-color: #ff4d57;
+  animation: cameraPulse 1s infinite;
+}
+
+.cameraCaptureButton.recording span {
+  width: 52%;
+  height: 52%;
+  border-radius: 10px;
+  background: #ff4d57;
+}
+
+.cameraQuickModes {
+  position: fixed;
+  right: 0;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.cameraQuickModes button {
+  padding: 8px 13px;
+  color: rgba(255,255,255,.7);
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(12px);
+  font-weight: 900;
+}
+
+.cameraQuickModes button:nth-child(1) {
+  color: #52f7c8;
+}
+
+.cameraError {
+  position: fixed;
+  right: 18px;
+  bottom: 180px;
+  left: 18px;
+  z-index: 40;
+  padding: 12px;
+  color: #52f7c8;
+  text-align: center;
+  border-radius: 16px;
+  background: rgba(0,0,0,.75);
+}
+
+@keyframes cameraPulse {
+  50% {
+    transform: scale(.94);
+    box-shadow:
+      0 0 0 3px white,
+      0 0 36px rgba(255,77,87,.75);
+  }
+}
 `;
