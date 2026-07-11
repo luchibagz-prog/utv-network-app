@@ -524,7 +524,7 @@ export default function WorldPage() {
     ];
 
     const deduplicated = Array.from(
-      new Map(
+   new globalThis.Map(
         merged.map((item) => [
           `${item.source}-${item.id}`,
           item,
