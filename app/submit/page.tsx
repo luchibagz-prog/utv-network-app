@@ -1300,40 +1300,33 @@ export default function SubmitPage() {
         uploadId = uploadRow?.id || "";
       }
 
-      if (destinations.world) {
-        const { error: worldError } = await supabase
-          .from("world_posts")
-          .insert({
-            creator_email: user.email,
-            title: title.trim() || "UTV World Post",
-            description: caption.trim(),
-            world_type: worldType || category || "Feed",
-            city,
-            state: stateName,
-            location:
-              city || stateName
-                ? `${city}${
-                    city && stateName ? ", " : ""
-                  }${stateName}`
-                : "UTV World",
-            is_live: false,
-            video_url: isVideo ? media.mediaUrl : "",
-            media_url: media.mediaUrl,
-            cover_url:
-              media.thumbnail ||
-              (media.mediaType === "image"
-                ? media.mediaUrl
-                : ""),
-            flyer_url:
-              media.mediaType === "image"
-                ? media.mediaUrl
-                : "",
-          });
+     if (destinations.world) {
+  const worldPayload = {
+    creator_email: user.email,
+    title: title.trim() || "UTV World Post",
+    description: caption.trim(),
+    world_type: worldType || category || "Feed",
+    city: city.trim(),
+    state: stateName.trim(),
+    location:
+      city || stateName
+        ? `${city.trim()}${
+            city && stateName ? ", " : ""
+          }${stateName.trim()}`
+        : "UTV World",
+    is_live: false,
+    video_url: isVideo ? media.mediaUrl : "",
+    media_url: media.mediaUrl,
+  };
 
-        if (worldError) {
-          throw worldError;
-        }
-      }
+  const { error: worldError } = await supabase
+    .from("world_posts")
+    .insert(worldPayload);
+
+  if (worldError) {
+    throw worldError;
+  }
+}
 
       setMessage(
         needsApproval
