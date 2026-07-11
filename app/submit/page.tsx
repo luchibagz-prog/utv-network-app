@@ -1385,46 +1385,100 @@ export default function SubmitPage() {
 
     await shareRegularPost();
   }
-    if (mode === "hub") {
-    return (
-      <main className="submitPage">
-        <UTVNav />
-        <style>{styles}</style>
+ if (mode === "hub") {
+  return (
+    <main className="submitPage">
+      <UTVNav />
+      <style>{styles}</style>
 
-        <section className="creatorHero">
+      <section className="createHero">
+        <img
+          src="/utv-logo.png"
+          alt="UTV"
+          className="createLogo"
+        />
+
+        <div>
           <p>UTV CREATOR</p>
-          <h1>Create on UTV</h1>
+          <h1>Create Something</h1>
           <span>
-            Post stories, videos, shows, music, events, and more.
+            Post a story, upload content, or go live.
           </span>
-        </section>
+        </div>
+      </section>
 
-        <section className="creatorGrid">
-          {createOptions.map((option) => (
-            <button
-              key={option.title}
-              className="creatorCard"
-              onClick={() => {
-                if (option.route) {
-                  router.push(option.route);
-                  return;
-                }
+      <section className="mainCreateGrid">
+        <button
+          className="mainCreateCard storyCreateCard"
+          onClick={() => startCreate("story")}
+        >
+          <span>📖</span>
+          <div>
+            <h2>Story</h2>
+            <p>Share a photo or video for 24 hours.</p>
+          </div>
+        </button>
 
-                startCreate(option.type || "feed");
-              }}
-            >
-              <span className="creatorIcon">
-                {option.icon}
-              </span>
+        <button
+          className="mainCreateCard feedCreateCard"
+          onClick={() => startCreate("feed")}
+        >
+          <span>📱</span>
+          <div>
+            <h2>Feed Post</h2>
+            <p>Post photos, videos, and updates.</p>
+          </div>
+        </button>
 
-              <h3>{option.title}</h3>
-              <p>{option.desc}</p>
-            </button>
-          ))}
-        </section>
-      </main>
-    );
-  }
+        <button
+          className="mainCreateCard liveCreateCard"
+          onClick={() => router.push("/live-room")}
+        >
+          <span>🔴</span>
+          <div>
+            <h2>Go Live</h2>
+            <p>Broadcast and connect in real time.</p>
+          </div>
+        </button>
+      </section>
+
+      <section className="moreCreateSection">
+        <div className="sectionHeading">
+          <h2>More Ways to Create</h2>
+          <span>Build your audience on UTV</span>
+        </div>
+
+        <div className="moreCreateGrid">
+          {createOptions
+            .filter(
+              (option) =>
+                option.title !== "Story" &&
+                option.title !== "Feed Post" &&
+                option.title !== "Go Live"
+            )
+            .map((option) => (
+              <button
+                key={option.title}
+                className="smallCreateCard"
+                onClick={() => {
+                  if (option.route) {
+                    router.push(option.route);
+                    return;
+                  }
+
+                  startCreate(option.type || "feed");
+                }}
+              >
+                <span>{option.icon}</span>
+                <h3>{option.title}</h3>
+                <p>{option.desc}</p>
+              </button>
+            ))}
+        </div>
+      </section>
+    </main>
+  );
+}
 
   if (mode === "link") {
     return (
