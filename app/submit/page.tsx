@@ -446,7 +446,6 @@ export default function SubmitPage() {
           aspectRatio: {
             ideal: 16 / 9,
           },
-          resizeMode: "none",
         },
         audio: true,
       });
