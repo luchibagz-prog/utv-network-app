@@ -11,127 +11,225 @@ import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-const heroHeaders = [
-  "/utv-logo.png",
+type WatchItem = Record<string, any>;
+
+const HERO_IMAGES = [
   "/utv-banner.png",
   "/bbgroundup.png",
   "/utv1.png",
   "/utv2art.png",
+  "/utv-logo.png",
 ];
 
-const STREAMING_CATEGORIES = [
+const STREAMING_WORDS = [
   "show",
   "tv show",
+  "television",
   "series",
+  "episode",
+  "season",
   "movie",
   "film",
   "short film",
   "podcast",
   "music video",
   "documentary",
+  "docuseries",
   "live event",
   "live replay",
+  "concert",
+  "comedy special",
   "original",
   "utv original",
+  "streaming",
 ];
 
-const BLOCKED_CATEGORIES = [
+const BLOCKED_WORDS = [
   "feed",
   "story",
   "photo",
   "world",
   "camera",
-  "post",
   "status",
   "profile",
+  "social post",
+  "feed post",
+  "world post",
 ];
 
-function mediaImage(item?: any) {
+function stringValue(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function contentCategory(item: WatchItem) {
+  return stringValue(
+    item?.content_type ||
+      item?.category ||
+      item?.type ||
+      item?.format ||
+      item?.genre ||
+      item?.media_type
+  );
+}
+
+function contentDestination(item: WatchItem) {
+  return stringValue(
+    item?.destination ||
+      item?.post_type ||
+      item?.visibility ||
+      item?.section
+  );
+}
+
+function contentImage(item: WatchItem) {
   return (
     item?.thumbnail_url ||
+    item?.poster_url ||
     item?.cover_url ||
     item?.image_url ||
-    item?.poster_url ||
     item?.flyer_url ||
+    item?.artwork_url ||
     ""
   );
 }
 
-function mediaVideo(item?: any) {
+function contentVideo(item: WatchItem) {
   return (
     item?.trailer_url ||
     item?.video_url ||
     item?.file_url ||
     item?.media_url ||
     item?.external_url ||
+    item?.playback_url ||
     item?.url ||
     ""
   );
 }
 
-function normalizedCategory(item?: any) {
-  return String(
-    item?.content_type ||
-      item?.category ||
-      item?.type ||
-      ""
-  )
-    .trim()
-    .toLowerCase();
+function contentTitle(item: WatchItem) {
+  return (
+    item?.title ||
+    item?.show_title ||
+    item?.series_title ||
+    item?.episode_title ||
+    item?.name ||
+    "Untitled"
+  );
 }
 
-function isStreamingContent(item?: any) {
-  const category = normalizedCategory(item);
+function contentDescription(item: WatchItem) {
+  return (
+    item?.description ||
+    item?.caption ||
+    item?.summary ||
+    ""
+  );
+}
 
-  const searchable = [
-    category,
-    item?.title,
-    item?.description,
+function contentSearchText(item: WatchItem) {
+  return [
+    contentCategory(item),
+    contentDestination(item),
+    contentTitle(item),
+    contentDescription(item),
+    item?.show_title,
+    item?.series_title,
+    item?.episode_title,
+    item?.season_title,
+    item?.creator_name,
+    item?.creator_email,
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
 
-  const blocked = BLOCKED_CATEGORIES.some(
-    (word) =>
-      category === word ||
-      category.startsWith(`${word} `) ||
-      category.endsWith(` ${word}`)
-  );
+function isBlockedContent(item: WatchItem) {
+  const category = contentCategory(item);
+  const destination = contentDestination(item);
 
-  if (blocked) {
-    return false;
+  if (
+    item?.is_story === true ||
+    item?.is_feed_post === true ||
+    item?.is_world_post === true
+  ) {
+    return true;
   }
 
-  const validCategory =
-    STREAMING_CATEGORIES.some((word) =>
-      category.includes(word)
-    );
-
-  const markedPremium =
-    item?.is_streaming === true ||
-    item?.is_premium === true ||
-    item?.needs_approval === true ||
-    item?.content_type === "Show" ||
-    item?.content_type === "Movie";
-
-  const looksLikeStreaming =
-    searchable.includes("episode") ||
-    searchable.includes("season") ||
-    searchable.includes("trailer") ||
-    searchable.includes("documentary");
-
-  return (
-    validCategory ||
-    markedPremium ||
-    looksLikeStreaming
+  return BLOCKED_WORDS.some(
+    (word) =>
+      category === word ||
+      destination === word ||
+      category.startsWith(`${word} `) ||
+      destination.startsWith(`${word} `)
   );
 }
 
-function categoryLabel(item?: any) {
-  const category = normalizedCategory(item);
+function hasStreamingIdentity(item: WatchItem) {
+  const category = contentCategory(item);
+  const searchable = contentSearchText(item);
 
-  if (category.includes("show")) {
+  const categoryMatch =
+    STREAMING_WORDS.some(
+      (word) =>
+        category.includes(word) ||
+        searchable.includes(word)
+    );
+
+  const legacyFields = Boolean(
+    item?.trailer_url ||
+      item?.poster_url ||
+      item?.episode_number ||
+      item?.season_number ||
+      item?.series_id ||
+      item?.show_id ||
+      item?.movie_id ||
+      item?.podcast_id ||
+      item?.is_streaming === true ||
+      item?.is_premium === true ||
+      item?.is_original === true ||
+      item?.utv_original === true
+  );
+
+  return categoryMatch || legacyFields;
+}
+
+function isRejected(item: WatchItem) {
+  const status = stringValue(
+    item?.approval_status ||
+      item?.status
+  );
+
+  return (
+    status === "rejected" ||
+    status === "denied" ||
+    status === "removed"
+  );
+}
+
+function isWatchContent(item: WatchItem) {
+  if (!item || isBlockedContent(item)) {
+    return false;
+  }
+
+  if (isRejected(item)) {
+    return false;
+  }
+
+  return hasStreamingIdentity(item);
+}
+
+function categoryLabel(item: WatchItem) {
+  const category = contentCategory(item);
+  const searchable = contentSearchText(item);
+
+  if (
+    category.includes("show") ||
+    category.includes("series") ||
+    searchable.includes("episode")
+  ) {
     return "Show";
   }
 
@@ -150,101 +248,204 @@ function categoryLabel(item?: any) {
     return "Music Video";
   }
 
-  if (category.includes("documentary")) {
+  if (
+    category.includes("documentary") ||
+    category.includes("docuseries")
+  ) {
     return "Documentary";
   }
 
   if (
-    category.includes("live event") ||
-    category.includes("live replay")
+    category.includes("live") ||
+    category.includes("concert")
   ) {
     return "Live Event";
   }
 
-  if (category.includes("original")) {
+  if (
+    searchable.includes("original") ||
+    item?.is_original === true ||
+    item?.utv_original === true
+  ) {
     return "UTV Original";
   }
 
   return item?.category || "UTV Streaming";
 }
 
-function isOriginal(item?: any) {
-  const text = [
-    item?.category,
-    item?.content_type,
-    item?.title,
-    item?.description,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+function belongsToCategory(
+  item: WatchItem,
+  words: string[]
+) {
+  const value = contentSearchText(item);
 
+  return words.some((word) =>
+    value.includes(word)
+  );
+}
+
+function isOriginal(item: WatchItem) {
   return (
-    text.includes("original") ||
+    belongsToCategory(item, [
+      "original",
+      "utv original",
+    ]) ||
     item?.is_original === true ||
     item?.utv_original === true
   );
 }
 
-function isShow(item?: any) {
-  const category = normalizedCategory(item);
+function isShow(item: WatchItem) {
+  return belongsToCategory(item, [
+    "show",
+    "series",
+    "episode",
+    "season",
+    "television",
+  ]);
+}
+
+function isMovie(item: WatchItem) {
+  return belongsToCategory(item, [
+    "movie",
+    "film",
+  ]);
+}
+
+function isPodcast(item: WatchItem) {
+  return belongsToCategory(item, [
+    "podcast",
+  ]);
+}
+
+function isMusicVideo(item: WatchItem) {
+  return belongsToCategory(item, [
+    "music video",
+  ]);
+}
+
+function isDocumentary(item: WatchItem) {
+  return belongsToCategory(item, [
+    "documentary",
+    "docuseries",
+  ]);
+}
+
+function isLiveContent(item: WatchItem) {
+  return belongsToCategory(item, [
+    "live event",
+    "live replay",
+    "concert",
+  ]);
+}
+
+function deduplicate(items: WatchItem[]) {
+  const map = new Map<string, WatchItem>();
+
+  items.forEach((item) => {
+    const key = String(
+      item?.id ||
+        `${contentTitle(item)}-${contentVideo(item)}`
+    );
+
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  });
+
+  return Array.from(map.values());
+}
+
+function WatchCard({
+  item,
+  rank,
+}: {
+  item: WatchItem;
+  rank?: number;
+}) {
+  const image = contentImage(item);
+  const video = contentVideo(item);
+  const title = contentTitle(item);
 
   return (
-    category.includes("show") ||
-    category.includes("series")
+    <Link
+      href={`/watch/${item.id}`}
+      className="watchCard"
+    >
+      <div className="poster">
+        {image ? (
+          <img
+            src={image}
+            alt={title}
+            loading="lazy"
+          />
+        ) : video ? (
+          <video
+            src={video}
+            muted
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <div className="posterFallback">
+            UTV
+          </div>
+        )}
+
+        {rank ? (
+          <span className="rankBadge">
+            {rank}
+          </span>
+        ) : null}
+
+        <span className="playButton">
+          ▶
+        </span>
+      </div>
+
+      <h3>{title}</h3>
+      <p>{categoryLabel(item)}</p>
+    </Link>
   );
 }
 
-function isMovie(item?: any) {
-  const category = normalizedCategory(item);
+function WatchRow({
+  title,
+  items,
+  numbered = false,
+}: {
+  title: string;
+  items: WatchItem[];
+  numbered?: boolean;
+}) {
+  if (!items.length) {
+    return null;
+  }
 
   return (
-    category.includes("movie") ||
-    category.includes("film")
-  );
-}
+    <section className="watchRow">
+      <h2>{title}</h2>
 
-function isPodcast(item?: any) {
-  return normalizedCategory(item).includes(
-    "podcast"
-  );
-}
-
-function isMusicVideo(item?: any) {
-  const category = normalizedCategory(item);
-
-  return (
-    category.includes("music video") ||
-    category === "music"
-  );
-}
-
-function isDocumentary(item?: any) {
-  return normalizedCategory(item).includes(
-    "documentary"
-  );
-}
-
-function isLiveEvent(item?: any) {
-  const category = normalizedCategory(item);
-
-  return (
-    category.includes("live event") ||
-    category.includes("live replay")
-  );
-}
-
-function hasPlayableMedia(item?: any) {
-  return Boolean(
-    mediaVideo(item) ||
-      mediaImage(item) ||
-      item?.embed_code
+      <div className="watchScroller">
+        {items.map((item, index) => (
+          <WatchCard
+            key={String(item.id)}
+            item={item}
+            rank={
+              numbered
+                ? index + 1
+                : undefined
+            }
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
 export default function WatchPage() {
   const [uploads, setUploads] =
-    useState<any[]>([]);
+    useState<WatchItem[]>([]);
 
   const [search, setSearch] =
     useState("");
@@ -259,21 +460,23 @@ export default function WatchPage() {
     useState("");
 
   useEffect(() => {
-    loadUploads();
+    loadWatchContent();
 
-    const timer = setInterval(() => {
-      setHeroIndex(
-        (previous) =>
-          (previous + 1) %
-          heroHeaders.length
-      );
-    }, 4200);
+    const heroTimer =
+      window.setInterval(() => {
+        setHeroIndex(
+          (current) =>
+            (current + 1) %
+            HERO_IMAGES.length
+        );
+      }, 5000);
 
-    return () =>
-      clearInterval(timer);
+    return () => {
+      window.clearInterval(heroTimer);
+    };
   }, []);
 
-  async function loadUploads() {
+  async function loadWatchContent() {
     setLoading(true);
     setLoadError("");
 
@@ -281,34 +484,33 @@ export default function WatchPage() {
       await supabase
         .from("uploads")
         .select("*")
-        .eq("approved", true)
         .order("created_at", {
           ascending: false,
         })
-        .limit(250);
+        .limit(500);
 
     if (error) {
-      console.error(error);
+      console.error(
+        "Watch load error:",
+        error
+      );
 
       setUploads([]);
       setLoadError(
-        "UTV Watch could not load right now."
+        "UTV Watch could not load."
       );
-
       setLoading(false);
       return;
     }
 
-    const streamingOnly = (
-      data || []
-    ).filter(
-      (item) =>
-        item &&
-        isStreamingContent(item) &&
-        hasPlayableMedia(item)
-    );
+    const restoredContent =
+      deduplicate(
+        (data || []).filter(
+          isWatchContent
+        )
+      );
 
-    setUploads(streamingOnly);
+    setUploads(restoredContent);
     setLoading(false);
   }
 
@@ -321,56 +523,53 @@ export default function WatchPage() {
       return uploads;
     }
 
-    return uploads.filter((item) => {
-      const searchable = [
-        item?.title,
-        item?.category,
-        item?.content_type,
-        item?.description,
-        item?.creator_name,
-        item?.creator_email,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return searchable.includes(query);
-    });
+    return uploads.filter((item) =>
+      contentSearchText(item).includes(
+        query
+      )
+    );
   }, [uploads, search]);
+
+  const featured =
+    filtered[0] || uploads[0];
 
   const top10 = useMemo(
     () =>
       [...filtered]
         .sort(
           (a, b) =>
-            Number(b?.views || 0) -
-            Number(a?.views || 0)
+            Number(
+              b?.views ||
+                b?.view_count ||
+                0
+            ) -
+            Number(
+              a?.views ||
+                a?.view_count ||
+                0
+            )
         )
         .slice(0, 10),
     [filtered]
   );
 
   const originals = useMemo(
-    () =>
-      filtered.filter(isOriginal),
+    () => filtered.filter(isOriginal),
     [filtered]
   );
 
   const shows = useMemo(
-    () =>
-      filtered.filter(isShow),
+    () => filtered.filter(isShow),
     [filtered]
   );
 
   const movies = useMemo(
-    () =>
-      filtered.filter(isMovie),
+    () => filtered.filter(isMovie),
     [filtered]
   );
 
   const podcasts = useMemo(
-    () =>
-      filtered.filter(isPodcast),
+    () => filtered.filter(isPodcast),
     [filtered]
   );
 
@@ -386,9 +585,9 @@ export default function WatchPage() {
     [filtered]
   );
 
-  const liveEvents = useMemo(
+  const liveContent = useMemo(
     () =>
-      filtered.filter(isLiveEvent),
+      filtered.filter(isLiveContent),
     [filtered]
   );
 
@@ -396,460 +595,54 @@ export default function WatchPage() {
     () => filtered.slice(0, 20),
     [filtered]
   );
-    function Row({
-    title,
-    items,
-    numbered = false,
-  }: {
-    title: string;
-    items: any[];
-    numbered?: boolean;
-  }) {
-    if (!items.length) return null;
-
-    return (
-      <section className="watchRow">
-        <h2>{title}</h2>
-
-        <div className="watchScroller">
-          {items.map((item, index) => {
-            const image = mediaImage(item);
-            const video = mediaVideo(item);
-
-            return (
-              <Link
-                key={item.id}
-                href={`/watch/${item.id}`}
-                className="watchCard"
-              >
-                <div className="poster">
-
-                  {image ? (
-                    <img
-                      src={image}
-                      alt={item.title}
-                    />
-                  ) : video ? (
-                    <video
-                      src={video}
-                      muted
-                      playsInline
-                      preload="metadata"
-                    />
-                  ) : (
-                    <div className="fallback">
-                      UTV
-                    </div>
-                  )}
-
-                  {numbered && (
-                    <span className="rank">
-                      {index + 1}
-                    </span>
-                  )}
-
-                  <span className="play">
-                    ▶
-                  </span>
-
-                </div>
-
-                <h3>
-                  {item.title || "Untitled"}
-                </h3>
-
-                <p>
-                  {categoryLabel(item)}
-                </p>
-
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <main className="watchPage">
-
       <UTVNav />
 
-      <style>{`
+      <style>{styles}</style>
 
-      .watchPage{
-        min-height:100vh;
-        padding-bottom:120px;
-        background:linear-gradient(180deg,#06111d,#000);
-        color:white;
-      }
-
-      .hero{
-        position:relative;
-        min-height:300px;
-        display:flex;
-        align-items:flex-end;
-        overflow:hidden;
-        padding:90px 18px 30px;
-      }
-
-      .heroBg{
-        position:absolute;
-        inset:0;
-      }
-
-      .heroBg img{
-        width:100%;
-        height:100%;
-        object-fit:cover;
-        filter:brightness(1.15) saturate(1.2);
-      }
-
-      .heroBg:after{
-        content:"";
-        position:absolute;
-        inset:0;
-        background:linear-gradient(
-        transparent,
-        rgba(0,0,0,.35),
-        #07111e 95%);
-      }
-
-      .heroContent{
-        position:relative;
-        z-index:2;
-        max-width:720px;
-      }
-
-      .heroTag{
-        color:#54f7ca;
-        font-weight:900;
-        letter-spacing:2px;
-        margin-bottom:10px;
-      }
-
-      .hero h1{
-        font-size:48px;
-        margin:0;
-      }
-
-      .hero p{
-        color:rgba(255,255,255,.75);
-        margin-top:12px;
-        line-height:1.5;
-      }
-
-      .heroButtons{
-        display:flex;
-        gap:12px;
-        margin-top:18px;
-      }
-
-      .heroButtons a{
-        text-decoration:none;
-        padding:12px 18px;
-        border-radius:999px;
-        font-weight:900;
-      }
-
-      .primary{
-        background:linear-gradient(
-        135deg,
-        #55f7ca,
-        #7762ff);
-        color:#000;
-      }
-
-      .secondary{
-        background:rgba(255,255,255,.12);
-        color:white;
-      }
-
-      .searchWrap{
-        padding:18px;
-      }
-
-      .searchInput{
-        width:100%;
-        padding:16px;
-        border-radius:22px;
-        background:rgba(255,255,255,.08);
-        border:1px solid rgba(255,255,255,.15);
-        color:white;
-        outline:none;
-        font-size:16px;
-      }
-
-      .watchRow{
-        margin-top:30px;
-      }
-
-      .watchRow h2{
-        font-size:30px;
-        margin-bottom:14px;
-        padding-left:18px;
-      }
-
-      .watchScroller{
-        display:flex;
-        gap:16px;
-        overflow-x:auto;
-        padding:0 18px 10px;
-      }
-
-      .watchScroller::-webkit-scrollbar{
-        display:none;
-      }
-
-      .watchCard{
-        min-width:240px;
-        color:white;
-        text-decoration:none;
-      }
-            .poster{
-        position:relative;
-        height:148px;
-        overflow:hidden;
-        border:1px solid rgba(255,255,255,.12);
-        border-radius:20px;
-        background:#101010;
-        box-shadow:0 18px 45px rgba(0,0,0,.34);
-      }
-
-      .poster img,
-      .poster video{
-        width:100%;
-        height:100%;
-        display:block;
-        object-fit:cover;
-      }
-
-      .fallback{
-        width:100%;
-        height:100%;
-        display:grid;
-        place-items:center;
-        background:
-          radial-gradient(
-            circle at 30% 20%,
-            rgba(82,247,200,.28),
-            transparent 36%
-          ),
-          linear-gradient(
-            135deg,
-            #111,
-            #24113d
-          );
-        font-size:34px;
-        font-weight:950;
-      }
-
-      .rank{
-        position:absolute;
-        top:10px;
-        left:10px;
-        width:35px;
-        height:35px;
-        display:grid;
-        place-items:center;
-        color:#52f7c8;
-        border:1px solid rgba(255,255,255,.18);
-        border-radius:50%;
-        background:rgba(0,0,0,.78);
-        backdrop-filter:blur(10px);
-        font-weight:950;
-      }
-
-      .play{
-        position:absolute;
-        right:10px;
-        bottom:10px;
-        width:38px;
-        height:38px;
-        display:grid;
-        place-items:center;
-        color:white;
-        border:1px solid rgba(255,255,255,.18);
-        border-radius:50%;
-        background:rgba(255,255,255,.2);
-        backdrop-filter:blur(12px);
-      }
-
-      .watchCard h3{
-        margin:10px 0 4px;
-        overflow:hidden;
-        text-overflow:ellipsis;
-        white-space:nowrap;
-        font-size:18px;
-      }
-
-      .watchCard p{
-        margin:0;
-        color:#ffd166;
-        font-size:13px;
-        font-weight:850;
-      }
-
-      .loadingGrid{
-        display:grid;
-        gap:18px;
-        padding:18px;
-      }
-
-      .loadingRow{
-        display:flex;
-        gap:15px;
-        overflow:hidden;
-      }
-
-      .loadingCard{
-        min-width:240px;
-      }
-
-      .loadingPoster{
-        height:148px;
-        border-radius:20px;
-        background:
-          linear-gradient(
-            90deg,
-            rgba(255,255,255,.04),
-            rgba(255,255,255,.11),
-            rgba(255,255,255,.04)
-          );
-        background-size:220% 100%;
-        animation:watchShimmer 1.15s linear infinite;
-      }
-
-      .loadingLine{
-        height:14px;
-        margin-top:10px;
-        border-radius:999px;
-        background:rgba(255,255,255,.08);
-      }
-
-      .loadingLine.short{
-        width:55%;
-      }
-
-      @keyframes watchShimmer{
-        from{
-          background-position:220% 0;
-        }
-
-        to{
-          background-position:-220% 0;
-        }
-      }
-
-      .emptyState{
-        margin:22px 16px;
-        padding:28px 20px;
-        text-align:center;
-        border:1px solid rgba(255,255,255,.12);
-        border-radius:24px;
-        background:rgba(255,255,255,.055);
-      }
-
-      .emptyState h2{
-        margin:0 0 8px;
-      }
-
-      .emptyState p{
-        margin:0;
-        color:rgba(255,255,255,.58);
-      }
-
-      .watchNotice{
-        margin:0 18px;
-        padding:12px 14px;
-        color:#52f7c8;
-        border:1px solid rgba(82,247,200,.16);
-        border-radius:16px;
-        background:rgba(82,247,200,.07);
-        font-size:12px;
-        font-weight:800;
-      }
-
-      @media(max-width:430px){
-        .hero{
-          min-height:275px;
-          padding:82px 16px 24px;
-        }
-
-        .hero h1{
-          font-size:40px;
-        }
-
-        .watchRow h2{
-          font-size:28px;
-        }
-
-        .watchCard{
-          min-width:232px;
-        }
-
-        .poster{
-          height:145px;
-        }
-      }
-
-      @media(min-width:900px){
-        .heroContent,
-        .searchWrap,
-        .watchRow,
-        .watchNotice{
-          max-width:1180px;
-          margin-right:auto;
-          margin-left:auto;
-        }
-
-        .heroContent{
-          width:100%;
-        }
-
-        .watchScroller{
-          padding-left:0;
-          padding-right:0;
-        }
-
-        .watchRow h2{
-          padding-left:0;
-        }
-      }
-
-      `}</style>
-
-      <section className="hero">
-        <div className="heroBg">
+      <section className="watchHero">
+        <div className="heroBackdrop">
           <img
-            src={heroHeaders[heroIndex]}
+            src={
+              contentImage(featured) ||
+              HERO_IMAGES[heroIndex]
+            }
             alt="UTV Watch"
           />
         </div>
 
         <div className="heroContent">
-          <div className="heroTag">
+          <span className="heroLabel">
             UTV STREAMING
-          </div>
+          </span>
 
-          <h1>Watch UTV</h1>
+          <h1>
+            {featured
+              ? contentTitle(featured)
+              : "Watch UTV"}
+          </h1>
 
           <p>
-            Stream UTV originals, shows, movies,
-            podcasts, music videos, documentaries,
-            live events, and approved long-form content.
+            {featured
+              ? contentDescription(featured) ||
+                "Stream shows, movies, podcasts, documentaries, music videos, and UTV originals."
+              : "Stream shows, movies, podcasts, documentaries, music videos, and UTV originals."}
           </p>
 
-          <div className="heroButtons">
-            <Link
-              className="primary"
-              href="/submit?type=show"
-            >
-              Upload
-            </Link>
+          <div className="heroActions">
+            {featured ? (
+              <Link
+                className="heroPrimary"
+                href={`/watch/${featured.id}`}
+              >
+                ▶ Watch
+              </Link>
+            ) : null}
 
             <Link
-              className="secondary"
+              className="heroSecondary"
               href="/studio"
             >
               Creator Studio
@@ -858,112 +651,118 @@ export default function WatchPage() {
         </div>
       </section>
 
-      <section className="searchWrap">
+      <section className="watchSearch">
         <input
-          className="searchInput"
-          placeholder="Search shows, movies, podcasts, music..."
           value={search}
           onChange={(event) =>
-            setSearch(event.target.value)
+            setSearch(
+              event.target.value
+            )
           }
+          placeholder="Search shows, movies, podcasts..."
         />
       </section>
 
       <p className="watchNotice">
-        Watch only shows approved streaming content.
-        Feed posts, Stories, photos, and World posts do
-        not appear here.
+        Watch contains streaming content only.
+        Feed posts, Stories, photos, and World
+        posts stay out.
       </p>
 
       {loading ? (
-        <section className="loadingGrid">
+        <section className="watchSkeleton">
           {[1, 2, 3].map((row) => (
             <div key={row}>
-              <div
-                className="loadingLine"
-                style={{
-                  width: row === 1 ? "190px" : "150px",
-                }}
-              />
+              <div className="skeletonTitle" />
 
-              <div className="loadingRow">
-                {[1, 2, 3].map((card) => (
-                  <div
-                    className="loadingCard"
-                    key={card}
-                  >
-                    <div className="loadingPoster" />
-                    <div className="loadingLine" />
-                    <div className="loadingLine short" />
-                  </div>
-                ))}
+              <div className="skeletonRow">
+                {[1, 2, 3].map(
+                  (card) => (
+                    <div
+                      className="skeletonCard"
+                      key={card}
+                    />
+                  )
+                )}
               </div>
             </div>
           ))}
         </section>
       ) : loadError ? (
-        <section className="emptyState">
-          <h2>Watch is unavailable</h2>
+        <section className="watchEmpty">
+          <h2>Watch unavailable</h2>
           <p>{loadError}</p>
+
+          <button
+            onClick={
+              loadWatchContent
+            }
+          >
+            Try Again
+          </button>
         </section>
       ) : filtered.length === 0 ? (
-        <section className="emptyState">
-          <h2>No streaming content found</h2>
+        <section className="watchEmpty">
+          <h2>
+            No streaming content found
+          </h2>
+
           <p>
-            Approved shows, movies, podcasts,
-            documentaries, and music videos will appear
-            here.
+            Your restored shows, movies,
+            podcasts, trailers, and approved
+            streaming uploads will appear here.
           </p>
         </section>
       ) : (
         <>
-          <Row
+          <WatchRow
             title="🔥 Top 10 on UTV"
             items={top10}
             numbered
           />
 
-          <Row
+          <WatchRow
             title="⭐ UTV Originals"
             items={originals}
           />
 
-          <Row
-            title="📺 Shows"
+          <WatchRow
+            title="📺 Shows & Series"
             items={shows}
           />
 
-          <Row
-            title="🎥 Movies"
+          <WatchRow
+            title="🎬 Movies & Films"
             items={movies}
           />
 
-          <Row
+          <WatchRow
             title="🎙 Podcasts"
             items={podcasts}
           />
 
-          <Row
+          <WatchRow
             title="🎵 Music Videos"
             items={musicVideos}
           />
 
-          <Row
-            title="🎭 Documentaries"
+          <WatchRow
+            title="🎥 Documentaries"
             items={documentaries}
           />
 
-          <Row
+          <WatchRow
             title="🔴 Live Events & Replays"
-            items={liveEvents}
+            items={liveContent}
           />
 
-          <Row
+          <WatchRow
             title="🆕 Recently Added"
             items={recentlyAdded}
           />
-                    <Row
-            title="🎬 All Streaming"
+
+          <WatchRow
+            title="🎞 All Streaming"
             items={filtered}
           />
         </>
@@ -971,3 +770,460 @@ export default function WatchPage() {
     </main>
   );
 }
+const styles = `
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #000;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  .watchPage {
+    min-height: 100vh;
+    padding-bottom: 120px;
+    overflow-x: hidden;
+    color: white;
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82,247,200,.12),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 90% 4%,
+        rgba(123,97,255,.17),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        #06111d,
+        #000
+      );
+  }
+
+  .watchHero {
+    position: relative;
+    min-height: 390px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    padding: 100px 18px 38px;
+  }
+
+  .heroBackdrop {
+    position: absolute;
+    inset: 0;
+  }
+
+  .heroBackdrop img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    filter:
+      brightness(.68)
+      saturate(1.18);
+  }
+
+  .heroBackdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(0,0,0,.88),
+        rgba(0,0,0,.28)
+      ),
+      linear-gradient(
+        180deg,
+        transparent 34%,
+        #06111d 100%
+      );
+  }
+
+  .heroContent {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 720px;
+  }
+
+  .heroLabel {
+    color: #52f7c8;
+    font-size: 12px;
+    font-weight: 950;
+    letter-spacing: 2px;
+  }
+
+  .heroContent h1 {
+    max-width: 650px;
+    margin: 10px 0 0;
+    font-size: clamp(
+      40px,
+      9vw,
+      72px
+    );
+    line-height: .98;
+    letter-spacing: -2px;
+  }
+
+  .heroContent p {
+    max-width: 620px;
+    margin: 14px 0 0;
+    color: rgba(255,255,255,.75);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .heroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .heroActions a {
+    padding: 12px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 950;
+  }
+
+  .heroPrimary {
+    color: #06120d;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .heroSecondary {
+    color: white;
+    border:
+      1px solid rgba(255,255,255,.16);
+    background:
+      rgba(255,255,255,.09);
+    backdrop-filter: blur(14px);
+  }
+
+  .watchSearch {
+    padding: 4px 18px 14px;
+  }
+
+  .watchSearch input {
+    width: 100%;
+    padding: 16px 18px;
+    color: white;
+    border:
+      1px solid rgba(255,255,255,.14);
+    border-radius: 999px;
+    outline: none;
+    background:
+      rgba(255,255,255,.075);
+    font-size: 16px;
+  }
+
+  .watchSearch input:focus {
+    border-color:
+      rgba(82,247,200,.55);
+    box-shadow:
+      0 0 0 3px
+      rgba(82,247,200,.08);
+  }
+
+  .watchNotice {
+    margin: 0 18px 8px;
+    padding: 11px 13px;
+    color: #52f7c8;
+    border:
+      1px solid rgba(82,247,200,.15);
+    border-radius: 16px;
+    background:
+      rgba(82,247,200,.065);
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .watchRow {
+    margin-top: 31px;
+  }
+
+  .watchRow h2 {
+    margin: 0 0 14px;
+    padding: 0 18px;
+    font-size: 28px;
+    letter-spacing: -.7px;
+  }
+
+  .watchScroller {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding: 0 18px 12px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .watchScroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .watchCard {
+    width: 238px;
+    min-width: 238px;
+    color: white;
+    text-decoration: none;
+    scroll-snap-align: start;
+  }
+
+  .poster {
+    position: relative;
+    height: 145px;
+    overflow: hidden;
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 20px;
+    background: #0d1118;
+    box-shadow:
+      0 17px 40px
+      rgba(0,0,0,.34);
+    transition:
+      transform .2s ease,
+      border-color .2s ease;
+  }
+
+  .watchCard:active .poster {
+    transform: scale(.97);
+  }
+
+  .poster img,
+  .poster video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .posterFallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: white;
+    background:
+      radial-gradient(
+        circle at 25% 20%,
+        rgba(82,247,200,.3),
+        transparent 40%
+      ),
+      linear-gradient(
+        135deg,
+        #111724,
+        #291342
+      );
+    font-size: 35px;
+    font-weight: 950;
+  }
+
+  .rankBadge {
+    position: absolute;
+    top: 9px;
+    left: 9px;
+    width: 35px;
+    height: 35px;
+    display: grid;
+    place-items: center;
+    color: #52f7c8;
+    border:
+      1px solid rgba(255,255,255,.18);
+    border-radius: 50%;
+    background:
+      rgba(0,0,0,.78);
+    backdrop-filter: blur(10px);
+    font-weight: 950;
+  }
+
+  .playButton {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    color: white;
+    border:
+      1px solid rgba(255,255,255,.18);
+    border-radius: 50%;
+    background:
+      rgba(0,0,0,.57);
+    backdrop-filter: blur(12px);
+    font-size: 13px;
+  }
+
+  .watchCard h3 {
+    margin: 10px 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 17px;
+  }
+
+  .watchCard p {
+    margin: 0;
+    color: #ffd166;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .watchSkeleton {
+    display: grid;
+    gap: 30px;
+    padding: 20px 18px;
+  }
+
+  .skeletonTitle {
+    width: 190px;
+    height: 22px;
+    margin-bottom: 14px;
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.08);
+  }
+
+  .skeletonRow {
+    display: flex;
+    gap: 15px;
+    overflow: hidden;
+  }
+
+  .skeletonCard {
+    min-width: 238px;
+    height: 145px;
+    border-radius: 20px;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255,255,255,.04),
+        rgba(255,255,255,.11),
+        rgba(255,255,255,.04)
+      );
+    background-size: 220% 100%;
+    animation:
+      watchShimmer 1.1s
+      linear infinite;
+  }
+
+  @keyframes watchShimmer {
+    from {
+      background-position:
+        220% 0;
+    }
+
+    to {
+      background-position:
+        -220% 0;
+    }
+  }
+
+  .watchEmpty {
+    margin: 24px 18px;
+    padding: 34px 20px;
+    text-align: center;
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 24px;
+    background:
+      rgba(255,255,255,.05);
+  }
+
+  .watchEmpty h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+  }
+
+  .watchEmpty p {
+    max-width: 520px;
+    margin: 0 auto;
+    color:
+      rgba(255,255,255,.58);
+    line-height: 1.5;
+  }
+
+  .watchEmpty button {
+    margin-top: 16px;
+    padding: 11px 16px;
+    color: #06120d;
+    border: 0;
+    border-radius: 999px;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+    font-weight: 950;
+  }
+
+  @media (max-width: 430px) {
+    .watchHero {
+      min-height: 330px;
+      padding:
+        88px 16px 28px;
+    }
+
+    .heroContent h1 {
+      font-size: 43px;
+    }
+
+    .watchCard {
+      width: 226px;
+      min-width: 226px;
+    }
+
+    .poster,
+    .skeletonCard {
+      height: 140px;
+    }
+
+    .watchRow h2 {
+      font-size: 26px;
+    }
+  }
+
+  @media (min-width: 900px) {
+    .heroContent,
+    .watchSearch,
+    .watchNotice,
+    .watchRow {
+      max-width: 1180px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+
+    .heroContent {
+      width: 100%;
+    }
+
+    .watchScroller {
+      padding-right: 0;
+      padding-left: 0;
+    }
+
+    .watchRow h2 {
+      padding-right: 0;
+      padding-left: 0;
+    }
+  }
+`;
