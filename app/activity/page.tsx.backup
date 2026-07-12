@@ -559,7 +559,7 @@ export default function ActivityPage() {
 
           link:
             row.sender_email
-              ? `/messages/${encodeURIComponent(
+              ? `/messages?to=${encodeURIComponent(
                   row.sender_email
                 )}`
               : "/messages",
@@ -866,25 +866,15 @@ export default function ActivityPage() {
         ? "bookings"
         : "live_join_requests";
 
-    const readUpdate =
-      item.source === "message"
-        ? { read: true }
-        : { is_read: true };
-
-    const { error } = await supabase
+    await supabase
       .from(table)
-      .update(readUpdate)
+      .update({
+        is_read: true,
+      })
       .eq(
         "id",
         item.sourceId
       );
-
-    if (error) {
-      console.error(
-        "Could not mark item read:",
-        error.message
-      );
-    }
   }
 
   async function markAllRead() {
@@ -915,7 +905,7 @@ export default function ActivityPage() {
       supabase
         .from("messages")
         .update({
-          read: true,
+          is_read: true,
         })
         .eq(
           "receiver_email",
@@ -968,7 +958,7 @@ export default function ActivityPage() {
     ) {
       router.push(
         item.actorEmail
-          ? `/messages/${encodeURIComponent(
+          ? `/messages?to=${encodeURIComponent(
               item.actorEmail
             )}`
           : "/messages"
