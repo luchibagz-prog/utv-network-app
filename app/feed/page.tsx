@@ -113,6 +113,21 @@ export default function FeedPage() {
   const [heartBurst, setHeartBurst] =
     useState<Record<string, boolean>>({});
 
+  const [openPostMenu, setOpenPostMenu] =
+    useState("");
+
+  const [editingPostId, setEditingPostId] =
+    useState("");
+
+  const [editingCaption, setEditingCaption] =
+    useState("");
+
+  const [savingPost, setSavingPost] =
+    useState(false);
+
+  const [feedMessage, setFeedMessage] =
+    useState("");
+
   useEffect(() => {
     loadEverything();
 
@@ -558,6 +573,206 @@ export default function FeedPage() {
     );
   }
 
+  async function createNotification({
+    recipientEmail,
+    actorEmail,
+    type,
+    title,
+    message,
+    link,
+  }: {
+    recipientEmail?: string;
+    actorEmail?: string;
+    type: string;
+    title: string;
+    message: string;
+    link: string;
+  }) {
+    if (
+      !recipientEmail ||
+      !actorEmail ||
+      recipientEmail === actorEmail
+    ) {
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_email", recipientEmail)
+      .eq("actor_email", actorEmail)
+      .eq("type", type)
+      .eq("link", link)
+      .maybeSingle();
+
+    if (existing) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("notifications")
+      .insert({
+        user_email: recipientEmail,
+        actor_email: actorEmail,
+        type,
+        title,
+        message,
+        link,
+        is_read: false,
+      });
+
+    if (error) {
+      console.error(
+        "Notification error:",
+        error.message
+      );
+    }
+  }
+
+  function showFeedMessage(text: string) {
+    setFeedMessage(text);
+
+    window.setTimeout(() => {
+      setFeedMessage("");
+    }, 1800);
+  }
+
+  function beginEditPost(item: any) {
+    setEditingPostId(item.id);
+    setEditingCaption(
+      item.description || ""
+    );
+    setOpenPostMenu("");
+  }
+
+  function cancelEditPost() {
+    setEditingPostId("");
+    setEditingCaption("");
+  }
+
+  async function savePostEdit(id: string) {
+    setSavingPost(true);
+
+    const { error } = await supabase
+      .from("uploads")
+      .update({
+        description:
+          editingCaption.trim(),
+      })
+      .eq("id", id)
+      .eq(
+        "creator_email",
+        viewerEmail
+      );
+
+    if (error) {
+      showFeedMessage(
+        error.message
+      );
+
+      setSavingPost(false);
+      return;
+    }
+
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              description:
+                editingCaption.trim(),
+            }
+          : item
+      )
+    );
+
+    setEditingPostId("");
+    setEditingCaption("");
+    setSavingPost(false);
+
+    showFeedMessage(
+      "Post updated."
+    );
+  }
+
+  async function deletePost(
+    item: any
+  ) {
+    if (
+      item.creator_email !==
+        viewerEmail &&
+      item.user_email !==
+        viewerEmail
+    ) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Delete this post permanently?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setOpenPostMenu("");
+
+    await Promise.all([
+      supabase
+        .from("feed_likes")
+        .delete()
+        .eq(
+          "upload_id",
+          item.id
+        ),
+
+      supabase
+        .from("feed_comments")
+        .delete()
+        .eq(
+          "upload_id",
+          item.id
+        ),
+
+      supabase
+        .from("notifications")
+        .delete()
+        .eq(
+          "link",
+          `/feed#post-${item.id}`
+        ),
+    ]);
+
+    const { error } = await supabase
+      .from("uploads")
+      .delete()
+      .eq("id", item.id)
+      .eq(
+        "creator_email",
+        viewerEmail
+      );
+
+    if (error) {
+      showFeedMessage(
+        error.message
+      );
+
+      return;
+    }
+
+    setItems((current) =>
+      current.filter(
+        (post) =>
+          post.id !== item.id
+      )
+    );
+
+    showFeedMessage(
+      "Post deleted."
+    );
+  }
+
   async function likePost(
     id: string,
     creatorEmail?: string
@@ -619,24 +834,18 @@ export default function FeedPage() {
       return;
     }
 
-    if (
-      creatorEmail &&
-      creatorEmail !== userEmail
-    ) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_email:
-            creatorEmail,
-          type: "like",
-          title: "New Like",
-          message: `${profileName(
-            userEmail
-          )} liked your post.`,
-          link: `/watch/${id}`,
-          is_read: false,
-        });
-    }
+    await createNotification({
+      recipientEmail:
+        creatorEmail,
+      actorEmail:
+        userEmail,
+      type: "like",
+      title: "New Like",
+      message: `${profileName(
+        userEmail
+      )} liked your post.`,
+      link: `/feed#post-${id}`,
+    });
   }
 
   async function addComment(
@@ -679,25 +888,18 @@ export default function FeedPage() {
 
     await loadComments(id);
 
-    if (
-      creatorEmail &&
-      creatorEmail !== userEmail
-    ) {
-      await supabase
-        .from("notifications")
-        .insert({
-          user_email:
-            creatorEmail,
-          type: "comment",
-          title:
-            "New Comment",
-          message: `${profileName(
-            userEmail
-          )} commented on your post.`,
-          link: `/watch/${id}`,
-          is_read: false,
-        });
-    }
+    await createNotification({
+      recipientEmail:
+        creatorEmail,
+      actorEmail:
+        userEmail,
+      type: "comment",
+      title: "New Comment",
+      message: `${profileName(
+        userEmail
+      )} commented: "${text}"`,
+      link: `/feed#post-${id}`,
+    });
   }
     async function sharePost(item: any) {
     const url = `${window.location.origin}/watch/${item.id}`;
@@ -765,21 +967,20 @@ export default function FeedPage() {
       )
     );
 
-    await supabase
-      .from("notifications")
-      .insert({
-        user_email:
-          emailToFollow,
-        type: "follow",
-        title: "New Follower",
-        message: `${profileName(
-          viewerEmail
-        )} followed you.`,
-        link: `/u/${encodeURIComponent(
-          viewerEmail
-        )}`,
-        is_read: false,
-      });
+    await createNotification({
+      recipientEmail:
+        emailToFollow,
+      actorEmail:
+        viewerEmail,
+      type: "follow",
+      title: "New Follower",
+      message: `${profileName(
+        viewerEmail
+      )} followed you.`,
+      link: `/u/${encodeURIComponent(
+        viewerEmail
+      )}`,
+    });
   }
 
   function profileName(
@@ -1113,6 +1314,12 @@ export default function FeedPage() {
   return (
     <main className="feedPage">
       <UTVNav />
+
+      {feedMessage && (
+        <div className="feedToast">
+          {feedMessage}
+        </div>
+      )}
 
       <style>{styles}</style>
 
@@ -1473,10 +1680,58 @@ export default function FeedPage() {
                 ] || false;
 
               return (
-                <article
-                  className="feedPost"
-                  key={item.id}
-                >
+          <article
+  id={`post-${item.id}`}
+  className="feedPost"
+  key={item.id}
+>
+                  {(creatorEmail ===
+                    viewerEmail ||
+                    item.user_email ===
+                      viewerEmail) && (
+                    <div className="postOwnerMenu">
+                      <button
+                        className="postMenuButton"
+                        onClick={() =>
+                          setOpenPostMenu(
+                            openPostMenu ===
+                              item.id
+                              ? ""
+                              : item.id
+                          )
+                        }
+                      >
+                        •••
+                      </button>
+
+                      {openPostMenu ===
+                        item.id && (
+                        <div className="postMenuPanel">
+                          <button
+                            onClick={() =>
+                              beginEditPost(
+                                item
+                              )
+                            }
+                          >
+                            ✏️ Edit Caption
+                          </button>
+
+                          <button
+                            className="deleteMenuButton"
+                            onClick={() =>
+                              deletePost(
+                                item
+                              )
+                            }
+                          >
+                            🗑️ Delete Post
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     className="postHeader"
                     onClick={() =>
@@ -1761,7 +2016,51 @@ export default function FeedPage() {
                       </h2>
                     )}
 
-                    {item.description && (
+                                        {editingPostId ===
+                    item.id ? (
+                      <div className="editPostPanel">
+                        <textarea
+                          value={
+                            editingCaption
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            setEditingCaption(
+                              event.target
+                                .value
+                            )
+                          }
+                          placeholder="Edit your caption..."
+                        />
+
+                        <div className="editPostActions">
+                          <button
+                            onClick={
+                              cancelEditPost
+                            }
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            className="saveEditButton"
+                            disabled={
+                              savingPost
+                            }
+                            onClick={() =>
+                              savePostEdit(
+                                item.id
+                              )
+                            }
+                          >
+                            {savingPost
+                              ? "Saving..."
+                              : "Save"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : item.description ? (
                       <p className="caption">
                         <button
                           className="creatorCaptionButton"
@@ -1773,11 +2072,9 @@ export default function FeedPage() {
                         >
                           {creatorName}
                         </button>{" "}
-                        {
-                          item.description
-                        }
+                        {item.description}
                       </p>
-                    )}
+                    ) : null}
 
                     <section className="commentSection">
                       {postComments.length >
@@ -2554,5 +2851,126 @@ const styles = `
       box-shadow:
         0 0 70px rgba(0,0,0,.45);
     }
+  }
+      .feedPost {
+    position: relative;
+  }
+
+  .postHeader {
+    padding-right: 64px;
+  }
+
+  .postOwnerMenu {
+    position: absolute;
+    top: 15px;
+    right: 14px;
+    z-index: 30;
+  }
+
+  .postMenuButton {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    color: white;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 50%;
+    background: rgba(0,0,0,.68);
+    font-size: 17px;
+    font-weight: 950;
+  }
+
+  .postMenuPanel {
+    position: absolute;
+    top: 46px;
+    right: 0;
+    width: 165px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 16px;
+    background: rgba(12,17,27,.98);
+    box-shadow: 0 18px 40px rgba(0,0,0,.45);
+  }
+
+  .postMenuPanel button {
+    width: 100%;
+    padding: 13px;
+    color: white;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .postMenuPanel .deleteMenuButton {
+    color: #ff6b72;
+  }
+
+  .editPostPanel {
+    display: grid;
+    gap: 9px;
+    margin-top: 10px;
+  }
+
+  .editPostPanel textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 12px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 15px;
+    outline: none;
+    resize: vertical;
+    background: rgba(255,255,255,.06);
+  }
+
+  .editPostActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .editPostActions button {
+    padding: 9px 13px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    font-weight: 850;
+  }
+
+  .editPostActions .saveEditButton {
+    color: #06120d;
+    border: 0;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .feedToast {
+    position: fixed;
+    top: 92px;
+    left: 50%;
+    z-index: 2000;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    padding: 11px 15px;
+    color: #06120d;
+    border-radius: 999px;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+    box-shadow: 0 16px 40px rgba(0,0,0,.4);
+    transform: translateX(-50%);
+    font-size: 12px;
+    font-weight: 950;
   }
 `;
