@@ -514,35 +514,40 @@ useEffect(() => {
       const restoredContent =
         deduplicate(
           rows.filter((item: WatchItem) => {
-            const category = contentCategory(item)
-              .replace(/[_-]+/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
+            const category = String(
+              item?.category || ""
+            )
+              .trim()
+              .toLowerCase()
+              .replace(/[_-]+/g, " ");
 
-            const destination = contentDestination(item)
-              .replace(/[_-]+/g, " ")
-              .replace(/\s+/g, " ")
-              .trim();
-
-            const blocked = [
-              "feed",
-              "feed post",
-              "story",
-              "photo",
-              "world",
-              "world post",
-              "profile",
-              "camera",
-              "status",
-              "social post",
+            const allowedCategories = [
+              "show",
+              "tv show",
+              "series",
+              "episode",
+              "season",
+              "movie",
+              "film",
+              "short film",
+              "podcast",
+              "music",
+              "music video",
+              "documentary",
+              "docuseries",
+              "live",
+              "live event",
+              "live replay",
+              "concert",
+              "original",
+              "utv original",
+              "streaming",
             ];
 
-            return (
-              !blocked.includes(category) &&
-              !blocked.includes(destination) &&
-              item?.is_story !== true &&
-              item?.is_feed_post !== true &&
-              item?.is_world_post !== true
+            return allowedCategories.some(
+              (allowed) =>
+                category === allowed ||
+                category.includes(allowed)
             );
           })
         );
