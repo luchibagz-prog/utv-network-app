@@ -344,14 +344,7 @@ function normalizeRows(
 export default function WorldPage() {
   const router = useRouter();
   const mapRef = useRef<any>(null);
-  const refreshTimerRef =
-    useRef<ReturnType<typeof setInterval> | null>(
-      null
-    );
-
-  const [items, setItems] =
-    useState<WorldItem[]>([]);
-
+const refreshTimerRef = useRef<number | null>(null);
   const [profiles, setProfiles] = useState<
     Record<string, any>
   >({});
@@ -390,10 +383,11 @@ export default function WorldPage() {
     }, 60000);
 
     return () => {
-      if (refreshTimerRef.current) {
-        window.clearInterval(refreshTimerRef.current);
-      }
-    };
+  if (refreshTimerRef.current !== null) {
+    window.clearInterval(refreshTimerRef.current);
+    refreshTimerRef.current = null;
+  }
+};
   }, []);
 
   const loadProfiles = useCallback(
