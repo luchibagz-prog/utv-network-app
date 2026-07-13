@@ -459,139 +459,160 @@ export default function WatchPage() {
   const [loadError, setLoadError] =
     useState("");
 
-  useEffect(() => {
-    loadWatchContent();
-
-    const heroTimer =
-      window.setInterval(() => {
-        setHeroIndex(
-          (current) =>
-            (current + 1) %
-            HERO_IMAGES.length
-        );
-      }, 5000);
-
-    return () => {
-      window.clearInterval(heroTimer);
-    };
-  }, []);
-
   async function loadWatchContent() {
-    setLoading(true);
-    setLoadError("");
+  setLoading(true);
+  setLoadError("");
 
-    async function loadTable(
-      table: string,
-      fallbackType: string
-    ) {
-      const { data, error } =
-        await supabase
-          .from(table)
-          .select("*")
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(500);
+  const [
+    uploadsResult,
+    contentResult,
+  ] = await Promise.all([
+    supabase
+      .from("uploads")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(500),
 
-      if (error) {
-        console.info(
-          `Watch table skipped: ${table}`,
-          error.message
-        );
+    supabase
+      .from("content")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(500),
+  ]);
 
-        return [];
-      }
+  if (uploadsResult.error) {
+    console.error(
+      "Uploads query failed:",
+      uploadsResult.error.message
+    );
+  }
 
-      return (data || []).map(
-        (item: WatchItem) => ({
-          ...item,
+  if (contentResult.error) {
+    console.error(
+      "Content query failed:",
+      contentResult.error.message
+    );
+  }
 
-          id:
-            item.id ||
-            `${table}-${Math.random()}`,
+  const uploadRows =
+    uploadsResult.data || [];
 
-          content_type:
-            item.content_type ||
-            item.category ||
-            item.type ||
-            fallbackType,
+  const contentRows =
+    contentResult.data || [];
 
-          watch_source: table,
-        })
-      );
-    }
+  const allRows = [
+    ...uploadRows.map(
+      (item: WatchItem) => ({
+        ...item,
+        watch_source: "uploads",
+        content_type:
+          item.content_type ||
+          item.category ||
+          item.type ||
+          "streaming",
+      })
+    ),
 
-    const results = await Promise.all([
-      loadTable(
-        "uploads",
-        "streaming"
-      ),
+    ...contentRows.map(
+      (item: WatchItem) => ({
+        ...item,
+        watch_source: "content",
+        content_type:
+          item.content_type ||
+          item.category ||
+          item.type ||
+          "streaming",
+      })
+    ),
+  ];
 
-      loadTable(
-        "shows",
-        "show"
-      ),
+  const restoredContent =
+    deduplicate(
+      allRows.filter(
+        (item: WatchItem) => {
+          const category =
+            contentCategory(item);
 
-      loadTable(
-        "movies",
-        "movie"
-      ),
+          const approved =
+            item.approved !== false;
 
-      loadTable(
-        "episodes",
-        "episode"
-      ),
+          const blocked =
+            isBlockedContent(item);
 
-      loadTable(
-        "podcasts",
-        "podcast"
-      ),
+          const validCategory =
+            [
+              "show",
+              "series",
+              "episode",
+              "movie",
+              "film",
+              "podcast",
+              "documentary",
+              "music",
+              "music video",
+              "live-event",
+              "live event",
+              "concert",
+              "original",
+              "streaming",
+            ].some((word) =>
+              category.includes(word)
+            );
 
-      loadTable(
-        "streaming_content",
-        "streaming"
-      ),
-
-      loadTable(
-        "content",
-        "streaming"
-      ),
-    ]);
-
-    const merged =
-      results.flat();
-
-    const restoredContent =
-      deduplicate(
-        merged.filter(
-          isWatchContent
-        )
-      );
-
-    console.info(
-      "UTV Watch restored:",
-      restoredContent.length,
-      restoredContent.map(
-        (item) => ({
-          title: contentTitle(item),
-          type: contentCategory(item),
-          source: item.watch_source,
-        })
+          return (
+            approved &&
+            !blocked &&
+            validCategory
+          );
+        }
       )
     );
 
-    setUploads(restoredContent);
+  console.info(
+    "WATCH DEBUG",
+    {
+      uploadsReceived:
+        uploadRows.length,
 
-    if (
-      restoredContent.length === 0
-    ) {
-      setLoadError(
-        "No streaming records were found in the connected UTV content tables."
-      );
+      contentReceived:
+        contentRows.length,
+
+      restored:
+        restoredContent.length,
+
+      uploadsError:
+        uploadsResult.error
+          ?.message || null,
+
+      contentError:
+        contentResult.error
+          ?.message || null,
     }
+  );
 
-    setLoading(false);
+  setUploads(restoredContent);
+
+  if (
+    uploadRows.length === 0 &&
+    contentRows.length === 0
+  ) {
+    setLoadError(
+      "UTV connected successfully, but Supabase returned zero Watch rows."
+    );
+  } else if (
+    restoredContent.length === 0
+  ) {
+    setLoadError(
+      "Watch records were found, but their categories are not marked as shows, movies, podcasts, music, documentaries, or live events."
+    );
   }
+
+  setLoading(false);
+}
 
   const filtered = useMemo(() => {
     const query = search
