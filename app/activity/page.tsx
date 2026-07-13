@@ -224,9 +224,13 @@ export default function ActivityPage() {
   const router = useRouter();
 
   const refreshTimerRef =
-    useRef<ReturnType<
-      typeof setInterval
-    > | null>(null);
+  useRef<number | null>(null);
+
+const activityChannelRef =
+  useRef<any>(null);
+
+const messageChannelRef =
+  useRef<any>(null);
 
   const [viewerEmail, setViewerEmail] =
     useState("");
@@ -251,24 +255,66 @@ export default function ActivityPage() {
   const [message, setMessage] =
     useState("");
 
-  useEffect(() => {
-    loadActivity();
+ useEffect(() => {
+  loadActivity();
 
-    refreshTimerRef.current =
-      setInterval(() => {
-        loadActivity(false);
-      }, 15000);
+  refreshTimerRef.current =
+    window.setInterval(() => {
+      loadActivity(false);
+    }, 30000);
 
-    return () => {
-      if (
+  activityChannelRef.current =
+    supabase
+      .channel("activity-center-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+        },
+        () => {
+          loadActivity(false);
+        }
+      )
+      .subscribe();
+
+  messageChannelRef.current =
+    supabase
+      .channel("activity-center-messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+        },
+        () => {
+          loadActivity(false);
+        }
+      )
+      .subscribe();
+
+  return () => {
+    if (refreshTimerRef.current) {
+      window.clearInterval(
         refreshTimerRef.current
-      ) {
-        clearInterval(
-          refreshTimerRef.current
-        );
-      }
-    };
-  }, []);
+      );
+    }
+
+    if (activityChannelRef.current) {
+      supabase.removeChannel(
+        activityChannelRef.current
+      );
+    }
+
+    if (messageChannelRef.current) {
+      supabase.removeChannel(
+        messageChannelRef.current
+      );
+    }
+  };
+}, []);
 
   const loadProfiles =
     useCallback(
@@ -464,9 +510,17 @@ export default function ActivityPage() {
             .limit(100)
       ),
     ]);
-        const notifications: ActivityItem[] =
-      notificationRows.map(
-        (row: any) => {
+       const notifications: ActivityItem[] =
+  notificationRows
+    .filter(
+      (row: any) =>
+        String(
+          row.type || ""
+        ).toLowerCase() !==
+        "message"
+    )
+    .map(
+      (row: any) => {
           const type =
             row.type ||
             "notification";
