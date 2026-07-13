@@ -126,15 +126,16 @@ const refreshTimerRef =
   );
 
   const markConversationRead = useCallback(
-    async (
-      myEmail: string,
-      senderEmail: string
-    ) => {
-      if (!myEmail || !senderEmail) {
-        return;
-      }
+  async (
+    myEmail: string,
+    senderEmail: string
+  ) => {
+    if (!myEmail || !senderEmail) {
+      return;
+    }
 
-      const readResult = await supabase
+    const { error: messageError } =
+      await supabase
         .from("messages")
         .update({
           read: true,
@@ -149,40 +150,43 @@ const refreshTimerRef =
         )
         .eq("read", false);
 
-      if (readResult.error) {
-        await supabase
-          .from("messages")
-          .update({
-            is_read: true,
-          })
-          .eq(
-            "receiver_email",
-            myEmail
-          )
-          .eq(
-            "sender_email",
-            senderEmail
-          )
-          .eq("is_read", false);
-      }
+    if (messageError) {
+      console.error(
+        "Could not mark messages read:",
+        messageError.message
+      );
+    }
 
-      await supabase
-        .from("notifications")
-        .update({
-          is_read: true,
-        })
-        .eq(
-          "user_email",
-          myEmail
-        )
-        .eq("type", "message")
-        .eq(
-          "actor_email",
-          senderEmail
-        );
-    },
-    []
-  );
+    const {
+      error: notificationError,
+    } = await supabase
+      .from("notifications")
+      .update({
+        is_read: true,
+      })
+      .eq(
+        "user_email",
+        myEmail
+      )
+      .eq(
+        "actor_email",
+        senderEmail
+      )
+      .eq(
+        "type",
+        "message"
+      )
+      .eq("is_read", false);
+
+    if (notificationError) {
+      console.info(
+        "Message notification update:",
+        notificationError.message
+      );
+    }
+  },
+  []
+);
 
   const loadConversation = useCallback(
     async (
