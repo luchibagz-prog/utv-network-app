@@ -459,6 +459,10 @@ export default function WatchPage() {
   const [loadError, setLoadError] =
     useState("");
 
+useEffect(() => {
+  loadWatchContent();
+}, []);
+
   async function loadWatchContent() {
     setLoading(true);
     setLoadError("");
