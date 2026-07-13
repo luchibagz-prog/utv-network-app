@@ -65,8 +65,8 @@ function stringValue(value: unknown) {
 
 function contentCategory(item: WatchItem) {
   return stringValue(
-    item?.content_type ||
-      item?.category ||
+    item?.category ||
+      item?.content_type ||
       item?.type ||
       item?.format ||
       item?.genre ||
