@@ -385,13 +385,13 @@ export default function WorldPage() {
   useEffect(() => {
     loadWorld();
 
-    refreshTimerRef.current = setInterval(() => {
+    refreshTimerRef.current = window.setInterval(() => {
       loadWorld(false);
-    }, 20000);
+    }, 60000);
 
     return () => {
       if (refreshTimerRef.current) {
-        clearInterval(refreshTimerRef.current);
+        window.clearInterval(refreshTimerRef.current);
       }
     };
   }, []);
@@ -432,7 +432,7 @@ export default function WorldPage() {
       .order("created_at", {
         ascending: false,
       })
-      .limit(150);
+      .limit(50);
 
     /*
       Some projects may not have every optional table.
@@ -581,6 +581,16 @@ export default function WorldPage() {
         canvas.style.cursor = "grab";
       }
 
+      map.setFog?.({
+        color: "rgb(6, 17, 29)",
+        "high-color":
+          "rgb(43, 65, 112)",
+        "horizon-blend": 0.14,
+        "space-color":
+          "rgb(1, 2, 8)",
+        "star-intensity": 0.45,
+      });
+
       const layers =
         map.getStyle()?.layers || [];
 
@@ -658,7 +668,7 @@ export default function WorldPage() {
       zoom,
       pitch: 52,
       bearing: -12,
-      duration: 900,
+      duration: 1400,
       essential: true,
     });
   }
@@ -694,10 +704,10 @@ export default function WorldPage() {
         SACRAMENTO.longitude,
         SACRAMENTO.latitude,
       ],
-      zoom: 10.8,
-      pitch: 42,
-      bearing: 0,
-      duration: 850,
+      zoom: 3.2,
+      pitch: 18,
+      bearing: -12,
+      duration: 1300,
       essential: true,
     });
   }
@@ -827,7 +837,7 @@ export default function WorldPage() {
     if (!email) return;
 
     router.push(
-      `/messages?to=${encodeURIComponent(
+      `/messages/${encodeURIComponent(
         email
       )}`
     );
@@ -873,13 +883,8 @@ export default function WorldPage() {
 
     if (email) {
       router.push(
-        `/messages?to=${encodeURIComponent(
+        `/messages/${encodeURIComponent(
           email
-        )}&subject=${encodeURIComponent(
-          `Booking request: ${
-            item.title ||
-            "UTV World"
-          }`
         )}`
       );
     }
@@ -1391,11 +1396,14 @@ export default function WorldPage() {
                   SACRAMENTO.longitude,
                 latitude:
                   SACRAMENTO.latitude,
-                zoom: 10.8,
-                pitch: 42,
-                bearing: 0,
+                zoom: 3.2,
+                pitch: 18,
+                bearing: -12,
               }}
               mapStyle="mapbox://styles/mapbox/navigation-night-v1"
+              projection={{
+                name: "globe",
+              }}
               style={{
                 width: "100%",
                 height: "100%",
@@ -1476,13 +1484,13 @@ export default function WorldPage() {
               <div className="worldSpinner" />
 
               <strong>
-                Loading UTV World
+                Entering UTV World
               </strong>
 
               <span>
-                Finding lives,
-                events, and
-                opportunities...
+                Connecting lives,
+                events, bookings,
+                and opportunities...
               </span>
             </div>
           )}
