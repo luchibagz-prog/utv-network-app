@@ -480,116 +480,37 @@ export default function WatchPage() {
     setLoading(true);
     setLoadError("");
 
-    async function loadTable(
-      table: string,
-      fallbackType: string
-    ) {
-      const { data, error } =
-        await supabase
-          .from(table)
-          .select("*")
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(500);
-
-      if (error) {
-        console.info(
-          `Watch table skipped: ${table}`,
-          error.message
-        );
-
-        return [];
-      }
-
-      return (data || []).map(
-        (item: WatchItem) => ({
-          ...item,
-
-          id:
-            item.id ||
-            `${table}-${Math.random()}`,
-
-          content_type:
-            item.content_type ||
-            item.category ||
-            item.type ||
-            fallbackType,
-
-          watch_source: table,
+    const { data, error } =
+      await supabase
+        .from("uploads")
+        .select("*")
+        .order("created_at", {
+          ascending: false,
         })
+        .limit(500);
+
+    if (error) {
+      console.error(
+        "Watch load error:",
+        error
       );
+
+      setUploads([]);
+      setLoadError(
+        "UTV Watch could not load."
+      );
+      setLoading(false);
+      return;
     }
-
-    const results = await Promise.all([
-      loadTable(
-        "uploads",
-        "streaming"
-      ),
-
-      loadTable(
-        "shows",
-        "show"
-      ),
-
-      loadTable(
-        "movies",
-        "movie"
-      ),
-
-      loadTable(
-        "episodes",
-        "episode"
-      ),
-
-      loadTable(
-        "podcasts",
-        "podcast"
-      ),
-
-      loadTable(
-        "streaming_content",
-        "streaming"
-      ),
-
-      loadTable(
-        "content",
-        "streaming"
-      ),
-    ]);
-
-    const merged =
-      results.flat();
 
     const restoredContent =
       deduplicate(
-        merged.filter(
+        (data || []).filter(
           isWatchContent
         )
       );
 
-    console.info(
-      "UTV Watch restored:",
-      restoredContent.length,
-      restoredContent.map(
-        (item) => ({
-          title: contentTitle(item),
-          type: contentCategory(item),
-          source: item.watch_source,
-        })
-      )
-    );
-
     setUploads(restoredContent);
-
-    if (
-      restoredContent.length === 0
-    ) {
-      setLoadError(
-        "No streaming records were found in the connected UTV content tables."
-      );
-    }
-
     setLoading(false);
   }
 
