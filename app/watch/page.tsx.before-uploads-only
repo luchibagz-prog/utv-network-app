@@ -459,165 +459,160 @@ export default function WatchPage() {
   const [loadError, setLoadError] =
     useState("");
 
-useEffect(() => {
-  loadWatchContent();
-}, []);
-
   async function loadWatchContent() {
-    setLoading(true);
-    setLoadError("");
+  setLoading(true);
+  setLoadError("");
 
-    try {
-      console.log("WATCH: loading uploads");
+  const [
+    uploadsResult,
+    contentResult,
+  ] = await Promise.all([
+    supabase
+      .from("uploads")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(500),
 
-      const request =
-        supabase
-          .from("uploads")
-          .select("*")
-          .eq("approved", true)
-          .order("created_at", {
-            ascending: false,
-          })
-          .limit(500);
+    supabase
+      .from("content")
+      .select("*")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(500),
+  ]);
 
-      const timeout =
-        new Promise<never>(
-          (_, reject) => {
-            window.setTimeout(() => {
-              reject(
-                new Error(
-                  "Watch request timed out."
-                )
-              );
-            }, 12000);
-          }
-        );
-
-      const result = await Promise.race([
-        request,
-        timeout,
-      ]);
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      const rows =
-        result.data || [];
-
-      console.log(
-        "WATCH UPLOAD ROWS:",
-        rows.length,
-        rows
-      );
-
-      const restoredContent =
-        deduplicate(
-          rows.filter(
-            (item: WatchItem) => {
-              const category = contentCategory(item)
-                .replace(/[_-]+/g, " ")
-                .replace(/\\s+/g, " ")
-                .trim();
-
-              const destination = contentDestination(item)
-                .replace(/[_-]+/g, " ")
-                .replace(/\\s+/g, " ")
-                .trim();
-
-              const blockedCategories = [
-                "feed",
-                "feed post",
-                "story",
-                "photo",
-                "world",
-                "world post",
-                "profile",
-                "status",
-                "camera",
-              ];
-
-              const blocked =
-                blockedCategories.includes(category) ||
-                blockedCategories.includes(destination) ||
-                item?.is_story === true ||
-                item?.is_feed_post === true ||
-                item?.is_world_post === true;
-
-              const watchCategory = [
-                "show",
-                "tv show",
-                "television",
-                "series",
-                "episode",
-                "season",
-                "movie",
-                "film",
-                "short film",
-                "podcast",
-                "music",
-                "music video",
-                "documentary",
-                "docuseries",
-                "live",
-                "live event",
-                "live replay",
-                "concert",
-                "comedy",
-                "original",
-                "utv original",
-                "streaming",
-              ].some(
-                (word) =>
-                  category === word ||
-                  category.includes(word)
-              );
-
-              const playable =
-                Boolean(contentVideo(item));
-
-              return (
-                !blocked &&
-                (watchCategory || playable)
-              );
-            }
-          )
-        );
-
-      console.log(
-        "WATCH RESTORED:",
-        restoredContent.length
-      );
-
-      setUploads(restoredContent);
-
-      if (rows.length === 0) {
-        setLoadError(
-          "Supabase returned zero approved uploads."
-        );
-      } else if (
-        restoredContent.length === 0
-      ) {
-        setLoadError(
-          "Uploads were found, but none have a Watch category."
-        );
-      }
-    } catch (error: any) {
-      console.error(
-        "WATCH LOAD FAILED:",
-        error
-      );
-
-      setUploads([]);
-
-      setLoadError(
-        error?.message ||
-          "Watch could not load."
-      );
-    } finally {
-      setLoading(false);
-    }
+  if (uploadsResult.error) {
+    console.error(
+      "Uploads query failed:",
+      uploadsResult.error.message
+    );
   }
+
+  if (contentResult.error) {
+    console.error(
+      "Content query failed:",
+      contentResult.error.message
+    );
+  }
+
+  const uploadRows =
+    uploadsResult.data || [];
+
+  const contentRows =
+    contentResult.data || [];
+
+  const allRows = [
+    ...uploadRows.map(
+      (item: WatchItem) => ({
+        ...item,
+        watch_source: "uploads",
+        content_type:
+          item.content_type ||
+          item.category ||
+          item.type ||
+          "streaming",
+      })
+    ),
+
+    ...contentRows.map(
+      (item: WatchItem) => ({
+        ...item,
+        watch_source: "content",
+        content_type:
+          item.content_type ||
+          item.category ||
+          item.type ||
+          "streaming",
+      })
+    ),
+  ];
+
+  const restoredContent =
+    deduplicate(
+      allRows.filter(
+        (item: WatchItem) => {
+          const category =
+            contentCategory(item);
+
+          const approved =
+            item.approved !== false;
+
+          const blocked =
+            isBlockedContent(item);
+
+          const validCategory =
+            [
+              "show",
+              "series",
+              "episode",
+              "movie",
+              "film",
+              "podcast",
+              "documentary",
+              "music",
+              "music video",
+              "live-event",
+              "live event",
+              "concert",
+              "original",
+              "streaming",
+            ].some((word) =>
+              category.includes(word)
+            );
+
+          return (
+            approved &&
+            !blocked &&
+            validCategory
+          );
+        }
+      )
+    );
+
+  console.info(
+    "WATCH DEBUG",
+    {
+      uploadsReceived:
+        uploadRows.length,
+
+      contentReceived:
+        contentRows.length,
+
+      restored:
+        restoredContent.length,
+
+      uploadsError:
+        uploadsResult.error
+          ?.message || null,
+
+      contentError:
+        contentResult.error
+          ?.message || null,
+    }
+  );
+
+  setUploads(restoredContent);
+
+  if (
+    uploadRows.length === 0 &&
+    contentRows.length === 0
+  ) {
+    setLoadError(
+      "UTV connected successfully, but Supabase returned zero Watch rows."
+    );
+  } else if (
+    restoredContent.length === 0
+  ) {
+    setLoadError(
+      "Watch records were found, but their categories are not marked as shows, movies, podcasts, music, documentaries, or live events."
+    );
+  }
+
+  setLoading(false);
+}
 
   const filtered = useMemo(() => {
     const query = search
