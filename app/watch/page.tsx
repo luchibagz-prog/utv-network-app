@@ -513,75 +513,38 @@ useEffect(() => {
 
       const restoredContent =
         deduplicate(
-          rows.filter(
-            (item: WatchItem) => {
-              const category = contentCategory(item)
-                .replace(/[_-]+/g, " ")
-                .replace(/\\s+/g, " ")
-                .trim();
+          rows.filter((item: WatchItem) => {
+            const category = contentCategory(item)
+              .replace(/[_-]+/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
 
-              const destination = contentDestination(item)
-                .replace(/[_-]+/g, " ")
-                .replace(/\\s+/g, " ")
-                .trim();
+            const destination = contentDestination(item)
+              .replace(/[_-]+/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
 
-              const blockedCategories = [
-                "feed",
-                "feed post",
-                "story",
-                "photo",
-                "world",
-                "world post",
-                "profile",
-                "status",
-                "camera",
-              ];
+            const blocked = [
+              "feed",
+              "feed post",
+              "story",
+              "photo",
+              "world",
+              "world post",
+              "profile",
+              "camera",
+              "status",
+              "social post",
+            ];
 
-              const blocked =
-                blockedCategories.includes(category) ||
-                blockedCategories.includes(destination) ||
-                item?.is_story === true ||
-                item?.is_feed_post === true ||
-                item?.is_world_post === true;
-
-              const watchCategory = [
-                "show",
-                "tv show",
-                "television",
-                "series",
-                "episode",
-                "season",
-                "movie",
-                "film",
-                "short film",
-                "podcast",
-                "music",
-                "music video",
-                "documentary",
-                "docuseries",
-                "live",
-                "live event",
-                "live replay",
-                "concert",
-                "comedy",
-                "original",
-                "utv original",
-                "streaming",
-              ].some(
-                (word) =>
-                  category === word ||
-                  category.includes(word)
-              );
-
-              const playable =
-                Boolean(contentVideo(item));
-
-              return (
-                !blocked &&
-                (watchCategory || playable)
-              );
-            }
-          )
+            return (
+              !blocked.includes(category) &&
+              !blocked.includes(destination) &&
+              item?.is_story !== true &&
+              item?.is_feed_post !== true &&
+              item?.is_world_post !== true
+            );
+          })
         );
 
       console.log(
