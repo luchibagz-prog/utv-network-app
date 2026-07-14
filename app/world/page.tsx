@@ -340,14 +340,16 @@ function normalizeRows(
       };
     });
 }
-
 export default function WorldPage() {
   const router = useRouter();
   const mapRef = useRef<any>(null);
-const refreshTimerRef = useRef<number | null>(null);
-  const [profiles, setProfiles] = useState<
-    Record<string, any>
-  >({});
+  const refreshTimerRef = useRef<number | null>(null);
+
+  const [items, setItems] =
+    useState<WorldItem[]>([]);
+
+  const [profiles, setProfiles] =
+    useState<Record<string, any>>({});
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
