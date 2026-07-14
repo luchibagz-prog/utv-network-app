@@ -565,9 +565,11 @@ export default function WorldPage() {
       map.dragPan.enable();
       map.scrollZoom.enable();
       map.touchZoomRotate.enable();
+      map.touchZoomRotate.disableRotation();
       map.doubleClickZoom.enable();
       map.keyboard.enable();
 
+      map.dragRotate.disable();
       map.touchPitch.disable();
 
       const canvas = map.getCanvas();
@@ -1292,6 +1294,27 @@ export default function WorldPage() {
         </p>
       </section>
 
+      <section className="worldCategoryPanel">
+        <div className="worldCategoryScroll">
+          {filters.map((name) => (
+            <button
+              key={name}
+              className={
+                filter === name
+                  ? "worldFilter active"
+                  : "worldFilter"
+              }
+              onClick={() => {
+                setFilter(name);
+                setSelected(null);
+              }}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="worldMapStage">
         <div className="worldMapShell">
           <div className="mapBadge">
@@ -1306,64 +1329,50 @@ export default function WorldPage() {
             ◎ Reset
           </button>
 
-          <div className="worldFloatingFilters">
-            {filters.map((name) => (
-              <button
-                key={name}
-                className={
-                  filter === name
-                    ? "worldFilter active"
-                    : "worldFilter"
-                }
-                onClick={() => {
-                  setFilter(name);
-                  setSelected(null);
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-
-          <div className="worldHud">
+          <div className="worldMapControls">
             <button
-              className="hudItem"
+              type="button"
+              aria-label="Zoom in"
               onClick={() =>
-                setFilter("Live")
+                mapRef.current?.zoomIn({
+                  duration: 350,
+                })
               }
             >
-              <b>{counts.live}</b>
-              <span>Live</span>
+              +
             </button>
 
             <button
-              className="hudItem"
+              type="button"
+              aria-label="Zoom out"
               onClick={() =>
-                setFilter("Events")
+                mapRef.current?.zoomOut({
+                  duration: 350,
+                })
               }
             >
-              <b>{counts.events}</b>
-              <span>Events</span>
+              −
             </button>
 
             <button
-              className="hudItem"
-              onClick={() =>
-                setFilter("Casting")
-              }
+              type="button"
+              aria-label="Reset map"
+              onClick={resetMap}
             >
-              <b>{counts.casting}</b>
-              <span>Casting</span>
+              ◎
             </button>
 
             <button
-              className="hudItem"
-              onClick={() =>
-                setFilter("Bookings")
+              type="button"
+              aria-label="Go to my location"
+              className={
+                locationOn
+                  ? "mapLocationActive"
+                  : ""
               }
+              onClick={toggleLocation}
             >
-              <b>{counts.bookings}</b>
-              <span>Bookings</span>
+              📍
             </button>
           </div>
 
@@ -1406,8 +1415,10 @@ export default function WorldPage() {
               }}
               attributionControl
               dragPan
+              dragRotate={false}
               scrollZoom
               touchZoomRotate
+              touchPitch={false}
               doubleClickZoom
               keyboard
               cooperativeGestures={false}
@@ -1419,12 +1430,6 @@ export default function WorldPage() {
                 setSelected(null)
               }
             >
-              <NavigationControl
-                position="bottom-right"
-                showCompass
-                showZoom
-              />
-
               {locationOn &&
                 userLocation && (
                   <Marker
@@ -1491,6 +1496,40 @@ export default function WorldPage() {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="worldStatsPanel">
+        <button
+          className="hudItem"
+          onClick={() => setFilter("Live")}
+        >
+          <b>{counts.live}</b>
+          <span>🔴 Live</span>
+        </button>
+
+        <button
+          className="hudItem"
+          onClick={() => setFilter("Events")}
+        >
+          <b>{counts.events}</b>
+          <span>🎉 Events</span>
+        </button>
+
+        <button
+          className="hudItem"
+          onClick={() => setFilter("Casting")}
+        >
+          <b>{counts.casting}</b>
+          <span>🎭 Casting</span>
+        </button>
+
+        <button
+          className="hudItem"
+          onClick={() => setFilter("Bookings")}
+        >
+          <b>{counts.bookings}</b>
+          <span>📅 Bookings</span>
+        </button>
       </section>
 
       <section className="worldResultsHeader">
@@ -2210,7 +2249,7 @@ const styles = `
   .worldMapShell canvas {
     width: 100% !important;
     height: 100% !important;
-    touch-action: none !important;
+    touch-action: pan-x pan-y pinch-zoom !important;
   }
 
   .worldMapShell .mapboxgl-canvas {
@@ -2249,33 +2288,35 @@ const styles = `
     padding: 9px 12px;
   }
 
-  .worldFloatingFilters {
-    position: absolute;
-    top: 58px;
-    right: 12px;
-    left: 12px;
-    z-index: 8;
+  .worldCategoryPanel {
+    padding: 0 12px 10px;
+  }
+
+  .worldCategoryScroll {
     display: flex;
     gap: 9px;
     overflow-x: auto;
-    padding-bottom: 6px;
+    padding: 4px 2px 8px;
+    scroll-snap-type: x proximity;
     scrollbar-width: none;
   }
 
-  .worldFloatingFilters::-webkit-scrollbar {
+  .worldCategoryScroll::-webkit-scrollbar {
     display: none;
   }
 
   .worldFilter {
     flex: 0 0 auto;
-    padding: 9px 14px;
-    color: rgba(255,255,255,.78);
-    border: 1px solid rgba(255,255,255,.12);
+    min-height: 44px;
+    padding: 10px 16px;
+    color: rgba(255,255,255,.8);
+    border: 1px solid rgba(255,255,255,.13);
     border-radius: 999px;
-    background: rgba(12,18,32,.72);
+    background: rgba(12,18,32,.78);
     backdrop-filter: blur(18px);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
+    scroll-snap-align: start;
   }
 
   .worldFilter.active {
@@ -2288,44 +2329,84 @@ const styles = `
         #9b7cff
       );
     box-shadow:
-      0 0 28px rgba(82,247,200,.32);
+      0 0 28px rgba(82,247,200,.3);
   }
 
-  .worldHud {
+  .worldMapControls {
     position: absolute;
+    top: 72px;
     right: 12px;
-    bottom: 12px;
-    left: 12px;
-    z-index: 8;
+    z-index: 12;
+    display: grid;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .worldMapControls button {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: white;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 15px;
+    background: rgba(7,13,24,.84);
+    box-shadow: 0 9px 24px rgba(0,0,0,.28);
+    backdrop-filter: blur(16px);
+    font-size: 25px;
+    font-weight: 900;
+    touch-action: manipulation;
+  }
+
+  .worldMapControls button:active {
+    transform: scale(.94);
+  }
+
+  .worldMapControls .mapLocationActive {
+    color: #07120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #9b7cff
+      );
+  }
+
+  .worldStatsPanel {
     display: grid;
     grid-template-columns:
       repeat(4, minmax(0,1fr));
-    gap: 7px;
-    pointer-events: none;
+    gap: 8px;
+    padding: 10px 12px 0;
   }
 
   .hudItem {
-    pointer-events: auto;
-    padding: 9px 6px;
+    min-width: 0;
+    padding: 12px 9px;
     color: white;
     text-align: left;
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 16px;
-    background: rgba(8,13,24,.65);
-    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 17px;
+    background: rgba(12,20,34,.84);
+    box-shadow: 0 12px 28px rgba(0,0,0,.18);
   }
 
   .hudItem b {
     display: block;
-    font-size: 17px;
+    font-size: 20px;
   }
 
   .hudItem span {
     display: block;
-    margin-top: 2px;
-    color: rgba(255,255,255,.58);
-    font-size: 9px;
+    margin-top: 3px;
+    overflow: hidden;
+    color: rgba(255,255,255,.63);
+    font-size: 10px;
     font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .utvPin {
@@ -3225,15 +3306,36 @@ const styles = `
       justify-content: flex-start;
     }
 
-    .worldMapShell {
-      height: 66vh;
-      min-height: 500px;
-      border-radius: 24px;
+    .worldMapStage {
+      padding: 0 8px;
     }
 
-    .worldHud {
+    .worldCategoryPanel {
+      padding-right: 8px;
+      padding-left: 8px;
+    }
+
+    .worldMapShell {
+      height: 64vh;
+      min-height: 520px;
+      border-radius: 22px;
+    }
+
+    .worldStatsPanel {
       grid-template-columns:
         repeat(2, minmax(0,1fr));
+      padding-right: 8px;
+      padding-left: 8px;
+    }
+
+    .worldMapControls {
+      top: 66px;
+      right: 10px;
+    }
+
+    .worldMapControls button {
+      width: 46px;
+      height: 46px;
     }
 
     .worldResultsHeader {
