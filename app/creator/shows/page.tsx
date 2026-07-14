@@ -230,6 +230,15 @@ export default function MyShowsPage() {
   + Add Episode
 </button>
  
+<button
+  className="primaryButton"
+  onClick={() =>
+    router.push(`/creator/shows/${show.id}/trailer`)
+  }
+>
+  🎬 Upload Trailer
+</button>
+
   <button
     style={styles.secondaryButton}
     onClick={() =>
