@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 
 import Map, {
   Marker,
-  NavigationControl,
+  Source,
 } from "react-map-gl/mapbox";
 
 import UTVNav from "../components/UTVNav";
@@ -343,7 +343,14 @@ function normalizeRows(
 export default function WorldPage() {
   const router = useRouter();
   const mapRef = useRef<any>(null);
-  const refreshTimerRef = useRef<number | null>(null);
+  const refreshTimerRef =
+    useRef<number | null>(null);
+
+  const globeSpinTimerRef =
+    useRef<number | null>(null);
+
+  const globeTouchedRef =
+    useRef(false);
 
   const [items, setItems] =
     useState<WorldItem[]>([]);
@@ -377,6 +384,14 @@ export default function WorldPage() {
   const [refreshing, setRefreshing] =
     useState(false);
 
+  const [mapMode, setMapMode] =
+    useState<"night" | "satellite">(
+      "night"
+    );
+
+  const [globeSpinning, setGlobeSpinning] =
+    useState(true);
+
   useEffect(() => {
     loadWorld();
 
@@ -385,11 +400,26 @@ export default function WorldPage() {
     }, 60000);
 
     return () => {
-  if (refreshTimerRef.current !== null) {
-    window.clearInterval(refreshTimerRef.current);
-    refreshTimerRef.current = null;
-  }
-};
+      if (
+        refreshTimerRef.current !== null
+      ) {
+        window.clearInterval(
+          refreshTimerRef.current
+        );
+
+        refreshTimerRef.current = null;
+      }
+
+      if (
+        globeSpinTimerRef.current !== null
+      ) {
+        window.clearInterval(
+          globeSpinTimerRef.current
+        );
+
+        globeSpinTimerRef.current = null;
+      }
+    };
   }, []);
 
   const loadProfiles = useCallback(
@@ -554,12 +584,116 @@ export default function WorldPage() {
     setLoading(false);
     setRefreshing(false);
   }
-    function handleMapLoad() {
+    function stopGlobeSpin() {
+    globeTouchedRef.current = true;
+    setGlobeSpinning(false);
+
+    if (
+      globeSpinTimerRef.current !== null
+    ) {
+      window.clearInterval(
+        globeSpinTimerRef.current
+      );
+
+      globeSpinTimerRef.current = null;
+    }
+  }
+
+  function startGlobeSpin() {
+    const map =
+      mapRef.current?.getMap?.();
+
+    if (!map) {
+      return;
+    }
+
+    globeTouchedRef.current = false;
+    setGlobeSpinning(true);
+
+    if (
+      globeSpinTimerRef.current !== null
+    ) {
+      window.clearInterval(
+        globeSpinTimerRef.current
+      );
+    }
+
+    globeSpinTimerRef.current =
+      window.setInterval(() => {
+        if (
+          globeTouchedRef.current ||
+          !map
+        ) {
+          return;
+        }
+
+        const zoom =
+          map.getZoom?.() || 0;
+
+        if (zoom > 5.5) {
+          return;
+        }
+
+        const center =
+          map.getCenter?.();
+
+        if (!center) {
+          return;
+        }
+
+        map.easeTo({
+          center: [
+            center.lng + 0.45,
+            center.lat,
+          ],
+          duration: 950,
+          easing: (value: number) =>
+            value,
+          essential: true,
+        });
+      }, 1000);
+  }
+
+  function toggleMapMode() {
+    stopGlobeSpin();
+
+    setMapMode((current) =>
+      current === "night"
+        ? "satellite"
+        : "night"
+    );
+  }
+
+  function handleMapLoad() {
     setMapReady(true);
 
     const map = mapRef.current?.getMap?.();
 
     if (!map) return;
+
+    map.once("idle", () => {
+      startGlobeSpin();
+    });
+
+    map.on(
+      "dragstart",
+      stopGlobeSpin
+    );
+
+    map.on(
+      "zoomstart",
+      stopGlobeSpin
+    );
+
+    map.on(
+      "rotatestart",
+      stopGlobeSpin
+    );
+
+    map.on(
+      "pitchstart",
+      stopGlobeSpin
+    );
 
     try {
       map.dragPan.enable();
@@ -580,13 +714,13 @@ export default function WorldPage() {
       }
 
       map.setFog?.({
-        color: "rgb(6, 17, 29)",
+        color: "rgb(8, 18, 35)",
         "high-color":
-          "rgb(43, 65, 112)",
-        "horizon-blend": 0.14,
+          "rgb(62, 83, 145)",
+        "horizon-blend": 0.09,
         "space-color":
-          "rgb(1, 2, 8)",
-        "star-intensity": 0.45,
+          "rgb(1, 2, 10)",
+        "star-intensity": 0.72,
       });
 
       const layers =
@@ -658,6 +792,8 @@ export default function WorldPage() {
     nextLocation: WorldPosition,
     zoom = 13.5
   ) {
+    stopGlobeSpin();
+
     mapRef.current?.flyTo({
       center: [
         nextLocation.longitude,
@@ -1333,11 +1469,13 @@ export default function WorldPage() {
             <button
               type="button"
               aria-label="Zoom in"
-              onClick={() =>
+              onClick={() => {
+                stopGlobeSpin();
+
                 mapRef.current?.zoomIn({
                   duration: 350,
-                })
-              }
+                });
+              }}
             >
               +
             </button>
@@ -1345,11 +1483,13 @@ export default function WorldPage() {
             <button
               type="button"
               aria-label="Zoom out"
-              onClick={() =>
+              onClick={() => {
+                stopGlobeSpin();
+
                 mapRef.current?.zoomOut({
                   duration: 350,
-                })
-              }
+                });
+              }}
             >
               −
             </button>
@@ -1373,6 +1513,35 @@ export default function WorldPage() {
               onClick={toggleLocation}
             >
               📍
+            </button>
+
+            <button
+              type="button"
+              aria-label="Change map style"
+              onClick={toggleMapMode}
+            >
+              {mapMode === "night"
+                ? "🛰️"
+                : "🌙"}
+            </button>
+
+            <button
+              type="button"
+              aria-label="Spin globe"
+              className={
+                globeSpinning
+                  ? "mapSpinActive"
+                  : ""
+              }
+              onClick={() => {
+                if (globeSpinning) {
+                  stopGlobeSpin();
+                } else {
+                  startGlobeSpin();
+                }
+              }}
+            >
+              🌍
             </button>
           </div>
 
@@ -1405,9 +1574,17 @@ export default function WorldPage() {
                 pitch: 18,
                 bearing: -12,
               }}
-              mapStyle="mapbox://styles/mapbox/navigation-night-v1"
+              mapStyle={
+                mapMode === "night"
+                  ? "mapbox://styles/mapbox/navigation-night-v1"
+                  : "mapbox://styles/mapbox/satellite-streets-v12"
+              }
               projection={{
                 name: "globe",
+              }}
+              terrain={{
+                source: "utv-world-terrain",
+                exaggeration: 1.35,
               }}
               style={{
                 width: "100%",
@@ -1430,6 +1607,14 @@ export default function WorldPage() {
                 setSelected(null)
               }
             >
+              <Source
+                id="utv-world-terrain"
+                type="raster-dem"
+                url="mapbox://mapbox.mapbox-terrain-dem-v1"
+                tileSize={512}
+                maxzoom={14}
+              />
+
               {locationOn &&
                 userLocation && (
                   <Marker
@@ -2363,7 +2548,8 @@ const styles = `
     transform: scale(.94);
   }
 
-  .worldMapControls .mapLocationActive {
+  .worldMapControls .mapLocationActive,
+  .worldMapControls .mapSpinActive {
     color: #07120d;
     border-color: transparent;
     background:
@@ -2372,6 +2558,24 @@ const styles = `
         #52f7c8,
         #9b7cff
       );
+    box-shadow:
+      0 0 25px
+      rgba(82,247,200,.42);
+  }
+
+  .worldMapControls .mapSpinActive {
+    animation:
+      globeControlPulse
+      2s ease-in-out infinite;
+  }
+
+  @keyframes globeControlPulse {
+    50% {
+      transform: scale(.92);
+      box-shadow:
+        0 0 34px
+        rgba(155,124,255,.58);
+    }
   }
 
   .worldStatsPanel {
