@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import {
   useRouter,
   useSearchParams,
@@ -9,6 +9,14 @@ import UTVNav from "../../../components/UTVNav";
 import { supabase } from "../../../../lib/supabaseClient";
 
 export default function AddEpisodePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 40 }}>Loading episode editor...</div>}>
+      <AddEpisodeForm />
+    </Suspense>
+  );
+}
+
+function AddEpisodeForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const showId = searchParams.get("showId") || "";
