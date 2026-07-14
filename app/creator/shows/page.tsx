@@ -25,6 +25,7 @@ export default function MyShowsPage() {
     useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadShows();
@@ -106,6 +107,25 @@ export default function MyShowsPage() {
             Create a series, launch its trailer, and
             add episodes whenever they are ready.
           </p>
+
+          <input
+  type="text"
+  placeholder="Search your shows..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  style={{
+    marginTop: 20,
+    width: "100%",
+    padding: "12px 16px",
+    borderRadius: 12,
+    border: "1px solid #333",
+    background: "#111",
+    color: "#fff",
+    fontSize: 16,
+    outline: "none",
+  }}
+/>
+
         </div>
 
         <button
@@ -146,7 +166,11 @@ export default function MyShowsPage() {
         </section>
       ) : (
         <section style={styles.grid}>
-          {shows.map((show) => (
+         {shows
+  .filter((show) =>
+    show.title.toLowerCase().includes(search.toLowerCase())
+  )
+  .map((show) => (
             <article key={show.id} style={styles.card}>
               <div style={styles.poster}>
                 {show.poster_url ? (
@@ -185,28 +209,36 @@ export default function MyShowsPage() {
                 </p>
 
                 <div style={styles.actions}>
-                  <button
-                    style={styles.primaryButton}
-                    onClick={() =>
-                      router.push(
-                        `/creator/shows/${show.id}`
-                      )
-                    }
-                  >
-                    Manage
-                  </button>
+  <button
+    style={styles.primaryButton}
+    onClick={() =>
+      router.push(`/creator/shows/${show.id}`)
+    }
+  >
+    Manage
+  </button>
 
-                  <button
-                    style={styles.secondaryButton}
-                    onClick={() =>
-                      router.push(
-                        `/watch/show/${show.id}`
-                      )
-                    }
-                  >
-                    Preview
-                  </button>
-                </div>
+  <button
+    style={styles.secondaryButton}
+    onClick={() =>
+      router.push(
+        `/creator/episodes/new?showId=${show.id}`
+      )
+    }
+  >
+
+  + Add Episode
+</button>
+ 
+  <button
+    style={styles.secondaryButton}
+    onClick={() =>
+      router.push(`/watch/show/${show.id}`)
+    }
+  >
+    Preview
+  </button>
+</div>
               </div>
             </article>
           ))}
