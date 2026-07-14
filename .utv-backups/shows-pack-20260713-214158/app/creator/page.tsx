@@ -154,13 +154,6 @@ export default function CreatorStudioPage() {
             Create Post
           </button>
 
-          <button
-            className="btn"
-            onClick={() => router.push("/creator/shows")}
-          >
-            🎬 UTV Studios
-          </button>
-
           <button className="btn secondary" onClick={() => router.push("/live-room")}>
             Go Live
           </button>
