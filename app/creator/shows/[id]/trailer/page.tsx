@@ -50,8 +50,8 @@ export default function TrailerUploadPage() {
     }
 
     const { data, error } = await supabase
-      .from("shows")
-      .select("id,title,creator_email,trailer_url")
+      .from("uploads")
+      .select("id,title,creator_email,trailer_url:video_url")
       .eq("id", showId)
       .single();
 
@@ -150,9 +150,9 @@ export default function TrailerUploadPage() {
       }
 
       const { error: updateError } = await supabase
-        .from("shows")
+        .from("uploads")
         .update({
-          trailer_url: finalTrailerUrl,
+          video_url: finalTrailerUrl,
         })
         .eq("id", show.id);
 
