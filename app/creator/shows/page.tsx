@@ -45,13 +45,14 @@ export default function MyShowsPage() {
       return;
     }
 
-    const { data, error } = await supabase
-      .from("shows")
-      .select("*")
-      .eq("creator_email", user.email)
-      .order("created_at", {
-        ascending: false,
-      });
+  const { data, error } = await supabase
+  .from("uploads")
+  .select("*")
+  .eq("creator_email", user.email)
+  .eq("category", "show")
+  .order("created_at", {
+    ascending: false,
+  });
 
     if (error) {
       setMessage(error.message);
