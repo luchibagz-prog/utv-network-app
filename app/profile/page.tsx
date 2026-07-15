@@ -434,10 +434,45 @@ export default function ProfilePage() {
 
           <div className="statsGrid">
             <div className="stat"><b>{uploads.length}</b><span>Posts</span></div>
-            <div className="stat"><b>{crew}</b><span>Crew</span></div>
-            <div className="stat"><b>{following}</b><span>Following</span></div>
-            <div className="stat"><b>{totalViews}</b><span>Views</span></div>
-            <div className="stat"><b>{collabs}</b><span>Collabs</span></div>
+            <div
+              className="stat"
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() =>
+                router.push(
+                  `/follows?email=${encodeURIComponent(email)}&type=followers`
+                )
+              }
+            >
+              <b>{crew}</b>
+              <span>Followers</span>
+            </div>
+
+            <div
+              className="stat"
+              role="button"
+              tabIndex={0}
+              style={{ cursor: "pointer" }}
+              onClick={() =>
+                router.push(
+                  `/follows?email=${encodeURIComponent(email)}&type=following`
+                )
+              }
+            >
+              <b>{following}</b>
+              <span>Following</span>
+            </div>
+
+            <div className="stat">
+              <b>{totalViews}</b>
+              <span>Views</span>
+            </div>
+
+            <div className="stat">
+              <b>{collabs}</b>
+              <span>Collabs</span>
+            </div>
           </div>
 
           <div className="actionGrid">
