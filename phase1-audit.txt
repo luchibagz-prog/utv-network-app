@@ -1,0 +1,4287 @@
+
+================================================================================
+app/profile/page.tsx
+================================================================================
+
+--- around line 28 ---
+26:   const [events, setEvents] = useState<any[]>([]);
+27:   const [crew, setCrew] = useState(0);
+28:   const [following, setFollowing] = useState(0);
+29:   const [collabs, setCollabs] = useState(0);
+30:   const [tab, setTab] = useState("posts");
+
+--- around line 43 ---
+41: 
+42:     if (!data.user) {
+43:       router.push("/login");
+44:       return;
+45:     }
+
+--- around line 51 ---
+49: 
+50:     const { data: creatorProfile } = await supabase
+51:       .from("creator_profiles")
+52:       .select("*")
+53:       .eq("email", userEmail)
+
+--- around line 59 ---
+57: 
+58:     const { data: uploadData } = await supabase
+59:       .from("uploads")
+60:       .select("*")
+61:       .eq("creator_email", userEmail)
+
+--- around line 67 ---
+65: 
+66:     const { data: eventData } = await supabase
+67:       .from("events")
+68:       .select("*")
+69:       .eq("creator_email", userEmail)
+
+--- around line 75 ---
+73: 
+74:     const { count: crewCount } = await supabase
+75:       .from("follows")
+76:       .select("*", { count: "exact", head: true })
+77:       .eq("following_email", userEmail);
+
+--- around line 77 ---
+75:       .from("follows")
+76:       .select("*", { count: "exact", head: true })
+77:       .eq("following_email", userEmail);
+78: 
+79:     setCrew(crewCount || 0);
+
+--- around line 81 ---
+79:     setCrew(crewCount || 0);
+80: 
+81:     const { count: followingCount } = await supabase
+82:       .from("follows")
+83:       .select("*", { count: "exact", head: true })
+
+--- around line 82 ---
+80: 
+81:     const { count: followingCount } = await supabase
+82:       .from("follows")
+83:       .select("*", { count: "exact", head: true })
+84:       .eq("follower_email", userEmail);
+
+--- around line 84 ---
+82:       .from("follows")
+83:       .select("*", { count: "exact", head: true })
+84:       .eq("follower_email", userEmail);
+85: 
+86:     setFollowing(followingCount || 0);
+
+--- around line 86 ---
+84:       .eq("follower_email", userEmail);
+85: 
+86:     setFollowing(followingCount || 0);
+87: 
+88:     const { count: collabCount } = await supabase
+
+--- around line 89 ---
+87: 
+88:     const { count: collabCount } = await supabase
+89:       .from("collabs")
+90:       .select("*", { count: "exact", head: true })
+91:       .or(`sender_email.eq.${userEmail},receiver_email.eq.${userEmail}`)
+
+--- around line 100 ---
+98:   async function logout() {
+99:     await supabase.auth.signOut();
+100:     router.push("/login");
+101:   }
+102: 
+
+--- around line 115 ---
+113: 
+114:   const liveUploads = uploads.filter((x) => `${x.category || ""}`.toLowerCase().includes("live"));
+115:   const totalViews = uploads.reduce((sum, item) => sum + Number(item.views || 0), 0);
+116: 
+117:   const creatorScore = useMemo(() => {
+
+--- around line 443 ---
+441:               style={{ cursor: "pointer" }}
+442:               onClick={() =>
+443:                 router.push(
+444:                   `/follows?email=${encodeURIComponent(email)}&type=followers`
+445:                 )
+
+--- around line 444 ---
+442:               onClick={() =>
+443:                 router.push(
+444:                   `/follows?email=${encodeURIComponent(email)}&type=followers`
+445:                 )
+446:               }
+
+--- around line 449 ---
+447:             >
+448:               <b>{crew}</b>
+449:               <span>Followers</span>
+450:             </div>
+451: 
+
+--- around line 458 ---
+456:               style={{ cursor: "pointer" }}
+457:               onClick={() =>
+458:                 router.push(
+459:                   `/follows?email=${encodeURIComponent(email)}&type=following`
+460:                 )
+
+--- around line 459 ---
+457:               onClick={() =>
+458:                 router.push(
+459:                   `/follows?email=${encodeURIComponent(email)}&type=following`
+460:                 )
+461:               }
+
+--- around line 463 ---
+461:               }
+462:             >
+463:               <b>{following}</b>
+464:               <span>Following</span>
+465:             </div>
+
+--- around line 464 ---
+462:             >
+463:               <b>{following}</b>
+464:               <span>Following</span>
+465:             </div>
+466: 
+
+--- around line 468 ---
+466: 
+467:             <div className="stat">
+468:               <b>{totalViews}</b>
+469:               <span>Views</span>
+470:             </div>
+
+--- around line 479 ---
+477: 
+478:           <div className="actionGrid">
+479:             <button className="btn" onClick={() => router.push("/submit")}>+ Create</button>
+480:             <button className="btn secondary" onClick={() => router.push("/messages")}>Messages</button>
+481:             <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
+
+--- around line 480 ---
+478:           <div className="actionGrid">
+479:             <button className="btn" onClick={() => router.push("/submit")}>+ Create</button>
+480:             <button className="btn secondary" onClick={() => router.push("/messages")}>Messages</button>
+481:             <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
+482:             <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
+
+--- around line 481 ---
+479:             <button className="btn" onClick={() => router.push("/submit")}>+ Create</button>
+480:             <button className="btn secondary" onClick={() => router.push("/messages")}>Messages</button>
+481:             <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
+482:             <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
+483:             <button className="btn secondary" onClick={() => router.push("/creator/settings")}>Edit Profile</button>
+
+--- around line 482 ---
+480:             <button className="btn secondary" onClick={() => router.push("/messages")}>Messages</button>
+481:             <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
+482:             <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
+483:             <button className="btn secondary" onClick={() => router.push("/creator/settings")}>Edit Profile</button>
+484:             {isFounder && <button className="btn secondary" onClick={() => router.push("/admin")}>UTV Studio</button>}
+
+--- around line 483 ---
+481:             <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
+482:             <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
+483:             <button className="btn secondary" onClick={() => router.push("/creator/settings")}>Edit Profile</button>
+484:             {isFounder && <button className="btn secondary" onClick={() => router.push("/admin")}>UTV Studio</button>}
+485:             <button className="btn" style={{ background: "#ff3b3b", gridColumn: "1 / -1" }} onClick={logout}>Logout</button>
+
+--- around line 484 ---
+482:             <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
+483:             <button className="btn secondary" onClick={() => router.push("/creator/settings")}>Edit Profile</button>
+484:             {isFounder && <button className="btn secondary" onClick={() => router.push("/admin")}>UTV Studio</button>}
+485:             <button className="btn" style={{ background: "#ff3b3b", gridColumn: "1 / -1" }} onClick={logout}>Logout</button>
+486:           </div>
+
+--- around line 533 ---
+531: 
+532:             return (
+533:               <div key={post.id} className="tile" onClick={() => router.push(`/watch/${post.id}`)}>
+534:                 {video ? (
+535:                   <video src={video} muted playsInline preload="metadata" />
+
+================================================================================
+app/feed/page.tsx
+================================================================================
+
+--- around line 79 ---
+77: 
+78:   const [
+79:     followingEmails,
+80:     setFollowingEmails,
+81:   ] = useState<string[]>([]);
+
+--- around line 80 ---
+78:   const [
+79:     followingEmails,
+80:     setFollowingEmails,
+81:   ] = useState<string[]>([]);
+82: 
+
+--- around line 86 ---
+84:     useState<Record<string, any>>({});
+85: 
+86:   const [likes, setLikes] =
+87:     useState<Record<string, number>>({});
+88: 
+
+--- around line 89 ---
+87:     useState<Record<string, number>>({});
+88: 
+89:   const [likedPosts, setLikedPosts] =
+90:     useState<Record<string, boolean>>({});
+91: 
+
+--- around line 92 ---
+90:     useState<Record<string, boolean>>({});
+91: 
+92:   const [comments, setComments] =
+93:     useState<Record<string, any[]>>({});
+94: 
+
+--- around line 95 ---
+93:     useState<Record<string, any[]>>({});
+94: 
+95:   const [commentText, setCommentText] =
+96:     useState<Record<string, string>>({});
+97: 
+
+--- around line 128 ---
+126:     useState(false);
+127: 
+128:   const [feedMessage, setFeedMessage] =
+129:     useState("");
+130: 
+
+--- around line 220 ---
+218:     setViewerEmail(email);
+219: 
+220:     let following: string[] = [];
+221: 
+222:     if (email) {
+
+--- around line 225 ---
+223:       const { data: followRows } =
+224:         await supabase
+225:           .from("follows")
+226:           .select("following_email")
+227:           .eq("follower_email", email);
+
+--- around line 226 ---
+224:         await supabase
+225:           .from("follows")
+226:           .select("following_email")
+227:           .eq("follower_email", email);
+228: 
+
+--- around line 227 ---
+225:           .from("follows")
+226:           .select("following_email")
+227:           .eq("follower_email", email);
+228: 
+229:       following = (followRows || [])
+
+--- around line 229 ---
+227:           .eq("follower_email", email);
+228: 
+229:       following = (followRows || [])
+230:         .map((row) => row.following_email)
+231:         .filter(Boolean);
+
+--- around line 230 ---
+228: 
+229:       following = (followRows || [])
+230:         .map((row) => row.following_email)
+231:         .filter(Boolean);
+232: 
+
+--- around line 233 ---
+231:         .filter(Boolean);
+232: 
+233:       setFollowingEmails(following);
+234:     }
+235: 
+
+--- around line 237 ---
+235: 
+236:     await Promise.all([
+237:       loadFeed(following, email),
+238:       loadStories(following),
+239:       loadSuggestedCreators(
+
+--- around line 238 ---
+236:     await Promise.all([
+237:       loadFeed(following, email),
+238:       loadStories(following),
+239:       loadSuggestedCreators(
+240:         email,
+
+--- around line 241 ---
+239:       loadSuggestedCreators(
+240:         email,
+241:         following
+242:       ),
+243:     ]);
+
+--- around line 252 ---
+250:     emails: string[]
+251:   ) {
+252:     const uniqueEmails = Array.from(
+253:       new Set(emails.filter(Boolean))
+254:     );
+
+--- around line 259 ---
+257: 
+258:     const { data } = await supabase
+259:       .from("creator_profiles")
+260:       .select("*")
+261:       .in("email", uniqueEmails);
+
+--- around line 278 ---
+276:   async function loadSuggestedCreators(
+277:     myEmail: string,
+278:     following: string[]
+279:   ) {
+280:     const { data } = await supabase
+
+--- around line 281 ---
+279:   ) {
+280:     const { data } = await supabase
+281:       .from("creator_profiles")
+282:       .select("*")
+283:       .order("created_at", {
+
+--- around line 293 ---
+291:           profile.email &&
+292:           profile.email !== myEmail &&
+293:           !following.includes(
+294:             profile.email
+295:           )
+
+--- around line 312 ---
+310: 
+311:   async function loadStories(
+312:     following: string[]
+313:   ) {
+314:     const { data, error } = await supabase
+
+--- around line 315 ---
+313:   ) {
+314:     const { data, error } = await supabase
+315:       .from("stories")
+316:       .select("*")
+317:       .gt(
+
+--- around line 328 ---
+326:     if (error) {
+327:       console.error(
+328:         "Story load error:",
+329:         error
+330:       );
+
+--- around line 339 ---
+337:       ...(data || []),
+338:     ].sort((a, b) => {
+339:       const aFollow = following.includes(
+340:         a.user_email
+341:       )
+
+--- around line 345 ---
+343:         : 0;
+344: 
+345:       const bFollow = following.includes(
+346:         b.user_email
+347:       )
+
+--- around line 365 ---
+363:     await loadProfiles(
+364:       sortedStories.map(
+365:         (story) => story.user_email
+366:       )
+367:     );
+
+--- around line 371 ---
+369: 
+370:   async function loadFeed(
+371:     following: string[],
+372:     currentEmail: string
+373:   ) {
+
+--- around line 375 ---
+373:   ) {
+374:     const { data, error } = await supabase
+375:       .from("uploads")
+376:       .select("*")
+377:       .eq("approved", true)
+
+--- around line 423 ---
+421: 
+422:         if (
+423:           following.includes(creator)
+424:         ) {
+425:           score += 100;
+
+--- around line 508 ---
+506:         .map(async (item) => {
+507:           await Promise.all([
+508:             loadLikes(
+509:               item.id,
+510:               currentEmail
+
+--- around line 512 ---
+510:               currentEmail
+511:             ),
+512:             loadComments(item.id),
+513:           ]);
+514:         })
+
+--- around line 518 ---
+516:   }
+517: 
+518:   async function loadLikes(
+519:     id: string,
+520:     email = viewerEmail
+
+--- around line 523 ---
+521:   ) {
+522:     const { count } = await supabase
+523:       .from("feed_likes")
+524:       .select("*", {
+525:         count: "exact",
+
+--- around line 530 ---
+528:       .eq("upload_id", id);
+529: 
+530:     setLikes((current) => ({
+531:       ...current,
+532:       [id]: count || 0,
+
+--- around line 537 ---
+535:     if (email) {
+536:       const { data } = await supabase
+537:         .from("feed_likes")
+538:         .select("id")
+539:         .eq("upload_id", id)
+
+--- around line 543 ---
+541:         .maybeSingle();
+542: 
+543:       setLikedPosts((current) => ({
+544:         ...current,
+545:         [id]: Boolean(data),
+
+--- around line 550 ---
+548:   }
+549: 
+550:   async function loadComments(
+551:     id: string
+552:   ) {
+
+--- around line 554 ---
+552:   ) {
+553:     const { data } = await supabase
+554:       .from("feed_comments")
+555:       .select("*")
+556:       .eq("upload_id", id)
+
+--- around line 561 ---
+559:       });
+560: 
+561:     const commentRows = data || [];
+562: 
+563:     setComments((current) => ({
+
+--- around line 563 ---
+561:     const commentRows = data || [];
+562: 
+563:     setComments((current) => ({
+564:       ...current,
+565:       [id]: commentRows,
+
+--- around line 565 ---
+563:     setComments((current) => ({
+564:       ...current,
+565:       [id]: commentRows,
+566:     }));
+567: 
+
+--- around line 569 ---
+567: 
+568:     await loadProfiles(
+569:       commentRows.map(
+570:         (comment) =>
+571:           comment.user_email
+
+--- around line 570 ---
+568:     await loadProfiles(
+569:       commentRows.map(
+570:         (comment) =>
+571:           comment.user_email
+572:       )
+
+--- around line 571 ---
+569:       commentRows.map(
+570:         (comment) =>
+571:           comment.user_email
+572:       )
+573:     );
+
+--- around line 576 ---
+574:   }
+575: 
+576:   async function createNotification({
+577:     recipientEmail,
+578:     actorEmail,
+
+--- around line 581 ---
+579:     type,
+580:     title,
+581:     message,
+582:     link,
+583:   }: {
+
+--- around line 588 ---
+586:     type: string;
+587:     title: string;
+588:     message: string;
+589:     link: string;
+590:   }) {
+
+--- around line 600 ---
+598: 
+599:     const { data: existing } = await supabase
+600:       .from("notifications")
+601:       .select("id")
+602:       .eq("user_email", recipientEmail)
+
+--- around line 613 ---
+611: 
+612:     const { error } = await supabase
+613:       .from("notifications")
+614:       .insert({
+615:         user_email: recipientEmail,
+
+--- around line 619 ---
+617:         type,
+618:         title,
+619:         message,
+620:         link,
+621:         is_read: false,
+
+--- around line 621 ---
+619:         message,
+620:         link,
+621:         is_read: false,
+622:       });
+623: 
+
+--- around line 626 ---
+624:     if (error) {
+625:       console.error(
+626:         "Notification error:",
+627:         error.message
+628:       );
+
+--- around line 627 ---
+625:       console.error(
+626:         "Notification error:",
+627:         error.message
+628:       );
+629:     }
+
+--- around line 632 ---
+630:   }
+631: 
+632:   function showFeedMessage(text: string) {
+633:     setFeedMessage(text);
+634: 
+
+--- around line 633 ---
+631: 
+632:   function showFeedMessage(text: string) {
+633:     setFeedMessage(text);
+634: 
+635:     window.setTimeout(() => {
+
+--- around line 636 ---
+634: 
+635:     window.setTimeout(() => {
+636:       setFeedMessage("");
+637:     }, 1800);
+638:   }
+
+--- around line 657 ---
+655: 
+656:     const { error } = await supabase
+657:       .from("uploads")
+658:       .update({
+659:         description:
+
+--- around line 669 ---
+667: 
+668:     if (error) {
+669:       showFeedMessage(
+670:         error.message
+671:       );
+
+--- around line 670 ---
+668:     if (error) {
+669:       showFeedMessage(
+670:         error.message
+671:       );
+672: 
+
+--- around line 693 ---
+691:     setSavingPost(false);
+692: 
+693:     showFeedMessage(
+694:       "Post updated."
+695:     );
+
+--- around line 723 ---
+721:     await Promise.all([
+722:       supabase
+723:         .from("feed_likes")
+724:         .delete()
+725:         .eq(
+
+--- around line 731 ---
+729: 
+730:       supabase
+731:         .from("feed_comments")
+732:         .delete()
+733:         .eq(
+
+--- around line 739 ---
+737: 
+738:       supabase
+739:         .from("notifications")
+740:         .delete()
+741:         .eq(
+
+--- around line 748 ---
+746: 
+747:     const { error } = await supabase
+748:       .from("uploads")
+749:       .delete()
+750:       .eq("id", item.id)
+
+--- around line 757 ---
+755: 
+756:     if (error) {
+757:       showFeedMessage(
+758:         error.message
+759:       );
+
+--- around line 758 ---
+756:     if (error) {
+757:       showFeedMessage(
+758:         error.message
+759:       );
+760: 
+
+--- around line 771 ---
+769:     );
+770: 
+771:     showFeedMessage(
+772:       "Post deleted."
+773:     );
+
+--- around line 776 ---
+774:   }
+775: 
+776:   async function likePost(
+777:     id: string,
+778:     creatorEmail?: string
+
+--- around line 787 ---
+785: 
+786:     if (!userEmail) {
+787:       router.push("/login");
+788:       return;
+789:     }
+
+--- around line 791 ---
+789:     }
+790: 
+791:     const currentlyLiked =
+792:       likedPosts[id];
+793: 
+
+--- around line 792 ---
+790: 
+791:     const currentlyLiked =
+792:       likedPosts[id];
+793: 
+794:     setLikedPosts((current) => ({
+
+--- around line 794 ---
+792:       likedPosts[id];
+793: 
+794:     setLikedPosts((current) => ({
+795:       ...current,
+796:       [id]: !currentlyLiked,
+
+--- around line 796 ---
+794:     setLikedPosts((current) => ({
+795:       ...current,
+796:       [id]: !currentlyLiked,
+797:     }));
+798: 
+
+--- around line 799 ---
+797:     }));
+798: 
+799:     setLikes((current) => ({
+800:       ...current,
+801:       [id]: Math.max(
+
+--- around line 804 ---
+802:         0,
+803:         (current[id] || 0) +
+804:           (currentlyLiked ? -1 : 1)
+805:       ),
+806:     }));
+
+--- around line 808 ---
+806:     }));
+807: 
+808:     if (currentlyLiked) {
+809:       await supabase
+810:         .from("feed_likes")
+
+--- around line 810 ---
+808:     if (currentlyLiked) {
+809:       await supabase
+810:         .from("feed_likes")
+811:         .delete()
+812:         .eq("upload_id", id)
+
+--- around line 822 ---
+820: 
+821:     const { error } = await supabase
+822:       .from("feed_likes")
+823:       .insert({
+824:         upload_id: id,
+
+--- around line 829 ---
+827: 
+828:     if (error) {
+829:       await loadLikes(
+830:         id,
+831:         userEmail
+
+--- around line 837 ---
+835:     }
+836: 
+837:     await createNotification({
+838:       recipientEmail:
+839:         creatorEmail,
+
+--- around line 842 ---
+840:       actorEmail:
+841:         userEmail,
+842:       type: "like",
+843:       title: "New Like",
+844:       message: `${profileName(
+
+--- around line 843 ---
+841:         userEmail,
+842:       type: "like",
+843:       title: "New Like",
+844:       message: `${profileName(
+845:         userEmail
+
+--- around line 844 ---
+842:       type: "like",
+843:       title: "New Like",
+844:       message: `${profileName(
+845:         userEmail
+846:       )} liked your post.`,
+
+--- around line 846 ---
+844:       message: `${profileName(
+845:         userEmail
+846:       )} liked your post.`,
+847:       link: `/feed#post-${id}`,
+848:     });
+
+--- around line 851 ---
+849:   }
+850: 
+851:   async function addComment(
+852:     id: string,
+853:     creatorEmail?: string
+
+--- around line 856 ---
+854:   ) {
+855:     const text =
+856:       commentText[id]?.trim();
+857: 
+858:     if (!text) return;
+
+--- around line 867 ---
+865: 
+866:     if (!userEmail) {
+867:       router.push("/login");
+868:       return;
+869:     }
+
+--- around line 872 ---
+870: 
+871:     const { error } = await supabase
+872:       .from("feed_comments")
+873:       .insert({
+874:         upload_id: id,
+
+--- around line 876 ---
+874:         upload_id: id,
+875:         user_email: userEmail,
+876:         comment: text,
+877:       });
+878: 
+
+--- around line 880 ---
+878: 
+879:     if (error) {
+880:       alert(error.message);
+881:       return;
+882:     }
+
+--- around line 884 ---
+882:     }
+883: 
+884:     setCommentText((current) => ({
+885:       ...current,
+886:       [id]: "",
+
+--- around line 889 ---
+887:     }));
+888: 
+889:     await loadComments(id);
+890: 
+891:     await createNotification({
+
+--- around line 891 ---
+889:     await loadComments(id);
+890: 
+891:     await createNotification({
+892:       recipientEmail:
+893:         creatorEmail,
+
+--- around line 896 ---
+894:       actorEmail:
+895:         userEmail,
+896:       type: "comment",
+897:       title: "New Comment",
+898:       message: `${profileName(
+
+--- around line 897 ---
+895:         userEmail,
+896:       type: "comment",
+897:       title: "New Comment",
+898:       message: `${profileName(
+899:         userEmail
+
+--- around line 898 ---
+896:       type: "comment",
+897:       title: "New Comment",
+898:       message: `${profileName(
+899:         userEmail
+900:       )} commented: "${text}"`,
+
+--- around line 900 ---
+898:       message: `${profileName(
+899:         userEmail
+900:       )} commented: "${text}"`,
+901:       link: `/feed#post-${id}`,
+902:     });
+
+--- around line 931 ---
+929:   ) {
+930:     if (!viewerEmail) {
+931:       router.push("/login");
+932:       return;
+933:     }
+
+--- around line 938 ---
+936:       !emailToFollow ||
+937:       emailToFollow === viewerEmail ||
+938:       followingEmails.includes(
+939:         emailToFollow
+940:       )
+
+--- around line 946 ---
+944: 
+945:     const { error } = await supabase
+946:       .from("follows")
+947:       .insert({
+948:         follower_email: viewerEmail,
+
+--- around line 948 ---
+946:       .from("follows")
+947:       .insert({
+948:         follower_email: viewerEmail,
+949:         following_email: emailToFollow,
+950:       });
+
+--- around line 949 ---
+947:       .insert({
+948:         follower_email: viewerEmail,
+949:         following_email: emailToFollow,
+950:       });
+951: 
+
+--- around line 957 ---
+955:     }
+956: 
+957:     setFollowingEmails((current) => [
+958:       ...current,
+959:       emailToFollow,
+
+--- around line 970 ---
+968:     );
+969: 
+970:     await createNotification({
+971:       recipientEmail:
+972:         emailToFollow,
+
+--- around line 976 ---
+974:         viewerEmail,
+975:       type: "follow",
+976:       title: "New Follower",
+977:       message: `${profileName(
+978:         viewerEmail
+
+--- around line 977 ---
+975:       type: "follow",
+976:       title: "New Follower",
+977:       message: `${profileName(
+978:         viewerEmail
+979:       )} followed you.`,
+
+--- around line 1014 ---
+1012:     if (!email) return;
+1013: 
+1014:     router.push(
+1015:       `/u/${encodeURIComponent(
+1016:         email
+
+--- around line 1107 ---
+1105:     ) {
+1106:       if (
+1107:         !likedPosts[item.id]
+1108:       ) {
+1109:         likePost(
+
+--- around line 1109 ---
+1107:         !likedPosts[item.id]
+1108:       ) {
+1109:         likePost(
+1110:           item.id,
+1111:           item.creator_email
+
+--- around line 1148 ---
+1146:   }
+1147: 
+1148:   const storyBubbles =
+1149:     useMemo(() => {
+1150:       const activeByCreator: Record<
+
+--- around line 1155 ---
+1153:       > = {};
+1154: 
+1155:       stories.forEach((story) => {
+1156:         if (
+1157:           !activeByCreator[
+
+--- around line 1158 ---
+1156:         if (
+1157:           !activeByCreator[
+1158:             story.user_email
+1159:           ]
+1160:         ) {
+
+--- around line 1162 ---
+1160:         ) {
+1161:           activeByCreator[
+1162:             story.user_email
+1163:           ] = story;
+1164:         }
+
+--- around line 1163 ---
+1161:           activeByCreator[
+1162:             story.user_email
+1163:           ] = story;
+1164:         }
+1165:       });
+
+--- around line 1172 ---
+1170:         );
+1171: 
+1172:       const followedNoStory =
+1173:         followingEmails
+1174:           .filter(
+
+--- around line 1173 ---
+1171: 
+1172:       const followedNoStory =
+1173:         followingEmails
+1174:           .filter(
+1175:             (email) =>
+
+--- around line 1181 ---
+1179:             id: `followed-${email}`,
+1180:             user_email: email,
+1181:             noStory: true,
+1182:           }));
+1183: 
+
+--- around line 1184 ---
+1182:           }));
+1183: 
+1184:       const suggestedNoStory =
+1185:         suggestedCreators
+1186:           .filter(
+
+--- around line 1197 ---
+1195:             user_email:
+1196:               creator.email,
+1197:             noStory: true,
+1198:           }));
+1199: 
+
+--- around line 1202 ---
+1200:       return [
+1201:         ...activeStories,
+1202:         ...followedNoStory,
+1203:         ...suggestedNoStory,
+1204:       ];
+
+--- around line 1203 ---
+1201:         ...activeStories,
+1202:         ...followedNoStory,
+1203:         ...suggestedNoStory,
+1204:       ];
+1205:     }, [
+
+--- around line 1207 ---
+1205:     }, [
+1206:       stories,
+1207:       followingEmails,
+1208:       suggestedCreators,
+1209:     ]);
+
+--- around line 1217 ---
+1215:       if (
+1216:         feedTab ===
+1217:         "following"
+1218:       ) {
+1219:         base = items.filter(
+
+--- around line 1221 ---
+1219:         base = items.filter(
+1220:           (item) =>
+1221:             followingEmails.includes(
+1222:               item.creator_email
+1223:             )
+
+--- around line 1309 ---
+1307:       items,
+1308:       feedTab,
+1309:       followingEmails,
+1310:       search,
+1311:       profiles,
+
+--- around line 1318 ---
+1316:       <UTVNav />
+1317: 
+1318:       {feedMessage && (
+1319:         <div className="feedToast">
+1320:           {feedMessage}
+
+--- around line 1320 ---
+1318:       {feedMessage && (
+1319:         <div className="feedToast">
+1320:           {feedMessage}
+1321:         </div>
+1322:       )}
+
+--- around line 1370 ---
+1368:           className={
+1369:             feedTab ===
+1370:             "following"
+1371:               ? "active"
+1372:               : ""
+
+--- around line 1376 ---
+1374:           onClick={() =>
+1375:             setFeedTab(
+1376:               "following"
+1377:             )
+1378:           }
+
+--- around line 1380 ---
+1378:           }
+1379:         >
+1380:           ⭐ Following
+1381:         </button>
+1382: 
+
+--- around line 1411 ---
+1409: 
+1410:       <section className="stories">
+1411:         <div className="storyWrap">
+1412:           <button
+1413:             className="storyButton addStory"
+
+--- around line 1413 ---
+1411:         <div className="storyWrap">
+1412:           <button
+1413:             className="storyButton addStory"
+1414:             onClick={() =>
+1415:               router.push(
+
+--- around line 1415 ---
+1413:             className="storyButton addStory"
+1414:             onClick={() =>
+1415:               router.push(
+1416:                 "/submit?type=story"
+1417:               )
+
+--- around line 1416 ---
+1414:             onClick={() =>
+1415:               router.push(
+1416:                 "/submit?type=story"
+1417:               )
+1418:             }
+
+--- around line 1423 ---
+1421:           </button>
+1422: 
+1423:           <span className="storyName">
+1424:             Your Story
+1425:           </span>
+
+--- around line 1424 ---
+1422: 
+1423:           <span className="storyName">
+1424:             Your Story
+1425:           </span>
+1426:         </div>
+
+--- around line 1428 ---
+1426:         </div>
+1427: 
+1428:         {storyBubbles.map(
+1429:           (story) => {
+1430:             const avatar =
+
+--- around line 1429 ---
+1427: 
+1428:         {storyBubbles.map(
+1429:           (story) => {
+1430:             const avatar =
+1431:               profileAvatar(
+
+--- around line 1432 ---
+1430:             const avatar =
+1431:               profileAvatar(
+1432:                 story.user_email
+1433:               );
+1434: 
+
+--- around line 1437 ---
+1435:             const name =
+1436:               profileName(
+1437:                 story.user_email
+1438:               );
+1439: 
+
+--- around line 1442 ---
+1440:             return (
+1441:               <div
+1442:                 className="storyWrap"
+1443:                 key={story.id}
+1444:               >
+
+--- around line 1443 ---
+1441:               <div
+1442:                 className="storyWrap"
+1443:                 key={story.id}
+1444:               >
+1445:                 <button
+
+--- around line 1447 ---
+1445:                 <button
+1446:                   className={
+1447:                     story.noStory
+1448:                       ? "storyButton noStory"
+1449:                       : "storyButton"
+
+--- around line 1448 ---
+1446:                   className={
+1447:                     story.noStory
+1448:                       ? "storyButton noStory"
+1449:                       : "storyButton"
+1450:                   }
+
+--- around line 1449 ---
+1447:                     story.noStory
+1448:                       ? "storyButton noStory"
+1449:                       : "storyButton"
+1450:                   }
+1451:                   onClick={() => {
+
+--- around line 1453 ---
+1451:                   onClick={() => {
+1452:                     if (
+1453:                       story.noStory
+1454:                     ) {
+1455:                       openProfile(
+
+--- around line 1456 ---
+1454:                     ) {
+1455:                       openProfile(
+1456:                         story.user_email
+1457:                       );
+1458: 
+
+--- around line 1462 ---
+1460:                     }
+1461: 
+1462:                     router.push(
+1463:                       `/stories/${story.id}`
+1464:                     );
+
+--- around line 1463 ---
+1461: 
+1462:                     router.push(
+1463:                       `/stories/${story.id}`
+1464:                     );
+1465:                   }}
+
+--- around line 1473 ---
+1471:                       loading="lazy"
+1472:                     />
+1473:                   ) : story.media_type ===
+1474:                       "video" &&
+1475:                     story.media_url ? (
+
+--- around line 1475 ---
+1473:                   ) : story.media_type ===
+1474:                       "video" &&
+1475:                     story.media_url ? (
+1476:                     <video
+1477:                       src={
+
+--- around line 1478 ---
+1476:                     <video
+1477:                       src={
+1478:                         story.media_url
+1479:                       }
+1480:                       muted
+
+--- around line 1484 ---
+1482:                       preload="metadata"
+1483:                     />
+1484:                   ) : story.media_url ? (
+1485:                     <img
+1486:                       src={
+
+--- around line 1487 ---
+1485:                     <img
+1486:                       src={
+1487:                         story.media_url
+1488:                       }
+1489:                       alt={name}
+
+--- around line 1497 ---
+1495:                 </button>
+1496: 
+1497:                 <span className="storyName">
+1498:                   {name}
+1499:                 </span>
+
+--- around line 1589 ---
+1587:               search.trim()
+1588:             ) {
+1589:               router.push(
+1590:                 `/search?q=${encodeURIComponent(
+1591:                   search.trim()
+
+--- around line 1669 ---
+1667:                     ));
+1668: 
+1669:               const postComments =
+1670:                 comments[item.id] ||
+1671:                 [];
+
+--- around line 1670 ---
+1668: 
+1669:               const postComments =
+1670:                 comments[item.id] ||
+1671:                 [];
+1672: 
+
+--- around line 1677 ---
+1675:                 true;
+1676: 
+1677:               const isLiked =
+1678:                 likedPosts[
+1679:                   item.id
+
+--- around line 1678 ---
+1676: 
+1677:               const isLiked =
+1678:                 likedPosts[
+1679:                   item.id
+1680:                 ] || false;
+
+--- around line 1863 ---
+1861:                           Tap to pause ·
+1862:                           Double tap to
+1863:                           like
+1864:                         </span>
+1865:                       </>
+
+--- around line 1895 ---
+1893:                           ) {
+1894:                             if (
+1895:                               !likedPosts[
+1896:                                 item.id
+1897:                               ]
+
+--- around line 1899 ---
+1897:                               ]
+1898:                             ) {
+1899:                               likePost(
+1900:                                 item.id,
+1901:                                 creatorEmail
+
+--- around line 1951 ---
+1949:                       <button
+1950:                         className={
+1951:                           isLiked
+1952:                             ? "actionButton liked"
+1953:                             : "actionButton"
+
+--- around line 1952 ---
+1950:                         className={
+1951:                           isLiked
+1952:                             ? "actionButton liked"
+1953:                             : "actionButton"
+1954:                         }
+
+--- around line 1956 ---
+1954:                         }
+1955:                         onClick={() =>
+1956:                           likePost(
+1957:                             item.id,
+1958:                             creatorEmail
+
+--- around line 1962 ---
+1960:                         }
+1961:                       >
+1962:                         {isLiked
+1963:                           ? "❤️"
+1964:                           : "♡"}
+
+--- around line 1972 ---
+1970:                           const input =
+1971:                             document.getElementById(
+1972:                               `comment-${item.id}`
+1973:                             ) as HTMLInputElement | null;
+1974: 
+
+--- around line 1993 ---
+1991:                         className="actionButton saveButton"
+1992:                         onClick={() =>
+1993:                           router.push(
+1994:                             `/watch/${item.id}`
+1995:                           )
+
+--- around line 2003 ---
+2001: 
+2002:                     <p className="actionMeta">
+2003:                       {likes[
+2004:                         item.id
+2005:                       ] || 0}{" "}
+
+--- around line 2006 ---
+2004:                         item.id
+2005:                       ] || 0}{" "}
+2006:                       likes ·{" "}
+2007:                       {
+2008:                         postComments.length
+
+--- around line 2008 ---
+2006:                       likes ·{" "}
+2007:                       {
+2008:                         postComments.length
+2009:                       }{" "}
+2010:                       comments
+
+--- around line 2010 ---
+2008:                         postComments.length
+2009:                       }{" "}
+2010:                       comments
+2011:                     </p>
+2012: 
+
+--- around line 2079 ---
+2077:                     ) : null}
+2078: 
+2079:                     <section className="commentSection">
+2080:                       {postComments.length >
+2081:                         2 && (
+
+--- around line 2080 ---
+2078: 
+2079:                     <section className="commentSection">
+2080:                       {postComments.length >
+2081:                         2 && (
+2082:                         <p className="viewComments">
+
+--- around line 2082 ---
+2080:                       {postComments.length >
+2081:                         2 && (
+2082:                         <p className="viewComments">
+2083:                           View all{" "}
+2084:                           {
+
+--- around line 2085 ---
+2083:                           View all{" "}
+2084:                           {
+2085:                             postComments.length
+2086:                           }{" "}
+2087:                           comments
+
+--- around line 2087 ---
+2085:                             postComments.length
+2086:                           }{" "}
+2087:                           comments
+2088:                         </p>
+2089:                       )}
+
+--- around line 2091 ---
+2089:                       )}
+2090: 
+2091:                       <div className="commentPreview">
+2092:                         {postComments
+2093:                           .slice(-2)
+
+--- around line 2092 ---
+2090: 
+2091:                       <div className="commentPreview">
+2092:                         {postComments
+2093:                           .slice(-2)
+2094:                           .map(
+
+--- around line 2096 ---
+2094:                           .map(
+2095:                             (
+2096:                               comment
+2097:                             ) => (
+2098:                               <p
+
+--- around line 2099 ---
+2097:                             ) => (
+2098:                               <p
+2099:                                 className="commentLine"
+2100:                                 key={
+2101:                                   comment.id
+
+--- around line 2101 ---
+2099:                                 className="commentLine"
+2100:                                 key={
+2101:                                   comment.id
+2102:                                 }
+2103:                               >
+
+--- around line 2105 ---
+2103:                               >
+2104:                                 <button
+2105:                                   className="commentUser"
+2106:                                   onClick={() =>
+2107:                                     openProfile(
+
+--- around line 2108 ---
+2106:                                   onClick={() =>
+2107:                                     openProfile(
+2108:                                       comment.user_email
+2109:                                     )
+2110:                                   }
+
+--- around line 2113 ---
+2111:                                 >
+2112:                                   {profileName(
+2113:                                     comment.user_email
+2114:                                   )}
+2115:                                 </button>{" "}
+
+--- around line 2117 ---
+2115:                                 </button>{" "}
+2116:                                 {
+2117:                                   comment.comment
+2118:                                 }
+2119:                               </p>
+
+--- around line 2124 ---
+2122:                       </div>
+2123: 
+2124:                       <div className="commentComposer">
+2125:                         <span>😊</span>
+2126: 
+
+--- around line 2128 ---
+2126: 
+2127:                         <input
+2128:                           id={`comment-${item.id}`}
+2129:                           placeholder="Add a comment..."
+2130:                           value={
+
+--- around line 2129 ---
+2127:                         <input
+2128:                           id={`comment-${item.id}`}
+2129:                           placeholder="Add a comment..."
+2130:                           value={
+2131:                             commentText[
+
+--- around line 2131 ---
+2129:                           placeholder="Add a comment..."
+2130:                           value={
+2131:                             commentText[
+2132:                               item.id
+2133:                             ] || ""
+
+--- around line 2138 ---
+2136:                             event
+2137:                           ) =>
+2138:                             setCommentText(
+2139:                               (
+2140:                                 current
+
+--- around line 2157 ---
+2155:                               "Enter"
+2156:                             ) {
+2157:                               addComment(
+2158:                                 item.id,
+2159:                                 creatorEmail
+
+--- around line 2166 ---
+2164: 
+2165:                         <button
+2166:                           className="sendComment"
+2167:                           onClick={() =>
+2168:                             addComment(
+
+--- around line 2168 ---
+2166:                           className="sendComment"
+2167:                           onClick={() =>
+2168:                             addComment(
+2169:                               item.id,
+2170:                               creatorEmail
+
+--- around line 2320 ---
+2318:   }
+2319: 
+2320:   .storyWrap {
+2321:     min-width: 76px;
+2322:     display: grid;
+
+--- around line 2327 ---
+2325:   }
+2326: 
+2327:   .storyButton {
+2328:     width: 76px;
+2329:     height: 76px;
+
+--- around line 2340 ---
+2338:   }
+2339: 
+2340:   .storyButton.noStory {
+2341:     border-color: rgba(255,255,255,.22);
+2342:     box-shadow: none;
+
+--- around line 2345 ---
+2343:   }
+2344: 
+2345:   .storyButton.addStory {
+2346:     display: grid;
+2347:     place-items: center;
+
+--- around line 2358 ---
+2356:   }
+2357: 
+2358:   .storyButton img,
+2359:   .storyButton video {
+2360:     width: 100%;
+
+--- around line 2359 ---
+2357: 
+2358:   .storyButton img,
+2359:   .storyButton video {
+2360:     width: 100%;
+2361:     height: 100%;
+
+--- around line 2368 ---
+2366:   }
+2367: 
+2368:   .storyName {
+2369:     max-width: 76px;
+2370:     overflow: hidden;
+
+--- around line 2609 ---
+2607:     pointer-events: none;
+2608:     transform:
+2609:       translate(-50%, -50%)
+2610:       scale(0);
+2611:     animation:
+
+--- around line 2612 ---
+2610:       scale(0);
+2611:     animation:
+2612:       heartPop .65s ease forwards;
+2613:     filter:
+2614:       drop-shadow(
+
+--- around line 2622 ---
+2620:     0% {
+2621:       transform:
+2622:         translate(-50%, -50%)
+2623:         scale(0);
+2624:       opacity: 0;
+
+--- around line 2629 ---
+2627:     35% {
+2628:       transform:
+2629:         translate(-50%, -50%)
+2630:         scale(1.25);
+2631:       opacity: 1;
+
+--- around line 2636 ---
+2634:     70% {
+2635:       transform:
+2636:         translate(-50%, -50%)
+2637:         scale(.95);
+2638:       opacity: 1;
+
+--- around line 2643 ---
+2641:     100% {
+2642:       transform:
+2643:         translate(-50%, -50%)
+2644:         scale(1);
+2645:       opacity: 0;
+
+--- around line 2687 ---
+2685:   }
+2686: 
+2687:   .actionButton.liked {
+2688:     filter:
+2689:       drop-shadow(
+
+--- around line 2726 ---
+2724:   }
+2725: 
+2726:   .commentSection {
+2727:     margin-top: 12px;
+2728:   }
+
+--- around line 2730 ---
+2728:   }
+2729: 
+2730:   .viewComments {
+2731:     margin: 0 0 9px;
+2732:     color: rgba(255,255,255,.5);
+
+--- around line 2737 ---
+2735:   }
+2736: 
+2737:   .commentPreview {
+2738:     display: grid;
+2739:     gap: 6px;
+
+--- around line 2743 ---
+2741:   }
+2742: 
+2743:   .commentLine {
+2744:     margin: 0;
+2745:     color: rgba(255,255,255,.86);
+
+--- around line 2750 ---
+2748:   }
+2749: 
+2750:   .commentUser {
+2751:     padding: 0;
+2752:     color: #ffd166;
+
+--- around line 2758 ---
+2756:   }
+2757: 
+2758:   .commentComposer {
+2759:     display: flex;
+2760:     align-items: center;
+
+--- around line 2768 ---
+2766:   }
+2767: 
+2768:   .commentComposer input {
+2769:     flex: 1;
+2770:     min-width: 0;
+
+--- around line 2778 ---
+2776:   }
+2777: 
+2778:   .sendComment {
+2779:     width: 37px;
+2780:     height: 37px;
+
+--- around line 2814 ---
+2812:     position: absolute;
+2813:     inset: 0;
+2814:     transform: translateX(-100%);
+2815:     background:
+2816:       linear-gradient(
+
+--- around line 2843 ---
+2841:   @keyframes skeletonMove {
+2842:     to {
+2843:       transform: translateX(100%);
+2844:     }
+2845:   }
+
+--- around line 2972 ---
+2970:       );
+2971:     box-shadow: 0 16px 40px rgba(0,0,0,.4);
+2972:     transform: translateX(-50%);
+2973:     font-size: 12px;
+2974:     font-weight: 950;
+
+================================================================================
+app/follows/page.tsx
+================================================================================
+
+--- around line 8 ---
+6: import { supabase } from "../../lib/supabaseClient";
+7: 
+8: export default function FollowsPage() {
+9:   const router = useRouter();
+10: 
+
+--- around line 12 ---
+10: 
+11:   const [email, setEmail] = useState("");
+12:   const [type, setType] = useState("followers");
+13:   const [people, setPeople] = useState<any[]>([]);
+14:   const [profiles, setProfiles] = useState<Record<string, any>>({});
+
+--- around line 26 ---
+24:     const params = new URLSearchParams(window.location.search);
+25:     const urlEmail = params.get("email") || "";
+26:     const urlType = params.get("type") || "followers";
+27: 
+28:     const { data: userData } = await supabase.auth.getUser();
+
+--- around line 34 ---
+32: 
+33:     if (!finalEmail) {
+34:       router.push("/login");
+35:       return;
+36:     }
+
+--- around line 41 ---
+39:     setType(urlType);
+40: 
+41:     const matchColumn = urlType === "following" ? "follower_email" : "following_email";
+42:     const personColumn = urlType === "following" ? "following_email" : "follower_email";
+43: 
+
+--- around line 42 ---
+40: 
+41:     const matchColumn = urlType === "following" ? "follower_email" : "following_email";
+42:     const personColumn = urlType === "following" ? "following_email" : "follower_email";
+43: 
+44:     const { data } = await supabase
+
+--- around line 45 ---
+43: 
+44:     const { data } = await supabase
+45:       .from("follows")
+46:       .select("*")
+47:       .eq(matchColumn, finalEmail);
+
+--- around line 56 ---
+54:     if (emails.length) {
+55:       const { data: profileData } = await supabase
+56:         .from("creator_profiles")
+57:         .select("*")
+58:         .in("email", emails);
+
+--- around line 72 ---
+70: 
+71:   function getPersonEmail(row: any) {
+72:     return type === "following" ? row.following_email : row.follower_email;
+73:   }
+74: 
+
+--- around line 80 ---
+78: 
+79:       <section style={{ padding: 18 }}>
+80:         <h1>{type === "following" ? "Following" : "Followers"}</h1>
+81:         <p style={{ color: "var(--muted)" }}>{email}</p>
+82:       </section>
+
+--- around line 103 ---
+101:                 key={row.id || personEmail}
+102:                 className="card"
+103:                 onClick={() => router.push(`/u/${encodeURIComponent(personEmail)}`)}
+104:                 style={{ display: "flex", alignItems: "center", gap: 12 }}
+105:               >
+
+================================================================================
+app/notifications/page.tsx
+================================================================================
+
+--- around line 8 ---
+6: import { supabase } from "../../lib/supabaseClient";
+7: 
+8: const tabs = ["All", "Unread", "Messages", "Social", "Creator", "Live", "UTV"];
+9: 
+10: export default function NotificationsPage() {
+
+--- around line 10 ---
+8: const tabs = ["All", "Unread", "Messages", "Social", "Creator", "Live", "UTV"];
+9: 
+10: export default function NotificationsPage() {
+11:   const router = useRouter();
+12: 
+
+--- around line 19 ---
+17: 
+18:   useEffect(() => {
+19:     loadNotifications();
+20: 
+21:     const timer = setInterval(() => {
+
+--- around line 22 ---
+20: 
+21:     const timer = setInterval(() => {
+22:       loadNotifications(false);
+23:     }, 20000);
+24: 
+
+--- around line 28 ---
+26:   }, []);
+27: 
+28:   async function loadNotifications(showLoading = true) {
+29:     if (showLoading) setLoading(true);
+30: 
+
+--- around line 34 ---
+32: 
+33:     if (!auth.user) {
+34:       router.push("/login");
+35:       return;
+36:     }
+
+--- around line 42 ---
+40: 
+41:     const { data } = await supabase
+42:       .from("notifications")
+43:       .select("*")
+44:       .or(`user_email.eq.${userEmail},user_email.is.null`)
+
+--- around line 53 ---
+51: 
+52:   async function markOneRead(id: string) {
+53:     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+54:   }
+55: 
+
+--- around line 58 ---
+56:   async function markAllRead() {
+57:     await supabase
+58:       .from("notifications")
+59:       .update({ is_read: true })
+60:       .or(`user_email.eq.${email},user_email.is.null`)
+
+--- around line 59 ---
+57:     await supabase
+58:       .from("notifications")
+59:       .update({ is_read: true })
+60:       .or(`user_email.eq.${email},user_email.is.null`)
+61:       .eq("is_read", false);
+
+--- around line 61 ---
+59:       .update({ is_read: true })
+60:       .or(`user_email.eq.${email},user_email.is.null`)
+61:       .eq("is_read", false);
+62: 
+63:     loadNotifications();
+
+--- around line 63 ---
+61:       .eq("is_read", false);
+62: 
+63:     loadNotifications();
+64:   }
+65: 
+
+--- around line 69 ---
+67:     const t = (type || "").toLowerCase();
+68: 
+69:     if (t.includes("message")) return "💬";
+70:     if (t.includes("like")) return "❤️";
+71:     if (t.includes("comment")) return "💭";
+
+--- around line 70 ---
+68: 
+69:     if (t.includes("message")) return "💬";
+70:     if (t.includes("like")) return "❤️";
+71:     if (t.includes("comment")) return "💭";
+72:     if (t.includes("follow")) return "👥";
+
+--- around line 71 ---
+69:     if (t.includes("message")) return "💬";
+70:     if (t.includes("like")) return "❤️";
+71:     if (t.includes("comment")) return "💭";
+72:     if (t.includes("follow")) return "👥";
+73:     if (t.includes("collab")) return "🤝";
+
+--- around line 76 ---
+74:     if (t.includes("booking")) return "📅";
+75:     if (t.includes("live")) return "🔴";
+76:     if (t.includes("story")) return "📸";
+77:     if (t.includes("upload")) return "🎬";
+78:     if (t.includes("event")) return "🎉";
+
+--- around line 91 ---
+89:     const t = (type || "").toLowerCase();
+90: 
+91:     if (t.includes("message")) return "Messages";
+92:     if (t.includes("like") || t.includes("comment") || t.includes("follow")) return "Social";
+93:     if (t.includes("booking") || t.includes("collab") || t.includes("upload") || t.includes("approved") || t.includes("badge") || t.includes("score")) return "Creator";
+
+--- around line 92 ---
+90: 
+91:     if (t.includes("message")) return "Messages";
+92:     if (t.includes("like") || t.includes("comment") || t.includes("follow")) return "Social";
+93:     if (t.includes("booking") || t.includes("collab") || t.includes("upload") || t.includes("approved") || t.includes("badge") || t.includes("score")) return "Creator";
+94:     if (t.includes("live") || t.includes("story")) return "Live";
+
+--- around line 94 ---
+92:     if (t.includes("like") || t.includes("comment") || t.includes("follow")) return "Social";
+93:     if (t.includes("booking") || t.includes("collab") || t.includes("upload") || t.includes("approved") || t.includes("badge") || t.includes("score")) return "Creator";
+94:     if (t.includes("live") || t.includes("story")) return "Live";
+95:     if (t.includes("welcome") || t.includes("broadcast") || t.includes("utv")) return "UTV";
+96: 
+
+--- around line 100 ---
+98:   }
+99: 
+100:   const unreadCount = items.filter((x) => !x.is_read).length;
+101: 
+102:   const filtered = useMemo(() => {
+
+--- around line 104 ---
+102:   const filtered = useMemo(() => {
+103:     if (tab === "All") return items;
+104:     if (tab === "Unread") return items.filter((x) => !x.is_read);
+105:     return items.filter((x) => group(x.type) === tab);
+106:   }, [items, tab]);
+
+--- around line 108 ---
+106:   }, [items, tab]);
+107: 
+108:   async function openNotification(item: any) {
+109:     if (!item.is_read) await markOneRead(item.id);
+110: 
+
+--- around line 109 ---
+107: 
+108:   async function openNotification(item: any) {
+109:     if (!item.is_read) await markOneRead(item.id);
+110: 
+111:     if (item.link) {
+
+--- around line 112 ---
+110: 
+111:     if (item.link) {
+112:       router.push(item.link);
+113:       return;
+114:     }
+
+--- around line 116 ---
+114:     }
+115: 
+116:     if ((item.type || "").includes("message")) {
+117:       router.push("/messages");
+118:       return;
+
+--- around line 117 ---
+115: 
+116:     if ((item.type || "").includes("message")) {
+117:       router.push("/messages");
+118:       return;
+119:     }
+
+--- around line 121 ---
+119:     }
+120: 
+121:     router.push("/feed");
+122:   }
+123: 
+
+--- around line 125 ---
+123: 
+124:   return (
+125:     <main className="notificationsPage">
+126:       <UTVNav />
+127: 
+
+--- around line 129 ---
+127: 
+128:       <style>{`
+129:         .notificationsPage {
+130:           min-height:100vh;
+131:           padding-bottom:120px;
+
+--- around line 258 ---
+256: 
+257:       <section className="top">
+258:         <h1>Notifications</h1>
+259:         <p>{unreadCount} unread • messages, likes, follows, bookings, live alerts, and UTV updates.</p>
+260: 
+
+--- around line 259 ---
+257:       <section className="top">
+258:         <h1>Notifications</h1>
+259:         <p>{unreadCount} unread • messages, likes, follows, bookings, live alerts, and UTV updates.</p>
+260: 
+261:         <button className="btn" style={{ width: "100%", marginTop: 14 }} onClick={markAllRead}>
+
+--- around line 280 ---
+278:       {loading ? (
+279:         <section className="empty">
+280:           <h2>Loading notifications...</h2>
+281:         </section>
+282:       ) : filtered.length === 0 ? (
+
+--- around line 284 ---
+282:       ) : filtered.length === 0 ? (
+283:         <section className="empty">
+284:           <h2>No {tab.toLowerCase()} notifications</h2>
+285:         </section>
+286:       ) : (
+
+--- around line 291 ---
+289:             <div
+290:               key={item.id}
+291:               className={item.is_read ? "notice" : "notice unread"}
+292:               onClick={() => openNotification(item)}
+293:             >
+
+--- around line 292 ---
+290:               key={item.id}
+291:               className={item.is_read ? "notice" : "notice unread"}
+292:               onClick={() => openNotification(item)}
+293:             >
+294:               <div className="noticeIcon">{icon(item.type)}</div>
+
+--- around line 297 ---
+295: 
+296:               <div className="noticeBody">
+297:                 <h3>{item.title || "UTV Notification"}</h3>
+298:                 <p>{item.message || "Something happened on UTV."}</p>
+299:                 <div className="time">
+
+--- around line 298 ---
+296:               <div className="noticeBody">
+297:                 <h3>{item.title || "UTV Notification"}</h3>
+298:                 <p>{item.message || "Something happened on UTV."}</p>
+299:                 <div className="time">
+300:                   {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
+
+================================================================================
+app/activity/page.tsx
+================================================================================
+
+--- around line 16 ---
+14: import { supabase } from "../../lib/supabaseClient";
+15: 
+16: type ActivityTab =
+17:   | "all"
+18:   | "notifications"
+
+--- around line 18 ---
+16: type ActivityTab =
+17:   | "all"
+18:   | "notifications"
+19:   | "messages"
+20:   | "bookings"
+
+--- around line 19 ---
+17:   | "all"
+18:   | "notifications"
+19:   | "messages"
+20:   | "bookings"
+21:   | "live";
+
+--- around line 23 ---
+21:   | "live";
+22: 
+23: type ActivityItem = {
+24:   id: string;
+25: 
+
+--- around line 27 ---
+25: 
+26:   source:
+27:     | "notification"
+28:     | "message"
+29:     | "booking"
+
+--- around line 28 ---
+26:   source:
+27:     | "notification"
+28:     | "message"
+29:     | "booking"
+30:     | "live_request";
+
+--- around line 36 ---
+34:   type: string;
+35:   title: string;
+36:   message: string;
+37: 
+38:   actorEmail: string;
+
+--- around line 50 ---
+48: };
+49: 
+50: const activityTabs: {
+51:   id: ActivityTab;
+52:   label: string;
+
+--- around line 51 ---
+49: 
+50: const activityTabs: {
+51:   id: ActivityTab;
+52:   label: string;
+53:   icon: string;
+
+--- around line 61 ---
+59:   },
+60:   {
+61:     id: "notifications",
+62:     label: "Activity",
+63:     icon: "🔔",
+
+--- around line 62 ---
+60:   {
+61:     id: "notifications",
+62:     label: "Activity",
+63:     icon: "🔔",
+64:   },
+
+--- around line 66 ---
+64:   },
+65:   {
+66:     id: "messages",
+67:     label: "Messages",
+68:     icon: "💬",
+
+--- around line 67 ---
+65:   {
+66:     id: "messages",
+67:     label: "Messages",
+68:     icon: "💬",
+69:   },
+
+--- around line 130 ---
+128: }
+129: 
+130: function activityIcon(
+131:   item: ActivityItem
+132: ) {
+
+--- around line 131 ---
+129: 
+130: function activityIcon(
+131:   item: ActivityItem
+132: ) {
+133:   const type = String(
+
+--- around line 137 ---
+135:   ).toLowerCase();
+136: 
+137:   if (type.includes("like")) {
+138:     return "❤️";
+139:   }
+
+--- around line 141 ---
+139:   }
+140: 
+141:   if (type.includes("comment")) {
+142:     return "💬";
+143:   }
+
+--- around line 149 ---
+147:   }
+148: 
+149:   if (type.includes("story")) {
+150:     return "📖";
+151:   }
+
+--- around line 153 ---
+151:   }
+152: 
+153:   if (type.includes("message")) {
+154:     return "✉️";
+155:   }
+
+--- around line 185 ---
+183:     type.toLowerCase();
+184: 
+185:   if (value.includes("like")) {
+186:     return "New Like";
+187:   }
+
+--- around line 186 ---
+184: 
+185:   if (value.includes("like")) {
+186:     return "New Like";
+187:   }
+188: 
+
+--- around line 190 ---
+188: 
+189:   if (
+190:     value.includes("comment")
+191:   ) {
+192:     return "New Comment";
+
+--- around line 192 ---
+190:     value.includes("comment")
+191:   ) {
+192:     return "New Comment";
+193:   }
+194: 
+
+--- around line 198 ---
+196:     value.includes("follow")
+197:   ) {
+198:     return "New Follower";
+199:   }
+200: 
+
+--- around line 202 ---
+200: 
+201:   if (
+202:     value.includes("message")
+203:   ) {
+204:     return "New Message";
+
+--- around line 204 ---
+202:     value.includes("message")
+203:   ) {
+204:     return "New Message";
+205:   }
+206: 
+
+--- around line 220 ---
+218:   }
+219: 
+220:   return "UTV Notification";
+221: }
+222: 
+
+--- around line 223 ---
+221: }
+222: 
+223: export default function ActivityPage() {
+224:   const router = useRouter();
+225: 
+
+--- around line 229 ---
+227:   useRef<number | null>(null);
+228: 
+229: const activityChannelRef =
+230:   useRef<any>(null);
+231: 
+
+--- around line 232 ---
+230:   useRef<any>(null);
+231: 
+232: const messageChannelRef =
+233:   useRef<any>(null);
+234: 
+
+--- around line 239 ---
+237: 
+238:   const [items, setItems] =
+239:     useState<ActivityItem[]>([]);
+240: 
+241:   const [profiles, setProfiles] =
+
+--- around line 247 ---
+245: 
+246:   const [activeTab, setActiveTab] =
+247:     useState<ActivityTab>("all");
+248: 
+249:   const [loading, setLoading] =
+
+--- around line 255 ---
+253:     useState(false);
+254: 
+255:   const [message, setMessage] =
+256:     useState("");
+257: 
+
+--- around line 259 ---
+257: 
+258:  useEffect(() => {
+259:   loadActivity();
+260: 
+261:   refreshTimerRef.current =
+
+--- around line 263 ---
+261:   refreshTimerRef.current =
+262:     window.setInterval(() => {
+263:       loadActivity(false);
+264:     }, 30000);
+265: 
+
+--- around line 266 ---
+264:     }, 30000);
+265: 
+266:   activityChannelRef.current =
+267:     supabase
+268:       .channel("activity-center-notifications")
+
+--- around line 268 ---
+266:   activityChannelRef.current =
+267:     supabase
+268:       .channel("activity-center-notifications")
+269:       .on(
+270:         "postgres_changes",
+
+--- around line 274 ---
+272:           event: "*",
+273:           schema: "public",
+274:           table: "notifications",
+275:         },
+276:         () => {
+
+--- around line 277 ---
+275:         },
+276:         () => {
+277:           loadActivity(false);
+278:         }
+279:       )
+
+--- around line 282 ---
+280:       .subscribe();
+281: 
+282:   messageChannelRef.current =
+283:     supabase
+284:       .channel("activity-center-messages")
+
+--- around line 284 ---
+282:   messageChannelRef.current =
+283:     supabase
+284:       .channel("activity-center-messages")
+285:       .on(
+286:         "postgres_changes",
+
+--- around line 290 ---
+288:           event: "*",
+289:           schema: "public",
+290:           table: "messages",
+291:         },
+292:         () => {
+
+--- around line 293 ---
+291:         },
+292:         () => {
+293:           loadActivity(false);
+294:         }
+295:       )
+
+--- around line 305 ---
+303:     }
+304: 
+305:     if (activityChannelRef.current) {
+306:       supabase.removeChannel(
+307:         activityChannelRef.current
+
+--- around line 307 ---
+305:     if (activityChannelRef.current) {
+306:       supabase.removeChannel(
+307:         activityChannelRef.current
+308:       );
+309:     }
+
+--- around line 311 ---
+309:     }
+310: 
+311:     if (messageChannelRef.current) {
+312:       supabase.removeChannel(
+313:         messageChannelRef.current
+
+--- around line 313 ---
+311:     if (messageChannelRef.current) {
+312:       supabase.removeChannel(
+313:         messageChannelRef.current
+314:       );
+315:     }
+
+--- around line 325 ---
+323:       ) => {
+324:         const uniqueEmails =
+325:           Array.from(
+326:             new Set(
+327:               emails.filter(Boolean)
+
+--- around line 339 ---
+337:         const { data, error } =
+338:           await supabase
+339:             .from(
+340:               "creator_profiles"
+341:             )
+
+--- around line 351 ---
+349:           console.info(
+350:             "Profiles skipped:",
+351:             error.message
+352:           );
+353: 
+
+--- around line 387 ---
+385:       const baseQuery =
+386:         supabase
+387:           .from(table)
+388:           .select("*");
+389: 
+
+--- around line 399 ---
+397:       if (error) {
+398:         console.info(
+399:           `Activity skipped ${table}:`,
+400:           error.message
+401:         );
+
+--- around line 400 ---
+398:         console.info(
+399:           `Activity skipped ${table}:`,
+400:           error.message
+401:         );
+402: 
+
+--- around line 409 ---
+407:     } catch (error) {
+408:       console.info(
+409:         `Activity skipped ${table}:`,
+410:         error
+411:       );
+
+--- around line 417 ---
+415:   }
+416: 
+417:   async function loadActivity(
+418:     showLoader = true
+419:   ) {
+
+--- around line 426 ---
+424:     }
+425: 
+426:     setMessage("");
+427: 
+428:     const { data: authData } =
+
+--- around line 435 ---
+433: 
+434:     if (!email) {
+435:       router.push("/login");
+436:       return;
+437:     }
+
+--- around line 442 ---
+440: 
+441:     const [
+442:       notificationRows,
+443:       messageRows,
+444:       bookingRows,
+
+--- around line 443 ---
+441:     const [
+442:       notificationRows,
+443:       messageRows,
+444:       bookingRows,
+445:       liveRequestRows,
+
+--- around line 448 ---
+446:     ] = await Promise.all([
+447:       optionalQuery(
+448:         "notifications",
+449:         (query) =>
+450:           query
+
+--- around line 465 ---
+463: 
+464:       optionalQuery(
+465:         "messages",
+466:         (query) =>
+467:           query
+
+--- around line 513 ---
+511:       ),
+512:     ]);
+513:        const notifications: ActivityItem[] =
+514:   notificationRows
+515:     .filter(
+
+--- around line 514 ---
+512:     ]);
+513:        const notifications: ActivityItem[] =
+514:   notificationRows
+515:     .filter(
+516:       (row: any) =>
+
+--- around line 520 ---
+518:           row.type || ""
+519:         ).toLowerCase() !==
+520:         "message"
+521:     )
+522:     .map(
+
+--- around line 526 ---
+524:           const type =
+525:             row.type ||
+526:             "notification";
+527: 
+528:           return {
+
+--- around line 529 ---
+527: 
+528:           return {
+529:             id: `notification-${row.id}`,
+530:             source: "notification",
+531:             sourceId: String(row.id),
+
+--- around line 530 ---
+528:           return {
+529:             id: `notification-${row.id}`,
+530:             source: "notification",
+531:             sourceId: String(row.id),
+532: 
+
+--- around line 539 ---
+537:               defaultTitle(type),
+538: 
+539:             message:
+540:               row.message ||
+541:               row.body ||
+
+--- around line 540 ---
+538: 
+539:             message:
+540:               row.message ||
+541:               row.body ||
+542:               "New activity on UTV.",
+
+--- around line 542 ---
+540:               row.message ||
+541:               row.body ||
+542:               "New activity on UTV.",
+543: 
+544:             actorEmail:
+
+--- around line 559 ---
+557: 
+558:             isRead: Boolean(
+559:               row.is_read ||
+560:               row.read
+561:             ),
+
+--- around line 577 ---
+575:       );
+576: 
+577:     const messages: ActivityItem[] =
+578:       messageRows.map(
+579:         (row: any) => ({
+
+--- around line 578 ---
+576: 
+577:     const messages: ActivityItem[] =
+578:       messageRows.map(
+579:         (row: any) => ({
+580:           id: `message-${row.id}`,
+
+--- around line 580 ---
+578:       messageRows.map(
+579:         (row: any) => ({
+580:           id: `message-${row.id}`,
+581:           source: "message",
+582:           sourceId: String(row.id),
+
+--- around line 581 ---
+579:         (row: any) => ({
+580:           id: `message-${row.id}`,
+581:           source: "message",
+582:           sourceId: String(row.id),
+583: 
+
+--- around line 584 ---
+582:           sourceId: String(row.id),
+583: 
+584:           type: "message",
+585: 
+586:           title:
+
+--- around line 588 ---
+586:           title:
+587:             row.subject ||
+588:             "New Message",
+589: 
+590:           message:
+
+--- around line 590 ---
+588:             "New Message",
+589: 
+590:           message:
+591:             row.message ||
+592:             row.body ||
+
+--- around line 591 ---
+589: 
+590:           message:
+591:             row.message ||
+592:             row.body ||
+593:             row.text ||
+
+--- around line 594 ---
+592:             row.body ||
+593:             row.text ||
+594:             "Sent you a message.",
+595: 
+596:           actorEmail:
+
+--- around line 610 ---
+608: 
+609:           isRead: Boolean(
+610:             row.is_read ||
+611:             row.read
+612:           ),
+
+--- around line 616 ---
+614:           link:
+615:             row.sender_email
+616:               ? `/messages/${encodeURIComponent(
+617:                   row.sender_email
+618:                 )}`
+
+--- around line 619 ---
+617:                   row.sender_email
+618:                 )}`
+619:               : "/messages",
+620: 
+621:           status: "",
+
+--- around line 627 ---
+625:       );
+626: 
+627:     const bookings: ActivityItem[] =
+628:       bookingRows.map(
+629:         (row: any) => ({
+
+--- around line 643 ---
+641:             "Booking Request",
+642: 
+643:           message:
+644:             row.message ||
+645:             row.description ||
+
+--- around line 644 ---
+642: 
+643:           message:
+644:             row.message ||
+645:             row.description ||
+646:             row.details ||
+
+--- around line 666 ---
+664: 
+665:           isRead: Boolean(
+666:             row.is_read ||
+667:             row.read
+668:           ),
+
+--- around line 682 ---
+680:       );
+681: 
+682:     const liveRequests: ActivityItem[] =
+683:       liveRequestRows.map(
+684:         (row: any) => ({
+
+--- around line 695 ---
+693:             "Live Join Request",
+694: 
+695:           message:
+696:             row.message ||
+697:             "Someone wants to join your live.",
+
+--- around line 696 ---
+694: 
+695:           message:
+696:             row.message ||
+697:             "Someone wants to join your live.",
+698: 
+
+--- around line 715 ---
+713: 
+714:           isRead: Boolean(
+715:             row.is_read ||
+716:             row.read
+717:           ),
+
+--- around line 733 ---
+731: 
+732:     const combined = [
+733:       ...notifications,
+734:       ...messages,
+735:       ...bookings,
+
+--- around line 734 ---
+732:     const combined = [
+733:       ...notifications,
+734:       ...messages,
+735:       ...bookings,
+736:       ...liveRequests,
+
+--- around line 763 ---
+761: 
+762:   function actorProfile(
+763:     item: ActivityItem
+764:   ) {
+765:     return profiles[
+
+--- around line 771 ---
+769: 
+770:   function actorName(
+771:     item: ActivityItem
+772:   ) {
+773:     const profile =
+
+--- around line 787 ---
+785: 
+786:   function actorAvatar(
+787:     item: ActivityItem
+788:   ) {
+789:     const profile =
+
+--- around line 808 ---
+806:       if (
+807:         activeTab ===
+808:         "notifications"
+809:       ) {
+810:         return items.filter(
+
+--- around line 813 ---
+811:           (item) =>
+812:             item.source ===
+813:             "notification"
+814:         );
+815:       }
+
+--- around line 819 ---
+817:       if (
+818:         activeTab ===
+819:         "messages"
+820:       ) {
+821:         return items.filter(
+
+--- around line 824 ---
+822:           (item) =>
+823:             item.source ===
+824:             "message"
+825:         );
+826:       }
+
+--- around line 861 ---
+859:         all: items.length,
+860: 
+861:         notifications:
+862:           items.filter(
+863:             (item) =>
+
+--- around line 865 ---
+863:             (item) =>
+864:               item.source ===
+865:               "notification"
+866:           ).length,
+867: 
+
+--- around line 868 ---
+866:           ).length,
+867: 
+868:         messages:
+869:           items.filter(
+870:             (item) =>
+
+--- around line 872 ---
+870:             (item) =>
+871:               item.source ===
+872:               "message"
+873:           ).length,
+874: 
+
+--- around line 893 ---
+891: 
+892:   async function markItemRead(
+893:     item: ActivityItem
+894:   ) {
+895:     if (item.isRead) {
+
+--- around line 901 ---
+899:     setItems((current) =>
+900:       current.map(
+901:         (activity) =>
+902:           activity.id === item.id
+903:             ? {
+
+--- around line 902 ---
+900:       current.map(
+901:         (activity) =>
+902:           activity.id === item.id
+903:             ? {
+904:                 ...activity,
+
+--- around line 904 ---
+902:           activity.id === item.id
+903:             ? {
+904:                 ...activity,
+905:                 isRead: true,
+906:               }
+
+--- around line 907 ---
+905:                 isRead: true,
+906:               }
+907:             : activity
+908:       )
+909:     );
+
+--- around line 913 ---
+911:     const table =
+912:       item.source ===
+913:       "notification"
+914:         ? "notifications"
+915:         : item.source ===
+
+--- around line 914 ---
+912:       item.source ===
+913:       "notification"
+914:         ? "notifications"
+915:         : item.source ===
+916:           "message"
+
+--- around line 916 ---
+914:         ? "notifications"
+915:         : item.source ===
+916:           "message"
+917:         ? "messages"
+918:         : item.source ===
+
+--- around line 917 ---
+915:         : item.source ===
+916:           "message"
+917:         ? "messages"
+918:         : item.source ===
+919:           "booking"
+
+--- around line 924 ---
+922: 
+923:     const readUpdate =
+924:       item.source === "message"
+925:         ? { read: true }
+926:         : { is_read: true };
+
+--- around line 926 ---
+924:       item.source === "message"
+925:         ? { read: true }
+926:         : { is_read: true };
+927: 
+928:     const { error } = await supabase
+
+--- around line 929 ---
+927: 
+928:     const { error } = await supabase
+929:       .from(table)
+930:       .update(readUpdate)
+931:       .eq(
+
+--- around line 939 ---
+937:       console.error(
+938:         "Could not mark item read:",
+939:         error.message
+940:       );
+941:     }
+
+--- around line 960 ---
+958:     await Promise.all([
+959:       supabase
+960:         .from("notifications")
+961:         .update({
+962:           is_read: true,
+
+--- around line 962 ---
+960:         .from("notifications")
+961:         .update({
+962:           is_read: true,
+963:         })
+964:         .eq(
+
+--- around line 970 ---
+968: 
+969:       supabase
+970:         .from("messages")
+971:         .update({
+972:           read: true,
+
+--- around line 980 ---
+978: 
+979:       supabase
+980:         .from("bookings")
+981:         .update({
+982:           is_read: true,
+
+--- around line 982 ---
+980:         .from("bookings")
+981:         .update({
+982:           is_read: true,
+983:         })
+984:         .or(
+
+--- around line 989 ---
+987: 
+988:       supabase
+989:         .from(
+990:           "live_join_requests"
+991:         )
+
+--- around line 993 ---
+991:         )
+992:         .update({
+993:           is_read: true,
+994:         })
+995:         .or(
+
+--- around line 1000 ---
+998:     ]);
+999: 
+1000:     setMessage(
+1001:       "Everything marked as read."
+1002:     );
+
+--- around line 1005 ---
+1003: 
+1004:     window.setTimeout(
+1005:       () => setMessage(""),
+1006:       1500
+1007:     );
+
+--- around line 1010 ---
+1008:   }
+1009: 
+1010:   function openActivity(
+1011:     item: ActivityItem
+1012:   ) {
+
+--- around line 1011 ---
+1009: 
+1010:   function openActivity(
+1011:     item: ActivityItem
+1012:   ) {
+1013:     markItemRead(item);
+
+--- around line 1016 ---
+1014: 
+1015:     if (item.link) {
+1016:       router.push(item.link);
+1017:       return;
+1018:     }
+
+--- around line 1021 ---
+1019: 
+1020:     if (
+1021:       item.source === "message"
+1022:     ) {
+1023:       router.push(
+
+--- around line 1023 ---
+1021:       item.source === "message"
+1022:     ) {
+1023:       router.push(
+1024:         item.actorEmail
+1025:           ? `/messages/${encodeURIComponent(
+
+--- around line 1025 ---
+1023:       router.push(
+1024:         item.actorEmail
+1025:           ? `/messages/${encodeURIComponent(
+1026:               item.actorEmail
+1027:             )}`
+
+--- around line 1028 ---
+1026:               item.actorEmail
+1027:             )}`
+1028:           : "/messages"
+1029:       );
+1030: 
+
+--- around line 1035 ---
+1033: 
+1034:     if (item.actorEmail) {
+1035:       router.push(
+1036:         `/u/${encodeURIComponent(
+1037:           item.actorEmail
+
+--- around line 1044 ---
+1042: 
+1043:   async function updateRequestStatus(
+1044:     item: ActivityItem,
+1045:     status:
+1046:       | "accepted"
+
+--- around line 1057 ---
+1055:     const { error } =
+1056:       await supabase
+1057:         .from(table)
+1058:         .update({
+1059:           status,
+
+--- around line 1060 ---
+1058:         .update({
+1059:           status,
+1060:           is_read: true,
+1061:         })
+1062:         .eq(
+
+--- around line 1068 ---
+1066: 
+1067:     if (error) {
+1068:       setMessage(
+1069:         error.message
+1070:       );
+
+--- around line 1069 ---
+1067:     if (error) {
+1068:       setMessage(
+1069:         error.message
+1070:       );
+1071: 
+
+--- around line 1077 ---
+1075:     setItems((current) =>
+1076:       current.map(
+1077:         (activity) =>
+1078:           activity.id === item.id
+1079:             ? {
+
+--- around line 1078 ---
+1076:       current.map(
+1077:         (activity) =>
+1078:           activity.id === item.id
+1079:             ? {
+1080:                 ...activity,
+
+--- around line 1080 ---
+1078:           activity.id === item.id
+1079:             ? {
+1080:                 ...activity,
+1081:                 status,
+1082:                 isRead: true,
+
+--- around line 1084 ---
+1082:                 isRead: true,
+1083:               }
+1084:             : activity
+1085:       )
+1086:     );
+
+--- around line 1090 ---
+1088:     if (item.actorEmail) {
+1089:       await supabase
+1090:         .from("notifications")
+1091:         .insert({
+1092:           user_email:
+
+--- around line 1110 ---
+1108:               : "Request Declined",
+1109: 
+1110:           message:
+1111:             status ===
+1112:             "accepted"
+
+--- around line 1121 ---
+1119:             item.raw?.live_id
+1120:               ? `/live-room/${item.raw.live_id}`
+1121:               : "/activity",
+1122: 
+1123:           is_read: false,
+
+--- around line 1123 ---
+1121:               : "/activity",
+1122: 
+1123:           is_read: false,
+1124:         });
+1125:     }
+
+--- around line 1127 ---
+1125:     }
+1126: 
+1127:     setMessage(
+1128:       status === "accepted"
+1129:         ? "Request accepted."
+
+--- around line 1134 ---
+1132: 
+1133:     window.setTimeout(
+1134:       () => setMessage(""),
+1135:       1500
+1136:     );
+
+--- around line 1139 ---
+1137:   }
+1138:     function openActorProfile(
+1139:     item: ActivityItem
+1140:   ) {
+1141:     if (!item.actorEmail) {
+
+--- around line 1145 ---
+1143:     }
+1144: 
+1145:     router.push(
+1146:       `/u/${encodeURIComponent(
+1147:         item.actorEmail
+
+--- around line 1152 ---
+1150:   }
+1151: 
+1152:   function renderActivityCard(
+1153:     item: ActivityItem
+1154:   ) {
+
+--- around line 1153 ---
+1151: 
+1152:   function renderActivityCard(
+1153:     item: ActivityItem
+1154:   ) {
+1155:     const avatar =
+
+--- around line 1179 ---
+1177:         className={
+1178:           item.isRead
+1179:             ? "activityCard"
+1180:             : "activityCard unreadCard"
+1181:         }
+
+--- around line 1180 ---
+1178:           item.isRead
+1179:             ? "activityCard"
+1180:             : "activityCard unreadCard"
+1181:         }
+1182:       >
+
+--- around line 1184 ---
+1182:       >
+1183:         <button
+1184:           className="activityMain"
+1185:           onClick={() =>
+1186:             openActivity(item)
+
+--- around line 1186 ---
+1184:           className="activityMain"
+1185:           onClick={() =>
+1186:             openActivity(item)
+1187:           }
+1188:         >
+
+--- around line 1189 ---
+1187:           }
+1188:         >
+1189:           <div className="activityAvatarWrap">
+1190:             {avatar ? (
+1191:               <img
+
+--- around line 1194 ---
+1192:                 src={avatar}
+1193:                 alt={name}
+1194:                 className="activityAvatar"
+1195:               />
+1196:             ) : (
+
+--- around line 1197 ---
+1195:               />
+1196:             ) : (
+1197:               <div className="activityAvatar">
+1198:                 👤
+1199:               </div>
+
+--- around line 1202 ---
+1200:             )}
+1201: 
+1202:             <span className="activityTypeIcon">
+1203:               {activityIcon(item)}
+1204:             </span>
+
+--- around line 1203 ---
+1201: 
+1202:             <span className="activityTypeIcon">
+1203:               {activityIcon(item)}
+1204:             </span>
+1205:           </div>
+
+--- around line 1207 ---
+1205:           </div>
+1206: 
+1207:           <div className="activityText">
+1208:             <div className="activityTitleRow">
+1209:               <strong>
+
+--- around line 1208 ---
+1206: 
+1207:           <div className="activityText">
+1208:             <div className="activityTitleRow">
+1209:               <strong>
+1210:                 {item.title}
+
+--- around line 1233 ---
+1231:               </button>{" "}
+1232: 
+1233:               {item.message}
+1234:             </p>
+1235: 
+
+--- around line 1243 ---
+1241:           </div>
+1242: 
+1243:           <span className="activityArrow">
+1244:             ›
+1245:           </span>
+
+--- around line 1290 ---
+1288: 
+1289:   return (
+1290:     <main className="activityPage">
+1291:       <UTVNav />
+1292: 
+
+--- around line 1295 ---
+1293:       <style>{styles}</style>
+1294: 
+1295:       <section className="activityHero">
+1296:         <div>
+1297:           <p className="activityEyebrow">
+
+--- around line 1297 ---
+1295:       <section className="activityHero">
+1296:         <div>
+1297:           <p className="activityEyebrow">
+1298:             UTV ACTIVITY CENTER
+1299:           </p>
+
+--- around line 1298 ---
+1296:         <div>
+1297:           <p className="activityEyebrow">
+1298:             UTV ACTIVITY CENTER
+1299:           </p>
+1300: 
+
+--- around line 1301 ---
+1299:           </p>
+1300: 
+1301:           <h1>Activity</h1>
+1302: 
+1303:           <span>
+
+--- around line 1304 ---
+1302: 
+1303:           <span>
+1304:             Likes, follows, comments,
+1305:             messages, bookings, and live
+1306:             requests in one place.
+
+--- around line 1305 ---
+1303:           <span>
+1304:             Likes, follows, comments,
+1305:             messages, bookings, and live
+1306:             requests in one place.
+1307:           </span>
+
+--- around line 1310 ---
+1308:         </div>
+1309: 
+1310:         <div className="activityHeroActions">
+1311:           <button
+1312:             className="refreshActivityButton"
+
+--- around line 1312 ---
+1310:         <div className="activityHeroActions">
+1311:           <button
+1312:             className="refreshActivityButton"
+1313:             onClick={() =>
+1314:               loadActivity(false)
+
+--- around line 1314 ---
+1312:             className="refreshActivityButton"
+1313:             onClick={() =>
+1314:               loadActivity(false)
+1315:             }
+1316:             disabled={refreshing}
+
+--- around line 1334 ---
+1332:       </section>
+1333: 
+1334:       <section className="activitySummary">
+1335:         <article>
+1336:           <strong>
+
+--- around line 1346 ---
+1344:           <strong>
+1345:             {
+1346:               tabCounts.notifications
+1347:             }
+1348:           </strong>
+
+--- around line 1350 ---
+1348:           </strong>
+1349: 
+1350:           <span>Notifications</span>
+1351:         </article>
+1352: 
+
+--- around line 1355 ---
+1353:         <article>
+1354:           <strong>
+1355:             {tabCounts.messages}
+1356:           </strong>
+1357: 
+
+--- around line 1358 ---
+1356:           </strong>
+1357: 
+1358:           <span>Messages</span>
+1359:         </article>
+1360: 
+
+--- around line 1370 ---
+1368:       </section>
+1369: 
+1370:       <section className="activityTabs">
+1371:         {activityTabs.map(
+1372:           (tab) => (
+
+--- around line 1371 ---
+1369: 
+1370:       <section className="activityTabs">
+1371:         {activityTabs.map(
+1372:           (tab) => (
+1373:             <button
+
+--- around line 1377 ---
+1375:               className={
+1376:                 activeTab === tab.id
+1377:                   ? "activityTab activeTab"
+1378:                   : "activityTab"
+1379:               }
+
+--- around line 1378 ---
+1376:                 activeTab === tab.id
+1377:                   ? "activityTab activeTab"
+1378:                   : "activityTab"
+1379:               }
+1380:               onClick={() =>
+
+--- around line 1406 ---
+1404:       </section>
+1405: 
+1406:       {message && (
+1407:         <div className="activityMessage">
+1408:           {message}
+
+--- around line 1407 ---
+1405: 
+1406:       {message && (
+1407:         <div className="activityMessage">
+1408:           {message}
+1409:         </div>
+
+--- around line 1408 ---
+1406:       {message && (
+1407:         <div className="activityMessage">
+1408:           {message}
+1409:         </div>
+1410:       )}
+
+--- around line 1413 ---
+1411: 
+1412:       {loading ? (
+1413:         <section className="activityList">
+1414:           {[1, 2, 3, 4].map(
+1415:             (item) => (
+
+--- around line 1417 ---
+1415:             (item) => (
+1416:               <article
+1417:                 className="activitySkeleton"
+1418:                 key={item}
+1419:               >
+
+--- around line 1433 ---
+1431:       ) : filteredItems.length ===
+1432:         0 ? (
+1433:         <section className="activityEmpty">
+1434:           <span>
+1435:             {activeTab ===
+
+--- around line 1436 ---
+1434:           <span>
+1435:             {activeTab ===
+1436:             "messages"
+1437:               ? "💬"
+1438:               : activeTab ===
+
+--- around line 1448 ---
+1446: 
+1447:           <h2>
+1448:             No activity yet
+1449:           </h2>
+1450: 
+
+--- around line 1452 ---
+1450: 
+1451:           <p>
+1452:             New likes, followers,
+1453:             comments, messages,
+1454:             bookings, and live
+
+--- around line 1453 ---
+1451:           <p>
+1452:             New likes, followers,
+1453:             comments, messages,
+1454:             bookings, and live
+1455:             requests will appear here.
+
+--- around line 1459 ---
+1457:         </section>
+1458:       ) : (
+1459:         <section className="activityList">
+1460:           {filteredItems.map(
+1461:             renderActivityCard
+
+--- around line 1461 ---
+1459:         <section className="activityList">
+1460:           {filteredItems.map(
+1461:             renderActivityCard
+1462:           )}
+1463:         </section>
+
+--- around line 1489 ---
+1487:   }
+1488: 
+1489:   .activityPage {
+1490:     min-height: 100vh;
+1491:     padding-bottom: 120px;
+
+--- around line 1512 ---
+1510:   }
+1511: 
+1512:   .activityHero {
+1513:     display: flex;
+1514:     align-items: flex-start;
+
+--- around line 1520 ---
+1518:   }
+1519: 
+1520:   .activityEyebrow {
+1521:     margin: 0 0 7px;
+1522:     color: #52f7c8;
+
+--- around line 1528 ---
+1526:   }
+1527: 
+1528:   .activityHero h1 {
+1529:     margin: 0;
+1530:     font-size: 42px;
+
+--- around line 1535 ---
+1533:   }
+1534: 
+1535:   .activityHero span {
+1536:     display: block;
+1537:     max-width: 620px;
+
+--- around line 1544 ---
+1542:   }
+1543: 
+1544:   .activityHeroActions {
+1545:     display: flex;
+1546:     gap: 8px;
+
+--- around line 1551 ---
+1549:   }
+1550: 
+1551:   .refreshActivityButton,
+1552:   .markReadButton {
+1553:     padding: 10px 13px;
+
+--- around line 1573 ---
+1571:   }
+1572: 
+1573:   .activitySummary {
+1574:     display: grid;
+1575:     grid-template-columns:
+
+--- around line 1581 ---
+1579:   }
+1580: 
+1581:   .activitySummary article {
+1582:     padding: 13px 10px;
+1583:     border: 1px solid rgba(255,255,255,.12);
+
+--- around line 1588 ---
+1586:   }
+1587: 
+1588:   .activitySummary strong {
+1589:     display: block;
+1590:     font-size: 21px;
+
+--- around line 1593 ---
+1591:   }
+1592: 
+1593:   .activitySummary span {
+1594:     display: block;
+1595:     margin-top: 3px;
+
+--- around line 1601 ---
+1599:   }
+1600: 
+1601:   .activityTabs {
+1602:     display: flex;
+1603:     gap: 9px;
+
+--- around line 1609 ---
+1607:   }
+1608: 
+1609:   .activityTabs::-webkit-scrollbar {
+1610:     display: none;
+1611:   }
+
+--- around line 1613 ---
+1611:   }
+1612: 
+1613:   .activityTab {
+1614:     flex: 0 0 auto;
+1615:     display: grid;
+
+--- around line 1627 ---
+1625:   }
+1626: 
+1627:   .activityTab b {
+1628:     font-size: 12px;
+1629:   }
+
+--- around line 1631 ---
+1629:   }
+1630: 
+1631:   .activityTab small {
+1632:     min-width: 20px;
+1633:     height: 20px;
+
+--- around line 1660 ---
+1658:   }
+1659: 
+1660:   .activityMessage {
+1661:     margin: 0 16px 12px;
+1662:     padding: 11px 13px;
+
+--- around line 1672 ---
+1670:   }
+1671: 
+1672:   .activityList {
+1673:     display: grid;
+1674:     gap: 10px;
+
+--- around line 1678 ---
+1676:   }
+1677: 
+1678:   .activityCard {
+1679:     position: relative;
+1680:     overflow: hidden;
+
+--- around line 1703 ---
+1701:   }
+1702: 
+1703:   .activityMain {
+1704:     width: 100%;
+1705:     display: grid;
+
+--- around line 1719 ---
+1717:   }
+1718: 
+1719:   .activityAvatarWrap {
+1720:     position: relative;
+1721:     width: 56px;
+
+--- around line 1725 ---
+1723:   }
+1724: 
+1725:   .activityAvatar {
+1726:     width: 56px;
+1727:     height: 56px;
+
+--- around line 1736 ---
+1734:   }
+1735: 
+1736:   .activityTypeIcon {
+1737:     position: absolute;
+1738:     right: -3px;
+
+--- around line 1750 ---
+1748:   }
+1749: 
+1750:   .activityText {
+1751:     min-width: 0;
+1752:   }
+
+--- around line 1754 ---
+1752:   }
+1753: 
+1754:   .activityTitleRow {
+1755:     display: flex;
+1756:     align-items: center;
+
+--- around line 1760 ---
+1758:   }
+1759: 
+1760:   .activityTitleRow strong {
+1761:     overflow: hidden;
+1762:     text-overflow: ellipsis;
+
+--- around line 1776 ---
+1774:   }
+1775: 
+1776:   .activityText p {
+1777:     margin: 5px 0 4px;
+1778:     color: rgba(255,255,255,.7);
+
+--- around line 1783 ---
+1781:   }
+1782: 
+1783:   .activityText small {
+1784:     color: rgba(255,255,255,.44);
+1785:     font-size: 11px;
+
+--- around line 1796 ---
+1794:   }
+1795: 
+1796:   .activityArrow {
+1797:     color: rgba(255,255,255,.4);
+1798:     font-size: 24px;
+
+--- around line 1853 ---
+1851:   }
+1852: 
+1853:   .activityEmpty {
+1854:     margin: 8px 16px 20px;
+1855:     padding: 38px 20px;
+
+--- around line 1862 ---
+1860:   }
+1861: 
+1862:   .activityEmpty > span {
+1863:     display: block;
+1864:     font-size: 52px;
+
+--- around line 1867 ---
+1865:   }
+1866: 
+1867:   .activityEmpty h2 {
+1868:     margin: 14px 0 7px;
+1869:     font-size: 24px;
+
+--- around line 1872 ---
+1870:   }
+1871: 
+1872:   .activityEmpty p {
+1873:     max-width: 430px;
+1874:     margin: 0 auto;
+
+--- around line 1879 ---
+1877:   }
+1878: 
+1879:   .activitySkeleton {
+1880:     display: grid;
+1881:     grid-template-columns: 56px minmax(0,1fr);
+
+--- around line 1902 ---
+1900:       );
+1901:     background-size: 220% 100%;
+1902:     animation: activityShimmer 1.1s linear infinite;
+1903:   }
+1904: 
+
+--- around line 1922 ---
+1920:       );
+1921:     background-size: 220% 100%;
+1922:     animation: activityShimmer 1.1s linear infinite;
+1923:   }
+1924: 
+
+--- around line 1934 ---
+1932:   }
+1933: 
+1934:   @keyframes activityShimmer {
+1935:     from {
+1936:       background-position: 220% 0;
+
+--- around line 1945 ---
+1943: 
+1944:   @media (max-width: 620px) {
+1945:     .activityHero {
+1946:       flex-direction: column;
+1947:     }
+
+--- around line 1949 ---
+1947:     }
+1948: 
+1949:     .activityHeroActions {
+1950:       width: 100%;
+1951:       justify-content: flex-start;
+
+--- around line 1954 ---
+1952:     }
+1953: 
+1954:     .activitySummary {
+1955:       grid-template-columns:
+1956:         repeat(2, minmax(0,1fr));
+
+--- around line 1959 ---
+1957:     }
+1958: 
+1959:     .activityHero h1 {
+1960:       font-size: 38px;
+1961:     }
+
+--- around line 1969 ---
+1967: 
+1968:   @media (max-width: 390px) {
+1969:     .activityMain {
+1970:       grid-template-columns:
+1971:         50px
+
+--- around line 1978 ---
+1976:     }
+1977: 
+1978:     .activityAvatarWrap,
+1979:     .activityAvatar {
+1980:       width: 50px;
+
+--- around line 1979 ---
+1977: 
+1978:     .activityAvatarWrap,
+1979:     .activityAvatar {
+1980:       width: 50px;
+1981:       height: 50px;
+
+--- around line 1984 ---
+1982:     }
+1983: 
+1984:     .activityText p {
+1985:       font-size: 12px;
+1986:     }
+
+--- around line 1988 ---
+1986:     }
+1987: 
+1988:     .activityTab {
+1989:       padding: 9px 11px;
+1990:     }
+
+--- around line 1994 ---
+1992: 
+1993:   @media (min-width: 820px) {
+1994:     .activityHero,
+1995:     .activitySummary,
+1996:     .activityTabs,
+
+--- around line 1995 ---
+1993:   @media (min-width: 820px) {
+1994:     .activityHero,
+1995:     .activitySummary,
+1996:     .activityTabs,
+1997:     .activityList,
+
+--- around line 1996 ---
+1994:     .activityHero,
+1995:     .activitySummary,
+1996:     .activityTabs,
+1997:     .activityList,
+1998:     .activityEmpty,
+
+--- around line 1997 ---
+1995:     .activitySummary,
+1996:     .activityTabs,
+1997:     .activityList,
+1998:     .activityEmpty,
+1999:     .activityMessage {
+
+--- around line 1998 ---
+1996:     .activityTabs,
+1997:     .activityList,
+1998:     .activityEmpty,
+1999:     .activityMessage {
+2000:       max-width: 900px;
+
+--- around line 1999 ---
+1997:     .activityList,
+1998:     .activityEmpty,
+1999:     .activityMessage {
+2000:       max-width: 900px;
+2001:       margin-right: auto;
+
+--- around line 2005 ---
+2003:     }
+2004: 
+2005:     .activitySummary,
+2006:     .activityTabs,
+2007:     .activityList {
+
+--- around line 2006 ---
+2004: 
+2005:     .activitySummary,
+2006:     .activityTabs,
+2007:     .activityList {
+2008:       width: calc(100% - 32px);
+
+--- around line 2007 ---
+2005:     .activitySummary,
+2006:     .activityTabs,
+2007:     .activityList {
+2008:       width: calc(100% - 32px);
+2009:     }
+
+--- around line 2011 ---
+2009:     }
+2010: 
+2011:     .activityMessage,
+2012:     .activityEmpty {
+2013:       width: calc(100% - 32px);
+
+--- around line 2012 ---
+2010: 
+2011:     .activityMessage,
+2012:     .activityEmpty {
+2013:       width: calc(100% - 32px);
+2014:     }
+
+================================================================================
+app/messages/page.tsx
+================================================================================
+
+--- around line 8 ---
+6: import { supabase } from "../../lib/supabaseClient";
+7: 
+8: export default function MessagesPage() {
+9:   const router = useRouter();
+10: 
+
+--- around line 12 ---
+10: 
+11:   const [email, setEmail] = useState("");
+12:   const [messages, setMessages] = useState<any[]>([]);
+13:   const [profiles, setProfiles] = useState<Record<string, any>>({});
+14:   const [replyText, setReplyText] = useState<Record<string, string>>({});
+
+--- around line 14 ---
+12:   const [messages, setMessages] = useState<any[]>([]);
+13:   const [profiles, setProfiles] = useState<Record<string, any>>({});
+14:   const [replyText, setReplyText] = useState<Record<string, string>>({});
+15:   const [openThread, setOpenThread] = useState("");
+16:   const [search, setSearch] = useState("");
+
+--- around line 21 ---
+19: 
+20:   useEffect(() => {
+21:     loadMessages();
+22:   }, []);
+23: 
+
+--- around line 25 ---
+23: 
+24:   async function loadProfiles(emails: string[]) {
+25:     const unique = Array.from(new Set(emails.filter(Boolean)));
+26:     if (!unique.length) return;
+27: 
+
+--- around line 29 ---
+27: 
+28:     const { data } = await supabase
+29:       .from("creator_profiles")
+30:       .select("*")
+31:       .in("email", unique);
+
+--- around line 41 ---
+39:   }
+40: 
+41:   async function loadMessages() {
+42:     setLoading(true);
+43: 
+
+--- around line 47 ---
+45: 
+46:     if (!data.user) {
+47:       router.push("/login");
+48:       return;
+49:     }
+
+--- around line 55 ---
+53: 
+54:     const { data: inbox, error } = await supabase
+55:       .from("messages")
+56:       .select("*")
+57:       .or(`sender_email.eq.${userEmail},receiver_email.eq.${userEmail}`)
+
+--- around line 62 ---
+60:     if (error) {
+61:       console.error(error);
+62:       setMessages([]);
+63:       setLoading(false);
+64:       return;
+
+--- around line 67 ---
+65:     }
+66: 
+67:     const safeMessages = inbox || [];
+68:     setMessages(safeMessages);
+69: 
+
+--- around line 68 ---
+66: 
+67:     const safeMessages = inbox || [];
+68:     setMessages(safeMessages);
+69: 
+70:     await loadProfiles(
+
+--- around line 71 ---
+69: 
+70:     await loadProfiles(
+71:       safeMessages.flatMap((msg) => [msg.sender_email, msg.receiver_email])
+72:     );
+73: 
+
+--- around line 75 ---
+73: 
+74:     await supabase
+75:       .from("messages")
+76:       .update({ read: true })
+77:       .eq("receiver_email", userEmail)
+
+--- around line 97 ---
+95: 
+96:   function openProfile(userEmail: string) {
+97:     router.push(`/u/${encodeURIComponent(userEmail)}`);
+98:   }
+99: 
+
+--- around line 103 ---
+101:     const map: Record<string, any[]> = {};
+102: 
+103:     messages.forEach((msg) => {
+104:       const other = otherUser(msg);
+105:       if (!map[other]) map[other] = [];
+
+--- around line 112 ---
+110:       .map(([user, list]) => ({
+111:         user,
+112:         messages: list.sort(
+113:           (a, b) =>
+114:             new Date(a.created_at).getTime() -
+
+--- around line 121 ---
+119:       .filter((thread) => {
+120:         const text = `${profileName(thread.user)} ${thread.user} ${
+121:           thread.latest?.message || ""
+122:         }`.toLowerCase();
+123:         return text.includes(search.toLowerCase());
+
+--- around line 130 ---
+128:           new Date(a.latest.created_at).getTime()
+129:       );
+130:   }, [messages, profiles, search, email]);
+131: 
+132:   async function sendReply(receiverEmail: string) {
+
+--- around line 132 ---
+130:   }, [messages, profiles, search, email]);
+131: 
+132:   async function sendReply(receiverEmail: string) {
+133:     const text = replyText[receiverEmail];
+134: 
+
+--- around line 133 ---
+131: 
+132:   async function sendReply(receiverEmail: string) {
+133:     const text = replyText[receiverEmail];
+134: 
+135:     if (!text?.trim()) {
+
+--- around line 136 ---
+134: 
+135:     if (!text?.trim()) {
+136:       setStatus("Write a reply first.");
+137:       return;
+138:     }
+
+--- around line 140 ---
+138:     }
+139: 
+140:     const { error } = await supabase.from("messages").insert({
+141:       sender_email: email,
+142:       receiver_email: receiverEmail,
+
+--- around line 143 ---
+141:       sender_email: email,
+142:       receiver_email: receiverEmail,
+143:       subject: "Reply",
+144:       message: text.trim(),
+145:       read: false,
+
+--- around line 144 ---
+142:       receiver_email: receiverEmail,
+143:       subject: "Reply",
+144:       message: text.trim(),
+145:       read: false,
+146:     });
+
+--- around line 149 ---
+147: 
+148:     if (error) {
+149:       setStatus(error.message);
+150:       return;
+151:     }
+
+--- around line 153 ---
+151:     }
+152: 
+153:     await supabase.from("notifications").insert({
+154:       user_email: receiverEmail,
+155:       type: "message",
+
+--- around line 155 ---
+153:     await supabase.from("notifications").insert({
+154:       user_email: receiverEmail,
+155:       type: "message",
+156:       title: "New Message",
+157:       message: `${profileName(email)} sent you a message.`,
+
+--- around line 156 ---
+154:       user_email: receiverEmail,
+155:       type: "message",
+156:       title: "New Message",
+157:       message: `${profileName(email)} sent you a message.`,
+158:       link: "/messages",
+
+--- around line 157 ---
+155:       type: "message",
+156:       title: "New Message",
+157:       message: `${profileName(email)} sent you a message.`,
+158:       link: "/messages",
+159:       is_read: false,
+
+--- around line 158 ---
+156:       title: "New Message",
+157:       message: `${profileName(email)} sent you a message.`,
+158:       link: "/messages",
+159:       is_read: false,
+160:     });
+
+--- around line 159 ---
+157:       message: `${profileName(email)} sent you a message.`,
+158:       link: "/messages",
+159:       is_read: false,
+160:     });
+161: 
+
+--- around line 162 ---
+160:     });
+161: 
+162:     setReplyText((prev) => ({ ...prev, [receiverEmail]: "" }));
+163:     setStatus("Message sent.");
+164:     loadMessages();
+
+--- around line 163 ---
+161: 
+162:     setReplyText((prev) => ({ ...prev, [receiverEmail]: "" }));
+163:     setStatus("Message sent.");
+164:     loadMessages();
+165:   }
+
+--- around line 164 ---
+162:     setReplyText((prev) => ({ ...prev, [receiverEmail]: "" }));
+163:     setStatus("Message sent.");
+164:     loadMessages();
+165:   }
+166: 
+
+--- around line 169 ---
+167:   if (loading) {
+168:     return (
+169:       <main className="messagesPage">
+170:         <UTVNav />
+171:         <section className="loadingCard">
+
+--- around line 172 ---
+170:         <UTVNav />
+171:         <section className="loadingCard">
+172:           <h1>Loading messages...</h1>
+173:         </section>
+174:       </main>
+
+--- around line 179 ---
+177: 
+178:   return (
+179:     <main className="messagesPage">
+180:       <UTVNav />
+181: 
+
+--- around line 183 ---
+181: 
+182:       <style>{`
+183:         .messagesPage {
+184:           min-height:100vh;
+185:           padding-bottom:120px;
+
+--- around line 193 ---
+191:         }
+192: 
+193:         .messagesTop {
+194:           padding:18px 16px 12px;
+195:         }
+
+--- around line 197 ---
+195:         }
+196: 
+197:         .messagesTop h1 {
+198:           margin:0;
+199:           font-size:42px;
+
+--- around line 203 ---
+201:         }
+202: 
+203:         .messagesTop p {
+204:           color:rgba(255,255,255,.65);
+205:           line-height:1.45;
+
+--- around line 376 ---
+374: 
+375:         @media (min-width:900px) {
+376:           .messagesTop,
+377:           .searchWrap,
+378:           .threadList {
+
+--- around line 386 ---
+384:       `}</style>
+385: 
+386:       <section className="messagesTop">
+387:         <h1>Messages</h1>
+388:         <p>Talk with creators, fans, collaborators, and people building on UTV.</p>
+
+--- around line 387 ---
+385: 
+386:       <section className="messagesTop">
+387:         <h1>Messages</h1>
+388:         <p>Talk with creators, fans, collaborators, and people building on UTV.</p>
+389: 
+
+--- around line 393 ---
+391:           className="btn"
+392:           style={{ width: "100%", marginTop: 14 }}
+393:           onClick={() => router.push("/messages/new")}
+394:         >
+395:           + New Message
+
+--- around line 395 ---
+393:           onClick={() => router.push("/messages/new")}
+394:         >
+395:           + New Message
+396:         </button>
+397:       </section>
+
+--- around line 402 ---
+400:         <input
+401:           className="searchInput"
+402:           placeholder="Search messages..."
+403:           value={search}
+404:           onChange={(e) => setSearch(e.target.value)}
+
+--- around line 411 ---
+409:         {threads.length === 0 ? (
+410:           <div className="emptyCard">
+411:             <h2>No messages yet</h2>
+412:             <p style={{ color: "rgba(255,255,255,.6)" }}>
+413:               Start a conversation with a creator.
+
+--- around line 445 ---
+443:                   >
+444:                     <h3>{profileName(thread.user)}</h3>
+445:                     <p>{thread.latest?.message || "New conversation"}</p>
+446:                   </div>
+447: 
+
+--- around line 466 ---
+464:                 {isOpen && (
+465:                   <div className="chatBody">
+466:                     {thread.messages.slice(-12).map((msg) => (
+467:                       <div
+468:                         key={msg.id}
+
+--- around line 473 ---
+471:                         }`}
+472:                       >
+473:                         {msg.message}
+474:                       </div>
+475:                     ))}
+
+--- around line 480 ---
+478:                       <span>😊</span>
+479:                       <input
+480:                         placeholder={`Message ${profileName(thread.user)}...`}
+481:                         value={replyText[thread.user] || ""}
+482:                         onChange={(e) =>
+
+--- around line 481 ---
+479:                       <input
+480:                         placeholder={`Message ${profileName(thread.user)}...`}
+481:                         value={replyText[thread.user] || ""}
+482:                         onChange={(e) =>
+483:                           setReplyText((prev) => ({
+
+--- around line 483 ---
+481:                         value={replyText[thread.user] || ""}
+482:                         onChange={(e) =>
+483:                           setReplyText((prev) => ({
+484:                             ...prev,
+485:                             [thread.user]: e.target.value,
+
+--- around line 491 ---
+489:                       <button
+490:                         className="sendBtn"
+491:                         onClick={() => sendReply(thread.user)}
+492:                       >
+493:                         ➤
