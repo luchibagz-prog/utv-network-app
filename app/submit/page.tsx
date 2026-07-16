@@ -223,11 +223,20 @@ export default function SubmitPage() {
   const [mediaScale, setMediaScale] = useState(1);
   const [mediaX, setMediaX] = useState(0);
   const [mediaY, setMediaY] = useState(0);
+  const [mediaRotation, setMediaRotation] = useState(0);
+  const [blurBackground, setBlurBackground] = useState(false);
 
-  const mediaDragRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
+  const mediaPointersRef = useRef<
+    Map<number, { x: number; y: number }>
+  >(new Map());
+
+  const mediaGestureRef = useRef<{
+    startDistance: number;
+    startAngle: number;
+    startScale: number;
+    startRotation: number;
+    dragStartX: number;
+    dragStartY: number;
     originalX: number;
     originalY: number;
   } | null>(null);
@@ -324,6 +333,8 @@ const selectedSticker = stickers.find(
     setMediaScale(1);
     setMediaX(0);
     setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
     setLinkUrl("");
     setCoverUrl("");
 
@@ -496,6 +507,8 @@ const selectedSticker = stickers.find(
     setMediaScale(1);
     setMediaX(0);
     setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
     setLinkUrl("");
 
     stopCamera();
@@ -1216,6 +1229,31 @@ const selectedSticker = stickers.find(
     setMediaScale(1);
     setMediaX(0);
     setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+  }
+
+  function pointerDistance(
+    first: { x: number; y: number },
+    second: { x: number; y: number }
+  ) {
+    return Math.hypot(
+      second.x - first.x,
+      second.y - first.y
+    );
+  }
+
+  function pointerAngle(
+    first: { x: number; y: number },
+    second: { x: number; y: number }
+  ) {
+    return (
+      Math.atan2(
+        second.y - first.y,
+        second.x - first.x
+      ) *
+      (180 / Math.PI)
+    );
   }
 
   function beginMediaDrag(
@@ -1227,28 +1265,113 @@ const selectedSticker = stickers.find(
       event.pointerId
     );
 
-    mediaDragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originalX: mediaX,
-      originalY: mediaY,
-    };
+    mediaPointersRef.current.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    const pointers = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    if (pointers.length === 1) {
+      mediaGestureRef.current = {
+        startDistance: 0,
+        startAngle: 0,
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: event.clientX,
+        dragStartY: event.clientY,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    }
+
+    if (pointers.length === 2) {
+      mediaGestureRef.current = {
+        startDistance: pointerDistance(
+          pointers[0],
+          pointers[1]
+        ),
+        startAngle: pointerAngle(
+          pointers[0],
+          pointers[1]
+        ),
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: 0,
+        dragStartY: 0,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    }
   }
 
   function moveMedia(
     event: React.PointerEvent<HTMLElement>
   ) {
-    const drag = mediaDragRef.current;
-
     if (
-      !drag ||
-      drag.pointerId !== event.pointerId
+      !mediaPointersRef.current.has(
+        event.pointerId
+      )
     ) {
       return;
     }
 
     event.preventDefault();
+
+    mediaPointersRef.current.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    const pointers = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    const gesture =
+      mediaGestureRef.current;
+
+    if (!gesture) return;
+
+    if (pointers.length >= 2) {
+      const distance = pointerDistance(
+        pointers[0],
+        pointers[1]
+      );
+
+      const angle = pointerAngle(
+        pointers[0],
+        pointers[1]
+      );
+
+      const nextScale =
+        gesture.startDistance > 0
+          ? gesture.startScale *
+            (distance /
+              gesture.startDistance)
+          : gesture.startScale;
+
+      setMediaScale(
+        Math.max(
+          0.5,
+          Math.min(4, nextScale)
+        )
+      );
+
+      setMediaRotation(
+        gesture.startRotation +
+          (angle - gesture.startAngle)
+      );
+
+      return;
+    }
 
     const bounds =
       event.currentTarget.parentElement
@@ -1257,26 +1380,36 @@ const selectedSticker = stickers.find(
     if (!bounds) return;
 
     const movementX =
-      ((event.clientX - drag.startX) /
+      ((event.clientX -
+        gesture.dragStartX) /
         bounds.width) *
       100;
 
     const movementY =
-      ((event.clientY - drag.startY) /
+      ((event.clientY -
+        gesture.dragStartY) /
         bounds.height) *
       100;
 
     setMediaX(
       Math.max(
         -100,
-        Math.min(100, drag.originalX + movementX)
+        Math.min(
+          100,
+          gesture.originalX +
+            movementX
+        )
       )
     );
 
     setMediaY(
       Math.max(
         -100,
-        Math.min(100, drag.originalY + movementY)
+        Math.min(
+          100,
+          gesture.originalY +
+            movementY
+        )
       )
     );
   }
@@ -1284,6 +1417,10 @@ const selectedSticker = stickers.find(
   function endMediaDrag(
     event: React.PointerEvent<HTMLElement>
   ) {
+    mediaPointersRef.current.delete(
+      event.pointerId
+    );
+
     if (
       event.currentTarget.hasPointerCapture(
         event.pointerId
@@ -1294,7 +1431,24 @@ const selectedSticker = stickers.find(
       );
     }
 
-    mediaDragRef.current = null;
+    const remaining = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    if (remaining.length === 1) {
+      mediaGestureRef.current = {
+        startDistance: 0,
+        startAngle: 0,
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: remaining[0].x,
+        dragStartY: remaining[0].y,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    } else if (remaining.length === 0) {
+      mediaGestureRef.current = null;
+    }
   }
 
   const mediaObjectFit =
@@ -1304,6 +1458,7 @@ const selectedSticker = stickers.find(
 
   const mediaTransform = `
     translate(${mediaX}%, ${mediaY}%)
+    rotate(${mediaRotation}deg)
     scale(${mediaScale})
   `;
 
@@ -1753,6 +1908,17 @@ const selectedSticker = stickers.find(
       </header>
 
       <section className="editorCanvas">
+        {blurBackground &&
+          previewUrl &&
+          !previewIsVideo && (
+            <div
+              className="mediaBlurBackdrop"
+              style={{
+                backgroundImage:
+                  `url("${previewUrl}")`,
+              }}
+            />
+          )}
         {previewIsVideo ? (
           <video
             src={previewUrl}
@@ -1932,9 +2098,49 @@ const selectedSticker = stickers.find(
           <span>+</span>
         </div>
 
+        <div className="rotationControl">
+          <span>↺</span>
+
+          <input
+            type="range"
+            min="-180"
+            max="180"
+            step="1"
+            value={mediaRotation}
+            onChange={(event) =>
+              setMediaRotation(
+                Number(event.target.value)
+              )
+            }
+            aria-label="Rotate story media"
+          />
+
+          <span>↻</span>
+        </div>
+
+        <button
+          type="button"
+          className={
+            blurBackground
+              ? "blurToggle activeBlurToggle"
+              : "blurToggle"
+          }
+          onClick={() =>
+            setBlurBackground(
+              (current) => !current
+            )
+          }
+          disabled={
+            !previewUrl ||
+            previewIsVideo
+          }
+        >
+          ✨ Blurred Background
+        </button>
+
         <p className="mediaControlHint">
-          Drag the photo or video to position it.
-          Use the slider to resize it.
+          Drag with one finger. Pinch with two
+          fingers to resize and rotate.
         </p>
       </section>
 
@@ -2828,6 +3034,8 @@ const styles = `
 
   .editorCanvas {
     position: relative;
+    overflow: hidden;
+    position: relative;
     width: 100%;
     height: min(67vh, 720px);
     min-height: 450px;
@@ -2836,7 +3044,21 @@ const styles = `
     touch-action: none;
   }
 
+  .mediaBlurBackdrop {
+    position: absolute;
+    inset: -28px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(24px);
+    opacity: .72;
+    transform: scale(1.12);
+    pointer-events: none;
+  }
+
   .editorMedia {
+    position: relative;
+    z-index: 2;
     width: 100%;
     height: 100%;
     display: block;
@@ -2919,6 +3141,52 @@ const styles = `
   .zoomControl input {
     width: 100%;
     accent-color: #52f7c8;
+  }
+
+  .rotationControl {
+    display: grid;
+    grid-template-columns:
+      28px minmax(0, 1fr) 28px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    color: white;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .rotationControl input {
+    width: 100%;
+    accent-color: #8b79ff;
+  }
+
+  .blurToggle {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 10px;
+    color: rgba(255,255,255,.72);
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.055);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .activeBlurToggle {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8b79ff
+      );
+  }
+
+  .blurToggle:disabled {
+    opacity: .35;
   }
 
   .mediaControlHint {
