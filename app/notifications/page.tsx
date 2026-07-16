@@ -7,11 +7,35 @@ import { supabase } from "../../lib/supabaseClient";
 
 const tabs = ["All", "Unread", "Messages", "Social", "Creator", "Live", "UTV"];
 
+function timeAgo(value?: string) {
+  if (!value) return "Just now";
+
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "Just now";
+  }
+
+  const seconds = Math.max(
+    1,
+    Math.floor((Date.now() - timestamp) / 1000)
+  );
+
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+
+  return new Date(value).toLocaleDateString();
+}
+
 export default function NotificationsPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [items, setItems] = useState<any[]>([]);
+  const [profiles, setProfiles] =
+    useState<Record<string, any>>({});
   const [tab, setTab] = useState("All");
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +69,42 @@ export default function NotificationsPage() {
       .order("created_at", { ascending: false })
       .limit(100);
 
-    setItems(data || []);
+    const rows = data || [];
+    setItems(rows);
+
+    const actorEmails = Array.from(
+      new Set(
+        rows
+          .map(
+            (item: any) =>
+              item.actor_email ||
+              item.sender_email ||
+              item.from_email ||
+              ""
+          )
+          .filter(Boolean)
+      )
+    );
+
+    if (actorEmails.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("creator_profiles")
+        .select(
+          "email,display_name,username,avatar_url"
+        )
+        .in("email", actorEmails);
+
+      const nextProfiles: Record<string, any> = {};
+
+      (profileRows || []).forEach((profile: any) => {
+        nextProfiles[profile.email] = profile;
+      });
+
+      setProfiles(nextProfiles);
+    } else {
+      setProfiles({});
+    }
+
     setLoading(false);
   }
 
@@ -104,6 +163,35 @@ export default function NotificationsPage() {
     if (tab === "Unread") return items.filter((x) => !x.is_read);
     return items.filter((x) => group(x.type) === tab);
   }, [items, tab]);
+
+  function actorEmail(item: any) {
+    return (
+      item.actor_email ||
+      item.sender_email ||
+      item.from_email ||
+      ""
+    );
+  }
+
+  function actorProfile(item: any) {
+    return profiles[actorEmail(item)] || {};
+  }
+
+  function actorName(item: any) {
+    const profile = actorProfile(item);
+    const emailValue = actorEmail(item);
+
+    return (
+      profile.display_name ||
+      profile.username ||
+      emailValue.split("@")[0] ||
+      "UTV User"
+    );
+  }
+
+  function actorAvatar(item: any) {
+    return actorProfile(item).avatar_url || "";
+  }
 
   async function openNotification(item: any) {
     if (!item.is_read) await markOneRead(item.id);
@@ -193,6 +281,18 @@ export default function NotificationsPage() {
           padding:14px;
           box-shadow:0 18px 45px rgba(0,0,0,.24);
           cursor:pointer;
+          transition:
+            transform .15s ease,
+            border-color .15s ease,
+            background .15s ease;
+        }
+
+        .notice:active {
+          transform:scale(.985);
+        }
+
+        .notice:hover {
+          border-color:rgba(255,255,255,.24);
         }
 
         .notice.unread {
@@ -200,21 +300,128 @@ export default function NotificationsPage() {
           background:linear-gradient(135deg, rgba(82,247,200,.12), rgba(123,97,255,.09));
         }
 
-        .noticeIcon {
-          width:50px;
-          height:50px;
-          border-radius:50%;
+        .noticeAvatarWrap {
+          position:relative;
+          width:54px;
+          height:54px;
+          flex:0 0 auto;
+        }
+
+        .noticeAvatar {
+          width:54px;
+          height:54px;
           display:grid;
           place-items:center;
-          background:rgba(255,255,255,.1);
+          object-fit:cover;
+          color:white;
           border:2px solid #52f7c8;
-          font-size:22px;
-          flex:0 0 auto;
+          border-radius:50%;
+          background:rgba(255,255,255,.09);
+          font-size:18px;
+          font-weight:950;
+        }
+
+        .fallbackAvatar {
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.28),
+              rgba(123,97,255,.35)
+            );
+        }
+
+        .noticeTypeIcon {
+          position:absolute;
+          right:-3px;
+          bottom:-3px;
+          width:25px;
+          height:25px;
+          display:grid;
+          place-items:center;
+          border:2px solid #07111e;
+          border-radius:50%;
+          background:#171c29;
+          font-size:12px;
         }
 
         .noticeBody {
           flex:1;
           min-width:0;
+        }
+
+        .noticeTitleRow {
+          display:flex;
+          align-items:center;
+          gap:7px;
+        }
+
+        .noticeTitleRow h3 {
+          flex:1;
+          min-width:0;
+          overflow:hidden;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+        }
+
+        .unreadDot {
+          width:8px;
+          height:8px;
+          flex:0 0 auto;
+          border-radius:50%;
+          background:#52f7c8;
+          box-shadow:0 0 12px rgba(82,247,200,.9);
+        }
+
+        .noticeMeta {
+          display:flex;
+          align-items:center;
+          gap:6px;
+          margin-top:8px;
+          color:rgba(255,255,255,.45);
+          font-size:11px;
+          font-weight:800;
+        }
+
+        .noticeArrow {
+          align-self:center;
+          color:rgba(255,255,255,.4);
+          font-size:25px;
+        }
+
+        .topActions {
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:10px;
+          margin-top:14px;
+        }
+
+        .activityButton,
+        .markAllButton {
+          min-height:46px;
+          padding:10px 12px;
+          border-radius:15px;
+          font-weight:950;
+        }
+
+        .activityButton {
+          color:white;
+          border:1px solid rgba(255,255,255,.14);
+          background:rgba(255,255,255,.07);
+        }
+
+        .markAllButton {
+          color:#06120d;
+          border:0;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #7b61ff
+            );
+        }
+
+        .markAllButton:disabled {
+          opacity:.45;
         }
 
         .noticeBody h3 {
@@ -258,9 +465,22 @@ export default function NotificationsPage() {
         <h1>Notifications</h1>
         <p>{unreadCount} unread • messages, likes, follows, bookings, live alerts, and UTV updates.</p>
 
-        <button className="btn" style={{ width: "100%", marginTop: 14 }} onClick={markAllRead}>
-          Mark All Read
-        </button>
+        <div className="topActions">
+          <button
+            className="activityButton"
+            onClick={() => router.push("/activity")}
+          >
+            Open Activity Center
+          </button>
+
+          <button
+            className="markAllButton"
+            onClick={markAllRead}
+            disabled={unreadCount === 0}
+          >
+            Mark All Read
+          </button>
+        </div>
       </section>
 
       <section className="tabs">
@@ -291,15 +511,51 @@ export default function NotificationsPage() {
               className={item.is_read ? "notice" : "notice unread"}
               onClick={() => openNotification(item)}
             >
-              <div className="noticeIcon">{icon(item.type)}</div>
+              <div className="noticeAvatarWrap">
+                {actorAvatar(item) ? (
+                  <img
+                    className="noticeAvatar"
+                    src={actorAvatar(item)}
+                    alt={actorName(item)}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="noticeAvatar fallbackAvatar">
+                    {actorName(item)
+                      .slice(0, 1)
+                      .toUpperCase()}
+                  </div>
+                )}
+
+                <span className="noticeTypeIcon">
+                  {icon(item.type)}
+                </span>
+              </div>
 
               <div className="noticeBody">
-                <h3>{item.title || "UTV Notification"}</h3>
-                <p>{item.message || "Something happened on UTV."}</p>
-                <div className="time">
-                  {item.created_at ? new Date(item.created_at).toLocaleString() : ""}
+                <div className="noticeTitleRow">
+                  <h3>
+                    {item.title || "UTV Notification"}
+                  </h3>
+
+                  {!item.is_read && (
+                    <span className="unreadDot" />
+                  )}
+                </div>
+
+                <p>
+                  {item.message ||
+                    "Something happened on UTV."}
+                </p>
+
+                <div className="noticeMeta">
+                  <span>{actorName(item)}</span>
+                  <span>•</span>
+                  <span>{timeAgo(item.created_at)}</span>
                 </div>
               </div>
+
+              <span className="noticeArrow">›</span>
             </div>
           ))}
         </section>
