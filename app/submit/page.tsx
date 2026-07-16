@@ -217,6 +217,21 @@ export default function SubmitPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
+  const [mediaFit, setMediaFit] = useState<
+    "contain" | "cover" | "original"
+  >("contain");
+  const [mediaScale, setMediaScale] = useState(1);
+  const [mediaX, setMediaX] = useState(0);
+  const [mediaY, setMediaY] = useState(0);
+
+  const mediaDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originalX: number;
+    originalY: number;
+  } | null>(null);
+
   const [linkUrl, setLinkUrl] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
 
@@ -305,6 +320,10 @@ const selectedSticker = stickers.find(
 
     setFile(null);
     setPreview("");
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
     setLinkUrl("");
     setCoverUrl("");
 
@@ -473,6 +492,10 @@ const selectedSticker = stickers.find(
 
     setFile(selectedFile);
     setPreview(URL.createObjectURL(selectedFile));
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
     setLinkUrl("");
 
     stopCamera();
@@ -1188,6 +1211,102 @@ const selectedSticker = stickers.find(
     }
   }
 
+  function resetMediaFrame() {
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+  }
+
+  function beginMediaDrag(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    event.preventDefault();
+
+    event.currentTarget.setPointerCapture(
+      event.pointerId
+    );
+
+    mediaDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originalX: mediaX,
+      originalY: mediaY,
+    };
+  }
+
+  function moveMedia(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    const drag = mediaDragRef.current;
+
+    if (
+      !drag ||
+      drag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const bounds =
+      event.currentTarget.parentElement
+        ?.getBoundingClientRect();
+
+    if (!bounds) return;
+
+    const movementX =
+      ((event.clientX - drag.startX) /
+        bounds.width) *
+      100;
+
+    const movementY =
+      ((event.clientY - drag.startY) /
+        bounds.height) *
+      100;
+
+    setMediaX(
+      Math.max(
+        -100,
+        Math.min(100, drag.originalX + movementX)
+      )
+    );
+
+    setMediaY(
+      Math.max(
+        -100,
+        Math.min(100, drag.originalY + movementY)
+      )
+    );
+  }
+
+  function endMediaDrag(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    if (
+      event.currentTarget.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    }
+
+    mediaDragRef.current = null;
+  }
+
+  const mediaObjectFit =
+    mediaFit === "original"
+      ? "contain"
+      : mediaFit;
+
+  const mediaTransform = `
+    translate(${mediaX}%, ${mediaY}%)
+    scale(${mediaScale})
+  `;
+
   async function submitCreation() {
     if (isStory) {
       await shareStory();
@@ -1643,12 +1762,45 @@ const selectedSticker = stickers.find(
             muted
             playsInline
             controls
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+            style={{
+              objectFit: mediaObjectFit,
+              transform: mediaTransform,
+              maxWidth:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+              maxHeight:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+            }}
           />
         ) : previewUrl ? (
           <img
             src={previewUrl}
             className="editorMedia"
             alt="UTV preview"
+            draggable={false}
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+            style={{
+              objectFit: mediaObjectFit,
+              transform: mediaTransform,
+              maxWidth:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+              maxHeight:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+            }}
           />
         ) : (
           <div className="emptyPreview">
@@ -1715,6 +1867,75 @@ const selectedSticker = stickers.find(
             </strong>
           </div>
         )}
+      </section>
+
+      <section className="mediaFrameControls">
+        <div className="fitModeRow">
+          <button
+            className={
+              mediaFit === "contain"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("contain")}
+          >
+            Fit
+          </button>
+
+          <button
+            className={
+              mediaFit === "cover"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("cover")}
+          >
+            Fill
+          </button>
+
+          <button
+            className={
+              mediaFit === "original"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("original")}
+          >
+            Original
+          </button>
+
+          <button
+            className="resetFrameButton"
+            onClick={resetMediaFrame}
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="zoomControl">
+          <span>−</span>
+
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.05"
+            value={mediaScale}
+            onChange={(event) =>
+              setMediaScale(
+                Number(event.target.value)
+              )
+            }
+            aria-label="Resize story media"
+          />
+
+          <span>+</span>
+        </div>
+
+        <p className="mediaControlHint">
+          Drag the photo or video to position it.
+          Use the slider to resize it.
+        </p>
       </section>
 
       <section className="editorToolbar">
@@ -2620,7 +2841,91 @@ const styles = `
     height: 100%;
     display: block;
     object-fit: contain;
+    object-position: center;
     background: #000;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition:
+      object-fit .18s ease,
+      transform .08s linear;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  .editorMedia:active {
+    cursor: grabbing;
+  }
+
+  .mediaFrameControls {
+    width: 100%;
+    padding: 12px 14px 10px;
+    border-top:
+      1px solid rgba(255,255,255,.08);
+    border-bottom:
+      1px solid rgba(255,255,255,.08);
+    background:
+      rgba(8,10,16,.96);
+  }
+
+  .fitModeRow {
+    display: grid;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) auto;
+    gap: 8px;
+  }
+
+  .fitModeButton,
+  .resetFrameButton {
+    min-height: 38px;
+    padding: 8px 10px;
+    color: rgba(255,255,255,.72);
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.055);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .activeFitMode {
+    color: #06110d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8b79ff
+      );
+  }
+
+  .resetFrameButton {
+    color: #ffd166;
+  }
+
+  .zoomControl {
+    display: grid;
+    grid-template-columns:
+      28px minmax(0, 1fr) 28px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 11px;
+    color: white;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .zoomControl input {
+    width: 100%;
+    accent-color: #52f7c8;
+  }
+
+  .mediaControlHint {
+    margin: 7px 0 0;
+    color: rgba(255,255,255,.48);
+    text-align: center;
+    font-size: 10px;
   }
 
   .emptyPreview {
@@ -2935,7 +3240,8 @@ const styles = `
     }
 
     .editorCanvas,
-    .editorToolbar {
+    .editorToolbar,
+    .mediaFrameControls {
       max-width: 620px;
       margin-right: auto;
       margin-left: auto;
