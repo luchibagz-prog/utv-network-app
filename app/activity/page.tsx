@@ -1286,6 +1286,50 @@ const messageChannelRef =
     );
   }
 
+  function activityDayLabel(value?: string) {
+    if (!value) return "Earlier";
+
+    const date = new Date(value);
+    const today = new Date();
+    const yesterday = new Date();
+
+    yesterday.setDate(today.getDate() - 1);
+
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+
+    if (sameDay(date, today)) return "Today";
+    if (sameDay(date, yesterday)) return "Yesterday";
+
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year:
+        date.getFullYear() !== today.getFullYear()
+          ? "numeric"
+          : undefined,
+    });
+  }
+
+  const groupedActivity = filteredItems.reduce(
+    (
+      groups: Record<string, ActivityItem[]>,
+      item: ActivityItem
+    ) => {
+      const label = activityDayLabel(item.createdAt);
+
+      if (!groups[label]) {
+        groups[label] = [];
+      }
+
+      groups[label].push(item);
+      return groups;
+    },
+    {}
+  );
+
   return (
     <main className="activityPage">
       <UTVNav />
@@ -1457,8 +1501,27 @@ const messageChannelRef =
         </section>
       ) : (
         <section className="activityList">
-          {filteredItems.map(
-            renderActivityCard
+          {Object.entries(groupedActivity).map(
+            ([label, group]) => (
+              <section
+                className="activityGroup"
+                key={label}
+              >
+                <div className="activityGroupHeader">
+                  <h2>{label}</h2>
+                  <span>
+                    {group.length}{" "}
+                    {group.length === 1
+                      ? "update"
+                      : "updates"}
+                  </span>
+                </div>
+
+                <div className="activityGroupList">
+                  {group.map(renderActivityCard)}
+                </div>
+              </section>
+            )
           )}
         </section>
       )}
@@ -1671,8 +1734,39 @@ const styles = `
 
   .activityList {
     display: grid;
-    gap: 10px;
+    gap: 20px;
     padding: 0 16px 20px;
+  }
+
+  .activityGroup {
+    display: grid;
+    gap: 10px;
+  }
+
+  .activityGroupHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 3px;
+  }
+
+  .activityGroupHeader h2 {
+    margin: 0;
+    color: white;
+    font-size: 15px;
+    letter-spacing: -.2px;
+  }
+
+  .activityGroupHeader span {
+    color: rgba(255,255,255,.42);
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .activityGroupList {
+    display: grid;
+    gap: 10px;
   }
 
   .activityCard {
@@ -1686,6 +1780,21 @@ const styles = `
         rgba(255,255,255,.075),
         rgba(255,255,255,.035)
       );
+    transition:
+      transform .16s ease,
+      border-color .16s ease,
+      background .16s ease,
+      box-shadow .16s ease;
+  }
+
+  .activityCard:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.22);
+    box-shadow: 0 14px 34px rgba(0,0,0,.22);
+  }
+
+  .activityCard:active {
+    transform: scale(.992);
   }
 
   .unreadCard {
