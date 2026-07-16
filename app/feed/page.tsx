@@ -903,24 +903,31 @@ export default function FeedPage() {
   }
     async function sharePost(item: any) {
     const url = `${window.location.origin}/watch/${item.id}`;
+    const shareData = {
+      title: item.title || "UTV",
+      text:
+        item.description ||
+        "Check this out on UTV",
+      url,
+    };
 
     try {
       if (navigator.share) {
-        await navigator.share({
-          title: item.title || "UTV",
-          text:
-            item.description ||
-            "Check this out on UTV",
-          url,
-        });
-
+        await navigator.share(shareData);
         return;
       }
 
       await navigator.clipboard.writeText(url);
-      alert("UTV link copied.");
-    } catch {
-      // User closed the native share menu.
+      showFeedMessage("UTV link copied.");
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        try {
+          await navigator.clipboard.writeText(url);
+          showFeedMessage("UTV link copied.");
+        } catch {
+          showFeedMessage("Could not share this post.");
+        }
+      }
     }
   }
 
@@ -1995,19 +2002,14 @@ export default function FeedPage() {
                           )
                         }
                       >
-                        ▣
+                        🔖
                       </button>
                     </div>
 
                     <p className="actionMeta">
-                      {likes[
-                        item.id
-                      ] || 0}{" "}
-                      likes ·{" "}
-                      {
-                        postComments.length
-                      }{" "}
-                      comments
+                      {likes[item.id] || 0} likes ·{" "}
+                      {postComments.length} comments ·{" "}
+                      {Number(item.views || 0)} views
                     </p>
 
                     {item.title && (
@@ -2603,26 +2605,42 @@ const styles = `
     top: 50%;
     left: 50%;
     z-index: 20;
-    font-size: 82px;
+    font-size: clamp(86px, 20vw, 132px);
     pointer-events: none;
-    transform:
-      translate(-50%, -50%)
-      scale(0);
-    animation:
-      heartPop .65s ease forwards;
+    transform: translate(-50%, -50%) scale(0);
+    animation: heartPop .72s cubic-bezier(.2,.9,.25,1) forwards;
     filter:
-      drop-shadow(
-        0 0 18px rgba(255,92,168,.7)
-      );
+      drop-shadow(0 0 12px rgba(255,255,255,.7))
+      drop-shadow(0 0 30px rgba(255,92,168,.9));
+    will-change: transform, opacity;
   }
 
   @keyframes heartPop {
     0% {
-      transform:
-        translate(-50%, -50%)
-        scale(0);
+      transform: translate(-50%, -50%) scale(.15) rotate(-12deg);
       opacity: 0;
     }
+
+    28% {
+      transform: translate(-50%, -50%) scale(1.32) rotate(7deg);
+      opacity: 1;
+    }
+
+    58% {
+      transform: translate(-50%, -50%) scale(.94) rotate(-3deg);
+      opacity: 1;
+    }
+
+    78% {
+      transform: translate(-50%, -50%) scale(1.06) rotate(0);
+      opacity: 1;
+    }
+
+    100% {
+      transform: translate(-50%, -58%) scale(1);
+      opacity: 0;
+    }
+  }
 
     35% {
       transform:
@@ -2673,22 +2691,44 @@ const styles = `
   .actionRow {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 8px;
   }
 
   .actionButton {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
     padding: 0;
     color: white;
     border: 0;
+    border-radius: 50%;
     background: transparent;
     font-size: 25px;
+    transition:
+      transform .14s ease,
+      background .14s ease,
+      filter .14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .actionButton:hover {
+    background: rgba(255,255,255,.075);
+  }
+
+  .actionButton:active {
+    transform: scale(.82);
   }
 
   .actionButton.liked {
-    filter:
-      drop-shadow(
-        0 0 7px rgba(255,92,168,.65)
-      );
+    animation: likedPulse .3s ease;
+    filter: drop-shadow(0 0 9px rgba(255,92,168,.8));
+  }
+
+  @keyframes likedPulse {
+    0% { transform: scale(.75); }
+    55% { transform: scale(1.22); }
+    100% { transform: scale(1); }
   }
 
   .saveButton {
