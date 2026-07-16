@@ -98,6 +98,14 @@ export default function FeedPage() {
   const [muted, setMuted] =
     useState<Record<string, boolean>>({});
 
+  const [mediaFits, setMediaFits] =
+    useState<
+      Record<string, "contain" | "cover">
+    >({});
+
+  const [fullscreenPost, setFullscreenPost] =
+    useState<any | null>(null);
+
   const [search, setSearch] =
     useState("");
 
@@ -1044,6 +1052,32 @@ export default function FeedPage() {
     );
   }
 
+  function mediaFitFor(id: string) {
+    return mediaFits[id] || "cover";
+  }
+
+  function toggleMediaFit(id: string) {
+    setMediaFits((current) => ({
+      ...current,
+      [id]:
+        (current[id] || "cover") === "cover"
+          ? "contain"
+          : "cover",
+    }));
+  }
+
+  function openFullscreenPost(item: any) {
+    setFullscreenPost(item);
+
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeFullscreenPost() {
+    setFullscreenPost(null);
+
+    document.body.style.overflow = "";
+  }
+
   function toggleVideoSound(
     id: string
   ) {
@@ -1811,6 +1845,10 @@ export default function FeedPage() {
                           src={
                             videoUrl
                           }
+                          style={{
+                            objectFit:
+                              mediaFitFor(item.id),
+                          }}
                           poster={
                             image ||
                             undefined
@@ -1827,6 +1865,10 @@ export default function FeedPage() {
                               item
                             )
                           }
+                          onContextMenu={(event) => {
+                            event.preventDefault();
+                            openFullscreenPost(item);
+                          }}
                           onCanPlay={(
                             event
                           ) => {
@@ -1874,6 +1916,14 @@ export default function FeedPage() {
                       <img
                         className="postMedia"
                         src={image}
+                        style={{
+                          objectFit:
+                            mediaFitFor(item.id),
+                        }}
+                        onContextMenu={(event) => {
+                          event.preventDefault();
+                          openFullscreenPost(item);
+                        }}
                         alt={
                           item.title ||
                           "UTV post"
@@ -1947,6 +1997,33 @@ export default function FeedPage() {
                     ] && (
                       <div className="heartBurst">
                         ❤️
+                      </div>
+                    )}
+
+                    {(image || videoUrl) && (
+                      <div className="mediaViewControls">
+                        <button
+                          type="button"
+                          className="mediaViewButton"
+                          onClick={() =>
+                            toggleMediaFit(item.id)
+                          }
+                        >
+                          {mediaFitFor(item.id) ===
+                          "cover"
+                            ? "Fit"
+                            : "Fill"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="mediaViewButton"
+                          onClick={() =>
+                            openFullscreenPost(item)
+                          }
+                        >
+                          ⛶
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2184,6 +2261,90 @@ export default function FeedPage() {
           )}
         </section>
       )}
+      {fullscreenPost && (() => {
+        const fullscreenImage =
+          mediaImage(fullscreenPost);
+
+        const fullscreenVideo =
+          mediaVideo(fullscreenPost);
+
+        const fullscreenUsesVideo =
+          Boolean(fullscreenVideo) &&
+          (
+            isDirectVideo(fullscreenVideo) ||
+            Boolean(fullscreenPost.video_url) ||
+            String(
+              fullscreenPost.content_type || ""
+            )
+              .toLowerCase()
+              .includes("video")
+          );
+
+        return (
+          <div
+            className="fullscreenMediaViewer"
+            role="dialog"
+            aria-modal="true"
+            onClick={closeFullscreenPost}
+          >
+            <button
+              type="button"
+              className="fullscreenClose"
+              onClick={closeFullscreenPost}
+              aria-label="Close fullscreen media"
+            >
+              ✕
+            </button>
+
+            <div
+              className="fullscreenMediaStage"
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+            >
+              {fullscreenUsesVideo ? (
+                <video
+                  src={fullscreenVideo}
+                  poster={
+                    fullscreenImage ||
+                    undefined
+                  }
+                  controls
+                  autoPlay
+                  playsInline
+                  className="fullscreenMedia"
+                />
+              ) : fullscreenImage ? (
+                <img
+                  src={fullscreenImage}
+                  alt={
+                    fullscreenPost.title ||
+                    "UTV post"
+                  }
+                  className="fullscreenMedia"
+                />
+              ) : (
+                <div className="fullscreenFallback">
+                  UTV
+                </div>
+              )}
+
+              <div className="fullscreenCaption">
+                <strong>
+                  {fullscreenPost.title ||
+                    "UTV Post"}
+                </strong>
+
+                {fullscreenPost.description && (
+                  <p>
+                    {fullscreenPost.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }
@@ -2543,7 +2704,16 @@ const styles = `
     min-height: 280px;
     display: block;
     object-fit: cover;
+    object-position: center;
     background: #000;
+    transition:
+      object-fit .2s ease,
+      opacity .2s ease,
+      transform .15s ease;
+  }
+
+  .postMedia:active {
+    transform: scale(.997);
   }
 
   video.postMedia {
@@ -2571,6 +2741,38 @@ const styles = `
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .mediaViewControls {
+    position: absolute;
+    left: 12px;
+    bottom: 13px;
+    z-index: 8;
+    display: flex;
+    gap: 7px;
+  }
+
+  .mediaViewButton {
+    min-width: 42px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    padding: 0 11px;
+    color: white;
+    border:
+      1px solid rgba(255,255,255,.2);
+    border-radius: 999px;
+    background: rgba(0,0,0,.58);
+    backdrop-filter: blur(12px);
+    font-size: 11px;
+    font-weight: 950;
+    transition:
+      transform .14s ease,
+      background .14s ease;
+  }
+
+  .mediaViewButton:active {
+    transform: scale(.88);
   }
 
   .soundButton {
@@ -2682,6 +2884,101 @@ const styles = `
         #111,
         #050505
       );
+  }
+
+  .fullscreenMediaViewer {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    padding:
+      max(18px, env(safe-area-inset-top))
+      14px
+      max(18px, env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.94);
+    backdrop-filter: blur(20px);
+    animation: fullscreenFade .18s ease;
+  }
+
+  @keyframes fullscreenFade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .fullscreenClose {
+    position: fixed;
+    top:
+      max(16px, env(safe-area-inset-top));
+    right: 16px;
+    z-index: 10001;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    color: white;
+    border:
+      1px solid rgba(255,255,255,.2);
+    border-radius: 50%;
+    background: rgba(20,20,25,.75);
+    backdrop-filter: blur(14px);
+    font-size: 18px;
+  }
+
+  .fullscreenMediaStage {
+    width: min(100%, 980px);
+    max-height: calc(100vh - 40px);
+    display: grid;
+    justify-items: center;
+    overflow: auto;
+  }
+
+  .fullscreenMedia {
+    width: 100%;
+    max-height: 82vh;
+    display: block;
+    object-fit: contain;
+    border-radius: 18px;
+    background: #000;
+    box-shadow:
+      0 28px 90px rgba(0,0,0,.65);
+  }
+
+  .fullscreenFallback {
+    width: min(100%, 720px);
+    min-height: 60vh;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background:
+      linear-gradient(
+        135deg,
+        #151828,
+        #050505
+      );
+    font-size: 64px;
+    font-weight: 950;
+  }
+
+  .fullscreenCaption {
+    width: 100%;
+    padding: 14px 4px 0;
+    color: white;
+  }
+
+  .fullscreenCaption strong {
+    font-size: 18px;
+  }
+
+  .fullscreenCaption p {
+    margin: 6px 0 0;
+    color: rgba(255,255,255,.68);
+    line-height: 1.45;
   }
 
   .postBody {
