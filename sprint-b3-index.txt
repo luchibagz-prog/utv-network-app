@@ -1,0 +1,157 @@
+app/feed/page.tsx:365:        (story) => story.user_email
+app/feed/page.tsx:447:          category.includes("music")
+app/feed/page.tsx:600:      .from("notifications")
+app/feed/page.tsx:613:      .from("notifications")
+app/feed/page.tsx:653:  async function savePostEdit(id: string) {
+app/feed/page.tsx:739:        .from("notifications")
+app/feed/page.tsx:904:    async function sharePost(item: any) {
+app/feed/page.tsx:1155:  const storyBubbles =
+app/feed/page.tsx:1162:      stories.forEach((story) => {
+app/feed/page.tsx:1165:            story.user_email
+app/feed/page.tsx:1169:            story.user_email
+app/feed/page.tsx:1170:          ] = story;
+app/feed/page.tsx:1249:                "music"
+app/feed/page.tsx:1418:        <div className="storyWrap">
+app/feed/page.tsx:1420:            className="storyButton addStory"
+app/feed/page.tsx:1423:                "/submit?type=story"
+app/feed/page.tsx:1430:          <span className="storyName">
+app/feed/page.tsx:1435:        {storyBubbles.map(
+app/feed/page.tsx:1436:          (story) => {
+app/feed/page.tsx:1439:                story.user_email
+app/feed/page.tsx:1444:                story.user_email
+app/feed/page.tsx:1449:                className="storyWrap"
+app/feed/page.tsx:1450:                key={story.id}
+app/feed/page.tsx:1454:                    story.noStory
+app/feed/page.tsx:1455:                      ? "storyButton noStory"
+app/feed/page.tsx:1456:                      : "storyButton"
+app/feed/page.tsx:1460:                      story.noStory
+app/feed/page.tsx:1463:                        story.user_email
+app/feed/page.tsx:1470:                      `/stories/${story.id}`
+app/feed/page.tsx:1480:                  ) : story.media_type ===
+app/feed/page.tsx:1482:                    story.media_url ? (
+app/feed/page.tsx:1485:                        story.media_url
+app/feed/page.tsx:1491:                  ) : story.media_url ? (
+app/feed/page.tsx:1494:                        story.media_url
+app/feed/page.tsx:1504:                <span className="storyName">
+app/feed/page.tsx:1991:                          sharePost(item)
+app/feed/page.tsx:2012:                      {Number(item.views || 0)} views
+app/feed/page.tsx:2054:                              savePostEdit(
+app/feed/page.tsx:2322:  .storyWrap {
+app/feed/page.tsx:2329:  .storyButton {
+app/feed/page.tsx:2342:  .storyButton.noStory {
+app/feed/page.tsx:2347:  .storyButton.addStory {
+app/feed/page.tsx:2360:  .storyButton img,
+app/feed/page.tsx:2361:  .storyButton video {
+app/feed/page.tsx:2370:  .storyName {
+app/feed/page.tsx:2620:      transform: translate(-50%, -50%) scale(.15) rotate(-12deg);
+app/feed/page.tsx:2625:      transform: translate(-50%, -50%) scale(1.32) rotate(7deg);
+app/feed/page.tsx:2630:      transform: translate(-50%, -50%) scale(.94) rotate(-3deg);
+app/feed/page.tsx:2635:      transform: translate(-50%, -50%) scale(1.06) rotate(0);
+app/activity/page.tsx:18:  | "notifications"
+app/activity/page.tsx:27:    | "notification"
+app/activity/page.tsx:61:    id: "notifications",
+app/activity/page.tsx:149:  if (type.includes("story")) {
+app/activity/page.tsx:268:      .channel("activity-center-notifications")
+app/activity/page.tsx:274:          table: "notifications",
+app/activity/page.tsx:442:      notificationRows,
+app/activity/page.tsx:448:        "notifications",
+app/activity/page.tsx:513:       const notifications: ActivityItem[] =
+app/activity/page.tsx:514:  notificationRows
+app/activity/page.tsx:526:            "notification";
+app/activity/page.tsx:529:            id: `notification-${row.id}`,
+app/activity/page.tsx:530:            source: "notification",
+app/activity/page.tsx:733:      ...notifications,
+app/activity/page.tsx:808:        "notifications"
+app/activity/page.tsx:813:            "notification"
+app/activity/page.tsx:861:        notifications:
+app/activity/page.tsx:865:              "notification"
+app/activity/page.tsx:913:      "notification"
+app/activity/page.tsx:914:        ? "notifications"
+app/activity/page.tsx:960:        .from("notifications")
+app/activity/page.tsx:1090:        .from("notifications")
+app/activity/page.tsx:1152:  function renderActivityCard(
+app/activity/page.tsx:1179:            ? "activityCard"
+app/activity/page.tsx:1180:            : "activityCard unreadCard"
+app/activity/page.tsx:1346:              tabCounts.notifications
+app/activity/page.tsx:1461:            renderActivityCard
+app/activity/page.tsx:1678:  .activityCard {
+app/notifications/page.tsx:66:      .from("notifications")
+app/notifications/page.tsx:112:    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+app/notifications/page.tsx:117:      .from("notifications")
+app/notifications/page.tsx:135:    if (t.includes("story")) return "📸";
+app/notifications/page.tsx:153:    if (t.includes("live") || t.includes("story")) return "Live";
+app/notifications/page.tsx:213:    <main className="notificationsPage">
+app/notifications/page.tsx:217:        .notificationsPage {
+app/notifications/page.tsx:500:          <h2>Loading notifications...</h2>
+app/notifications/page.tsx:504:          <h2>No {tab.toLowerCase()} notifications</h2>
+app/submit/page.tsx:47:    type: "story",
+app/submit/page.tsx:91:    description: "Share music and visuals.",
+app/submit/page.tsx:92:    type: "music",
+app/submit/page.tsx:206:  const draggingTextRef = useRef<DragState | null>(null);
+app/submit/page.tsx:207:  const draggingStickerRef = useRef<DragState | null>(null);
+app/submit/page.tsx:248:  const [musicFile, setMusicFile] = useState<File | null>(null);
+app/submit/page.tsx:249:  const [musicUrl, setMusicUrl] = useState("");
+app/submit/page.tsx:250:  const [musicTitle, setMusicTitle] = useState("");
+app/submit/page.tsx:267:  const isStory = creationType === "story";
+app/submit/page.tsx:360:      story: "Feed",
+app/submit/page.tsx:365:      music: "Music",
+app/submit/page.tsx:375:    if (type === "story") {
+app/submit/page.tsx:443:        "Allow camera and microphone access, or choose a file from Gallery."
+app/submit/page.tsx:651:      isStory ? "Add text to your story" : "Add text to your post"
+app/submit/page.tsx:747:    draggingTextRef.current = {
+app/submit/page.tsx:762:    const drag = draggingTextRef.current;
+app/submit/page.tsx:764:    if (!drag) return;
+app/submit/page.tsx:774:      ((event.clientX - drag.startX) / editorBounds.width) *
+app/submit/page.tsx:778:      ((event.clientY - drag.startY) /
+app/submit/page.tsx:784:        layer.id === drag.id
+app/submit/page.tsx:789:                Math.max(6, drag.originalX + moveX)
+app/submit/page.tsx:793:                Math.max(6, drag.originalY + moveY)
+app/submit/page.tsx:813:    draggingTextRef.current = null;
+app/submit/page.tsx:825:    draggingStickerRef.current = {
+app/submit/page.tsx:840:    const drag = draggingStickerRef.current;
+app/submit/page.tsx:842:    if (!drag) return;
+app/submit/page.tsx:852:      ((event.clientX - drag.startX) / editorBounds.width) *
+app/submit/page.tsx:856:      ((event.clientY - drag.startY) /
+app/submit/page.tsx:862:        sticker.id === drag.id
+app/submit/page.tsx:867:                Math.max(6, drag.originalX + moveX)
+app/submit/page.tsx:871:                Math.max(6, drag.originalY + moveY)
+app/submit/page.tsx:891:    draggingStickerRef.current = null;
+app/submit/page.tsx:911:    if (!musicTitle) {
+app/submit/page.tsx:997:    if (musicFile) {
+app/submit/page.tsx:999:        "story-music",
+app/submit/page.tsx:1001:        musicFile
+app/submit/page.tsx:1005:    return musicUrl.trim();
+app/submit/page.tsx:1031:      const { data: storyRow, error: storyError } =
+app/submit/page.tsx:1042:            music_url: finalMusicUrl || null,
+app/submit/page.tsx:1043:            music_title: musicTitle.trim() || null,
+app/submit/page.tsx:1053:      if (storyError) {
+app/submit/page.tsx:1054:        throw storyError;
+app/submit/page.tsx:1057:      if (storyRow?.id) {
+app/submit/page.tsx:1058:        router.push(`/stories/${storyRow.id}`);
+app/submit/page.tsx:1066:        error?.message || "Could not share your story."
+app/submit/page.tsx:1242:    const drag = mediaDragRef.current;
+app/submit/page.tsx:1245:      !drag ||
+app/submit/page.tsx:1246:      drag.pointerId !== event.pointerId
+app/submit/page.tsx:1260:      ((event.clientX - drag.startX) /
+app/submit/page.tsx:1265:      ((event.clientY - drag.startY) /
+app/submit/page.tsx:1272:        Math.min(100, drag.originalX + movementX)
+app/submit/page.tsx:1279:        Math.min(100, drag.originalY + movementY)
+app/submit/page.tsx:1335:              Post a story, upload content, or go live.
+app/submit/page.tsx:1346:                  ? "storyCreateCard"
+app/submit/page.tsx:1688:                setCreationType("story")
+app/submit/page.tsx:1787:            draggable={false}
+app/submit/page.tsx:1862:        {(musicFile || musicUrl.trim()) && (
+app/submit/page.tsx:1863:          <div className="musicBadge">
+app/submit/page.tsx:1866:              {musicTitle || "Story Music"}
+app/submit/page.tsx:1915:        <div className="zoomControl">
+app/submit/page.tsx:1929:            aria-label="Resize story media"
+app/submit/page.tsx:2095:        {(musicFile || musicUrl.trim()) && (
+app/submit/page.tsx:2100:              value={musicTitle}
+app/submit/page.tsx:2406:  .storyCreateCard {
+app/submit/page.tsx:2907:  .zoomControl {
+app/submit/page.tsx:2919:  .zoomControl input {
+app/submit/page.tsx:2970:  .musicBadge {
+app/submit/page.tsx:2986:  .musicBadge strong {
+app/profile/page.tsx:115:  const totalViews = uploads.reduce((sum, item) => sum + Number(item.views || 0), 0);
+app/profile/page.tsx:281:        .musicCard {
+app/profile/page.tsx:429:            <div className="musicCard">

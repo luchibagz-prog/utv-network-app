@@ -1,0 +1,646 @@
+              ? `/live-room/${item.raw.live_id}`
+              : "/activity",
+
+          is_read: false,
+        });
+    }
+
+    setMessage(
+      status === "accepted"
+        ? "Request accepted."
+        : "Request declined."
+    );
+
+    window.setTimeout(
+      () => setMessage(""),
+      1500
+    );
+  }
+    function openActorProfile(
+    item: ActivityItem
+  ) {
+    if (!item.actorEmail) {
+      return;
+    }
+
+    router.push(
+      `/u/${encodeURIComponent(
+        item.actorEmail
+      )}`
+    );
+  }
+
+  function renderActivityCard(
+    item: ActivityItem
+  ) {
+    const avatar =
+      actorAvatar(item);
+
+    const name =
+      actorName(item);
+
+    const isPendingRequest =
+      (
+        item.source ===
+          "booking" ||
+        item.source ===
+          "live_request"
+      ) &&
+      (
+        !item.status ||
+        item.status ===
+          "pending"
+      );
+
+    return (
+      <article
+        key={item.id}
+        className={
+          item.isRead
+            ? "activityCard"
+            : "activityCard unreadCard"
+        }
+      >
+        <button
+          className="activityMain"
+          onClick={() =>
+            openActivity(item)
+          }
+        >
+          <div className="activityAvatarWrap">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={name}
+                className="activityAvatar"
+              />
+            ) : (
+              <div className="activityAvatar">
+                👤
+              </div>
+            )}
+
+            <span className="activityTypeIcon">
+              {activityIcon(item)}
+            </span>
+          </div>
+
+          <div className="activityText">
+            <div className="activityTitleRow">
+              <strong>
+                {item.title}
+              </strong>
+
+              {!item.isRead && (
+                <span className="unreadDot" />
+              )}
+            </div>
+
+            <p>
+              <button
+                type="button"
+                className="actorNameButton"
+                onClick={(event) => {
+                  event.stopPropagation();
+
+                  openActorProfile(
+                    item
+                  );
+                }}
+              >
+                {name}
+              </button>{" "}
+
+              {item.message}
+            </p>
+
+            <small>
+              {timeAgo(
+                item.createdAt
+              )}
+            </small>
+          </div>
+
+          <span className="activityArrow">
+            ›
+          </span>
+        </button>
+
+        {isPendingRequest && (
+          <div className="requestActions">
+            <button
+              className="declineButton"
+              onClick={() =>
+                updateRequestStatus(
+                  item,
+                  "declined"
+                )
+              }
+            >
+              Decline
+            </button>
+
+            <button
+              className="acceptButton"
+              onClick={() =>
+                updateRequestStatus(
+                  item,
+                  "accepted"
+                )
+              }
+            >
+              Accept
+            </button>
+          </div>
+        )}
+
+        {item.status &&
+          item.status !==
+            "pending" && (
+            <div
+              className={`statusBadge ${item.status}`}
+            >
+              {item.status}
+            </div>
+          )}
+      </article>
+    );
+  }
+
+  return (
+    <main className="activityPage">
+      <UTVNav />
+
+      <style>{styles}</style>
+
+      <section className="activityHero">
+        <div>
+          <p className="activityEyebrow">
+            UTV ACTIVITY CENTER
+          </p>
+
+          <h1>Activity</h1>
+
+          <span>
+            Likes, follows, comments,
+            messages, bookings, and live
+            requests in one place.
+          </span>
+        </div>
+
+        <div className="activityHeroActions">
+          <button
+            className="refreshActivityButton"
+            onClick={() =>
+              loadActivity(false)
+            }
+            disabled={refreshing}
+          >
+            {refreshing
+              ? "Refreshing..."
+              : "↻ Refresh"}
+          </button>
+
+          {unreadCount > 0 && (
+            <button
+              className="markReadButton"
+              onClick={markAllRead}
+            >
+              Mark all read
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="activitySummary">
+        <article>
+          <strong>
+            {unreadCount}
+          </strong>
+
+          <span>Unread</span>
+        </article>
+
+        <article>
+          <strong>
+            {
+              tabCounts.notifications
+            }
+          </strong>
+
+          <span>Notifications</span>
+        </article>
+
+        <article>
+          <strong>
+            {tabCounts.messages}
+          </strong>
+
+          <span>Messages</span>
+        </article>
+
+        <article>
+          <strong>
+            {tabCounts.bookings}
+          </strong>
+
+          <span>Bookings</span>
+        </article>
+      </section>
+
+      <section className="activityTabs">
+        {activityTabs.map(
+          (tab) => (
+            <button
+              key={tab.id}
+              className={
+                activeTab === tab.id
+                  ? "activityTab activeTab"
+                  : "activityTab"
+              }
+              onClick={() =>
+                setActiveTab(
+                  tab.id
+                )
+              }
+            >
+              <span>
+                {tab.icon}
+              </span>
+
+              <b>
+                {tab.label}
+              </b>
+
+              <small>
+                {
+                  tabCounts[
+                    tab.id
+                  ]
+                }
+              </small>
+            </button>
+          )
+        )}
+      </section>
+
+      {message && (
+        <div className="activityMessage">
+          {message}
+        </div>
+      )}
+
+      {loading ? (
+        <section className="activityList">
+          {[1, 2, 3, 4].map(
+            (item) => (
+              <article
+                className="activitySkeleton"
+                key={item}
+              >
+                <div className="skeletonAvatar" />
+
+                <div className="skeletonText">
+                  <div className="skeletonLine wide" />
+                  <div className="skeletonLine" />
+                  <div className="skeletonLine short" />
+                </div>
+              </article>
+            )
+          )}
+        </section>
+      ) : filteredItems.length ===
+        0 ? (
+        <section className="activityEmpty">
+          <span>
+            {activeTab ===
+            "messages"
+              ? "💬"
+              : activeTab ===
+                "bookings"
+              ? "📅"
+              : activeTab ===
+                "live"
+              ? "🔴"
+              : "🔔"}
+          </span>
+
+          <h2>
+            No activity yet
+          </h2>
+
+          <p>
+            New likes, followers,
+            comments, messages,
+            bookings, and live
+            requests will appear here.
+          </p>
+        </section>
+      ) : (
+        <section className="activityList">
+          {filteredItems.map(
+            renderActivityCard
+          )}
+        </section>
+      )}
+    </main>
+  );
+}
+const styles = `
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #05080f;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+  }
+
+  .activityPage {
+    min-height: 100vh;
+    padding-bottom: 120px;
+    overflow-x: hidden;
+    color: white;
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82,247,200,.16),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 90% 6%,
+        rgba(123,97,255,.22),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        #07111e,
+        #05080f
+      );
+  }
+
+  .activityHero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 16px 14px;
+  }
+
+  .activityEyebrow {
+    margin: 0 0 7px;
+    color: #52f7c8;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 2px;
+  }
+
+  .activityHero h1 {
+    margin: 0;
+    font-size: 42px;
+    line-height: 1;
+    letter-spacing: -1.5px;
+  }
+
+  .activityHero span {
+    display: block;
+    max-width: 620px;
+    margin-top: 9px;
+    color: rgba(255,255,255,.62);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .activityHeroActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .refreshActivityButton,
+  .markReadButton {
+    padding: 10px 13px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px;
+    background: rgba(255,255,255,.07);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .markReadButton {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .activitySummary {
+    display: grid;
+    grid-template-columns:
+      repeat(4, minmax(0,1fr));
+    gap: 9px;
+    padding: 0 16px 14px;
+  }
+
+  .activitySummary article {
+    padding: 13px 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 18px;
+    background: rgba(255,255,255,.055);
+  }
+
+  .activitySummary strong {
+    display: block;
+    font-size: 21px;
+  }
+
+  .activitySummary span {
+    display: block;
+    margin-top: 3px;
+    color: rgba(255,255,255,.52);
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .activityTabs {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding: 0 16px 14px;
+    scrollbar-width: none;
+  }
+
+  .activityTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .activityTab {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns:
+      auto auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 13px;
+    color: rgba(255,255,255,.72);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background: rgba(255,255,255,.055);
+  }
+
+  .activityTab b {
+    font-size: 12px;
+  }
+
+  .activityTab small {
+    min-width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    padding: 0 5px;
+    color: white;
+    border-radius: 999px;
+    background: rgba(0,0,0,.35);
+    font-size: 9px;
+    font-weight: 950;
+  }
+
+  .activeTab {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .activeTab small {
+    color: white;
+    background: rgba(0,0,0,.48);
+  }
+
+  .activityMessage {
+    margin: 0 16px 12px;
+    padding: 11px 13px;
+    color: #52f7c8;
+    text-align: center;
+    border: 1px solid rgba(82,247,200,.17);
+    border-radius: 15px;
+    background: rgba(82,247,200,.075);
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .activityList {
+    display: grid;
+    gap: 10px;
+    padding: 0 16px 20px;
+  }
+
+  .activityCard {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 20px;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.075),
+        rgba(255,255,255,.035)
+      );
+  }
+
+  .unreadCard {
+    border-color: rgba(82,247,200,.32);
+    background:
+      linear-gradient(
+        145deg,
+        rgba(82,247,200,.105),
+        rgba(123,97,255,.06)
+      );
+    box-shadow:
+      0 0 28px rgba(82,247,200,.08);
+  }
+
+  .activityMain {
+    width: 100%;
+    display: grid;
+    grid-template-columns:
+      56px
+      minmax(0,1fr)
+      22px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    color: white;
+    text-align: left;
+    border: 0;
+    background: transparent;
+  }
+
+  .activityAvatarWrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+  }
+
+  .activityAvatar {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    object-fit: cover;
+    border: 2px solid #52f7c8;
+    border-radius: 50%;
+    background: rgba(255,255,255,.07);
+  }
+
+  .activityTypeIcon {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #07111e;
+    border-radius: 50%;
+    background: #171c29;
+    font-size: 12px;
+  }
+
+  .activityText {
+    min-width: 0;
+  }
+
+  .activityTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .activityTitleRow strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
