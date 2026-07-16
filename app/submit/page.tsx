@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-type Mode = "hub" | "camera" | "editor" | "link";
+type Mode = "hub" | "camera" | "editor" | "share" | "link";
 type CameraFacing = "user" | "environment";
 type Destination = "feed" | "profile" | "world";
 
@@ -202,6 +202,12 @@ export default function SubmitPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdRecordedRef = useRef(false);
+  const recordStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drawCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawHistoryRef = useRef<ImageData[]>([]);
+  const drawingRef = useRef(false);
 
   const draggingTextRef = useRef<DragState | null>(null);
   const draggingStickerRef = useRef<DragState | null>(null);
@@ -213,6 +219,17 @@ export default function SubmitPage() {
     useState<CameraFacing>("environment");
 
   const [recording, setRecording] = useState(false);
+  const [storyPanel, setStoryPanel] = useState<
+    "none" | "text" | "music" | "sticker" | "draw"
+  >("none");
+  const [textDraft, setTextDraft] = useState("");
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [editingTextId, setEditingTextId] = useState("");
+  const [drawColor, setDrawColor] = useState("#ffffff");
+  const [drawTool, setDrawTool] = useState<
+    "pen" | "marker" | "neon" | "eraser"
+  >("pen");
+  const [drawVersion, setDrawVersion] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -364,6 +381,13 @@ const selectedSticker = stickers.find(
 
     setMessage("");
     setPosting(false);
+    setStoryPanel("none");
+    setTextDraft("");
+    setEditingTextId("");
+    setDrawVersion(0);
+    drawHistoryRef.current = [];
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (recordStopTimerRef.current) clearTimeout(recordStopTimerRef.current);
   }
 
   function startCreate(type: string) {
@@ -638,6 +662,9 @@ const selectedSticker = stickers.find(
       recorder.start();
       setRecording(true);
       setMessage("");
+      recordStopTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, 30000);
     } catch (error) {
       console.error(error);
       setMessage("Video recording could not start.");
@@ -645,12 +672,52 @@ const selectedSticker = stickers.find(
   }
 
   function stopRecording() {
+    if (recordStopTimerRef.current) {
+      clearTimeout(recordStopTimerRef.current);
+      recordStopTimerRef.current = null;
+    }
+
     if (
       recorderRef.current &&
       recorderRef.current.state !== "inactive"
     ) {
       recorderRef.current.stop();
     }
+  }
+
+  function beginStoryCapture() {
+    if (recording) return;
+    holdRecordedRef.current = false;
+    holdTimerRef.current = setTimeout(() => {
+      holdRecordedRef.current = true;
+      startRecording();
+    }, 320);
+  }
+
+  function endStoryCapture() {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (holdRecordedRef.current) {
+      stopRecording();
+      window.setTimeout(() => {
+        holdRecordedRef.current = false;
+      }, 250);
+      return;
+    }
+
+    capturePhoto();
+  }
+
+  function cancelStoryCapture() {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (holdRecordedRef.current) stopRecording();
   }
     function toggleDestination(destination: Destination) {
     setDestinations((current) => ({
@@ -935,6 +1002,150 @@ const selectedSticker = stickers.find(
     setMusicUrl("");
     setMusicTitle("");
   }
+
+  function openTextComposer(layer?: TextLayer) {
+    setEditingTextId(layer?.id || "");
+    setTextDraft(layer?.text || "");
+    setTextColor(layer?.color || "#ffffff");
+    setStoryPanel("text");
+  }
+
+  function saveStoryText() {
+    const value = textDraft.trim();
+    if (!value) {
+      setStoryPanel("none");
+      return;
+    }
+
+    if (editingTextId) {
+      setTextLayers((current) =>
+        current.map((layer) =>
+          layer.id === editingTextId
+            ? { ...layer, text: value, color: textColor }
+            : layer
+        )
+      );
+      setSelectedTextId(editingTextId);
+    } else {
+      const layer: TextLayer = {
+        id: makeId("text"),
+        text: value,
+        color: textColor,
+        size: 34,
+        x: 50,
+        y: 42,
+      };
+      setTextLayers((current) => [...current, layer]);
+      setSelectedTextId(layer.id);
+    }
+
+    setEditingTextId("");
+    setTextDraft("");
+    setStoryPanel("none");
+  }
+
+  function prepareDrawCanvas() {
+    window.setTimeout(() => {
+      const canvas = drawCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.max(1, window.devicePixelRatio || 1);
+      const old = canvas.width && canvas.height
+        ? canvas.toDataURL()
+        : "";
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      if (old) {
+        const image = new Image();
+        image.onload = () => context.drawImage(image, 0, 0, rect.width, rect.height);
+        image.src = old;
+      }
+    }, 0);
+  }
+
+  function openDrawPanel() {
+    setStoryPanel("draw");
+    prepareDrawCanvas();
+  }
+
+  function beginDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    const ratio = Math.max(1, window.devicePixelRatio || 1);
+    context.save();
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawHistoryRef.current.push(
+      context.getImageData(0, 0, canvas.width / ratio, canvas.height / ratio)
+    );
+    context.restore();
+    const rect = canvas.getBoundingClientRect();
+    context.beginPath();
+    context.moveTo(event.clientX - rect.left, event.clientY - rect.top);
+    drawingRef.current = true;
+  }
+
+  function moveDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.globalCompositeOperation =
+      drawTool === "eraser" ? "destination-out" : "source-over";
+    context.strokeStyle = drawColor;
+    context.globalAlpha = drawTool === "marker" ? 0.42 : 1;
+    context.shadowBlur = drawTool === "neon" ? 14 : 0;
+    context.shadowColor = drawColor;
+    context.lineWidth =
+      drawTool === "marker" ? 18 : drawTool === "eraser" ? 24 : 6;
+    context.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+    context.stroke();
+    setDrawVersion((current) => current + 1);
+  }
+
+  function endDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    drawingRef.current = false;
+    const canvas = drawCanvasRef.current;
+    if (canvas?.hasPointerCapture(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+    const context = canvas?.getContext("2d");
+    if (context) {
+      context.globalAlpha = 1;
+      context.shadowBlur = 0;
+      context.globalCompositeOperation = "source-over";
+    }
+  }
+
+  function undoDrawing() {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    const previous = drawHistoryRef.current.pop();
+    if (!canvas || !context || !previous) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.putImageData(previous, 0, 0);
+    setDrawVersion((current) => current + 1);
+  }
+
+  function clearDrawing() {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    drawHistoryRef.current = [];
+    setDrawVersion((current) => current + 1);
+  }
+
+  // TODO: Composite drawing canvas into exported Story media in a future feature pack.
 
   async function uploadFileToBucket(
     bucket: string,
@@ -1360,15 +1571,17 @@ const selectedSticker = stickers.find(
 
       setMediaScale(
         Math.max(
-          0.5,
+          isStory ? 1 : 0.5,
           Math.min(4, nextScale)
         )
       );
 
-      setMediaRotation(
-        gesture.startRotation +
-          (angle - gesture.startAngle)
-      );
+      if (!isStory) {
+        setMediaRotation(
+          gesture.startRotation +
+            (angle - gesture.startAngle)
+        );
+      }
 
       return;
     }
@@ -1797,11 +2010,18 @@ const selectedSticker = stickers.find(
                   ? "mainCaptureButton recordingCapture"
                   : "mainCaptureButton"
               }
+              onPointerDown={isStory ? beginStoryCapture : undefined}
+              onPointerUp={isStory ? endStoryCapture : undefined}
+              onPointerCancel={isStory ? cancelStoryCapture : undefined}
+              onPointerLeave={isStory ? cancelStoryCapture : undefined}
               onClick={
-                recording
+                isStory
+                  ? undefined
+                  : recording
                   ? stopRecording
                   : capturePhoto
               }
+              aria-label={isStory ? "Tap for photo or hold for video" : "Capture photo"}
             >
               <span />
             </button>
@@ -1834,6 +2054,10 @@ const selectedSticker = stickers.find(
             </button>
           </div>
 
+          {isStory && (
+            <p className="storyCaptureHint">Tap for photo • Hold for video</p>
+          )}
+
           <div className="cameraQuickModes">
             <button
               className={
@@ -1865,6 +2089,257 @@ const selectedSticker = stickers.find(
               Live
             </button>
           </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (isStory && mode === "share") {
+    return (
+      <main className="storySharePage">
+        <style>{styles}</style>
+        <header className="storyTopBar">
+          <button type="button" className="storyIconButton" onClick={() => setMode("editor")} aria-label="Back to editor">←</button>
+          <strong>Share Story</strong>
+          <span className="storyTopSpacer" />
+        </header>
+
+        <section className="storyShareBody">
+          <div className="storySharePreview">
+            {previewIsVideo ? (
+              <video src={previewUrl} autoPlay loop muted playsInline />
+            ) : (
+              <img src={previewUrl} alt="Story preview" />
+            )}
+          </div>
+
+          <textarea
+            className="storyCaptionInput"
+            placeholder="Add a caption..."
+            value={caption}
+            maxLength={500}
+            onChange={(event) => setCaption(event.target.value)}
+          />
+
+          {(musicFile || musicUrl.trim()) && (
+            <div className="storyShareMusic">🎵 {musicTitle || musicFile?.name || "Story music"}</div>
+          )}
+
+          <div className="storyDestinationRow">
+            <div className="storyDestinationAvatar">U</div>
+            <div><strong>Your Story</strong><span>Visible for 24 hours</span></div>
+            <span className="storySelectedCheck">✓</span>
+          </div>
+
+          {message && <p className="storyErrorMessage">{message}</p>}
+
+          <button type="button" className="storyPrimaryButton" disabled={posting} onClick={shareStory}>
+            {posting ? "Sharing..." : "Share Story"}
+          </button>
+          <button type="button" className="storyCancelButton" disabled={posting} onClick={resetCreator}>Cancel</button>
+        </section>
+      </main>
+    );
+  }
+
+  if (isStory && mode === "editor") {
+    return (
+      <main className="storyEditorPage">
+        <style>{styles}</style>
+        <section
+          className="storyCanvas"
+          onPointerDown={() => {
+            setSelectedTextId("");
+            setSelectedStickerId("");
+          }}
+        >
+          <div
+            className="storyMediaGesture"
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+          >
+            {previewIsVideo ? (
+              <video
+                src={previewUrl}
+                className="storyMedia"
+                autoPlay
+                loop
+                muted
+                playsInline
+                disablePictureInPicture
+                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                className="storyMedia"
+                alt="Story preview"
+                draggable={false}
+                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+              />
+            )}
+          </div>
+
+          <canvas
+            ref={drawCanvasRef}
+            className={`storyDrawCanvas ${storyPanel === "draw" ? "drawingActive" : ""}`}
+            onPointerDown={beginDrawing}
+            onPointerMove={moveDrawing}
+            onPointerUp={endDrawing}
+            onPointerCancel={endDrawing}
+            aria-label="Story drawing canvas"
+          />
+
+          {textLayers.map((layer) => (
+            <div
+              key={layer.id}
+              className={selectedTextId === layer.id ? "storyTextLayer storyLayerSelected" : "storyTextLayer"}
+              onPointerDown={(event) => beginTextDrag(event, layer)}
+              onPointerMove={moveText}
+              onPointerUp={endTextDrag}
+              onPointerCancel={endTextDrag}
+              onDoubleClick={(event) => { event.stopPropagation(); openTextComposer(layer); }}
+              style={{ left: `${layer.x}%`, top: `${layer.y}%`, color: layer.color, fontSize: `${layer.size}px` }}
+            >
+              {layer.text}
+            </div>
+          ))}
+
+          {stickers.map((sticker) => (
+            <div
+              key={sticker.id}
+              className={selectedStickerId === sticker.id ? "storyStickerLayer storyLayerSelected" : "storyStickerLayer"}
+              onPointerDown={(event) => beginStickerDrag(event, sticker)}
+              onPointerMove={moveSticker}
+              onPointerUp={endStickerDrag}
+              onPointerCancel={endStickerDrag}
+              style={{ left: `${sticker.x}%`, top: `${sticker.y}%`, fontSize: `${sticker.size}px` }}
+            >
+              {sticker.value}
+            </div>
+          ))}
+
+          {(musicFile || musicUrl.trim()) && (
+            <div className="storyMusicPill">🎵 {musicTitle || musicFile?.name || "Music"}</div>
+          )}
+
+          <header className="storyTopBar storyEditorTopBar">
+            <button
+              type="button"
+              className="storyIconButton"
+              aria-label="Back to camera"
+              onClick={() => {
+                setFile(null);
+                setPreview("");
+                setMode("camera");
+                window.setTimeout(() => startCamera(), 150);
+              }}
+            >←</button>
+            <span className="storyTopSpacer" />
+            <button type="button" className="storyNextButton" onClick={() => setMode("share")}>Next</button>
+          </header>
+
+          <aside className="storyFloatingTools" aria-label="Story tools">
+            <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong></button>
+            <button type="button" onClick={() => setStoryPanel("music")} aria-label="Add music">♫</button>
+            <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker">☺</button>
+            <button type="button" onClick={openDrawPanel} aria-label="Draw">✎</button>
+          </aside>
+
+          {(selectedTextId || selectedStickerId) && storyPanel === "none" && (
+            <button
+              type="button"
+              className="storyDeleteButton"
+              onClick={() => {
+                deleteSelectedText();
+                deleteSelectedSticker();
+              }}
+              aria-label="Delete selected layer"
+            >🗑</button>
+          )}
+
+          {storyPanel === "text" && (
+            <div className="storyTextComposer" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storyComposerHeader">
+                <button type="button" onClick={() => setStoryPanel("none")}>Cancel</button>
+                <button type="button" onClick={saveStoryText}>Done</button>
+              </div>
+              <textarea
+                autoFocus
+                value={textDraft}
+                maxLength={180}
+                placeholder="Type something..."
+                onChange={(event) => setTextDraft(event.target.value)}
+                style={{ color: textColor }}
+              />
+              <div className="storyColorRow">
+                {textColors.map((color) => (
+                  <button
+                    type="button"
+                    key={color}
+                    aria-label={`Use ${color}`}
+                    className={textColor === color ? "storyColor selected" : "storyColor"}
+                    style={{ background: color }}
+                    onClick={() => setTextColor(color)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {storyPanel === "music" && (
+            <div className="storySheet" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storySheetHandle" />
+              <h2>Add Music</h2>
+              <label className="storySheetAction">
+                <span>♫</span>
+                <div><strong>Choose audio</strong><small>{musicFile?.name || "Select from your device"}</small></div>
+                <input hidden type="file" accept="audio/*" onChange={chooseMusic} />
+              </label>
+              {(musicFile || musicUrl.trim()) && (
+                <>
+                  <input className="storyMusicTitleInput" placeholder="Song title" value={musicTitle} onChange={(event) => setMusicTitle(event.target.value)} />
+                  <button type="button" className="storyRemoveAction" onClick={removeMusic}>Remove music</button>
+                </>
+              )}
+              <button type="button" className="storySheetDone" onClick={() => setStoryPanel("none")}>Done</button>
+            </div>
+          )}
+
+          {storyPanel === "sticker" && (
+            <div className="storySheet" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storySheetHandle" />
+              <h2>Stickers</h2>
+              <div className="storyStickerGrid">
+                {stickerChoices.map((value) => (
+                  <button type="button" key={value} onClick={() => { addSticker(value); setStoryPanel("none"); }}>{value}</button>
+                ))}
+              </div>
+              <button type="button" className="storySheetDone" onClick={() => setStoryPanel("none")}>Done</button>
+            </div>
+          )}
+
+          {storyPanel === "draw" && (
+            <div className="storyDrawToolbar" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storyDrawTools">
+                {(["pen", "marker", "neon", "eraser"] as const).map((tool) => (
+                  <button type="button" key={tool} className={drawTool === tool ? "active" : ""} onClick={() => setDrawTool(tool)}>{tool === "pen" ? "Pen" : tool === "marker" ? "Marker" : tool === "neon" ? "Neon" : "Erase"}</button>
+                ))}
+              </div>
+              <div className="storyColorRow compact">
+                {textColors.map((color) => (
+                  <button type="button" key={color} className={drawColor === color ? "storyColor selected" : "storyColor"} style={{ background: color }} onClick={() => setDrawColor(color)} aria-label={`Draw with ${color}`} />
+                ))}
+              </div>
+              <div className="storyDrawActions">
+                <button type="button" onClick={undoDrawing}>Undo</button>
+                <button type="button" onClick={clearDrawing}>Clear</button>
+                <button type="button" className="done" onClick={() => setStoryPanel("none")}>Done</button>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     );
@@ -3551,4 +4026,248 @@ const styles = `
       font-size: 10px;
     }
   }
+
+  .storyEditorPage,
+  .storySharePage {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    color: #fff;
+    background: #000;
+  }
+
+  .storyCanvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+  }
+
+  .storyMediaGesture {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .storyMedia {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    transform-origin: center;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .storyTopBar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 80;
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: 52px 1fr 52px;
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 14px 8px;
+    background: linear-gradient(180deg, rgba(0,0,0,.72), transparent);
+  }
+
+  .storyTopBar > strong { text-align: center; font-size: 17px; }
+  .storyTopSpacer { display: block; }
+
+  .storyIconButton,
+  .storyFloatingTools button,
+  .storyDeleteButton {
+    border: 0;
+    color: #fff;
+    background: rgba(0,0,0,.48);
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .storyIconButton {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 26px;
+  }
+
+  .storyNextButton {
+    justify-self: end;
+    padding: 11px 17px;
+    border: 0;
+    border-radius: 999px;
+    color: #06120e;
+    background: #62f7a5;
+    font-weight: 950;
+  }
+
+  .storyFloatingTools {
+    position: absolute;
+    top: max(88px, calc(env(safe-area-inset-top) + 74px));
+    right: 13px;
+    z-index: 70;
+    display: grid;
+    gap: 12px;
+  }
+
+  .storyFloatingTools button {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 23px;
+  }
+
+  .storyFloatingTools strong { font-size: 19px; }
+
+  .storyTextLayer,
+  .storyStickerLayer {
+    position: absolute;
+    z-index: 42;
+    transform: translate(-50%, -50%);
+    touch-action: none;
+    user-select: none;
+  }
+
+  .storyTextLayer {
+    max-width: 82%;
+    padding: 5px 9px;
+    text-align: center;
+    font-weight: 900;
+    line-height: 1.08;
+    text-shadow: 0 2px 9px rgba(0,0,0,.8);
+    white-space: pre-wrap;
+  }
+
+  .storyStickerLayer { line-height: 1; }
+  .storyLayerSelected { outline: 2px solid rgba(255,255,255,.86); border-radius: 10px; }
+
+  .storyMusicPill {
+    position: absolute;
+    left: 18px;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    z-index: 40;
+    max-width: 70%;
+    padding: 10px 14px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(0,0,0,.52);
+    backdrop-filter: blur(16px);
+    font-size: 13px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .storyDeleteButton {
+    position: absolute;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: 71;
+    width: 52px;
+    height: 52px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    font-size: 22px;
+  }
+
+  .storyTextComposer {
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(22px, env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.76);
+    backdrop-filter: blur(12px);
+  }
+
+  .storyComposerHeader { display: flex; justify-content: space-between; }
+  .storyComposerHeader button { padding: 10px; border: 0; color: #fff; background: transparent; font-weight: 900; }
+  .storyComposerHeader button:last-child { color: #62f7a5; }
+
+  .storyTextComposer textarea {
+    width: 100%;
+    align-self: center;
+    padding: 20px;
+    border: 0;
+    outline: 0;
+    resize: none;
+    text-align: center;
+    background: transparent;
+    font-size: clamp(32px, 9vw, 58px);
+    font-weight: 950;
+    line-height: 1.06;
+  }
+
+  .storyColorRow { display: flex; justify-content: center; gap: 12px; padding: 12px; }
+  .storyColorRow.compact { gap: 8px; padding: 6px 0; }
+  .storyColor { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,.45); border-radius: 50%; }
+  .storyColor.selected { outline: 3px solid #fff; outline-offset: 2px; }
+
+  .storySheet {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 110;
+    display: grid;
+    gap: 13px;
+    max-height: 72dvh;
+    padding: 10px 18px max(22px, env(safe-area-inset-bottom));
+    border-radius: 28px 28px 0 0;
+    background: rgba(18,18,23,.97);
+    box-shadow: 0 -18px 50px rgba(0,0,0,.45);
+  }
+
+  .storySheetHandle { width: 46px; height: 5px; margin: 0 auto 4px; border-radius: 999px; background: rgba(255,255,255,.3); }
+  .storySheet h2 { margin: 2px 0 5px; font-size: 23px; }
+  .storySheetAction { display: flex; align-items: center; gap: 14px; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.08); }
+  .storySheetAction > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: #7b61ff; font-size: 23px; }
+  .storySheetAction div { display: grid; gap: 3px; min-width: 0; }
+  .storySheetAction small { color: rgba(255,255,255,.58); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .storyMusicTitleInput { width: 100%; padding: 14px 15px; color: #fff; border: 1px solid rgba(255,255,255,.14); border-radius: 15px; outline: 0; background: rgba(255,255,255,.07); }
+  .storyRemoveAction { padding: 11px; border: 0; color: #ff7b88; background: transparent; font-weight: 850; }
+  .storySheetDone { padding: 15px; border: 0; border-radius: 16px; color: #07120e; background: #62f7a5; font-weight: 950; }
+  .storyStickerGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .storyStickerGrid button { min-height: 66px; border: 0; border-radius: 17px; background: rgba(255,255,255,.08); font-size: 32px; }
+
+  .storyDrawCanvas { position: absolute; inset: 0; z-index: 35; width: 100%; height: 100%; pointer-events: none; touch-action: none; }
+  .storyDrawCanvas.drawingActive { z-index: 95; pointer-events: auto; }
+  .storyDrawToolbar { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 10px; left: 10px; z-index: 125; display: grid; gap: 9px; padding: 10px; border-radius: 20px; background: rgba(9,9,12,.86); backdrop-filter: blur(16px); }
+  .storyDrawTools, .storyDrawActions { display: flex; gap: 7px; overflow-x: auto; }
+  .storyDrawToolbar button { flex: 1; min-width: max-content; padding: 9px 11px; border: 0; border-radius: 12px; color: #fff; background: rgba(255,255,255,.09); font-size: 12px; font-weight: 800; }
+  .storyDrawToolbar button.active { background: #7b61ff; }
+  .storyDrawToolbar button.done { color: #07120e; background: #62f7a5; }
+
+  .storySharePage { overflow-y: auto; background: linear-gradient(180deg, #11131c, #050608); }
+  .storySharePage .storyTopBar { position: sticky; background: rgba(8,9,13,.92); backdrop-filter: blur(16px); }
+  .storyShareBody { width: min(100%, 560px); display: grid; gap: 16px; margin: 0 auto; padding: 18px 16px max(28px, env(safe-area-inset-bottom)); }
+  .storySharePreview { width: min(44vw, 190px); aspect-ratio: 9 / 16; overflow: hidden; margin: 0 auto; border-radius: 20px; background: #000; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .storySharePreview img, .storySharePreview video { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .storyCaptionInput { min-height: 108px; padding: 16px; color: #fff; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; outline: 0; resize: none; background: rgba(255,255,255,.07); }
+  .storyShareMusic { padding: 13px 15px; border-radius: 15px; background: rgba(123,97,255,.15); font-weight: 800; }
+  .storyDestinationRow { display: grid; grid-template-columns: 48px 1fr 34px; align-items: center; gap: 12px; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.07); }
+  .storyDestinationAvatar { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: #07120e; background: linear-gradient(135deg,#62f7a5,#8c6cff); font-weight: 1000; }
+  .storyDestinationRow div:nth-child(2) { display: grid; gap: 4px; }
+  .storyDestinationRow span { color: rgba(255,255,255,.55); font-size: 12px; }
+  .storySelectedCheck { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #07120e !important; background: #62f7a5; font-weight: 1000; }
+  .storyPrimaryButton { padding: 17px; border: 0; border-radius: 18px; color: #07120e; background: #62f7a5; font-weight: 1000; font-size: 16px; }
+  .storyCancelButton { padding: 13px; border: 0; color: rgba(255,255,255,.7); background: transparent; font-weight: 850; }
+  .storyErrorMessage { margin: 0; padding: 12px; border-radius: 14px; color: #ffd4d8; background: rgba(255,70,90,.12); text-align: center; }
+
+  .storyCaptureHint { margin: 8px 0 0; color: rgba(255,255,255,.68); text-align: center; font-size: 12px; font-weight: 800; }
+
 `;
