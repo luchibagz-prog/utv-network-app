@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import StoryCamera from "../components/story/StoryCamera";
 import { supabase } from "../../lib/supabaseClient";
 
 type Mode = "hub" | "camera" | "editor" | "share" | "link";
@@ -219,6 +220,8 @@ export default function SubmitPage() {
     useState<CameraFacing>("environment");
 
   const [recording, setRecording] = useState(false);
+  const [cameraStream, setCameraStream] =
+  useState<MediaStream | null>(null);
   const [storyPanel, setStoryPanel] = useState<
     "none" | "text" | "music" | "sticker" | "draw"
   >("none");
@@ -460,6 +463,7 @@ const selectedSticker = stickers.find(
       });
 
       streamRef.current = stream;
+      setCameraStream(stream);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -492,10 +496,10 @@ const selectedSticker = stickers.find(
       track.stop();
     });
 
-    streamRef.current = null;
-    recorderRef.current = null;
-    setRecording(false);
-  }
+ streamRef.current = null;
+recorderRef.current = null;
+setCameraStream(null);
+setRecording(false);
 
   async function flipCamera() {
     const nextFacing =
@@ -1926,173 +1930,204 @@ const selectedSticker = stickers.find(
     );
   }
 
-  if (mode === "camera") {
+if (mode === "camera") {
+  if (isStory) {
     return (
-      <main className="utvCameraPage">
-        <style>{styles}</style>
+      <>
+        <StoryCamera
+          stream={cameraStream}
+          facing={cameraFacing}
+          recording={recording}
+          onClose={resetCreator}
+          onFlip={flipCamera}
+          onCaptureStart={beginStoryCapture}
+          onCaptureEnd={endStoryCapture}
+          onCaptureCancel={cancelStoryCapture}
+          onGallery={() => {
+            document
+              .getElementById("story-gallery-input")
+              ?.click();
+          }}
+        />
 
-        <header className="cameraHeader">
-          <button
-            className="cameraHeaderButton"
-            onClick={resetCreator}
-            aria-label="Close camera"
-          >
-            ✕
-          </button>
+        <input
+          id="story-gallery-input"
+          hidden
+          type="file"
+          accept="image/*,video/*"
+          onChange={pickFile}
+        />
 
-          <div className="cameraBrand">
-            <strong>U TV</strong>
-            <span>
-              {isStory ? "STORY" : "CREATE"}
-            </span>
+        {message && (
+          <div className="storyCameraError">
+            <style>{`
+              .storyCameraError {
+                position: fixed;
+                top: max(
+                  82px,
+                  calc(env(safe-area-inset-top) + 68px)
+                );
+                left: 50%;
+                z-index: 1200;
+                width: min(360px, calc(100% - 32px));
+                padding: 12px 15px;
+                color: white;
+                border: 1px solid rgba(255,255,255,.16);
+                border-radius: 14px;
+                background: rgba(170, 20, 35, .92);
+                box-shadow: 0 12px 35px rgba(0,0,0,.35);
+                font-size: 13px;
+                font-weight: 750;
+                line-height: 1.4;
+                text-align: center;
+                transform: translateX(-50%);
+                backdrop-filter: blur(14px);
+              }
+            `}</style>
+
+            {message}
           </div>
-
-          <button
-            className="cameraHeaderButton"
-            onClick={flipCamera}
-            aria-label="Flip camera"
-          >
-            ⟳
-          </button>
-        </header>
-
-        <section className="cameraViewport">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            disablePictureInPicture
-            controls={false}
-            className="cameraPreview"
-            style={{
-              transform:
-                cameraFacing === "user"
-                  ? "scaleX(-1)"
-                  : "none",
-            }}
-          />
-
-          <div className="cameraShade" />
-
-          {message && (
-            <div className="cameraMessage">
-              {message}
-            </div>
-          )}
-        </section>
-
-        <section className="cameraControls">
-          <div className="cameraModeRow">
-            <label className="cameraModeButton">
-              <span>🖼️</span>
-              <small>Gallery</small>
-
-              <input
-                hidden
-                type="file"
-                accept="image/*,video/*"
-                onChange={pickFile}
-              />
-            </label>
-
-            <button
-              className="cameraModeButton"
-              onClick={capturePhoto}
-            >
-              <span>📷</span>
-              <small>Photo</small>
-            </button>
-
-            <button
-              className={
-                recording
-                  ? "mainCaptureButton recordingCapture"
-                  : "mainCaptureButton"
-              }
-              onPointerDown={isStory ? beginStoryCapture : undefined}
-              onPointerUp={isStory ? endStoryCapture : undefined}
-              onPointerCancel={isStory ? cancelStoryCapture : undefined}
-              onPointerLeave={isStory ? cancelStoryCapture : undefined}
-              onClick={
-                isStory
-                  ? undefined
-                  : recording
-                  ? stopRecording
-                  : capturePhoto
-              }
-              aria-label={isStory ? "Tap for photo or hold for video" : "Capture photo"}
-            >
-              <span />
-            </button>
-
-            <button
-              className="cameraModeButton"
-              onClick={
-                recording
-                  ? stopRecording
-                  : startRecording
-              }
-            >
-              <span>
-                {recording ? "⏹️" : "🎥"}
-              </span>
-
-              <small>
-                {recording ? "Stop" : "Video"}
-              </small>
-            </button>
-
-            <button
-              className="cameraModeButton"
-              onClick={() =>
-                router.push("/live-room")
-              }
-            >
-              <span>🔴</span>
-              <small>Live</small>
-            </button>
-          </div>
-
-          {isStory && (
-            <p className="storyCaptureHint">Tap for photo • Hold for video</p>
-          )}
-
-          <div className="cameraQuickModes">
-            <button
-              className={
-                isStory ? "activeQuickMode" : ""
-              }
-              onClick={() =>
-                setCreationType("story")
-              }
-            >
-              Story
-            </button>
-
-            <button
-              className={
-                !isStory ? "activeQuickMode" : ""
-              }
-              onClick={() =>
-                setCreationType("feed")
-              }
-            >
-              Post
-            </button>
-
-            <button
-              onClick={() =>
-                router.push("/live-room")
-              }
-            >
-              Live
-            </button>
-          </div>
-        </section>
-      </main>
+        )}
+      </>
     );
   }
+
+  return (
+    <main className="utvCameraPage">
+      <style>{styles}</style>
+
+      <header className="cameraHeader">
+        <button
+          className="cameraHeaderButton"
+          onClick={resetCreator}
+          aria-label="Close camera"
+        >
+          ✕
+        </button>
+
+        <div className="cameraBrand">
+          <strong>U TV</strong>
+          <span>CREATE</span>
+        </div>
+
+        <button
+          className="cameraHeaderButton"
+          onClick={flipCamera}
+          aria-label="Flip camera"
+        >
+          ⟳
+        </button>
+      </header>
+
+      <section className="cameraViewport">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          disablePictureInPicture
+          controls={false}
+          className="cameraPreview"
+          style={{
+            transform:
+              cameraFacing === "user"
+                ? "scaleX(-1)"
+                : "none",
+          }}
+        />
+
+        <div className="cameraShade" />
+
+        {message && (
+          <div className="cameraMessage">
+            {message}
+          </div>
+        )}
+      </section>
+
+      <section className="cameraControls">
+        <div className="cameraModeRow">
+          <label className="cameraModeButton">
+            <span>🖼️</span>
+            <small>Gallery</small>
+
+            <input
+              hidden
+              type="file"
+              accept="image/*,video/*"
+              onChange={pickFile}
+            />
+          </label>
+
+          <button
+            className="cameraModeButton"
+            onClick={capturePhoto}
+          >
+            <span>📷</span>
+            <small>Photo</small>
+          </button>
+
+          <button
+            className={
+              recording
+                ? "mainCaptureButton recordingCapture"
+                : "mainCaptureButton"
+            }
+            onClick={
+              recording ? stopRecording : capturePhoto
+            }
+            aria-label="Capture photo"
+          >
+            <span />
+          </button>
+
+          <button
+            className="cameraModeButton"
+            onClick={
+              recording
+                ? stopRecording
+                : startRecording
+            }
+          >
+            <span>{recording ? "⏹️" : "🎥"}</span>
+            <small>
+              {recording ? "Stop" : "Video"}
+            </small>
+          </button>
+
+          <button
+            className="cameraModeButton"
+            onClick={() => router.push("/live-room")}
+          >
+            <span>🔴</span>
+            <small>Live</small>
+          </button>
+        </div>
+
+        <div className="cameraQuickModes">
+          <button
+            onClick={() => setCreationType("story")}
+          >
+            Story
+          </button>
+
+          <button
+            className="activeQuickMode"
+            onClick={() => setCreationType("feed")}
+          >
+            Post
+          </button>
+
+          <button
+            onClick={() => router.push("/live-room")}
+          >
+            Live
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
 
   if (isStory && mode === "share") {
     return (
@@ -4269,5 +4304,6 @@ const styles = `
   .storyErrorMessage { margin: 0; padding: 12px; border-radius: 14px; color: #ffd4d8; background: rgba(255,70,90,.12); text-align: center; }
 
   .storyCaptureHint { margin: 8px 0 0; color: rgba(255,255,255,.68); text-align: center; font-size: 12px; font-weight: 800; }
-
+}
 `;
+}
