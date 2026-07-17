@@ -43,7 +43,7 @@ export default function FeedPage() {
 
   const lastTapRef = useRef<Record<string, number>>({});
 
-  const refreshCycleRef = useRef(Math.floor(Math.random() * 997));
+  const refreshCycleRef = useRef(0);
   const newestPostTimeRef = useRef("");
   const freshnessCheckRef = useRef(false);
   const pullStartYRef = useRef<number | null>(null);
@@ -563,32 +563,9 @@ export default function FeedPage() {
         );
       });
 
-    const topPoolSize = Math.min(8, rankedItems.length);
-    const topPool = rankedItems.slice(0, topPoolSize);
-    const remainingItems = rankedItems.slice(topPoolSize);
+    newestPostTimeRef.current = rankedItems[0]?.created_at || "";
 
-    const topShift =
-      topPoolSize > 1
-        ? refreshCycleRef.current % topPoolSize
-        : 0;
-
-    const rotatedTop =
-      topPoolSize > 1
-        ? [
-            ...topPool.slice(topShift),
-            ...topPool.slice(0, topShift),
-          ]
-        : topPool;
-
-    const finalRankedItems = [
-      ...rotatedTop,
-      ...remainingItems,
-    ];
-
-    newestPostTimeRef.current =
-      rankedItems[0]?.created_at || "";
-
-    setItems(finalRankedItems);
+    setItems(rankedItems);
 
     await loadProfiles(
       rankedItems.map((item) => item.creator_email || item.user_email),
