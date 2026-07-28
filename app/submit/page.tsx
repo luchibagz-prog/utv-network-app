@@ -212,6 +212,7 @@ export default function SubmitPage() {
 
   const draggingTextRef = useRef<DragState | null>(null);
   const draggingStickerRef = useRef<DragState | null>(null);
+  const lastTextTapRef = useRef<{ id: string; at: number } | null>(null);
 
   const [mode, setMode] = useState<Mode>("hub");
   const [creationType, setCreationType] = useState("feed");
@@ -496,10 +497,11 @@ const selectedSticker = stickers.find(
       track.stop();
     });
 
- streamRef.current = null;
-recorderRef.current = null;
-setCameraStream(null);
-setRecording(false);
+    streamRef.current = null;
+    recorderRef.current = null;
+    setCameraStream(null);
+    setRecording(false);
+  }
 
   async function flipCamera() {
     const nextFacing =
@@ -666,9 +668,11 @@ setRecording(false);
       recorder.start();
       setRecording(true);
       setMessage("");
+      const maxRecordingMs = isStory ? 15000 : 30000;
+
       recordStopTimerRef.current = setTimeout(() => {
         stopRecording();
-      }, 30000);
+      }, maxRecordingMs);
     } catch (error) {
       console.error(error);
       setMessage("Video recording could not start.");
@@ -825,6 +829,20 @@ setRecording(false);
   ) {
     event.preventDefault();
     event.stopPropagation();
+
+    const now = Date.now();
+    const previousTap = lastTextTapRef.current;
+
+    if (
+      previousTap?.id === layer.id &&
+      now - previousTap.at < 320
+    ) {
+      lastTextTapRef.current = null;
+      openTextComposer(layer);
+      return;
+    }
+
+    lastTextTapRef.current = { id: layer.id, at: now };
 
     event.currentTarget.setPointerCapture(event.pointerId);
 
@@ -2140,21 +2158,77 @@ if (mode === "camera") {
         </header>
 
         <section className="storyShareBody">
-          <div className="storySharePreview">
-            {previewIsVideo ? (
-              <video src={previewUrl} autoPlay loop muted playsInline />
-            ) : (
-              <img src={previewUrl} alt="Story preview" />
-            )}
+          <div className="storyShareIntro">
+            <div>
+              <p>READY TO DROP</p>
+              <h1>Your Story</h1>
+            </div>
+            <span>24H</span>
           </div>
 
-          <textarea
-            className="storyCaptionInput"
-            placeholder="Add a caption..."
-            value={caption}
-            maxLength={500}
-            onChange={(event) => setCaption(event.target.value)}
-          />
+          <div className="storySharePreview">
+            <div className="storySharePreviewBadge">UTV STORY</div>
+            {previewIsVideo ? (
+              <video
+                src={previewUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{
+                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                }}
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt="Story preview"
+                style={{
+                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                }}
+              />
+            )}
+
+            {textLayers.map((layer) => (
+              <div
+                key={`preview-${layer.id}`}
+                className="storyShareTextLayer"
+                style={{
+                  left: `${layer.x}%`,
+                  top: `${layer.y}%`,
+                  color: layer.color,
+                  fontSize: `${Math.max(11, layer.size * 0.34)}px`,
+                }}
+              >
+                {layer.text}
+              </div>
+            ))}
+
+            {stickers.map((sticker) => (
+              <div
+                key={`preview-${sticker.id}`}
+                className="storyShareStickerLayer"
+                style={{
+                  left: `${sticker.x}%`,
+                  top: `${sticker.y}%`,
+                  fontSize: `${Math.max(14, sticker.size * 0.38)}px`,
+                }}
+              >
+                {sticker.value}
+              </div>
+            ))}
+          </div>
+
+          <div className="storyCaptionWrap">
+            <textarea
+              className="storyCaptionInput"
+              placeholder="Add a caption..."
+              value={caption}
+              maxLength={500}
+              onChange={(event) => setCaption(event.target.value)}
+            />
+            <span>{caption.length}/500</span>
+          </div>
 
           {(musicFile || musicUrl.trim()) && (
             <div className="storyShareMusic">🎵 {musicTitle || musicFile?.name || "Story music"}</div>
@@ -2169,7 +2243,8 @@ if (mode === "camera") {
           {message && <p className="storyErrorMessage">{message}</p>}
 
           <button type="button" className="storyPrimaryButton" disabled={posting} onClick={shareStory}>
-            {posting ? "Sharing..." : "Share Story"}
+            <span className="storyPrimaryDot" />
+            {posting ? "Sharing Story..." : "Share to Your Story"}
           </button>
           <button type="button" className="storyCancelButton" disabled={posting} onClick={resetCreator}>Cancel</button>
         </section>
@@ -2260,6 +2335,14 @@ if (mode === "camera") {
             <div className="storyMusicPill">🎵 {musicTitle || musicFile?.name || "Music"}</div>
           )}
 
+          {storyPanel === "none" && !selectedTextId && !selectedStickerId && (
+            <div className="storyGestureHint">Drag to move • Pinch to zoom</div>
+          )}
+
+          <div className="storyProgressRail" aria-hidden="true">
+            <span />
+          </div>
+
           <header className="storyTopBar storyEditorTopBar">
             <button
               type="button"
@@ -2272,27 +2355,92 @@ if (mode === "camera") {
                 window.setTimeout(() => startCamera(), 150);
               }}
             >←</button>
-            <span className="storyTopSpacer" />
-            <button type="button" className="storyNextButton" onClick={() => setMode("share")}>Next</button>
+
+            <div className="storyEditorBrand">
+              <strong>STORY</strong>
+              <span>CREATE</span>
+            </div>
+
+            <button
+              type="button"
+              className="storyNextButton"
+              onClick={() => setMode("share")}
+            >
+              Next →
+            </button>
           </header>
 
           <aside className="storyFloatingTools" aria-label="Story tools">
-            <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong></button>
-            <button type="button" onClick={() => setStoryPanel("music")} aria-label="Add music">♫</button>
-            <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker">☺</button>
-            <button type="button" onClick={openDrawPanel} aria-label="Draw">✎</button>
+            <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong><small>Text</small></button>
+            <button type="button" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
+            <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker"><span>☺</span><small>Sticker</small></button>
+            <button type="button" onClick={openDrawPanel} aria-label="Draw"><span>✎</span><small>Draw</small></button>
           </aside>
 
+          {storyPanel === "none" && (
+            <div className="storyBottomActions" onPointerDown={(event) => event.stopPropagation()}>
+              <label className="storyBottomAction">
+                <span>▣</span>
+                <small>Gallery</small>
+                <input hidden type="file" accept="image/*,video/*" onChange={pickFile} />
+              </label>
+
+              <button
+                type="button"
+                className="storyBottomAction"
+                onClick={() => {
+                  setFile(null);
+                  setPreview("");
+                  setMode("camera");
+                  window.setTimeout(() => startCamera(), 150);
+                }}
+              >
+                <span>↻</span>
+                <small>Retake</small>
+              </button>
+            </div>
+          )}
+
           {(selectedTextId || selectedStickerId) && storyPanel === "none" && (
-            <button
-              type="button"
-              className="storyDeleteButton"
-              onClick={() => {
-                deleteSelectedText();
-                deleteSelectedSticker();
-              }}
-              aria-label="Delete selected layer"
-            >🗑</button>
+            <div className="storyLayerDock" onPointerDown={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedText) updateSelectedText({ size: Math.max(18, selectedText.size - 4) });
+                  if (selectedSticker) updateSelectedSticker({ size: Math.max(28, selectedSticker.size - 6) });
+                }}
+                aria-label="Make selected item smaller"
+              >−</button>
+
+              <span>{selectedText ? "Text" : "Sticker"}</span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedText) updateSelectedText({ size: Math.min(72, selectedText.size + 4) });
+                  if (selectedSticker) updateSelectedSticker({ size: Math.min(110, selectedSticker.size + 6) });
+                }}
+                aria-label="Make selected item larger"
+              >+</button>
+
+              {selectedText && (
+                <button
+                  type="button"
+                  className="storyLayerEdit"
+                  onClick={() => openTextComposer(selectedText)}
+                >Edit</button>
+              )}
+
+              <button
+                type="button"
+                className="storyLayerDelete"
+                onClick={() => {
+                  deleteSelectedText();
+                  deleteSelectedSticker();
+                }}
+                aria-label="Delete selected layer"
+              >🗑</button>
+            </div>
           )}
 
           {storyPanel === "text" && (
@@ -4189,6 +4337,31 @@ const styles = `
   .storyStickerLayer { line-height: 1; }
   .storyLayerSelected { outline: 2px solid rgba(255,255,255,.86); border-radius: 10px; }
 
+  .storyGestureHint {
+    position: absolute;
+    left: 50%;
+    bottom: max(82px, calc(env(safe-area-inset-bottom) + 62px));
+    z-index: 39;
+    padding: 8px 12px;
+    color: rgba(255,255,255,.82);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background: rgba(0,0,0,.38);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    backdrop-filter: blur(12px);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: .15px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    animation: storyHintFade 3.2s ease forwards;
+  }
+
+  @keyframes storyHintFade {
+    0%, 62% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
   .storyMusicPill {
     position: absolute;
     left: 18px;
@@ -4290,8 +4463,11 @@ const styles = `
   .storySharePage { overflow-y: auto; background: linear-gradient(180deg, #11131c, #050608); }
   .storySharePage .storyTopBar { position: sticky; background: rgba(8,9,13,.92); backdrop-filter: blur(16px); }
   .storyShareBody { width: min(100%, 560px); display: grid; gap: 16px; margin: 0 auto; padding: 18px 16px max(28px, env(safe-area-inset-bottom)); }
-  .storySharePreview { width: min(44vw, 190px); aspect-ratio: 9 / 16; overflow: hidden; margin: 0 auto; border-radius: 20px; background: #000; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
-  .storySharePreview img, .storySharePreview video { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .storySharePreview { position: relative; width: min(44vw, 190px); aspect-ratio: 9 / 16; overflow: hidden; margin: 0 auto; border: 1px solid rgba(255,255,255,.11); border-radius: 20px; background: #000; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .storySharePreview img, .storySharePreview video { width: 100%; height: 100%; display: block; object-fit: cover; transform-origin: center; }
+  .storyShareTextLayer, .storyShareStickerLayer { position: absolute; z-index: 4; transform: translate(-50%, -50%); pointer-events: none; user-select: none; }
+  .storyShareTextLayer { max-width: 82%; padding: 2px 4px; text-align: center; font-weight: 950; line-height: 1.05; text-shadow: 0 1px 4px rgba(0,0,0,.85); white-space: pre-wrap; }
+  .storyShareStickerLayer { line-height: 1; }
   .storyCaptionInput { min-height: 108px; padding: 16px; color: #fff; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; outline: 0; resize: none; background: rgba(255,255,255,.07); }
   .storyShareMusic { padding: 13px 15px; border-radius: 15px; background: rgba(123,97,255,.15); font-weight: 800; }
   .storyDestinationRow { display: grid; grid-template-columns: 48px 1fr 34px; align-items: center; gap: 12px; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.07); }
@@ -4304,6 +4480,177 @@ const styles = `
   .storyErrorMessage { margin: 0; padding: 12px; border-radius: 14px; color: #ffd4d8; background: rgba(255,70,90,.12); text-align: center; }
 
   .storyCaptureHint { margin: 8px 0 0; color: rgba(255,255,255,.68); text-align: center; font-size: 12px; font-weight: 800; }
+
+  .storyProgressRail {
+    position: absolute;
+    top: max(7px, env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+    z-index: 90;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,.22);
+    pointer-events: none;
+  }
+
+  .storyProgressRail span {
+    display: block;
+    width: 68%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg,#52f7c8,#8d6cff);
+    box-shadow: 0 0 14px rgba(82,247,200,.55);
+  }
+
+  .storyEditorBrand {
+    display: grid;
+    justify-items: center;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .storyEditorBrand strong { font-size: 13px; letter-spacing: 2.2px; }
+  .storyEditorBrand span { margin-top: 5px; color: rgba(255,255,255,.55); font-size: 8px; font-weight: 900; letter-spacing: 2px; }
+
+  .storyFloatingTools button {
+    grid-template-rows: 1fr auto;
+    padding: 6px 2px 5px;
+  }
+
+  .storyFloatingTools button > span,
+  .storyFloatingTools button > strong { align-self: end; }
+
+  .storyFloatingTools button small {
+    align-self: start;
+    margin-top: 1px;
+    color: rgba(255,255,255,.72);
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: .15px;
+  }
+
+  .storyBottomActions {
+    position: absolute;
+    left: 14px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 64;
+    display: flex;
+    gap: 9px;
+  }
+
+  .storyBottomAction {
+    min-width: 62px;
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    gap: 1px;
+    padding: 6px 10px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px;
+    background: rgba(0,0,0,.44);
+    box-shadow: 0 8px 24px rgba(0,0,0,.24);
+    backdrop-filter: blur(14px);
+    font: inherit;
+  }
+
+  .storyBottomAction span { font-size: 18px; line-height: 1; }
+  .storyBottomAction small { color: rgba(255,255,255,.72); font-size: 8px; font-weight: 900; }
+
+  .storyLayerDock {
+    position: absolute;
+    left: 50%;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 82;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 18px;
+    background: rgba(7,8,11,.76);
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+    backdrop-filter: blur(18px);
+    transform: translateX(-50%);
+  }
+
+  .storyLayerDock button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(255,255,255,.09);
+    font-weight: 950;
+  }
+
+  .storyLayerDock > span {
+    min-width: 46px;
+    text-align: center;
+    color: rgba(255,255,255,.68);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+  }
+
+  .storyLayerDock .storyLayerEdit { color: #07120e; background: #52f7c8; }
+  .storyLayerDock .storyLayerDelete { background: rgba(255,58,86,.18); }
+
+  .storyShareIntro {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .storyShareIntro p { margin: 0 0 5px; color: #52f7c8; font-size: 10px; font-weight: 950; letter-spacing: 1.8px; }
+  .storyShareIntro h1 { margin: 0; font-size: 30px; line-height: 1; letter-spacing: -1px; }
+  .storyShareIntro > span { padding: 7px 9px; border-radius: 999px; color: rgba(255,255,255,.7); background: rgba(255,255,255,.07); font-size: 9px; font-weight: 950; letter-spacing: 1px; }
+
+  .storySharePreviewBadge {
+    position: absolute;
+    top: 9px;
+    left: 9px;
+    z-index: 8;
+    padding: 5px 7px;
+    border-radius: 999px;
+    color: #07120e;
+    background: rgba(82,247,200,.92);
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .8px;
+  }
+
+  .storyCaptionWrap { position: relative; }
+  .storyCaptionWrap > span { position: absolute; right: 13px; bottom: 11px; color: rgba(255,255,255,.38); font-size: 10px; font-weight: 800; pointer-events: none; }
+  .storyCaptionWrap .storyCaptionInput { width: 100%; padding-bottom: 30px; }
+
+  .storyPrimaryButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 14px 34px rgba(82,247,200,.18);
+  }
+
+  .storyPrimaryDot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #07120e;
+    box-shadow: 0 0 0 5px rgba(7,18,14,.1);
+  }
+
+  @media (max-width: 420px) {
+    .storyFloatingTools { right: 10px; gap: 9px; }
+    .storyFloatingTools button { width: 45px; height: 45px; }
+    .storyBottomActions { left: 10px; gap: 6px; }
+    .storyBottomAction { min-width: 56px; }
+    .storyLayerDock { max-width: calc(100% - 20px); }
+    .storyLayerDock button { min-width: 34px; padding: 0 8px; }
+  }
 }
 `;
-}
