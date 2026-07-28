@@ -10,6 +10,8 @@
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",
     "leaflet": "^1.9.4",
+    "livekit-client": "^2.21.0",
+    "livekit-server-sdk": "^2.17.0",
     "lucide-react": "latest",
     "mapbox-gl": "^3.25.0",
     "next": "latest",
