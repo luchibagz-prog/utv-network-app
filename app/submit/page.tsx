@@ -471,13 +471,21 @@ const selectedSticker = stickers.find(
             ideal: facing,
           },
           width: {
-            ideal: 1920,
+            ideal: 3840,
           },
           height: {
-            ideal: 1080,
+            ideal: 2160,
+          },
+          frameRate: {
+            ideal: 30,
+            max: 60,
           },
         },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
       });
 
       streamRef.current = stream;
@@ -622,6 +630,26 @@ const selectedSticker = stickers.find(
     );
   }
 
+  function acceptStoryPhoto(capturedFile: File) {
+    if (preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setFile(capturedFile);
+    setPreview(URL.createObjectURL(capturedFile));
+    setMediaFit("cover");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+    setLinkUrl("");
+    setMessage("");
+
+    stopCamera();
+    setMode("editor");
+  }
+
   function startRecording() {
     if (!streamRef.current) {
       setMessage("Camera is not ready.");
@@ -730,10 +758,7 @@ const selectedSticker = stickers.find(
       window.setTimeout(() => {
         holdRecordedRef.current = false;
       }, 250);
-      return;
     }
-
-    capturePhoto();
   }
 
   function cancelStoryCapture() {
@@ -2278,6 +2303,7 @@ if (mode === "camera") {
           onCaptureStart={beginStoryCapture}
           onCaptureEnd={endStoryCapture}
           onCaptureCancel={cancelStoryCapture}
+          onPhotoCapture={acceptStoryPhoto}
           onGallery={() => {
             document
               .getElementById("story-gallery-input")
@@ -2688,7 +2714,7 @@ if (mode === "camera") {
 
           <aside className="storyFloatingTools" aria-label="Story tools">
             <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong><small>Text</small></button>
-            <button type="button" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
+            <button type="button" className="storyMusicTool" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
             <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker"><span>☺</span><small>Sticker</small></button>
             <button type="button" onClick={openDrawPanel} aria-label="Draw"><span>✎</span><small>Draw</small></button>
           </aside>
@@ -4695,6 +4721,12 @@ const styles = `
     z-index: 70;
     display: grid;
     gap: 12px;
+  }
+
+  .storyFloatingTools .storyMusicTool {
+    border-color: rgba(82,247,200,.42);
+    background: rgba(3,22,16,.72);
+    box-shadow: 0 8px 24px rgba(82,247,200,.14);
   }
 
   .storyFloatingTools button {

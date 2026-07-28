@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  type CSSProperties,
-  type PointerEvent,
+  CSSProperties,
+  PointerEvent,
   useEffect,
   useRef,
   useState,
@@ -18,6 +18,7 @@ type StoryCameraProps = {
   onCaptureStart?: () => void;
   onCaptureEnd?: () => void;
   onCaptureCancel?: () => void;
+  onPhotoCapture?: (file: File) => void;
 };
 
 const MAX_RECORDING_SECONDS = 15;
@@ -32,29 +33,58 @@ export default function StoryCamera({
   onCaptureStart,
   onCaptureEnd,
   onCaptureCancel,
+  onPhotoCapture,
 }: StoryCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
+  const pressStartedAtRef = useRef<number | null>(null);
 
   const [pressing, setPressing] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showHint, setShowHint] = useState(true);
+  const [cameraReady, setCameraReady] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
 
     if (!video) return;
 
+    setCameraReady(false);
     video.srcObject = stream;
 
+    const markReady = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        setCameraReady(true);
+      }
+    };
+
+    video.addEventListener("loadedmetadata", markReady);
+    video.addEventListener("playing", markReady);
+
     if (stream) {
-      video.play().catch(() => {});
+      video.play().then(markReady).catch(() => {});
     }
 
     return () => {
+      video.removeEventListener("loadedmetadata", markReady);
+      video.removeEventListener("playing", markReady);
       video.srcObject = null;
     };
+  }, [stream]);
+
+  useEffect(() => {
+    if (!stream) {
+      setShowHint(true);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setShowHint(false);
+    }, 2200);
+
+    return () => window.clearTimeout(timer);
   }, [stream]);
 
   useEffect(() => {
@@ -112,14 +142,74 @@ export default function StoryCamera({
     };
   }, [recording]);
 
+  const captureLocalPhoto = () => {
+    const video = videoRef.current;
+
+    if (!video || !cameraReady || !video.videoWidth || !video.videoHeight) {
+      return false;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return false;
+
+    if (facing === "user") {
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+    }
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+
+        const file = new File(
+          [blob],
+          `utv-story-${Date.now()}.jpg`,
+          { type: "image/jpeg" }
+        );
+
+        onPhotoCapture?.(file);
+      },
+      "image/jpeg",
+      0.98
+    );
+
+    return true;
+  };
+
   const finishCapture = (
     event: PointerEvent<HTMLButtonElement>
   ) => {
     event.preventDefault();
     setPressing(false);
 
+    const heldFor =
+      pressStartedAtRef.current === null
+        ? 0
+        : performance.now() - pressStartedAtRef.current;
+
+    pressStartedAtRef.current = null;
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (heldFor < 320 && !recording) {
+      onCaptureCancel?.();
+
+      if (!captureLocalPhoto()) {
+        // A very fast first tap can land before metadata is ready.
+        window.setTimeout(() => {
+          captureLocalPhoto();
+        }, 120);
+      }
+
+      return;
     }
 
     onCaptureEnd?.();
@@ -247,6 +337,8 @@ export default function StoryCamera({
             onPointerDown={(event) => {
               event.preventDefault();
               setPressing(true);
+              setShowHint(false);
+              pressStartedAtRef.current = performance.now();
 
               event.currentTarget.setPointerCapture(
                 event.pointerId
@@ -259,7 +351,7 @@ export default function StoryCamera({
             onLostPointerCapture={() => setPressing(false)}
             onContextMenu={(event) => event.preventDefault()}
             aria-label="Tap for photo or hold to record video"
-            disabled={!stream}
+            disabled={!stream || !cameraReady}
           >
             <span className="captureCenter" />
           </button>
@@ -268,15 +360,19 @@ export default function StoryCamera({
         <div className="sideControlSpacer" aria-hidden="true" />
       </footer>
 
-      <div className="captureInstructions">
-        <strong>
-          {recording
-            ? "Release to finish"
-            : "Tap for photo"}
-        </strong>
+      {(recording || showHint || !cameraReady) && (
+        <div className="captureInstructions">
+          <strong>
+            {!cameraReady
+              ? "Camera readying…"
+              : recording
+              ? "Release to finish"
+              : "Tap for photo"}
+          </strong>
 
-        {!recording && <span>Hold for video</span>}
-      </div>
+          {!recording && cameraReady && <span>Hold for video</span>}
+        </div>
+      )}
     </main>
   );
 }
@@ -436,6 +532,7 @@ const styles = `
     display: block;
     object-fit: cover;
     object-position: center;
+    image-rendering: auto;
   }
 
   .mirroredVideo {
