@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  CSSProperties,
-  PointerEvent,
+  type CSSProperties,
+  type PointerEvent,
   useEffect,
   useRef,
   useState,
@@ -187,25 +187,26 @@ export default function StoryCamera({
           <CloseIcon />
         </button>
 
-        <div className="cameraTitle">
-          <strong>STORY</strong>
-          <span className={recording ? "recordingText" : ""}>
-            {recording ? "RECORDING" : "CREATE"}
-          </span>
+        <div className="cameraTopCenter">
+          {recording ? (
+            <span className="cameraRecordingLabel">
+              <i />
+              RECORDING
+            </span>
+          ) : (
+            <span className="cameraStoryLabel">STORY</span>
+          )}
         </div>
 
-        <div
-          className={
-            stream
-              ? "cameraStatus cameraReady"
-              : "cameraStatus"
-          }
-          aria-label={
-            stream ? "Camera ready" : "Camera starting"
-          }
+        <button
+          type="button"
+          className="topButton flipTopButton"
+          onClick={onFlip}
+          aria-label="Switch camera"
+          disabled={!stream || recording}
         >
-          <span />
-        </div>
+          <FlipCameraIcon />
+        </button>
       </header>
 
       {recording && (
@@ -264,15 +265,7 @@ export default function StoryCamera({
           </button>
         </div>
 
-        <button
-          type="button"
-          className="sideControl flipButton"
-          onClick={onFlip}
-          aria-label="Switch camera"
-          disabled={!stream || recording}
-        >
-          <FlipCameraIcon />
-        </button>
+        <div className="sideControlSpacer" aria-hidden="true" />
       </footer>
 
       <div className="captureInstructions">
@@ -875,5 +868,104 @@ const styles = `
       border-left: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: 0 0 80px rgba(0, 0, 0, 0.7);
     }
+  }
+
+  /* Pack 4 immersive Story camera */
+  .storyCamera {
+    height: 100svh;
+    min-height: 100dvh;
+  }
+
+  .cameraPreview,
+  .cameraVideo {
+    width: 100vw;
+    height: 100svh;
+    min-height: 100dvh;
+  }
+
+  .cameraTopBar {
+    top: max(8px, env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .cameraTopBar > * {
+    pointer-events: auto;
+  }
+
+  .cameraTopCenter {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .cameraStoryLabel,
+  .cameraRecordingLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 999px;
+    background: rgba(0,0,0,.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 1.5px;
+  }
+
+  .cameraRecordingLabel i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff3158;
+    box-shadow: 0 0 0 4px rgba(255,49,88,.16);
+  }
+
+  .topButton {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.28);
+    border-color: rgba(255,255,255,.14);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .flipTopButton svg {
+    width: 23px;
+    height: 23px;
+  }
+
+  .cameraControls {
+    bottom: max(34px, calc(env(safe-area-inset-bottom) + 20px));
+    grid-template-columns: 64px 94px 64px;
+    gap: 22px;
+  }
+
+  .captureInstructions {
+    bottom: max(142px, calc(env(safe-area-inset-bottom) + 126px));
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: rgba(0,0,0,.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .sideControlSpacer {
+    width: 58px;
+    height: 58px;
+  }
+
+  .cameraShade {
+    background:
+      linear-gradient(180deg, rgba(0,0,0,.34), transparent 20%),
+      linear-gradient(0deg, rgba(0,0,0,.44), transparent 28%);
   }
 `;

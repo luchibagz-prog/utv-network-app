@@ -161,9 +161,15 @@ export default function StoryViewerPage() {
         )
   );
 
+  const normalizedViewerEmail =
+    viewerEmail.trim().toLowerCase();
+
+  const normalizedStoryOwnerEmail =
+    (story?.user_email || "").trim().toLowerCase();
+
   const isOwner =
-    Boolean(viewerEmail) &&
-    viewerEmail === story?.user_email;
+    Boolean(normalizedViewerEmail) &&
+    normalizedViewerEmail === normalizedStoryOwnerEmail;
 
   const creatorName =
     profile?.display_name ||
@@ -598,35 +604,67 @@ export default function StoryViewerPage() {
   }
 
   async function deleteStory() {
-    if (!story || !isOwner) {
+    if (!story) return;
+
+    if (!isOwner) {
+      setMessage("Only the Story owner can delete this Story.");
       return;
     }
 
     const confirmed =
       window.confirm(
-        "Delete this story?"
+        "Delete this Story? This cannot be undone."
       );
 
     if (!confirmed) {
       return;
     }
 
-    const { error } = await supabase
+    setMessage("Deleting Story...");
+
+    const { data: deletedRows, error } = await supabase
       .from("stories")
       .delete()
       .eq("id", story.id)
       .eq(
         "user_email",
-        viewerEmail
-      );
+        story.user_email
+      )
+      .select("id");
 
     if (error) {
-      setMessage(error.message);
+      console.error("Story delete failed:", error);
+      setMessage(
+        `Could not delete Story: ${error.message}`
+      );
+      return;
+    }
+
+    if (!deletedRows?.length) {
+      setMessage(
+        "UTV could not delete this Story. Check the Stories delete policy in Supabase."
+      );
       return;
     }
 
     setShowActions(false);
-    goNext();
+
+    const remainingStories = stories.filter(
+      (item) => item.id !== story.id
+    );
+
+    const nextStory =
+      remainingStories[currentIndex] ||
+      remainingStories[currentIndex - 1];
+
+    if (nextStory) {
+      router.replace(
+        `/stories/${nextStory.id}`
+      );
+      return;
+    }
+
+    router.push("/feed");
   }
 
   async function sendReply(
@@ -1041,6 +1079,8 @@ export default function StoryViewerPage() {
                     story.created_at
                   )}
 
+                  {isOwner ? " • Your Story" : ""}
+
                   {story.music_title
                     ? ` • ♫ ${story.music_title}`
                     : ""}
@@ -1177,7 +1217,7 @@ export default function StoryViewerPage() {
                 </span>
 
                 <strong>
-                  👁 {viewCount}
+                  👁 {viewCount} {viewCount === 1 ? "view" : "views"}
                 </strong>
               </div>
 

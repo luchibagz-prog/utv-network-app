@@ -278,6 +278,16 @@ export default function SubmitPage() {
   const [musicFile, setMusicFile] = useState<File | null>(null);
   const [musicUrl, setMusicUrl] = useState("");
   const [musicTitle, setMusicTitle] = useState("");
+  const [musicDuration, setMusicDuration] = useState(0);
+  const [musicStartSeconds, setMusicStartSeconds] = useState(0);
+  const [musicPreviewUrl, setMusicPreviewUrl] = useState("");
+  const [musicPreviewing, setMusicPreviewing] = useState(false);
+  const musicPreviewRef = useRef<HTMLAudioElement | null>(null);
+
+  const textPointerRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const stickerPointerRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const textPinchRef = useRef<{ id: string; distance: number; size: number } | null>(null);
+  const stickerPinchRef = useRef<{ id: string; distance: number; size: number } | null>(null);
 
   const [destinations, setDestinations] = useState<
     Record<Destination, boolean>
@@ -372,6 +382,13 @@ const selectedSticker = stickers.find(
     setMusicFile(null);
     setMusicUrl("");
     setMusicTitle("");
+    setMusicDuration(0);
+    setMusicStartSeconds(0);
+    setMusicPreviewing(false);
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+    setMusicPreviewUrl("");
 
     setDestinations({
       feed: true,
@@ -823,36 +840,48 @@ const selectedSticker = stickers.find(
     setSelectedStickerId("");
   }
 
+  function pointerGap(
+    points: { x: number; y: number }[]
+  ) {
+    if (points.length < 2) return 0;
+    return Math.hypot(
+      points[1].x - points[0].x,
+      points[1].y - points[0].y
+    );
+  }
+
   function beginTextDrag(
     event: React.PointerEvent<HTMLDivElement>,
     layer: TextLayer
   ) {
     event.preventDefault();
     event.stopPropagation();
-
-    const now = Date.now();
-    const previousTap = lastTextTapRef.current;
-
-    if (
-      previousTap?.id === layer.id &&
-      now - previousTap.at < 320
-    ) {
-      lastTextTapRef.current = null;
-      openTextComposer(layer);
-      return;
-    }
-
-    lastTextTapRef.current = { id: layer.id, at: now };
-
     event.currentTarget.setPointerCapture(event.pointerId);
 
-    draggingTextRef.current = {
-      id: layer.id,
-      startX: event.clientX,
-      startY: event.clientY,
-      originalX: layer.x,
-      originalY: layer.y,
-    };
+    textPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(textPointerRef.current.values());
+
+    if (pointers.length === 1) {
+      draggingTextRef.current = {
+        id: layer.id,
+        startX: event.clientX,
+        startY: event.clientY,
+        originalX: layer.x,
+        originalY: layer.y,
+      };
+      textPinchRef.current = null;
+    } else if (pointers.length === 2) {
+      draggingTextRef.current = null;
+      textPinchRef.current = {
+        id: layer.id,
+        distance: Math.max(1, pointerGap(pointers)),
+        size: layer.size,
+      };
+    }
 
     setSelectedTextId(layer.id);
     setSelectedStickerId("");
@@ -861,11 +890,38 @@ const selectedSticker = stickers.find(
   function moveText(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    const drag = draggingTextRef.current;
-
-    if (!drag) return;
+    if (!textPointerRef.current.has(event.pointerId)) return;
 
     event.preventDefault();
+    event.stopPropagation();
+
+    textPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(textPointerRef.current.values());
+
+    if (pointers.length >= 2 && textPinchRef.current) {
+      const pinch = textPinchRef.current;
+      const distance = Math.max(1, pointerGap(pointers));
+      const nextSize = Math.max(
+        18,
+        Math.min(86, pinch.size * (distance / pinch.distance))
+      );
+
+      setTextLayers((current) =>
+        current.map((layer) =>
+          layer.id === pinch.id
+            ? { ...layer, size: Math.round(nextSize) }
+            : layer
+        )
+      );
+      return;
+    }
+
+    const drag = draggingTextRef.current;
+    if (!drag) return;
 
     const editorBounds =
       event.currentTarget.parentElement?.getBoundingClientRect();
@@ -873,27 +929,18 @@ const selectedSticker = stickers.find(
     if (!editorBounds) return;
 
     const moveX =
-      ((event.clientX - drag.startX) / editorBounds.width) *
-      100;
+      ((event.clientX - drag.startX) / editorBounds.width) * 100;
 
     const moveY =
-      ((event.clientY - drag.startY) /
-        editorBounds.height) *
-      100;
+      ((event.clientY - drag.startY) / editorBounds.height) * 100;
 
     setTextLayers((current) =>
       current.map((layer) =>
         layer.id === drag.id
           ? {
               ...layer,
-              x: Math.min(
-                94,
-                Math.max(6, drag.originalX + moveX)
-              ),
-              y: Math.min(
-                94,
-                Math.max(6, drag.originalY + moveY)
-              ),
+              x: Math.min(94, Math.max(6, drag.originalX + moveX)),
+              y: Math.min(94, Math.max(6, drag.originalY + moveY)),
             }
           : layer
       )
@@ -903,16 +950,23 @@ const selectedSticker = stickers.find(
   function endTextDrag(
     event?: React.PointerEvent<HTMLDivElement>
   ) {
-    if (
-      event &&
-      event.currentTarget.hasPointerCapture(event.pointerId)
-    ) {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId
-      );
+    if (event) {
+      textPointerRef.current.delete(event.pointerId);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
     }
 
-    draggingTextRef.current = null;
+    const remaining = Array.from(textPointerRef.current.values());
+
+    if (remaining.length < 2) {
+      textPinchRef.current = null;
+    }
+
+    if (remaining.length === 0) {
+      draggingTextRef.current = null;
+    }
   }
 
   function beginStickerDrag(
@@ -921,16 +975,32 @@ const selectedSticker = stickers.find(
   ) {
     event.preventDefault();
     event.stopPropagation();
-
     event.currentTarget.setPointerCapture(event.pointerId);
 
-    draggingStickerRef.current = {
-      id: sticker.id,
-      startX: event.clientX,
-      startY: event.clientY,
-      originalX: sticker.x,
-      originalY: sticker.y,
-    };
+    stickerPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(stickerPointerRef.current.values());
+
+    if (pointers.length === 1) {
+      draggingStickerRef.current = {
+        id: sticker.id,
+        startX: event.clientX,
+        startY: event.clientY,
+        originalX: sticker.x,
+        originalY: sticker.y,
+      };
+      stickerPinchRef.current = null;
+    } else if (pointers.length === 2) {
+      draggingStickerRef.current = null;
+      stickerPinchRef.current = {
+        id: sticker.id,
+        distance: Math.max(1, pointerGap(pointers)),
+        size: sticker.size,
+      };
+    }
 
     setSelectedStickerId(sticker.id);
     setSelectedTextId("");
@@ -939,11 +1009,38 @@ const selectedSticker = stickers.find(
   function moveSticker(
     event: React.PointerEvent<HTMLDivElement>
   ) {
-    const drag = draggingStickerRef.current;
-
-    if (!drag) return;
+    if (!stickerPointerRef.current.has(event.pointerId)) return;
 
     event.preventDefault();
+    event.stopPropagation();
+
+    stickerPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(stickerPointerRef.current.values());
+
+    if (pointers.length >= 2 && stickerPinchRef.current) {
+      const pinch = stickerPinchRef.current;
+      const distance = Math.max(1, pointerGap(pointers));
+      const nextSize = Math.max(
+        28,
+        Math.min(130, pinch.size * (distance / pinch.distance))
+      );
+
+      setStickers((current) =>
+        current.map((sticker) =>
+          sticker.id === pinch.id
+            ? { ...sticker, size: Math.round(nextSize) }
+            : sticker
+        )
+      );
+      return;
+    }
+
+    const drag = draggingStickerRef.current;
+    if (!drag) return;
 
     const editorBounds =
       event.currentTarget.parentElement?.getBoundingClientRect();
@@ -951,27 +1048,18 @@ const selectedSticker = stickers.find(
     if (!editorBounds) return;
 
     const moveX =
-      ((event.clientX - drag.startX) / editorBounds.width) *
-      100;
+      ((event.clientX - drag.startX) / editorBounds.width) * 100;
 
     const moveY =
-      ((event.clientY - drag.startY) /
-        editorBounds.height) *
-      100;
+      ((event.clientY - drag.startY) / editorBounds.height) * 100;
 
     setStickers((current) =>
       current.map((sticker) =>
         sticker.id === drag.id
           ? {
               ...sticker,
-              x: Math.min(
-                94,
-                Math.max(6, drag.originalX + moveX)
-              ),
-              y: Math.min(
-                94,
-                Math.max(6, drag.originalY + moveY)
-              ),
+              x: Math.min(94, Math.max(6, drag.originalX + moveX)),
+              y: Math.min(94, Math.max(6, drag.originalY + moveY)),
             }
           : sticker
       )
@@ -981,23 +1069,29 @@ const selectedSticker = stickers.find(
   function endStickerDrag(
     event?: React.PointerEvent<HTMLDivElement>
   ) {
-    if (
-      event &&
-      event.currentTarget.hasPointerCapture(event.pointerId)
-    ) {
-      event.currentTarget.releasePointerCapture(
-        event.pointerId
-      );
+    if (event) {
+      stickerPointerRef.current.delete(event.pointerId);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
     }
 
-    draggingStickerRef.current = null;
+    const remaining = Array.from(stickerPointerRef.current.values());
+
+    if (remaining.length < 2) {
+      stickerPinchRef.current = null;
+    }
+
+    if (remaining.length === 0) {
+      draggingStickerRef.current = null;
+    }
   }
 
   function chooseMusic(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
     const selectedFile = event.target.files?.[0];
-
     event.target.value = "";
 
     if (!selectedFile) return;
@@ -1007,8 +1101,27 @@ const selectedSticker = stickers.find(
       return;
     }
 
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+
+    const localUrl = URL.createObjectURL(selectedFile);
+    const probe = new Audio(localUrl);
+
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      const duration = Number.isFinite(probe.duration)
+        ? probe.duration
+        : 0;
+
+      setMusicDuration(duration);
+      setMusicStartSeconds(0);
+    };
+
     setMusicFile(selectedFile);
     setMusicUrl("");
+    setMusicPreviewUrl(localUrl);
+    setMusicPreviewing(false);
 
     if (!musicTitle) {
       setMusicTitle(
@@ -1019,10 +1132,185 @@ const selectedSticker = stickers.find(
     setMessage("");
   }
 
+  function stopMusicPreview() {
+    const audio = musicPreviewRef.current;
+
+    if (audio) {
+      audio.pause();
+    }
+
+    setMusicPreviewing(false);
+  }
+
+  function previewMusicSelection() {
+    const audio = musicPreviewRef.current;
+
+    if (!audio) return;
+
+    audio.currentTime = Math.max(0, musicStartSeconds);
+    audio.play().catch(() => {});
+    setMusicPreviewing(true);
+  }
+
+  function updateMusicStart(value: number) {
+    const maxStart = Math.max(0, musicDuration - 30);
+    const next = Math.max(0, Math.min(maxStart, value));
+
+    setMusicStartSeconds(next);
+
+    const audio = musicPreviewRef.current;
+
+    if (audio) {
+      audio.currentTime = next;
+
+      if (musicPreviewing) {
+        audio.play().catch(() => {});
+      }
+    }
+  }
+
   function removeMusic() {
+    stopMusicPreview();
     setMusicFile(null);
     setMusicUrl("");
     setMusicTitle("");
+    setMusicDuration(0);
+    setMusicStartSeconds(0);
+
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+
+    setMusicPreviewUrl("");
+  }
+
+  function audioBufferToWavFile(
+    buffer: AudioBuffer,
+    name: string
+  ) {
+    const channels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const frameCount = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataSize = frameCount * blockAlign;
+    const arrayBuffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arrayBuffer);
+
+    const writeString = (offset: number, value: string) => {
+      for (let index = 0; index < value.length; index += 1) {
+        view.setUint8(offset + index, value.charCodeAt(index));
+      }
+    };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      for (let channel = 0; channel < channels; channel += 1) {
+        const sample = Math.max(
+          -1,
+          Math.min(1, buffer.getChannelData(channel)[frame])
+        );
+
+        view.setInt16(
+          offset,
+          sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+          true
+        );
+
+        offset += 2;
+      }
+    }
+
+    return new File(
+      [arrayBuffer],
+      `${cleanFileName(name.replace(/\.[^/.]+$/, "")) || "story-music"}-30s.wav`,
+      { type: "audio/wav" }
+    );
+  }
+
+  async function makeStoryMusicClip(sourceFile: File) {
+    if (!isStory || musicDuration <= 30.05) {
+      return sourceFile;
+    }
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }).webkitAudioContext;
+
+    if (!AudioContextClass) {
+      throw new Error(
+        "Music trimming is not supported in this browser."
+      );
+    }
+
+    const audioContext = new AudioContextClass();
+
+    try {
+      const inputBuffer = await sourceFile.arrayBuffer();
+      const decoded = await audioContext.decodeAudioData(
+        inputBuffer.slice(0)
+      );
+
+      const clipLength = Math.min(
+        30,
+        Math.max(0.1, decoded.duration - musicStartSeconds)
+      );
+
+      const startFrame = Math.floor(
+        Math.max(0, musicStartSeconds) * decoded.sampleRate
+      );
+
+      const frameCount = Math.min(
+        Math.floor(clipLength * decoded.sampleRate),
+        decoded.length - startFrame
+      );
+
+      const clip = audioContext.createBuffer(
+        decoded.numberOfChannels,
+        frameCount,
+        decoded.sampleRate
+      );
+
+      for (
+        let channel = 0;
+        channel < decoded.numberOfChannels;
+        channel += 1
+      ) {
+        const source = decoded.getChannelData(channel);
+        const target = clip.getChannelData(channel);
+
+        target.set(
+          source.subarray(
+            startFrame,
+            startFrame + frameCount
+          )
+        );
+      }
+
+      return audioBufferToWavFile(
+        clip,
+        sourceFile.name
+      );
+    } finally {
+      await audioContext.close().catch(() => {});
+    }
   }
 
   function openTextComposer(layer?: TextLayer) {
@@ -1241,10 +1529,15 @@ const selectedSticker = stickers.find(
 
   async function uploadMusic() {
     if (musicFile) {
+      const selectedMusic =
+        isStory
+          ? await makeStoryMusicClip(musicFile)
+          : musicFile;
+
       return uploadFileToBucket(
         "story-music",
         "audio",
-        musicFile
+        selectedMusic
       );
     }
 
@@ -1696,6 +1989,30 @@ const selectedSticker = stickers.find(
     rotate(${mediaRotation}deg)
     scale(${mediaScale})
   `;
+
+  function handleStoryCanvasTap(
+    event: React.MouseEvent<HTMLElement>
+  ) {
+    if (storyPanel !== "none") return;
+
+    const target = event.target as HTMLElement;
+
+    if (
+      target.closest(
+        "button,input,textarea,label,.storyFloatingTools,.storyLayerDock,.storyBottomActions,.storyMusicPill"
+      )
+    ) {
+      return;
+    }
+
+    if (selectedTextId || selectedStickerId) {
+      setSelectedTextId("");
+      setSelectedStickerId("");
+      return;
+    }
+
+    openTextComposer();
+  }
 
   async function submitCreation() {
     if (isStory) {
@@ -2258,10 +2575,7 @@ if (mode === "camera") {
         <style>{styles}</style>
         <section
           className="storyCanvas"
-          onPointerDown={() => {
-            setSelectedTextId("");
-            setSelectedStickerId("");
-          }}
+          onClick={handleStoryCanvasTap}
         >
           <div
             className="storyMediaGesture"
@@ -2310,6 +2624,7 @@ if (mode === "camera") {
               onPointerMove={moveText}
               onPointerUp={endTextDrag}
               onPointerCancel={endTextDrag}
+              onClick={(event) => event.stopPropagation()}
               onDoubleClick={(event) => { event.stopPropagation(); openTextComposer(layer); }}
               style={{ left: `${layer.x}%`, top: `${layer.y}%`, color: layer.color, fontSize: `${layer.size}px` }}
             >
@@ -2325,6 +2640,7 @@ if (mode === "camera") {
               onPointerMove={moveSticker}
               onPointerUp={endStickerDrag}
               onPointerCancel={endStickerDrag}
+              onClick={(event) => event.stopPropagation()}
               style={{ left: `${sticker.x}%`, top: `${sticker.y}%`, fontSize: `${sticker.size}px` }}
             >
               {sticker.value}
@@ -2473,21 +2789,98 @@ if (mode === "camera") {
           )}
 
           {storyPanel === "music" && (
-            <div className="storySheet" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="storySheet storyMusicSheet" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
               <div className="storySheetHandle" />
-              <h2>Add Music</h2>
+              <div className="storyMusicSheetHeader">
+                <div>
+                  <span>UTV MUSIC</span>
+                  <h2>Choose your moment</h2>
+                </div>
+                <strong>30 SEC</strong>
+              </div>
+
               <label className="storySheetAction">
                 <span>♫</span>
-                <div><strong>Choose audio</strong><small>{musicFile?.name || "Select from your device"}</small></div>
+                <div><strong>Choose audio</strong><small>{musicFile?.name || "Select a song from your device"}</small></div>
                 <input hidden type="file" accept="audio/*" onChange={chooseMusic} />
               </label>
+
+              {musicPreviewUrl && (
+                <audio
+                  ref={musicPreviewRef}
+                  src={musicPreviewUrl}
+                  preload="metadata"
+                  onTimeUpdate={(event) => {
+                    const audio = event.currentTarget;
+                    if (audio.currentTime >= musicStartSeconds + Math.min(30, Math.max(1, musicDuration - musicStartSeconds))) {
+                      audio.pause();
+                      setMusicPreviewing(false);
+                    }
+                  }}
+                  onEnded={() => setMusicPreviewing(false)}
+                />
+              )}
+
               {(musicFile || musicUrl.trim()) && (
                 <>
-                  <input className="storyMusicTitleInput" placeholder="Song title" value={musicTitle} onChange={(event) => setMusicTitle(event.target.value)} />
+                  <input
+                    className="storyMusicTitleInput"
+                    placeholder="Song title"
+                    value={musicTitle}
+                    onChange={(event) => setMusicTitle(event.target.value)}
+                  />
+
+                  {musicDuration > 0 && (
+                    <div className="storyMusicTrimmer">
+                      <div className="musicTrimTimes">
+                        <strong>{Math.floor(musicStartSeconds / 60)}:{String(Math.floor(musicStartSeconds % 60)).padStart(2, "0")}</strong>
+                        <span>Selected clip</span>
+                        <strong>
+                          {Math.floor(Math.min(musicDuration, musicStartSeconds + 30) / 60)}:{String(Math.floor(Math.min(musicDuration, musicStartSeconds + 30) % 60)).padStart(2, "0")}
+                        </strong>
+                      </div>
+
+                      <div className="musicWaveMock" aria-hidden="true">
+                        {Array.from({ length: 28 }).map((_, index) => (
+                          <span key={index} style={{ height: `${24 + ((index * 17) % 48)}%` }} />
+                        ))}
+                      </div>
+
+                      <input
+                        className="musicTrimRange"
+                        type="range"
+                        min="0"
+                        max={Math.max(0, musicDuration - 30)}
+                        step="0.1"
+                        value={Math.min(musicStartSeconds, Math.max(0, musicDuration - 30))}
+                        onChange={(event) => updateMusicStart(Number(event.target.value))}
+                        aria-label="Choose the 30 second part of the song"
+                      />
+
+                      <button
+                        type="button"
+                        className="musicPreviewButton"
+                        onClick={musicPreviewing ? stopMusicPreview : previewMusicSelection}
+                      >
+                        {musicPreviewing ? "❚❚ Pause Preview" : "▶ Preview 30 Seconds"}
+                      </button>
+                    </div>
+                  )}
+
                   <button type="button" className="storyRemoveAction" onClick={removeMusic}>Remove music</button>
                 </>
               )}
-              <button type="button" className="storySheetDone" onClick={() => setStoryPanel("none")}>Done</button>
+
+              <button
+                type="button"
+                className="storySheetDone"
+                onClick={() => {
+                  stopMusicPreview();
+                  setStoryPanel("none");
+                }}
+              >
+                Done
+              </button>
             </div>
           )}
 
@@ -4644,6 +5037,113 @@ const styles = `
     box-shadow: 0 0 0 5px rgba(7,18,14,.1);
   }
 
+
+  .storyTextLayer,
+  .storyStickerLayer {
+    touch-action: none;
+  }
+
+  .storyMusicSheet {
+    max-height: min(82dvh, 690px);
+    overflow-y: auto;
+  }
+
+  .storyMusicSheetHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .storyMusicSheetHeader > div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .storyMusicSheetHeader span {
+    color: #52f7c8;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 1.7px;
+  }
+
+  .storyMusicSheetHeader h2 {
+    margin: 0;
+  }
+
+  .storyMusicSheetHeader > strong {
+    padding: 7px 10px;
+    color: #07120e;
+    border-radius: 999px;
+    background: #52f7c8;
+    font-size: 10px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .storyMusicTrimmer {
+    display: grid;
+    gap: 11px;
+    padding: 14px;
+    border: 1px solid rgba(82,247,200,.16);
+    border-radius: 18px;
+    background: rgba(82,247,200,.055);
+  }
+
+  .musicTrimTimes {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .musicTrimTimes strong {
+    font-size: 12px;
+  }
+
+  .musicTrimTimes span {
+    color: rgba(255,255,255,.5);
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+  }
+
+  .musicWaveMock {
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    overflow: hidden;
+    padding: 5px 8px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.24);
+  }
+
+  .musicWaveMock span {
+    width: 3px;
+    min-height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #52f7c8, #7b61ff);
+  }
+
+  .musicTrimRange {
+    width: 100%;
+    accent-color: #52f7c8;
+  }
+
+  .musicPreviewButton {
+    min-height: 44px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    background: rgba(255,255,255,.07);
+    font-size: 12px;
+    font-weight: 900;
+  }
   @media (max-width: 420px) {
     .storyFloatingTools { right: 10px; gap: 9px; }
     .storyFloatingTools button { width: 45px; height: 45px; }
