@@ -234,11 +234,15 @@ export default function LiveViewerPage() {
           "broadcast",
           { event: "join-response" },
           ({ payload }) => {
-            const email = String(payload?.email || "");
+           const email = String(payload?.email || "");
+const currentUserEmail = String(user.email || "");
 
-            if (email.toLowerCase() !== user.email.toLowerCase()) {
-              return;
-            }
+if (
+  !currentUserEmail ||
+  email.toLowerCase() !== currentUserEmail.toLowerCase()
+) {
+  return;
+}
 
             const approved = payload?.approved === true;
 
