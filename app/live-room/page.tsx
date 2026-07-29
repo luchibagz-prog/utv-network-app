@@ -51,6 +51,17 @@ type LiveComment = {
   created_at: string;
 };
 
+type PresenceViewer = {
+  email: string;
+  joined_at?: string;
+};
+
+type JoinRequest = {
+  id: string;
+  email: string;
+  requested_at: string;
+};
+
 function formatTime(total: number) {
   const min = Math.floor(total / 60);
   const sec = total % 60;
@@ -110,6 +121,11 @@ export default function LiveRoomPage() {
   const [comments, setComments] = useState<LiveComment[]>([]);
   const [hostComment, setHostComment] = useState("");
   const [reactionBurst, setReactionBurst] = useState<string[]>([]);
+  const [viewerList, setViewerList] = useState<PresenceViewer[]>([]);
+  const [showViewerSheet, setShowViewerSheet] = useState(false);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [showJoinSheet, setShowJoinSheet] = useState(false);
+  const [interactionMessage, setInteractionMessage] = useState("");
 
   const canGoLive = useMemo(
     () =>
@@ -303,6 +319,21 @@ export default function LiveRoomPage() {
         const count = viewers.length;
         setViewerCount(count);
 
+        const uniqueViewerMap = new Map<string, PresenceViewer>();
+
+        viewers.forEach((entry: any) => {
+          const email = String(entry?.email || "").trim();
+
+          if (email) {
+            uniqueViewerMap.set(email.toLowerCase(), {
+              email,
+              joined_at: entry?.joined_at,
+            });
+          }
+        });
+
+        setViewerList(Array.from(uniqueViewerMap.values()));
+
         await supabase
           .from("live_sessions")
           .update({ viewer_count: count })
@@ -330,6 +361,48 @@ export default function LiveRoomPage() {
               current.filter((item) => !item.startsWith(`${id}|`))
             );
           }, 1800);
+        }
+      )
+      .on(
+        "broadcast",
+        { event: "join-request" },
+        ({ payload }) => {
+          const email = String(payload?.email || "").trim();
+
+          if (!email) return;
+
+          setJoinRequests((current) => {
+            if (
+              current.some(
+                (request) =>
+                  request.email.toLowerCase() === email.toLowerCase()
+              )
+            ) {
+              return current;
+            }
+
+            return [
+              ...current,
+              {
+                id: String(
+                  payload?.id ||
+                    `${Date.now()}-${Math.random()}`
+                ),
+                email,
+                requested_at:
+                  String(payload?.requested_at || "") ||
+                  new Date().toISOString(),
+              },
+            ];
+          });
+
+          setInteractionMessage(
+            `${email.split("@")[0]} requested to join your Live.`
+          );
+
+          window.setTimeout(() => {
+            setInteractionMessage("");
+          }, 2600);
         }
       )
       .on(
@@ -651,6 +724,57 @@ export default function LiveRoomPage() {
 
     setIsLive(false);
     setStatus("Live ended. Preparing replay...");
+  }
+
+  async function deleteLiveComment(commentId: number) {
+    if (!liveSessionId) return;
+
+    const { error } = await supabase
+      .from("live_comments")
+      .delete()
+      .eq("id", commentId)
+      .eq("live_session_id", liveSessionId);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setComments((current) =>
+      current.filter((comment) => comment.id !== commentId)
+    );
+  }
+
+  async function respondToJoinRequest(
+    request: JoinRequest,
+    approved: boolean
+  ) {
+    if (!realtimeChannelRef.current) return;
+
+    await realtimeChannelRef.current.send({
+      type: "broadcast",
+      event: "join-response",
+      payload: {
+        email: request.email,
+        approved,
+        host_email:
+          (await supabase.auth.getUser()).data.user?.email || "",
+      },
+    });
+
+    setJoinRequests((current) =>
+      current.filter((item) => item.id !== request.id)
+    );
+
+    setInteractionMessage(
+      approved
+        ? `${request.email.split("@")[0]} is approved for the guest queue.`
+        : `${request.email.split("@")[0]}'s request was declined.`
+    );
+
+    window.setTimeout(() => {
+      setInteractionMessage("");
+    }, 2600);
   }
 
   async function sendHostComment(event: FormEvent) {
@@ -1007,7 +1131,13 @@ export default function LiveRoomPage() {
             <header className="liveHeader">
               <span className="liveBadge">● LIVE</span>
               <span className="clock">{formatTime(seconds)}</span>
-              <span className="viewers">👁 {viewerCount}</span>
+              <button
+                type="button"
+                className="viewers"
+                onClick={() => setShowViewerSheet(true)}
+              >
+                👁 {viewerCount}
+              </button>
               <button
                 className="shareLive"
                 onClick={async () => {
@@ -1042,12 +1172,23 @@ export default function LiveRoomPage() {
             </div>
 
             <section className="commentStack">
-              {comments.slice(-4).map((comment) => (
+              {comments.slice(-5).map((comment) => (
                 <div className="commentBubble" key={comment.id}>
-                  <strong>
-                    {comment.user_email.split("@")[0]}
-                  </strong>
-                  <span>{comment.message}</span>
+                  <div className="commentText">
+                    <strong>
+                      {comment.user_email.split("@")[0]}
+                    </strong>
+                    <span>{comment.message}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="commentDelete"
+                    onClick={() => deleteLiveComment(comment.id)}
+                    aria-label="Delete comment"
+                  >
+                    ×
+                  </button>
                 </div>
               ))}
             </section>
@@ -1089,9 +1230,23 @@ export default function LiveRoomPage() {
                 ■
                 <small>END</small>
               </button>
-              <button disabled>
+              <button
+                type="button"
+                className={
+                  joinRequests.length
+                    ? "guestControl hasRequests"
+                    : "guestControl"
+                }
+                onClick={() => setShowJoinSheet(true)}
+              >
                 👥
-                <small>Guests</small>
+                <small>
+                  {joinRequests.length
+                    ? `${joinRequests.length} Request${
+                        joinRequests.length === 1 ? "" : "s"
+                      }`
+                    : "Guests"}
+                </small>
               </button>
               <button
                 onClick={() => {
@@ -1104,6 +1259,131 @@ export default function LiveRoomPage() {
                 <small>Chat</small>
               </button>
             </div>
+
+            {interactionMessage && (
+              <div className="interactionToast">
+                {interactionMessage}
+              </div>
+            )}
+
+            {showViewerSheet && (
+              <div
+                className="liveSheetBackdrop"
+                onClick={() => setShowViewerSheet(false)}
+              >
+                <section
+                  className="livePeopleSheet"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="liveSheetHeader">
+                    <div>
+                      <span>WATCHING NOW</span>
+                      <h2>{viewerCount} viewer{viewerCount === 1 ? "" : "s"}</h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowViewerSheet(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="viewerList">
+                    {viewerList.length ? (
+                      viewerList.map((viewer) => (
+                        <div className="viewerRow" key={viewer.email}>
+                          <span className="viewerAvatar">
+                            {viewer.email.slice(0, 1).toUpperCase()}
+                          </span>
+
+                          <div>
+                            <strong>{viewer.email.split("@")[0]}</strong>
+                            <small>Watching your Live</small>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="emptySheetText">
+                        Your viewers will appear here when they join.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {showJoinSheet && (
+              <div
+                className="liveSheetBackdrop"
+                onClick={() => setShowJoinSheet(false)}
+              >
+                <section
+                  className="livePeopleSheet"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="liveSheetHeader">
+                    <div>
+                      <span>JOIN REQUESTS</span>
+                      <h2>Guest queue</h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowJoinSheet(false)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="guestQueueNote">
+                    Approving places a viewer in your guest queue.
+                    Split-screen guest video comes in LIVE Pack 5.
+                  </p>
+
+                  <div className="viewerList">
+                    {joinRequests.length ? (
+                      joinRequests.map((request) => (
+                        <div className="viewerRow requestRow" key={request.id}>
+                          <span className="viewerAvatar requestAvatar">
+                            {request.email.slice(0, 1).toUpperCase()}
+                          </span>
+
+                          <div className="requestIdentity">
+                            <strong>{request.email.split("@")[0]}</strong>
+                            <small>Wants to join your Live</small>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="declineRequest"
+                            onClick={() =>
+                              respondToJoinRequest(request, false)
+                            }
+                          >
+                            ×
+                          </button>
+
+                          <button
+                            type="button"
+                            className="approveRequest"
+                            onClick={() =>
+                              respondToJoinRequest(request, true)
+                            }
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="emptySheetText">
+                        No guest requests yet.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+            )}
           </>
         )}
       </section>
@@ -1135,6 +1415,8 @@ const styles = `
   .reactionLayer{position:absolute;right:10px;bottom:160px;z-index:36;pointer-events:none}.reactionLayer span{position:absolute;bottom:0;font-size:27px;animation:floatReaction 1.8s ease-out forwards}
   .hostCommentBar{position:absolute;left:12px;right:12px;bottom:91px;z-index:40;display:flex;gap:7px;padding:5px;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(0,0,0,.45);backdrop-filter:blur(15px)}.hostCommentBar input{flex:1;min-width:0;padding:9px 11px;color:#fff;border:0;outline:0;background:transparent;font-size:11px}.hostCommentBar button{min-width:58px;color:#06110d;border:0;border-radius:999px;background:#52f7c8;font-size:10px;font-weight:950}
   .controlDock{position:absolute;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:40;display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr 1fr;gap:5px;padding:7px;border:1px solid rgba(255,255,255,.12);border-radius:24px;background:rgba(8,8,10,.65);backdrop-filter:blur(20px)}.controlDock button{min-height:58px;display:grid;place-items:center;align-content:center;gap:2px;color:#fff;border:0;border-radius:16px;background:rgba(255,255,255,.055);font-size:17px}.controlDock small{font-size:8px;font-weight:850}.controlDock .endButton{background:#ff2d55;font-size:13px;font-weight:950}.controlDock button:disabled{opacity:.4}
+  .commentBubble{align-items:center;justify-content:space-between}.commentText{display:flex;gap:6px;min-width:0}.commentDelete{width:24px;height:24px;flex:0 0 auto;display:grid;place-items:center;padding:0;color:rgba(255,255,255,.66);border:0;border-radius:50%;background:rgba(255,255,255,.08);font-size:16px}.guestControl.hasRequests{color:#06110d!important;background:#52f7c8!important}.interactionToast{position:absolute;left:50%;bottom:165px;z-index:70;max-width:calc(100% - 28px);transform:translateX(-50%);padding:10px 13px;border:1px solid rgba(82,247,200,.26);border-radius:999px;background:rgba(5,12,10,.9);color:#52f7c8;font-size:10px;font-weight:900;text-align:center;backdrop-filter:blur(14px)}
+  .liveSheetBackdrop{position:absolute;inset:0;z-index:100;display:flex;align-items:flex-end;background:rgba(0,0,0,.48);backdrop-filter:blur(3px)}.livePeopleSheet{width:100%;max-height:67dvh;overflow:auto;padding:12px 14px max(22px,env(safe-area-inset-bottom));border:1px solid rgba(255,255,255,.13);border-bottom:0;border-radius:28px 28px 0 0;background:rgba(10,10,12,.97);box-shadow:0 -20px 70px rgba(0,0,0,.42)}.liveSheetHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.liveSheetHeader span{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1.5px}.liveSheetHeader h2{margin:2px 0 0;font-size:25px}.liveSheetHeader button{width:40px;height:40px;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:50%;background:rgba(255,255,255,.06)}.viewerList{display:grid;gap:8px}.viewerRow{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.045)}.viewerAvatar{width:42px;height:42px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(82,247,200,.35);border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.2),rgba(123,97,255,.25));font-weight:950}.viewerRow>div{display:grid;gap:2px;min-width:0}.viewerRow strong{font-size:12px}.viewerRow small{color:rgba(255,255,255,.48);font-size:9px}.emptySheetText,.guestQueueNote{color:rgba(255,255,255,.55);font-size:11px;line-height:1.45}.guestQueueNote{margin:0 0 12px}.requestRow{display:grid;grid-template-columns:42px 1fr 36px 36px}.requestIdentity{min-width:0}.requestAvatar{border-color:rgba(255,78,104,.35)}.declineRequest,.approveRequest{width:36px;height:36px;padding:0;border:0;border-radius:50%;font-weight:950}.declineRequest{color:#ff9aac;background:rgba(255,78,104,.12)}.approveRequest{color:#06110d;background:#52f7c8}
   .replayPage{padding:max(20px,env(safe-area-inset-top)) 14px max(30px,env(safe-area-inset-bottom));background:radial-gradient(circle at 50% 15%,rgba(82,247,200,.1),transparent 28%),#050505}.replayWrap{width:min(100%,620px);margin:0 auto}.replayVideoShell{position:relative;width:100%;aspect-ratio:9/16;max-height:62dvh;overflow:hidden;margin-bottom:12px;border-radius:23px;background:#000}.replayVideo{width:100%;height:100%;object-fit:cover}.replayBadge{position:absolute;top:11px;left:11px;padding:6px 9px;border-radius:999px;background:rgba(0,0,0,.55);font-size:9px;font-weight:950}.metaRow{display:flex;gap:6px;margin:9px 0}.metaRow span{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.06);font-size:9px}.replayPrimary{width:100%;min-height:50px;color:#06110d;border:0;border-radius:15px;background:#52f7c8;font-weight:950}.replaySecondary button{min-height:44px;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05)}
   @keyframes floatReaction{0%{opacity:0;transform:translateY(0) scale(.7)}20%{opacity:1}100%{opacity:0;transform:translateY(-180px) scale(1.3)}}
   @media(min-width:740px){.cameraStage{width:min(100%,580px);margin:0 auto;border-left:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06)}}

@@ -55,6 +55,9 @@ export default function LiveViewerPage() {
   const [ended, setEnded] = useState(false);
   const [message, setMessage] = useState("");
   const [reactionBurst, setReactionBurst] = useState<string[]>([]);
+  const [showReactions, setShowReactions] = useState(false);
+  const [joinRequested, setJoinRequested] = useState(false);
+  const [joinApproved, setJoinApproved] = useState(false);
 
   useEffect(() => {
     void openLive();
@@ -228,6 +231,29 @@ export default function LiveViewerPage() {
           }
         )
         .on(
+          "broadcast",
+          { event: "join-response" },
+          ({ payload }) => {
+            const email = String(payload?.email || "");
+
+            if (email.toLowerCase() !== user.email.toLowerCase()) {
+              return;
+            }
+
+            const approved = payload?.approved === true;
+
+            setJoinApproved(approved);
+            setJoinRequested(false);
+            setMessage(
+              approved
+                ? "Host approved you for the guest queue."
+                : "Host declined your join request."
+            );
+
+            window.setTimeout(() => setMessage(""), 3000);
+          }
+        )
+        .on(
           "postgres_changes",
           {
             event: "INSERT",
@@ -312,6 +338,28 @@ export default function LiveViewerPage() {
         user_email: viewerEmail,
       },
     });
+  }
+
+  async function requestToJoin() {
+    if (!channelRef.current || ended || joinRequested || joinApproved) {
+      return;
+    }
+
+    const id = crypto.randomUUID();
+
+    await channelRef.current.send({
+      type: "broadcast",
+      event: "join-request",
+      payload: {
+        id,
+        email: viewerEmail,
+        requested_at: new Date().toISOString(),
+      },
+    });
+
+    setJoinRequested(true);
+    setMessage("Join request sent to the host.");
+    window.setTimeout(() => setMessage(""), 2400);
   }
 
   async function shareLive() {
@@ -445,13 +493,50 @@ export default function LiveViewerPage() {
           })}
         </div>
 
-        <div className="reactionRow">
-          {["🔥", "❤️", "😂", "👏", "💯"].map((emoji) => (
-            <button key={emoji} onClick={() => sendReaction(emoji)}>
-              {emoji}
-            </button>
-          ))}
+        <div className="viewerActions">
+          <button
+            type="button"
+            className={
+              joinApproved
+                ? "joinLiveButton approved"
+                : joinRequested
+                ? "joinLiveButton requested"
+                : "joinLiveButton"
+            }
+            onClick={requestToJoin}
+            disabled={joinRequested || joinApproved}
+          >
+            {joinApproved
+              ? "✓ Guest Queue"
+              : joinRequested
+              ? "Request Sent"
+              : "＋ Request to Join"}
+          </button>
+
+          <button
+            type="button"
+            className="reactionTrigger"
+            onClick={() => setShowReactions((current) => !current)}
+          >
+            ❤️
+          </button>
         </div>
+
+        {showReactions && (
+          <div className="reactionRow">
+            {["🔥", "❤️", "😂", "👏", "💯"].map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => {
+                  void sendReaction(emoji);
+                  setShowReactions(false);
+                }}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
 
         <form className="commentBar" onSubmit={sendComment}>
           <input
@@ -477,9 +562,10 @@ const styles = `
   .topBar{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:8px}.hostButton{min-width:0;display:flex;align-items:center;gap:8px;padding:0;color:#fff;border:0;background:transparent;text-align:left}.avatar{width:40px;height:40px;display:grid;place-items:center;border:2px solid #52f7c8;border-radius:50%;background:linear-gradient(135deg,#52f7c8,#7b61ff);font-weight:950}.hostButton>div{display:grid;gap:1px;min-width:0}.hostButton strong{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.hostButton small{color:rgba(255,255,255,.6);font-size:9px}
   .topActions{display:flex;gap:5px;align-items:center}.topActions>*{min-height:35px;display:flex;align-items:center;justify-content:center;padding:0 9px;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(0,0,0,.4);font-size:9px;font-weight:900;backdrop-filter:blur(12px)}.topActions button{width:35px;padding:0}.liveBadge{background:#ff2d55}
   .liveTitle{position:absolute;top:max(70px,calc(env(safe-area-inset-top) + 55px));left:15px;right:15px;z-index:20;display:grid;gap:3px;pointer-events:none}.liveTitle h1{max-width:85%;margin:0;font-size:clamp(23px,7vw,35px);line-height:1.02}.liveTitle p{max-width:80%;margin:0;color:rgba(255,255,255,.7);font-size:11px}.liveTitle small{color:rgba(255,255,255,.55);font-size:9px}
-  .comments{position:absolute;left:12px;right:80px;bottom:145px;z-index:30;display:grid;gap:6px}.bubble{width:max-content;max-width:100%;display:flex;gap:6px;padding:7px 10px;border-radius:14px;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);font-size:11px}.bubble strong{color:#52f7c8}.bubble span{overflow-wrap:anywhere}
-  .reactionLayer{position:absolute;right:10px;bottom:150px;z-index:35;pointer-events:none}.reactionLayer span{position:absolute;bottom:0;font-size:27px;animation:float 1.8s ease-out forwards}
-  .reactionRow{position:absolute;right:12px;bottom:87px;z-index:34;display:flex;gap:5px}.reactionRow button{width:39px;height:39px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(0,0,0,.42);font-size:18px;backdrop-filter:blur(12px)}
+  .comments{position:absolute;left:12px;right:80px;bottom:154px;z-index:30;display:grid;gap:6px}.bubble{width:max-content;max-width:100%;display:flex;gap:6px;padding:7px 10px;border-radius:14px;background:rgba(0,0,0,.42);backdrop-filter:blur(10px);font-size:11px}.bubble strong{color:#52f7c8}.bubble span{overflow-wrap:anywhere}
+  .reactionLayer{position:absolute;right:10px;bottom:165px;z-index:35;pointer-events:none}.reactionLayer span{position:absolute;bottom:0;font-size:27px;animation:float 1.8s ease-out forwards}
+  .viewerActions{position:absolute;left:12px;right:12px;bottom:74px;z-index:34;display:flex;justify-content:flex-end;gap:7px;pointer-events:none}.viewerActions button{pointer-events:auto}.joinLiveButton{min-height:40px;padding:0 13px;color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:999px;background:rgba(0,0,0,.48);font-size:10px;font-weight:900;backdrop-filter:blur(14px)}.joinLiveButton.requested{color:#ffd166}.joinLiveButton.approved{color:#06110d;background:#52f7c8}.joinLiveButton:disabled{opacity:.9}.reactionTrigger{width:40px;height:40px;display:grid;place-items:center;padding:0;border:1px solid rgba(255,255,255,.15);border-radius:50%;background:rgba(0,0,0,.48);font-size:18px;backdrop-filter:blur(14px)}
+  .reactionRow{position:absolute;right:12px;bottom:119px;z-index:36;display:flex;gap:5px;padding:5px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(0,0,0,.5);backdrop-filter:blur(14px)}.reactionRow button{width:38px;height:38px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.06);font-size:18px}
   .commentBar{position:absolute;left:12px;right:12px;bottom:max(13px,env(safe-area-inset-bottom));z-index:35;display:flex;gap:7px;padding:5px;border:1px solid rgba(255,255,255,.17);border-radius:999px;background:rgba(0,0,0,.5);backdrop-filter:blur(16px)}.commentBar input{flex:1;min-width:0;padding:9px 11px;color:#fff;border:0;outline:0;background:transparent;font-size:11px}.commentBar button{min-width:58px;color:#06110d;border:0;border-radius:999px;background:#52f7c8;font-size:10px;font-weight:950}.commentBar button:disabled{opacity:.4}
   .toast{position:absolute;left:50%;bottom:142px;z-index:50;transform:translateX(-50%);padding:8px 11px;border-radius:999px;background:rgba(0,0,0,.7);color:#52f7c8;font-size:10px;font-weight:850}
   .loadingPage,.endedPage{display:grid;place-items:center;align-content:center;gap:12px;padding:25px;text-align:center;background:radial-gradient(circle at 50% 25%,rgba(82,247,200,.12),transparent 28%),#050505}.loadingPage img,.endedPage img{width:95px}.endedPage p{margin:0;color:#52f7c8;font-size:10px;font-weight:950;letter-spacing:1.5px}.endedPage h1{margin:0;font-size:33px}.endedPage button{min-height:48px;padding:0 18px;color:#06110d;border:0;border-radius:999px;background:#52f7c8;font-weight:950}
