@@ -89,6 +89,22 @@ export default function LiveViewerPage() {
     }
   }, [isGuestLive, remoteGuestEmail]);
 
+  useEffect(() => {
+    const localGuestTrack = localGuestVideoTrackRef.current;
+
+    if (
+      isGuestLive &&
+      localGuestTrack &&
+      guestVideoRef.current
+    ) {
+      localGuestTrack.attach(guestVideoRef.current);
+
+      guestVideoRef.current
+        .play()
+        .catch(() => {});
+    }
+  }, [isGuestLive]);
+
 
   async function cleanup() {
     if (channelRef.current) {
@@ -454,10 +470,6 @@ export default function LiveViewerPage() {
       localGuestVideoTrackRef.current = videoTrack;
       localGuestAudioTrackRef.current = audioTrack;
 
-      if (guestVideoRef.current) {
-        videoTrack.attach(guestVideoRef.current);
-      }
-
       await room.localParticipant.publishTrack(videoTrack, {
         source: Track.Source.Camera,
         simulcast: true,
@@ -472,12 +484,27 @@ export default function LiveViewerPage() {
 
       window.setTimeout(() => {
         const hostTrack = hostVideoTrackRef.current;
+        const localGuestTrack =
+          localGuestVideoTrackRef.current;
 
         if (hostTrack && videoRef.current) {
           hostTrack.attach(videoRef.current);
           videoRef.current.play().catch(() => {});
         }
-      }, 80);
+
+        if (
+          localGuestTrack &&
+          guestVideoRef.current
+        ) {
+          localGuestTrack.attach(
+            guestVideoRef.current
+          );
+
+          guestVideoRef.current
+            .play()
+            .catch(() => {});
+        }
+      }, 120);
 
       setMessage("You're live with the host.");
 
@@ -503,7 +530,12 @@ export default function LiveViewerPage() {
     const audioTrack = localGuestAudioTrackRef.current;
 
     if (videoTrack) {
-      await room.localParticipant.unpublishTrack(videoTrack);
+      videoTrack.detach();
+
+      await room.localParticipant.unpublishTrack(
+        videoTrack
+      );
+
       videoTrack.stop();
     }
 
@@ -668,6 +700,7 @@ export default function LiveViewerPage() {
               autoPlay
               playsInline
               muted
+              disablePictureInPicture
               className="guestViewerVideo mirroredGuest"
             />
 

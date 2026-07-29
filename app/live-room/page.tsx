@@ -95,6 +95,10 @@ export default function LiveRoomPage() {
   const timerRef =
     useRef<ReturnType<typeof setInterval> | null>(null);
   const realtimeChannelRef = useRef<any>(null);
+  const liveSessionIdRef = useRef("");
+  const worldPostIdRef = useRef("");
+  const isLiveRef = useRef(false);
+  const endingLiveRef = useRef(false);
   const guestVideoRef = useRef<HTMLVideoElement | null>(null);
   const guestAudioContainerRef = useRef<HTMLDivElement | null>(null);
   const guestVideoTrackRef = useRef<RemoteTrack | null>(null);
@@ -154,6 +158,45 @@ export default function LiveRoomPage() {
   }, []);
 
   useEffect(() => {
+    const closeLiveOnExit = () => {
+      const sessionId =
+        liveSessionIdRef.current;
+
+      if (!sessionId || !isLiveRef.current) {
+        return;
+      }
+
+      void endLiveRecords(
+        sessionId,
+        worldPostIdRef.current,
+        true
+      );
+    };
+
+    window.addEventListener(
+      "pagehide",
+      closeLiveOnExit
+    );
+
+    window.addEventListener(
+      "beforeunload",
+      closeLiveOnExit
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pagehide",
+        closeLiveOnExit
+      );
+
+      window.removeEventListener(
+        "beforeunload",
+        closeLiveOnExit
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     if (
       activeGuestEmail &&
       guestVideoTrackRef.current &&
@@ -165,6 +208,18 @@ export default function LiveRoomPage() {
 
 
   async function cleanupRoom() {
+    if (
+      isLiveRef.current &&
+      liveSessionIdRef.current
+    ) {
+      await endLiveRecords(
+        liveSessionIdRef.current,
+        worldPostIdRef.current
+      );
+
+      isLiveRef.current = false;
+    }
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -195,6 +250,134 @@ export default function LiveRoomPage() {
     guestAudioTrackRef.current = null;
     setActiveGuestEmail("");
     setActiveGuestIdentity("");
+  }
+
+  async function closePreviousHostLives(
+    hostEmail: string
+  ) {
+    const now = new Date().toISOString();
+
+    const {
+      data: oldSessions,
+      error: sessionLookupError,
+    } = await supabase
+      .from("live_sessions")
+      .select("id")
+      .eq("host_email", hostEmail)
+      .eq("status", "live");
+
+    if (sessionLookupError) {
+      throw sessionLookupError;
+    }
+
+    const oldIds = (oldSessions || [])
+      .map((row: any) => String(row.id || ""))
+      .filter(Boolean);
+
+    if (!oldIds.length) return;
+
+    const { error: endSessionsError } =
+      await supabase
+        .from("live_sessions")
+        .update({
+          status: "ended",
+          ended_at: now,
+          viewer_count: 0,
+        })
+        .eq("host_email", hostEmail)
+        .eq("status", "live");
+
+    if (endSessionsError) {
+      throw endSessionsError;
+    }
+
+    const { error: endWorldError } =
+      await supabase
+        .from("world_posts")
+        .update({
+          is_live: false,
+          ended_at: now,
+          viewer_count: 0,
+        })
+        .in("live_session_id", oldIds);
+
+    if (endWorldError) {
+      console.info(
+        "Old World Live cleanup skipped:",
+        endWorldError.message
+      );
+    }
+  }
+
+  async function endLiveRecords(
+    sessionId: string,
+    linkedWorldPostId: string,
+    keepalive = false
+  ) {
+    if (!sessionId) return;
+
+    const now = new Date().toISOString();
+
+    if (keepalive) {
+      try {
+        const { data } =
+          await supabase.auth.getSession();
+
+        const accessToken =
+          data.session?.access_token;
+
+        if (accessToken) {
+          await fetch("/api/live-session-end", {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              "Content-Type":
+                "application/json",
+              Authorization:
+                `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              sessionId,
+              worldPostId:
+                linkedWorldPostId || "",
+            }),
+          });
+
+          return;
+        }
+      } catch {
+        // Fall through to direct Supabase updates.
+      }
+    }
+
+    await supabase
+      .from("live_sessions")
+      .update({
+        status: "ended",
+        ended_at: now,
+        viewer_count: 0,
+      })
+      .eq("id", sessionId);
+
+    if (linkedWorldPostId) {
+      await supabase
+        .from("world_posts")
+        .update({
+          is_live: false,
+          ended_at: now,
+          viewer_count: 0,
+        })
+        .eq("id", linkedWorldPostId);
+    } else {
+      await supabase
+        .from("world_posts")
+        .update({
+          is_live: false,
+          ended_at: now,
+          viewer_count: 0,
+        })
+        .eq("live_session_id", sessionId);
+    }
   }
 
   async function prepareLocalMedia(
@@ -647,8 +830,14 @@ export default function LiveRoomPage() {
         return;
       }
 
+      await closePreviousHostLives(
+        user.email
+      );
+
       const sessionId = crypto.randomUUID();
       const roomName = liveRoomName(sessionId);
+
+      liveSessionIdRef.current = sessionId;
 
       const { error: sessionError } = await supabase
         .from("live_sessions")
@@ -692,6 +881,8 @@ export default function LiveRoomPage() {
         if (worldError) throw worldError;
 
         createdWorldPostId = String(worldPost.id);
+        worldPostIdRef.current =
+          createdWorldPostId;
         setWorldPostId(createdWorldPostId);
 
         await supabase
@@ -791,8 +982,21 @@ export default function LiveRoomPage() {
       });
 
       room.on(RoomEvent.Disconnected, () => {
-        if (isLive) {
-          setErrorMessage("Live connection ended.");
+        if (
+          isLiveRef.current &&
+          !endingLiveRef.current
+        ) {
+          setErrorMessage(
+            "Live connection ended."
+          );
+
+          void endLiveRecords(
+            liveSessionIdRef.current,
+            worldPostIdRef.current
+          );
+
+          isLiveRef.current = false;
+          setIsLive(false);
         }
       });
 
@@ -812,6 +1016,9 @@ export default function LiveRoomPage() {
       });
 
       setLiveSessionId(sessionId);
+      liveSessionIdRef.current = sessionId;
+      isLiveRef.current = true;
+      endingLiveRef.current = false;
       setIsLive(true);
       setSeconds(0);
       setStatus("LIVE NOW");
@@ -867,27 +1074,14 @@ export default function LiveRoomPage() {
       });
     }
 
-    if (liveSessionId) {
-      await supabase
-        .from("live_sessions")
-        .update({
-          status: "ended",
-          ended_at: new Date().toISOString(),
-          viewer_count: 0,
-        })
-        .eq("id", liveSessionId);
-    }
+    endingLiveRef.current = true;
 
-    if (worldPostId) {
-      await supabase
-        .from("world_posts")
-        .update({
-          is_live: false,
-          ended_at: new Date().toISOString(),
-          viewer_count: 0,
-        })
-        .eq("id", worldPostId);
-    }
+    await endLiveRecords(
+      liveSessionIdRef.current ||
+        liveSessionId,
+      worldPostIdRef.current ||
+        worldPostId
+    );
 
     if (realtimeChannelRef.current) {
       await supabase.removeChannel(realtimeChannelRef.current);
@@ -896,6 +1090,11 @@ export default function LiveRoomPage() {
 
     await roomRef.current?.disconnect();
     roomRef.current = null;
+
+    isLiveRef.current = false;
+    endingLiveRef.current = false;
+    liveSessionIdRef.current = "";
+    worldPostIdRef.current = "";
 
     setIsLive(false);
     setStatus("Live ended. Preparing replay...");
