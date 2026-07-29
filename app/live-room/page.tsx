@@ -1416,7 +1416,7 @@ export default function LiveRoomPage() {
         ) : (
           <>
             <header className="liveHeader">
-              <span className="liveBadge">● LIVE</span>
+              <span className="liveBadge">● LIVE • HD</span>
               <span className="clock">{formatTime(seconds)}</span>
               <button
                 type="button"

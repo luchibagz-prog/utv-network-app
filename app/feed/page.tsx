@@ -1321,7 +1321,7 @@ export default function FeedPage() {
             <div>
               <span className="liveNowPulse" />
               <b>LIVE NOW</b>
-              <small>Creators broadcasting on UTV</small>
+              <small>Tap in — creators are broadcasting right now</small>
             </div>
 
             <button onClick={() => router.push("/live")}>See all</button>
@@ -1350,7 +1350,10 @@ export default function FeedPage() {
                   </div>
 
                   <div className="liveNowCopy">
-                    <strong>{name}</strong>
+                    <strong>
+                      <em className="liveNowLabel">● LIVE</em>
+                      {name}
+                    </strong>
                     <span>{live.title || "UTV Live"}</span>
                     <small>
                       {live.category || "Live"} · 👁 {Number(live.viewer_count || 0)}
@@ -2998,7 +3001,11 @@ const styles = `
   }
 
   .liveNowCard.followingLive {
-    border-color:rgba(82,247,200,.30);
+    border-color:rgba(82,247,200,.42);
+    box-shadow:
+      0 15px 35px rgba(0,0,0,.18),
+      0 0 0 1px rgba(82,247,200,.08),
+      0 0 28px rgba(82,247,200,.08);
   }
 
   .liveNowAvatar {
@@ -3007,8 +3014,12 @@ const styles = `
     height:60px;
     display:grid;
     place-items:center;
-    border:2px solid #ff3658;
+    border:3px solid #ff3658;
     border-radius:18px;
+    box-shadow:
+      0 0 0 4px rgba(255,45,85,.10),
+      0 0 22px rgba(255,45,85,.30);
+    animation:utvLiveAvatarGlow 1.8s ease-in-out infinite;
     background:linear-gradient(135deg,#52f7c8,#7b61ff);
     font-size:22px;
     font-weight:950;
@@ -3038,12 +3049,34 @@ const styles = `
 
   .liveNowCopy { min-width:0; display:grid; gap:2px; }
   .liveNowCopy strong,.liveNowCopy span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .liveNowCopy strong { font-size:13px; }
+  .liveNowCopy strong {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+  }
+
+  .liveNowLabel {
+    flex:0 0 auto;
+    color:#ff526b;
+    font-size:8px;
+    font-style:normal;
+    font-weight:950;
+    letter-spacing:.7px;
+  }
   .liveNowCopy span { font-size:12px; font-weight:850; }
   .liveNowCopy small { color:rgba(255,255,255,.52); font-size:9px; }
 
   @keyframes utvLivePulse {
     50% { opacity:.45; transform:scale(.78); }
+  }
+
+  @keyframes utvLiveAvatarGlow {
+    50% {
+      box-shadow:
+        0 0 0 7px rgba(255,45,85,.05),
+        0 0 30px rgba(255,45,85,.42);
+    }
   }
 
 `;

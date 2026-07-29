@@ -55,6 +55,7 @@ export default function LiveViewerPage() {
   const localGuestVideoTrackRef = useRef<LocalVideoTrack | null>(null);
   const localGuestAudioTrackRef = useRef<LocalAudioTrack | null>(null);
   const remoteGuestVideoTrackRef = useRef<RemoteTrack | null>(null);
+  const hostVideoTrackRef = useRef<RemoteTrack | null>(null);
 
   const [session, setSession] = useState<LiveSession | null>(null);
   const [viewerEmail, setViewerEmail] = useState("");
@@ -79,6 +80,16 @@ export default function LiveViewerPage() {
     };
   }, [sessionId]);
 
+  useEffect(() => {
+    const hostTrack = hostVideoTrackRef.current;
+
+    if (hostTrack && videoRef.current) {
+      hostTrack.attach(videoRef.current);
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isGuestLive, remoteGuestEmail]);
+
+
   async function cleanup() {
     if (channelRef.current) {
       await supabase.removeChannel(channelRef.current);
@@ -91,6 +102,7 @@ export default function LiveViewerPage() {
     localGuestVideoTrackRef.current = null;
     localGuestAudioTrackRef.current = null;
     remoteGuestVideoTrackRef.current = null;
+    hostVideoTrackRef.current = null;
 
     await roomRef.current?.disconnect();
     roomRef.current = null;
@@ -234,8 +246,13 @@ export default function LiveViewerPage() {
           }
 
           if (role === "host") {
-            if (track.kind === Track.Kind.Video && videoRef.current) {
-              track.attach(videoRef.current);
+            if (track.kind === Track.Kind.Video) {
+              hostVideoTrackRef.current = track;
+
+              if (videoRef.current) {
+                track.attach(videoRef.current);
+                videoRef.current.play().catch(() => {});
+              }
             }
 
             if (
@@ -422,8 +439,8 @@ export default function LiveViewerPage() {
         createLocalVideoTrack({
           facingMode: "user",
           resolution: {
-            width: 1280,
-            height: 720,
+            width: 1920,
+            height: 1080,
             frameRate: 30,
           },
         }),
@@ -452,6 +469,16 @@ export default function LiveViewerPage() {
 
       setIsGuestLive(true);
       setJoinApproved(true);
+
+      window.setTimeout(() => {
+        const hostTrack = hostVideoTrackRef.current;
+
+        if (hostTrack && videoRef.current) {
+          hostTrack.attach(videoRef.current);
+          videoRef.current.play().catch(() => {});
+        }
+      }, 80);
+
       setMessage("You're live with the host.");
 
       window.setTimeout(() => setMessage(""), 2600);
@@ -625,7 +652,13 @@ export default function LiveViewerPage() {
             : "stage"
         }
       >
-        <video ref={videoRef} autoPlay playsInline className="hostVideo" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          disablePictureInPicture
+          className="hostVideo"
+        />
         <div ref={audioContainerRef} className="audioTracks" />
 
         {isGuestLive && (

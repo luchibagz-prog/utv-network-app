@@ -376,6 +376,12 @@ export default function WorldPage() {
   const [selected, setSelected] =
     useState<WorldItem | null>(null);
 
+  const [viewerEmail, setViewerEmail] =
+    useState("");
+
+  const [worldMessage, setWorldMessage] =
+    useState("");
+
   const [mapReady, setMapReady] =
     useState(false);
 
@@ -394,6 +400,10 @@ export default function WorldPage() {
     useState(true);
 
   useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      setViewerEmail(data.user?.email || "");
+    });
+
     loadWorld();
 
     refreshTimerRef.current = window.setInterval(() => {
@@ -961,6 +971,107 @@ export default function WorldPage() {
         email
       )}`
     );
+  }
+
+  async function removeLiveFromWorld(
+    item: WorldItem
+  ) {
+    const ownerEmail = creatorEmail(item);
+
+    if (
+      !viewerEmail ||
+      !ownerEmail ||
+      ownerEmail.toLowerCase() !==
+        viewerEmail.toLowerCase()
+    ) {
+      setWorldMessage(
+        "Only the creator can remove this Live from UTV World."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Remove this old Live from UTV World?"
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("world_posts")
+      .delete()
+      .eq("id", item.id)
+      .eq("creator_email", viewerEmail);
+
+    if (error) {
+      setWorldMessage(error.message);
+      return;
+    }
+
+    setItems((current) =>
+      current.filter((worldItem) => worldItem.id !== item.id)
+    );
+
+    setSelected(null);
+    setWorldMessage("Live removed from UTV World.");
+    window.setTimeout(() => setWorldMessage(""), 2600);
+  }
+
+  async function deleteLiveEverywhere(
+    item: WorldItem
+  ) {
+    const ownerEmail = creatorEmail(item);
+
+    if (
+      !viewerEmail ||
+      !ownerEmail ||
+      ownerEmail.toLowerCase() !==
+        viewerEmail.toLowerCase()
+    ) {
+      setWorldMessage(
+        "Only the creator can delete this Live."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Delete this old Live session and remove it from UTV World?"
+    );
+
+    if (!confirmed) return;
+
+    const sessionId = String(item.live_session_id || "");
+
+    const { error: worldDeleteError } = await supabase
+      .from("world_posts")
+      .delete()
+      .eq("id", item.id)
+      .eq("creator_email", viewerEmail);
+
+    if (worldDeleteError) {
+      setWorldMessage(worldDeleteError.message);
+      return;
+    }
+
+    if (sessionId) {
+      const { error: sessionDeleteError } = await supabase
+        .from("live_sessions")
+        .delete()
+        .eq("id", sessionId)
+        .eq("host_email", viewerEmail);
+
+      if (sessionDeleteError) {
+        setWorldMessage(sessionDeleteError.message);
+        return;
+      }
+    }
+
+    setItems((current) =>
+      current.filter((worldItem) => worldItem.id !== item.id)
+    );
+
+    setSelected(null);
+    setWorldMessage("Old Live deleted.");
+    window.setTimeout(() => setWorldMessage(""), 2600);
   }
 
   function openLive(
@@ -2216,6 +2327,35 @@ export default function WorldPage() {
                 </button>
               )}
 
+              {Boolean(
+                viewerEmail &&
+                  creatorEmail(selected) &&
+                  viewerEmail.toLowerCase() ===
+                    creatorEmail(selected).toLowerCase() &&
+                  String(selected.world_type || "")
+                    .toLowerCase()
+                    .includes("live") &&
+                  !selected.is_live
+              ) && (
+                <div className="ownerLiveActions">
+                  <button
+                    type="button"
+                    className="removeWorldLive"
+                    onClick={() => removeLiveFromWorld(selected)}
+                  >
+                    Remove from World
+                  </button>
+
+                  <button
+                    type="button"
+                    className="deleteWorldLive"
+                    onClick={() => deleteLiveEverywhere(selected)}
+                  >
+                    Delete Live
+                  </button>
+                </div>
+              )}
+
               <button
                 className="viewProfileButton"
                 onClick={() =>
@@ -2227,6 +2367,12 @@ export default function WorldPage() {
             </div>
           </article>
         </section>
+      )}
+
+      {worldMessage && (
+        <div className="worldToast">
+          {worldMessage}
+        </div>
       )}
     </main>
   );
@@ -3490,6 +3636,51 @@ const styles = `
   .sheetActions button span {
     font-size: 9px;
     font-weight: 900;
+  }
+
+  .ownerLiveActions {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:10px;
+  }
+
+  .ownerLiveActions button {
+    min-height:44px;
+    border-radius:14px;
+    font-size:10px;
+    font-weight:950;
+  }
+
+  .removeWorldLive {
+    color:#fff;
+    border:1px solid rgba(255,255,255,.13);
+    background:rgba(255,255,255,.06);
+  }
+
+  .deleteWorldLive {
+    color:#ff9cac;
+    border:1px solid rgba(255,78,104,.2);
+    background:rgba(255,78,104,.08);
+  }
+
+  .worldToast {
+    position:fixed;
+    left:50%;
+    bottom:100px;
+    z-index:9999;
+    max-width:calc(100vw - 32px);
+    transform:translateX(-50%);
+    padding:10px 14px;
+    color:#52f7c8;
+    border:1px solid rgba(82,247,200,.24);
+    border-radius:999px;
+    background:rgba(4,12,9,.92);
+    box-shadow:0 14px 40px rgba(0,0,0,.38);
+    backdrop-filter:blur(16px);
+    font-size:11px;
+    font-weight:900;
+    text-align:center;
   }
 
   .viewProfileButton {
