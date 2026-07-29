@@ -71,6 +71,29 @@ export default function UTVNav() {
   const [walkieBusy, setWalkieBusy] =
     useState(false);
 
+  // UTV FAST MODE: warm the main routes after nav mounts.
+  useEffect(() => {
+    const routes = [
+      "/feed",
+      "/watch",
+      "/world",
+      "/submit",
+      "/live-room",
+      "/activity",
+      "/profile",
+    ];
+
+    const timer = window.setTimeout(() => {
+      routes.forEach((route) => {
+        try {
+          router.prefetch(route);
+        } catch {}
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [router]);
+
   const walkieFeedback = useCallback(() => {
     try {
       navigator.vibrate?.([70, 45, 120]);
@@ -809,6 +832,16 @@ export default function UTVNav() {
             <Link
               key={item.href}
               href={item.href}
+              onPointerDown={() => {
+                try {
+                  router.prefetch(item.href);
+                } catch {}
+              }}
+              onMouseEnter={() => {
+                try {
+                  router.prefetch(item.href);
+                } catch {}
+              }}
               onClick={
                 item.activity
                   ? openActivity

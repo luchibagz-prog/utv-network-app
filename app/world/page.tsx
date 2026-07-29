@@ -2154,18 +2154,16 @@ export default function WorldPage() {
           )}
 
           {loading && (
-            <div className="worldLoadingOverlay">
-              <div className="worldSpinner" />
-
-              <strong>
-                Entering UTV World
-              </strong>
-
-              <span>
-                Building your planet,
-                lighting up cities,
-                and connecting signals...
-              </span>
+            <div
+              className="worldLoadingSignal"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="worldLoadingSignalDot" />
+              <div>
+                <strong>Connecting World</strong>
+                <small>Signals loading...</small>
+              </div>
             </div>
           )}
         </div>
@@ -3736,46 +3734,6 @@ const styles = `
     text-align: center;
   }
 
-  .worldLoadingOverlay {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    display: grid;
-    place-content: center;
-    gap: 10px;
-    padding: 24px;
-    color: white;
-    text-align: center;
-    background:
-      linear-gradient(
-        180deg,
-        rgba(4,8,16,.82),
-        rgba(4,8,16,.66)
-      );
-    backdrop-filter: blur(8px);
-    pointer-events: none;
-  }
-
-  .worldLoadingOverlay span {
-    color: rgba(255,255,255,.58);
-    font-size: 12px;
-  }
-
-  .worldSpinner {
-    width: 46px;
-    height: 46px;
-    margin: 0 auto;
-    border: 4px solid rgba(255,255,255,.15);
-    border-top-color: #52f7c8;
-    border-radius: 50%;
-    animation: worldSpin .75s linear infinite;
-  }
-
-  @keyframes worldSpin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
 
   .worldResultsHeader {
     display: flex;
@@ -5224,6 +5182,75 @@ const styles = `
     .nearPanel {
       width:calc(100% - 16px);
       margin-top:8px;
+    }
+  }
+
+  /* UTV FAST MODE — lightweight World loading signal */
+  .worldLoadingSignal {
+    position:absolute;
+    top:62px;
+    right:14px;
+    z-index:42;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:145px;
+    padding:9px 11px;
+    color:#fff;
+    border:1px solid rgba(82,247,200,.18);
+    border-radius:15px;
+    background:rgba(2,8,11,.74);
+    box-shadow:0 12px 34px rgba(0,0,0,.26);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    pointer-events:none;
+    animation:utvWorldSignalIn .18s ease-out;
+  }
+
+  .worldLoadingSignalDot {
+    width:10px;
+    height:10px;
+    flex:0 0 auto;
+    border-radius:50%;
+    background:#52f7c8;
+    box-shadow:0 0 0 0 rgba(82,247,200,.5);
+    animation:utvWorldSignalPulse 1.15s ease-out infinite;
+  }
+
+  .worldLoadingSignal > div {
+    display:grid;
+    gap:1px;
+  }
+
+  .worldLoadingSignal strong {
+    font-size:9px;
+    font-weight:950;
+    letter-spacing:.3px;
+  }
+
+  .worldLoadingSignal small {
+    color:rgba(255,255,255,.48);
+    font-size:7px;
+  }
+
+  @keyframes utvWorldSignalPulse {
+    70% { box-shadow:0 0 0 9px rgba(82,247,200,0); }
+    100% { box-shadow:0 0 0 0 rgba(82,247,200,0); }
+  }
+
+  @keyframes utvWorldSignalIn {
+    from {
+      opacity:0;
+      transform:translateY(-5px) scale(.97);
+    }
+  }
+
+  @media(max-width:700px) {
+    .worldLoadingSignal {
+      top:56px;
+      right:10px;
+      min-width:128px;
+      padding:8px 9px;
     }
   }
 `;
