@@ -231,6 +231,38 @@ function numericCoordinate(value: unknown) {
     : null;
 }
 
+function milesBetween(
+  a: WorldPosition,
+  b: WorldPosition
+) {
+  const earthRadiusMiles = 3958.8;
+  const toRadians = (value: number) =>
+    (value * Math.PI) / 180;
+
+  const dLat = toRadians(
+    b.latitude - a.latitude
+  );
+
+  const dLon = toRadians(
+    b.longitude - a.longitude
+  );
+
+  const lat1 = toRadians(a.latitude);
+  const lat2 = toRadians(b.latitude);
+
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(dLon / 2) ** 2;
+
+  return (
+    2 *
+    earthRadiusMiles *
+    Math.asin(Math.sqrt(h))
+  );
+}
+
 function positionForItem(
   item: WorldItem,
   index: number
@@ -404,6 +436,12 @@ export default function WorldPage() {
 
   const [radarOpen, setRadarOpen] =
     useState(true);
+
+  const [mapZoom, setMapZoom] =
+    useState(1.65);
+
+  const [pulseCity, setPulseCity] =
+    useState("");
 
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
@@ -1287,6 +1325,144 @@ export default function WorldPage() {
       profiles,
     ]);
 
+  const cityClusters = useMemo(() => {
+    const grouped = new globalThis.Map<
+      string,
+      {
+        key: string;
+        city: string;
+        state: string;
+        latitude: number;
+        longitude: number;
+        count: number;
+        liveCount: number;
+        eventCount: number;
+        castingCount: number;
+        buildCount: number;
+      }
+    >();
+
+    filteredItems.forEach((item) => {
+      if (
+        item._latitude === undefined ||
+        item._longitude === undefined
+      ) {
+        return;
+      }
+
+      const city =
+        String(item.city || "").trim() ||
+        "Nearby";
+
+      const state =
+        String(item.state || "").trim();
+
+      const key =
+        `${city}|${state}`.toLowerCase();
+
+      const existing = grouped.get(key);
+
+      const type = normalizedType(item)
+        .toLowerCase();
+
+      const live =
+        item.is_live ||
+        type.includes("live");
+
+      const event =
+        type.includes("event");
+
+      const casting =
+        type.includes("casting");
+
+      const build =
+        type.includes("build") ||
+        type.includes("collab");
+
+      if (!existing) {
+        grouped.set(key, {
+          key,
+          city,
+          state,
+          latitude: item._latitude,
+          longitude: item._longitude,
+          count: 1,
+          liveCount: live ? 1 : 0,
+          eventCount: event ? 1 : 0,
+          castingCount: casting ? 1 : 0,
+          buildCount: build ? 1 : 0,
+        });
+
+        return;
+      }
+
+      const nextCount =
+        existing.count + 1;
+
+      existing.latitude =
+        (existing.latitude *
+          existing.count +
+          item._latitude) /
+        nextCount;
+
+      existing.longitude =
+        (existing.longitude *
+          existing.count +
+          item._longitude) /
+        nextCount;
+
+      existing.count = nextCount;
+      existing.liveCount += live ? 1 : 0;
+      existing.eventCount += event ? 1 : 0;
+      existing.castingCount +=
+        casting ? 1 : 0;
+      existing.buildCount +=
+        build ? 1 : 0;
+    });
+
+    return Array.from(grouped.values())
+      .sort((a, b) => {
+        if (b.liveCount !== a.liveCount) {
+          return b.liveCount - a.liveCount;
+        }
+
+        return b.count - a.count;
+      });
+  }, [filteredItems]);
+
+  const nearItems = useMemo(() => {
+    if (!userLocation) return [];
+
+    return filteredItems
+      .filter(
+        (item) =>
+          item._latitude !== undefined &&
+          item._longitude !== undefined
+      )
+      .map((item) => ({
+        item,
+        miles: milesBetween(
+          userLocation,
+          {
+            latitude:
+              item._latitude as number,
+            longitude:
+              item._longitude as number,
+          }
+        ),
+      }))
+      .sort(
+        (a, b) => a.miles - b.miles
+      )
+      .slice(0, 8);
+  }, [filteredItems, userLocation]);
+
+  const nearbyCount = useMemo(() => {
+    return nearItems.filter(
+      (entry) => entry.miles <= 25
+    ).length;
+  }, [nearItems]);
+
   const counts = useMemo(() => {
     return {
       live: filteredItems.filter(
@@ -1355,6 +1531,25 @@ export default function WorldPage() {
 
   const selectedAvatar =
     creatorAvatar(selected);
+
+  function openCityCluster(
+    cluster: (typeof cityClusters)[number]
+  ) {
+    stopGlobeSpin();
+    setPulseCity(cluster.key);
+
+    flyToLocation(
+      {
+        latitude: cluster.latitude,
+        longitude: cluster.longitude,
+      },
+      cluster.count >= 8 ? 8.4 : 9.4
+    );
+
+    window.setTimeout(() => {
+      setPulseCity("");
+    }, 1200);
+  }
 
   function renderAnimatedPin(
     item: WorldItem
@@ -1644,6 +1839,30 @@ export default function WorldPage() {
                 </button>
               </div>
 
+              {cityClusters[0] && (
+                <button
+                  type="button"
+                  className="radarHotCity"
+                  onClick={() =>
+                    openCityCluster(cityClusters[0])
+                  }
+                >
+                  <span>🔥 HOT CITY</span>
+                  <strong>
+                    {cityClusters[0].city}
+                    {cityClusters[0].state
+                      ? `, ${cityClusters[0].state}`
+                      : ""}
+                  </strong>
+                  <small>
+                    {cityClusters[0].count} signals
+                    {cityClusters[0].liveCount > 0
+                      ? ` · ${cityClusters[0].liveCount} live`
+                      : ""}
+                  </small>
+                </button>
+              )}
+
               <div className="radarStatus">
                 <span className={mapReady ? "radarDot active" : "radarDot"} />
                 {mapReady ? "WORLD SIGNAL ONLINE" : "CONNECTING WORLD"}
@@ -1795,6 +2014,11 @@ export default function WorldPage() {
               minZoom={1.2}
               maxZoom={18}
               onLoad={handleMapLoad}
+              onMove={(event) => {
+                setMapZoom(
+                  event.viewState.zoom
+                );
+              }}
               onClick={() =>
                 setSelected(null)
               }
@@ -1825,6 +2049,51 @@ export default function WorldPage() {
                   </Marker>
                 )}
 
+              {mapZoom < 6.1 &&
+                cityClusters
+                  .filter(
+                    (cluster) =>
+                      cluster.count >= 2
+                  )
+                  .map((cluster) => (
+                    <Marker
+                      key={`city-${cluster.key}`}
+                      longitude={cluster.longitude}
+                      latitude={cluster.latitude}
+                      anchor="center"
+                    >
+                      <button
+                        type="button"
+                        className={
+                          pulseCity === cluster.key
+                            ? "cityHub pulsing"
+                            : cluster.liveCount > 0
+                            ? "cityHub liveCity"
+                            : "cityHub"
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openCityCluster(cluster);
+                        }}
+                      >
+                        <span className="cityHubGlow" />
+                        <strong>
+                          {cluster.liveCount > 0
+                            ? "🔴"
+                            : cluster.count >= 6
+                            ? "🔥"
+                            : "✦"}
+                        </strong>
+                        <div>
+                          <b>{cluster.city}</b>
+                          <small>
+                            {cluster.count} SIGNALS
+                          </small>
+                        </div>
+                      </button>
+                    </Marker>
+                  ))}
+
               {filteredItems.map(
                 (item) => {
                   if (
@@ -1832,6 +2101,33 @@ export default function WorldPage() {
                       undefined ||
                     item._longitude ===
                       undefined
+                  ) {
+                    return null;
+                  }
+
+                  const city =
+                    String(
+                      item.city || ""
+                    ).trim() || "Nearby";
+
+                  const state =
+                    String(
+                      item.state || ""
+                    ).trim();
+
+                  const cityKey =
+                    `${city}|${state}`.toLowerCase();
+
+                  const cluster =
+                    cityClusters.find(
+                      (entry) =>
+                        entry.key === cityKey
+                    );
+
+                  if (
+                    mapZoom < 6.1 &&
+                    cluster &&
+                    cluster.count >= 2
                   ) {
                     return null;
                   }
@@ -1896,6 +2192,119 @@ export default function WorldPage() {
           ))}
         </div>
       </section>
+
+      {cityClusters.length > 0 && (
+        <section className="worldPulseStrip">
+          <div className="pulseStripTop">
+            <div>
+              <p>🌆 WORLD PULSE</p>
+              <h2>Active cities</h2>
+            </div>
+            <small>Tap a city to fly in</small>
+          </div>
+
+          <div className="pulseCities">
+            {cityClusters
+              .slice(0, 6)
+              .map((cluster) => (
+                <button
+                  type="button"
+                  key={cluster.key}
+                  className={
+                    cluster.liveCount > 0
+                      ? "pulseCity live"
+                      : "pulseCity"
+                  }
+                  onClick={() =>
+                    openCityCluster(cluster)
+                  }
+                >
+                  <span>
+                    {cluster.liveCount > 0
+                      ? "🔴"
+                      : cluster.count >= 6
+                      ? "🔥"
+                      : "🌆"}
+                  </span>
+
+                  <div>
+                    <strong>
+                      {cluster.city}
+                    </strong>
+
+                    <small>
+                      {cluster.count} signals
+                      {cluster.liveCount > 0
+                        ? ` · ${cluster.liveCount} live`
+                        : ""}
+                    </small>
+                  </div>
+                </button>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {worldView === "near" && (
+        <section className="nearPanel">
+          <div className="nearPanelTop">
+            <div>
+              <p>📍 NEAR ME</p>
+              <h2>
+                {userLocation
+                  ? `${nearbyCount} signals within 25 miles`
+                  : "Turn on location to scan nearby"}
+              </h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleLocation}
+            >
+              {locationOn
+                ? "Location On"
+                : "Enable Location"}
+            </button>
+          </div>
+
+          {userLocation && nearItems.length > 0 && (
+            <div className="nearCards">
+              {nearItems
+                .slice(0, 5)
+                .map(({ item, miles }) => (
+                  <button
+                    type="button"
+                    key={`near-${item.source}-${item.id}`}
+                    onClick={() =>
+                      flyToItem(item)
+                    }
+                  >
+                    <span className="nearIcon">
+                      {categoryIcon(
+                        normalizedType(item),
+                        item.is_live
+                      )}
+                    </span>
+
+                    <div>
+                      <strong>
+                        {item.title ||
+                          normalizedType(item)}
+                      </strong>
+                      <small>
+                        {miles < 1
+                          ? "Less than 1 mile away"
+                          : `${miles.toFixed(1)} miles away`}
+                      </small>
+                    </div>
+
+                    <i>›</i>
+                  </button>
+                ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {worldView === "today" && (
         <section className="todayPanel">
@@ -1980,8 +2389,12 @@ export default function WorldPage() {
       <section className="worldResultsHeader">
         <div>
           <p>
-            {filter === "All"
-              ? "Everything Nearby"
+            {worldView === "near"
+              ? "Closest Signals"
+              : worldView === "today"
+              ? "Today&apos;s World"
+              : filter === "All"
+              ? "Everything in World"
               : filter}
           </p>
 
@@ -4477,6 +4890,340 @@ const styles = `
     .planetHint {
       bottom:10px;
       font-size:6px;
+    }
+  }
+
+
+  /* =========================================================
+     UTV WORLD PACK 2 — THE LIVING WORLD
+     ========================================================= */
+
+  .cityHub {
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    min-width:106px;
+    min-height:46px;
+    padding:7px 10px 7px 8px;
+    color:white;
+    border:1px solid rgba(82,247,200,.23);
+    border-radius:18px;
+    background:rgba(3,10,14,.87);
+    box-shadow:
+      0 12px 35px rgba(0,0,0,.42),
+      0 0 22px rgba(82,247,200,.10);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    transform:translateY(-8px);
+    animation:cityHover 2.4s ease-in-out infinite;
+  }
+
+  .cityHub>strong {
+    position:relative;
+    z-index:2;
+    width:29px;
+    height:29px;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    background:rgba(82,247,200,.10);
+    font-size:14px;
+  }
+
+  .cityHub>div {
+    position:relative;
+    z-index:2;
+    display:grid;
+    justify-items:start;
+    gap:1px;
+    min-width:0;
+  }
+
+  .cityHub b {
+    max-width:92px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:10px;
+  }
+
+  .cityHub small {
+    color:#52f7c8;
+    font-size:6px;
+    font-weight:950;
+    letter-spacing:.7px;
+  }
+
+  .cityHubGlow {
+    position:absolute;
+    inset:-8px;
+    z-index:0;
+    border-radius:23px;
+    border:1px solid rgba(82,247,200,.10);
+    opacity:.65;
+    animation:hubRing 1.8s ease-out infinite;
+  }
+
+  .cityHub.liveCity {
+    border-color:rgba(255,49,95,.42);
+    box-shadow:
+      0 12px 35px rgba(0,0,0,.42),
+      0 0 30px rgba(255,49,95,.23);
+  }
+
+  .cityHub.liveCity small {
+    color:#ff647d;
+  }
+
+  .cityHub.liveCity .cityHubGlow {
+    border-color:rgba(255,49,95,.25);
+  }
+
+  .cityHub.pulsing {
+    animation:cityHubOpen .6s ease;
+  }
+
+  .radarHotCity {
+    width:100%;
+    display:grid;
+    justify-items:start;
+    gap:1px;
+    margin-top:7px;
+    padding:9px 10px;
+    color:white;
+    border:1px solid rgba(255,155,65,.14);
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 90% 10%,rgba(255,115,48,.11),transparent 35%),
+      rgba(255,255,255,.025);
+    text-align:left;
+  }
+
+  .radarHotCity>span {
+    color:#ffb35c;
+    font-size:7px;
+    font-weight:950;
+    letter-spacing:.9px;
+  }
+
+  .radarHotCity strong {
+    font-size:12px;
+  }
+
+  .radarHotCity small {
+    color:rgba(255,255,255,.42);
+    font-size:7px;
+  }
+
+  .worldPulseStrip,
+  .nearPanel {
+    width:min(calc(100% - 20px),1000px);
+    margin:10px auto;
+    padding:13px;
+    border:1px solid rgba(255,255,255,.075);
+    border-radius:22px;
+    background:
+      radial-gradient(circle at 80% 0%,rgba(123,97,255,.07),transparent 30%),
+      rgba(255,255,255,.025);
+  }
+
+  .pulseStripTop,
+  .nearPanelTop {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:9px;
+  }
+
+  .pulseStripTop p,
+  .nearPanelTop p {
+    margin:0;
+    color:#52f7c8;
+    font-size:7px;
+    font-weight:950;
+    letter-spacing:1px;
+  }
+
+  .pulseStripTop h2,
+  .nearPanelTop h2 {
+    margin:2px 0 0;
+    font-size:18px;
+  }
+
+  .pulseStripTop>small {
+    color:rgba(255,255,255,.35);
+    font-size:7px;
+  }
+
+  .pulseCities {
+    display:flex;
+    gap:7px;
+    overflow-x:auto;
+    padding-bottom:2px;
+    scrollbar-width:none;
+  }
+
+  .pulseCities::-webkit-scrollbar {
+    display:none;
+  }
+
+  .pulseCity {
+    flex:0 0 auto;
+    min-width:148px;
+    display:grid;
+    grid-template-columns:34px 1fr;
+    align-items:center;
+    gap:7px;
+    padding:8px;
+    color:white;
+    border:1px solid rgba(255,255,255,.075);
+    border-radius:16px;
+    background:rgba(0,0,0,.18);
+    text-align:left;
+  }
+
+  .pulseCity>span {
+    width:32px;
+    height:32px;
+    display:grid;
+    place-items:center;
+    border-radius:11px;
+    background:rgba(82,247,200,.06);
+  }
+
+  .pulseCity>div {
+    display:grid;
+    gap:1px;
+  }
+
+  .pulseCity strong {
+    max-width:100px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:10px;
+  }
+
+  .pulseCity small {
+    color:rgba(255,255,255,.39);
+    font-size:7px;
+  }
+
+  .pulseCity.live {
+    border-color:rgba(255,49,95,.18);
+    box-shadow:0 0 20px rgba(255,49,95,.06);
+  }
+
+  .nearPanelTop>button {
+    min-height:36px;
+    padding:0 10px;
+    color:#07120e;
+    border:0;
+    border-radius:12px;
+    background:#52f7c8;
+    font-size:8px;
+    font-weight:950;
+  }
+
+  .nearCards {
+    display:grid;
+    gap:6px;
+  }
+
+  .nearCards>button {
+    display:grid;
+    grid-template-columns:38px 1fr 24px;
+    align-items:center;
+    gap:8px;
+    min-height:54px;
+    padding:8px;
+    color:white;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:15px;
+    background:rgba(0,0,0,.17);
+    text-align:left;
+  }
+
+  .nearIcon {
+    width:36px;
+    height:36px;
+    display:grid;
+    place-items:center;
+    border-radius:12px;
+    background:rgba(82,247,200,.06);
+    font-size:17px;
+  }
+
+  .nearCards>button>div {
+    display:grid;
+    gap:2px;
+    min-width:0;
+  }
+
+  .nearCards strong {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:10px;
+  }
+
+  .nearCards small {
+    color:#52f7c8;
+    font-size:7px;
+  }
+
+  .nearCards i {
+    color:rgba(255,255,255,.35);
+    font-size:18px;
+    font-style:normal;
+  }
+
+  @keyframes cityHover {
+    0%,100% {
+      transform:translateY(-8px);
+    }
+    50% {
+      transform:translateY(-13px);
+    }
+  }
+
+  @keyframes hubRing {
+    0% {
+      opacity:.55;
+      transform:scale(.9);
+    }
+    75%,100% {
+      opacity:0;
+      transform:scale(1.14);
+    }
+  }
+
+  @keyframes cityHubOpen {
+    50% {
+      transform:
+        translateY(-8px)
+        scale(1.12);
+    }
+  }
+
+  @media(max-width:700px) {
+    .cityHub {
+      min-width:94px;
+      min-height:42px;
+      padding:6px 8px 6px 6px;
+    }
+
+    .cityHub b {
+      max-width:78px;
+      font-size:9px;
+    }
+
+    .worldPulseStrip,
+    .nearPanel {
+      width:calc(100% - 16px);
+      margin-top:8px;
     }
   }
 `;
