@@ -56,6 +56,11 @@ export default function WalkieLobbyPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState("");
+  const [callingRoomId, setCallingRoomId] = useState("");
+  const [callingPeople, setCallingPeople] = useState<Person[]>([]);
+  const [callStatus, setCallStatus] = useState<
+    "idle" | "calling" | "answered" | "declined"
+  >("idle");
 
   const maxSelectable = 3;
 
@@ -70,6 +75,71 @@ export default function WalkieLobbyPage() {
   useEffect(() => {
     void loadWalkie();
   }, []);
+
+  useEffect(() => {
+    if (!callingRoomId || !email) {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`utv-walkie-outgoing-${callingRoomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "walkie_members",
+          filter: `room_id=eq.${callingRoomId}`,
+        },
+        (payload) => {
+          const member = payload.new as any;
+          const memberEmail = String(
+            member?.user_email || ""
+          );
+
+          if (
+            !memberEmail ||
+            memberEmail.toLowerCase() ===
+              email.toLowerCase()
+          ) {
+            return;
+          }
+
+          if (member.status === "joined") {
+            setCallStatus("answered");
+
+            try {
+              navigator.vibrate?.([40, 35, 80]);
+            } catch {}
+
+            window.setTimeout(() => {
+              router.push(`/walkie/${callingRoomId}`);
+            }, 450);
+
+            return;
+          }
+
+          if (member.status === "declined") {
+            setCallStatus("declined");
+            setMessage(
+              `${memberEmail.split("@")[0]} declined the Walkie.`
+            );
+
+            window.setTimeout(() => {
+              setCallingRoomId("");
+              setCallingPeople([]);
+              setCallStatus("idle");
+            }, 1700);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [callingRoomId, email, router]);
+
 
   async function loadWalkie() {
     setLoading(true);
@@ -222,52 +292,103 @@ setInvites(
         });
 
       if (roomError) {
-        throw roomError;
+        throw new Error(
+          `Room could not be created: ${roomError.message}`
+        );
       }
 
-      const members = [
-        {
+      const { error: hostMemberError } = await supabase
+        .from("walkie_members")
+        .insert({
           room_id: roomId,
           user_email: email,
           role: "host",
           status: "joined",
           invited_by: email,
-          joined_at:
-            new Date().toISOString(),
-        },
-        ...selected.map((personEmail) => ({
-          room_id: roomId,
-          user_email: personEmail,
-          role: "member",
-          status: "invited",
-          invited_by: email,
-        })),
-      ];
+          joined_at: new Date().toISOString(),
+        });
 
-      const { error: memberError } =
-        await supabase
-          .from("walkie_members")
-          .insert(members);
-
-      if (memberError) {
+      if (hostMemberError) {
         await supabase
           .from("walkie_rooms")
           .delete()
           .eq("id", roomId);
 
-        throw memberError;
+        throw new Error(
+          `Host could not enter channel: ${hostMemberError.message}`
+        );
       }
 
-      router.push(`/walkie/${roomId}`);
-    } catch (error) {
+      for (const personEmail of selected) {
+        const { error: inviteError } = await supabase
+          .from("walkie_members")
+          .insert({
+            room_id: roomId,
+            user_email: personEmail,
+            role: "member",
+            status: "invited",
+            invited_by: email,
+          });
+
+        if (inviteError) {
+          await supabase
+            .from("walkie_rooms")
+            .delete()
+            .eq("id", roomId);
+
+          throw new Error(
+            `Invite could not be sent: ${inviteError.message}`
+          );
+        }
+      }
+
+      setCallingRoomId(roomId);
+      setCallingPeople(selectedPeople);
+      setCallStatus("calling");
+
+      try {
+        navigator.vibrate?.(45);
+      } catch {}
+    } catch (error: any) {
+      console.error("Walkie start failed:", error);
+
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not start Walkie."
+        String(
+          error?.message ||
+            error?.details ||
+            error?.hint ||
+            "Could not start Walkie."
+        )
       );
     } finally {
       setCreating(false);
     }
+  }
+
+  async function cancelOutgoingWalkie() {
+    if (!callingRoomId || !email) return;
+
+    await supabase
+      .from("walkie_rooms")
+      .update({
+        status: "ended",
+        ended_at: new Date().toISOString(),
+        current_speaker_email: null,
+      })
+      .eq("id", callingRoomId)
+      .eq("created_by", email);
+
+    await supabase
+      .from("walkie_members")
+      .update({
+        status: "declined",
+      })
+      .eq("room_id", callingRoomId)
+      .neq("user_email", email);
+
+    setCallingRoomId("");
+    setCallingPeople([]);
+    setCallStatus("idle");
   }
 
   async function joinInvite(roomId: string) {
@@ -312,6 +433,81 @@ setInvites(
     <main className="walkiePage">
       <style>{styles}</style>
       <UTVNav />
+
+      {callingRoomId && (
+        <section className="outgoingWalkieOverlay">
+          <div className="outgoingWalkieCard">
+            <span className="outgoingEyebrow">
+              📡 UTV WALKIE
+            </span>
+
+            <div className="outgoingSignal">
+              <i />
+              <i />
+              <span>📡</span>
+              <i />
+              <i />
+            </div>
+
+            <h2>
+              {callStatus === "answered"
+                ? "CONNECTED"
+                : callStatus === "declined"
+                ? "WALKIE DECLINED"
+                : callingPeople.length === 1
+                ? `Walkieing ${callingPeople[0]?.name || "creator"}...`
+                : "Opening Crew Channel..."}
+            </h2>
+
+            <p>
+              {callStatus === "answered"
+                ? "Opening your Walkie channel."
+                : callStatus === "declined"
+                ? "They are not available right now."
+                : "Waiting for them to answer"}
+            </p>
+
+            <div className="outgoingPeople">
+              {callingPeople.map((person) => (
+                <div
+                  className="outgoingPerson"
+                  key={person.email}
+                >
+                  <span className="outgoingAvatar">
+                    {person.avatar ? (
+                      <img
+                        src={person.avatar}
+                        alt=""
+                      />
+                    ) : (
+                      person.name
+                        .slice(0, 1)
+                        .toUpperCase()
+                    )}
+                  </span>
+
+                  <strong>{person.name}</strong>
+                  <small>
+                    {callStatus === "answered"
+                      ? "CONNECTED"
+                      : "WALKIEING..."}
+                  </small>
+                </div>
+              ))}
+            </div>
+
+            {callStatus === "calling" && (
+              <button
+                type="button"
+                className="cancelWalkieButton"
+                onClick={cancelOutgoingWalkie}
+              >
+                Cancel Walkie
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="walkieShell">
         <header className="hero">
@@ -558,6 +754,7 @@ const styles = `
     radial-gradient(circle at 10% 70%,rgba(123,97,255,.10),transparent 28%),
     #050706}
   .walkieShell{width:min(100%,650px);margin:0 auto;padding:20px 14px 190px}
+  .outgoingWalkieOverlay{position:fixed;inset:0;z-index:4000;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 38%,rgba(82,247,200,.12),transparent 35%),rgba(0,0,0,.91);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}.outgoingWalkieCard{width:min(100%,410px);display:grid;justify-items:center;text-align:center;padding:28px 20px 22px;border:1px solid rgba(82,247,200,.25);border-radius:30px;background:linear-gradient(180deg,rgba(14,22,18,.98),rgba(5,7,6,.98));box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 45px rgba(82,247,200,.08)}.outgoingEyebrow{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1.8px}.outgoingSignal{height:92px;display:flex;align-items:center;gap:8px}.outgoingSignal span{font-size:36px;animation:outgoingCore 1s ease-in-out infinite}.outgoingSignal i{width:5px;height:27px;border-radius:999px;background:#52f7c8;box-shadow:0 0 15px rgba(82,247,200,.55);animation:outgoingWave .75s ease-in-out infinite}.outgoingSignal i:nth-child(2),.outgoingSignal i:nth-child(4){height:48px;animation-delay:.12s}.outgoingWalkieCard h2{margin:0;font-size:28px;letter-spacing:-1px}.outgoingWalkieCard p{margin:7px 0 18px;color:rgba(255,255,255,.5);font-size:11px}.outgoingPeople{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;width:100%}.outgoingPerson{display:grid;justify-items:center;gap:3px;min-width:76px}.outgoingAvatar{width:66px;height:66px;display:grid;place-items:center;overflow:hidden;border:2px solid #52f7c8;border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.25),rgba(123,97,255,.25));box-shadow:0 0 0 7px rgba(82,247,200,.04),0 0 28px rgba(82,247,200,.20);font-size:22px;font-weight:950;animation:outgoingAvatarPulse 1.3s ease-in-out infinite}.outgoingAvatar img{width:100%;height:100%;object-fit:cover}.outgoingPerson strong{max-width:95px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.outgoingPerson small{color:#52f7c8;font-size:7px;font-weight:950;letter-spacing:.6px}.cancelWalkieButton{width:100%;min-height:48px;margin-top:22px;color:#ff9cac;border:1px solid rgba(255,78,104,.18);border-radius:16px;background:rgba(255,78,104,.08);font-size:11px;font-weight:950}@keyframes outgoingWave{50%{opacity:.22;transform:scaleY(.5)}}@keyframes outgoingCore{50%{transform:scale(1.12);filter:drop-shadow(0 0 14px rgba(82,247,200,.65))}}@keyframes outgoingAvatarPulse{50%{box-shadow:0 0 0 13px rgba(82,247,200,.02),0 0 38px rgba(82,247,200,.36)}}
   .hero{display:flex;align-items:center;gap:14px;margin:4px 0 24px}
   .radioOrb{width:74px;height:74px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(82,247,200,.24);border-radius:24px;background:rgba(82,247,200,.08);box-shadow:0 0 35px rgba(82,247,200,.10)}
   .radioOrb span{font-size:34px;animation:orbPulse 1.8s ease-in-out infinite}
