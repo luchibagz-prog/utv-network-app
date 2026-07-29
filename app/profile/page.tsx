@@ -540,15 +540,74 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="actionGrid">
-            <button className="btn" onClick={() => router.push("/submit")}>+ Create</button>
-            <button className="btn secondary" onClick={() => router.push("/messages")}>Messages</button>
-            <button className="btn secondary" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>Public Profile</button>
-            <button className="btn" onClick={() => router.push("/live-room")}>Go Live</button>
-            <button className="btn secondary" onClick={() => router.push("/creator/settings")}>Edit Profile</button>
-            {isFounder && <button className="btn secondary" onClick={() => router.push("/admin")}>UTV Studio</button>}
-            <button className="btn" style={{ background: "#ff3b3b", gridColumn: "1 / -1" }} onClick={logout}>Logout</button>
-          </div>
+     <div className="actionGrid">
+  <button
+    className="btn"
+    onClick={() => router.push("/submit")}
+  >
+    + Create
+  </button>
+
+  <button
+    className="btn secondary"
+    onClick={() => router.push("/messages")}
+  >
+    Messages
+  </button>
+
+  <button
+    className="btn secondary"
+    onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}
+  >
+    Public Profile
+  </button>
+
+  <button
+    className="btn"
+    onClick={() => router.push("/live-room")}
+  >
+    🔴 Go Live
+  </button>
+
+  <button
+    className="btn"
+    style={{
+      background: "linear-gradient(135deg,#52f7c8,#7b61ff)",
+      color: "#06110d",
+      fontWeight: 950,
+    }}
+    onClick={() => router.push("/walkie")}
+  >
+    📡 Walkie Talkie
+  </button>
+
+  <button
+    className="btn secondary"
+    onClick={() => router.push("/creator/settings")}
+  >
+    Edit Profile
+  </button>
+
+  {isFounder && (
+    <button
+      className="btn secondary"
+      onClick={() => router.push("/admin")}
+    >
+      UTV Studio
+    </button>
+  )}
+
+  <button
+    className="btn"
+    style={{
+      background: "#ff3b3b",
+      gridColumn: "1 / -1",
+    }}
+    onClick={logout}
+  >
+    Logout
+  </button>
+</div>
         </div>
       </section>
 
