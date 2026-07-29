@@ -10,6 +10,7 @@ import {
 import {
   LocalAudioTrack,
   LocalVideoTrack,
+  RemoteTrack,
   Room,
   RoomEvent,
   Track,
@@ -94,6 +95,10 @@ export default function LiveRoomPage() {
   const timerRef =
     useRef<ReturnType<typeof setInterval> | null>(null);
   const realtimeChannelRef = useRef<any>(null);
+  const guestVideoRef = useRef<HTMLVideoElement | null>(null);
+  const guestAudioContainerRef = useRef<HTMLDivElement | null>(null);
+  const guestVideoTrackRef = useRef<RemoteTrack | null>(null);
+  const guestAudioTrackRef = useRef<RemoteTrack | null>(null);
 
   const [cameraFacing, setCameraFacing] =
     useState<CameraFacing>("user");
@@ -126,6 +131,8 @@ export default function LiveRoomPage() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [showJoinSheet, setShowJoinSheet] = useState(false);
   const [interactionMessage, setInteractionMessage] = useState("");
+  const [activeGuestEmail, setActiveGuestEmail] = useState("");
+  const [activeGuestIdentity, setActiveGuestIdentity] = useState("");
 
   const canGoLive = useMemo(
     () =>
@@ -145,6 +152,17 @@ export default function LiveRoomPage() {
       void cleanupRoom();
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      activeGuestEmail &&
+      guestVideoTrackRef.current &&
+      guestVideoRef.current
+    ) {
+      guestVideoTrackRef.current.attach(guestVideoRef.current);
+    }
+  }, [activeGuestEmail]);
+
 
   async function cleanupRoom() {
     if (timerRef.current) {
@@ -172,6 +190,11 @@ export default function LiveRoomPage() {
 
     videoTrackRef.current = null;
     audioTrackRef.current = null;
+
+    guestVideoTrackRef.current = null;
+    guestAudioTrackRef.current = null;
+    setActiveGuestEmail("");
+    setActiveGuestIdentity("");
   }
 
   async function prepareLocalMedia(
@@ -406,6 +429,34 @@ export default function LiveRoomPage() {
         }
       )
       .on(
+        "broadcast",
+        { event: "guest-left" },
+        ({ payload }) => {
+          const email = String(payload?.email || "");
+
+          if (
+            !email ||
+            email.toLowerCase() !== activeGuestEmail.toLowerCase()
+          ) {
+            return;
+          }
+
+          guestVideoTrackRef.current?.detach();
+          guestAudioTrackRef.current?.detach();
+
+          guestVideoTrackRef.current = null;
+          guestAudioTrackRef.current = null;
+
+          setActiveGuestEmail("");
+          setActiveGuestIdentity("");
+          setInteractionMessage(
+            `${email.split("@")[0]} left the guest seat.`
+          );
+
+          window.setTimeout(() => setInteractionMessage(""), 2200);
+        }
+      )
+      .on(
         "postgres_changes",
         {
           event: "INSERT",
@@ -530,6 +581,56 @@ export default function LiveRoomPage() {
     recorder.start(1000);
   }
 
+  function participantMeta(metadata?: string) {
+    try {
+      return JSON.parse(metadata || "{}") as {
+        email?: string;
+        role?: string;
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  async function updateGuestPermission(
+    guestEmail: string,
+    approved: boolean
+  ) {
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error("Your UTV login expired.");
+    }
+
+    const response = await fetch("/api/livekit-guest-permission", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        sessionId: liveSessionId,
+        guestEmail,
+        approved,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result?.error || "Could not update guest permissions."
+      );
+    }
+
+    return result as {
+      approved: boolean;
+      guestIdentity: string;
+      guestEmail: string;
+    };
+  }
+
   async function startLive() {
     if (!canGoLive) return;
 
@@ -614,6 +715,80 @@ export default function LiveRoomPage() {
       });
 
       roomRef.current = room;
+
+      room.on(
+        RoomEvent.TrackSubscribed,
+        (
+          track: RemoteTrack,
+          _publication,
+          participant
+        ) => {
+          const meta = participantMeta(participant.metadata);
+
+          if (meta.role !== "guest") {
+            return;
+          }
+
+          const guestEmail =
+            String(meta.email || participant.name || "").trim();
+
+          setActiveGuestEmail(guestEmail);
+          setActiveGuestIdentity(participant.identity);
+
+          if (track.kind === Track.Kind.Video) {
+            guestVideoTrackRef.current = track;
+
+            window.setTimeout(() => {
+              if (guestVideoRef.current) {
+                track.attach(guestVideoRef.current);
+              }
+            }, 30);
+          }
+
+          if (track.kind === Track.Kind.Audio) {
+            guestAudioTrackRef.current = track;
+
+            if (guestAudioContainerRef.current) {
+              const element = track.attach();
+              element.autoplay = true;
+              guestAudioContainerRef.current.appendChild(element);
+            }
+          }
+        }
+      );
+
+      room.on(
+        RoomEvent.TrackUnsubscribed,
+        (track: RemoteTrack, _publication, participant) => {
+          if (participant.identity !== activeGuestIdentity) {
+            return;
+          }
+
+          track.detach();
+
+          if (track.kind === Track.Kind.Video) {
+            guestVideoTrackRef.current = null;
+          }
+
+          if (track.kind === Track.Kind.Audio) {
+            guestAudioTrackRef.current = null;
+          }
+        }
+      );
+
+      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        const meta = participantMeta(participant.metadata);
+
+        if (
+          meta.role === "guest" ||
+          participant.identity === activeGuestIdentity
+        ) {
+          guestVideoTrackRef.current = null;
+          guestAudioTrackRef.current = null;
+          setActiveGuestEmail("");
+          setActiveGuestIdentity("");
+        }
+      });
 
       room.on(RoomEvent.Disconnected, () => {
         if (isLive) {
@@ -749,32 +924,109 @@ export default function LiveRoomPage() {
     request: JoinRequest,
     approved: boolean
   ) {
-    if (!realtimeChannelRef.current) return;
+    if (!realtimeChannelRef.current || !liveSessionId) return;
 
-    await realtimeChannelRef.current.send({
-      type: "broadcast",
-      event: "join-response",
-      payload: {
-        email: request.email,
-        approved,
-        host_email:
-          (await supabase.auth.getUser()).data.user?.email || "",
-      },
-    });
+    try {
+      let guestIdentity = "";
 
-    setJoinRequests((current) =>
-      current.filter((item) => item.id !== request.id)
-    );
+      if (approved) {
+        if (activeGuestEmail) {
+          setInteractionMessage(
+            "Remove the current guest before adding another."
+          );
 
-    setInteractionMessage(
-      approved
-        ? `${request.email.split("@")[0]} is approved for the guest queue.`
-        : `${request.email.split("@")[0]}'s request was declined.`
-    );
+          window.setTimeout(() => {
+            setInteractionMessage("");
+          }, 2600);
 
-    window.setTimeout(() => {
-      setInteractionMessage("");
-    }, 2600);
+          return;
+        }
+
+        const permissionResult = await updateGuestPermission(
+          request.email,
+          true
+        );
+
+        guestIdentity = permissionResult.guestIdentity;
+      }
+
+      await realtimeChannelRef.current.send({
+        type: "broadcast",
+        event: "join-response",
+        payload: {
+          email: request.email,
+          approved,
+          guest_identity: guestIdentity,
+          host_email:
+            (await supabase.auth.getUser()).data.user?.email || "",
+        },
+      });
+
+      setJoinRequests((current) =>
+        current.filter((item) => item.id !== request.id)
+      );
+
+      if (approved) {
+        setActiveGuestEmail(request.email);
+        setActiveGuestIdentity(guestIdentity);
+        setShowJoinSheet(false);
+      }
+
+      setInteractionMessage(
+        approved
+          ? `${request.email.split("@")[0]} can now join on camera.`
+          : `${request.email.split("@")[0]}'s request was declined.`
+      );
+
+      window.setTimeout(() => {
+        setInteractionMessage("");
+      }, 2600);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not approve this guest."
+      );
+    }
+  }
+
+  async function removeActiveGuest() {
+    if (!activeGuestEmail || !realtimeChannelRef.current) return;
+
+    try {
+      await updateGuestPermission(activeGuestEmail, false);
+
+      await realtimeChannelRef.current.send({
+        type: "broadcast",
+        event: "guest-removed",
+        payload: {
+          email: activeGuestEmail,
+        },
+      });
+
+      guestVideoTrackRef.current?.detach();
+      guestAudioTrackRef.current?.detach();
+
+      guestVideoTrackRef.current = null;
+      guestAudioTrackRef.current = null;
+
+      setInteractionMessage(
+        `${activeGuestEmail.split("@")[0]} was removed from the Live.`
+      );
+
+      setActiveGuestEmail("");
+      setActiveGuestIdentity("");
+
+      window.setTimeout(() => {
+        setInteractionMessage("");
+      }, 2400);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not remove guest."
+      );
+    }
   }
 
   async function sendHostComment(event: FormEvent) {
@@ -982,7 +1234,13 @@ export default function LiveRoomPage() {
 
       {!isLive && <UTVNav />}
 
-      <section className="cameraStage">
+      <section
+        className={
+          activeGuestEmail
+            ? "cameraStage hasGuest"
+            : "cameraStage"
+        }
+      >
         <video
           ref={videoRef}
           autoPlay
@@ -994,6 +1252,35 @@ export default function LiveRoomPage() {
               : "cameraVideo"
           }
         />
+
+        {activeGuestEmail && (
+          <div className="guestPanel">
+            <video
+              ref={guestVideoRef}
+              autoPlay
+              playsInline
+              className="guestVideo"
+            />
+
+            <div
+              ref={guestAudioContainerRef}
+              className="guestAudioTracks"
+            />
+
+            <div className="guestLabel">
+              <span>GUEST</span>
+              <strong>{activeGuestEmail.split("@")[0]}</strong>
+            </div>
+
+            <button
+              type="button"
+              className="removeGuestButton"
+              onClick={removeActiveGuest}
+            >
+              Remove
+            </button>
+          </div>
+        )}
 
         {!cameraEnabled && (
           <div className="cameraOff">
@@ -1337,8 +1624,8 @@ export default function LiveRoomPage() {
                   </div>
 
                   <p className="guestQueueNote">
-                    Approving places a viewer in your guest queue.
-                    Split-screen guest video comes in LIVE Pack 5.
+                    Approve one viewer at a time to bring their
+                    camera and microphone directly into your Live.
                   </p>
 
                   <div className="viewerList">
@@ -1395,6 +1682,7 @@ const styles = `
   *{box-sizing:border-box}html,body{background:#000}button,input,textarea{font:inherit}button{cursor:pointer}
   .livePage,.replayPage{min-height:100dvh;color:#fff;background:#000}.cameraStage{position:relative;min-height:100dvh;overflow:hidden;background:#050505}
   .livePage:not(.active) .cameraStage{min-height:calc(100dvh - 82px)}.cameraVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.mirrored{transform:scaleX(-1)}
+  .cameraStage.hasGuest .cameraVideo{height:50%;bottom:auto}.guestPanel{position:absolute;left:0;right:0;bottom:0;height:50%;z-index:3;overflow:hidden;border-top:2px solid rgba(82,247,200,.55);background:#080808}.guestVideo{width:100%;height:100%;object-fit:cover;background:#090909}.guestAudioTracks{position:absolute;width:1px;height:1px;overflow:hidden}.guestLabel{position:absolute;left:12px;bottom:88px;display:grid;gap:1px;padding:7px 10px;border-radius:12px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px)}.guestLabel span{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.3px}.guestLabel strong{font-size:11px}.removeGuestButton{position:absolute;right:12px;bottom:88px;min-height:34px;padding:0 11px;color:#fff;border:1px solid rgba(255,90,110,.26);border-radius:999px;background:rgba(255,45,85,.72);font-size:9px;font-weight:950}
   .cameraOff{position:absolute;inset:0;z-index:8;display:grid;place-items:center;align-content:center;gap:8px;background:#070707}.cameraOff span{font-size:42px}
   .topShade,.bottomShade{position:absolute;left:0;right:0;z-index:9;pointer-events:none}.topShade{top:0;height:210px;background:linear-gradient(180deg,rgba(0,0,0,.75),transparent)}.bottomShade{bottom:0;height:390px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}
   .setupHeader,.liveHeader{position:absolute;top:max(14px,env(safe-area-inset-top));left:12px;right:12px;z-index:30;display:flex;align-items:center;gap:8px}.setupHeader{justify-content:space-between}.liveHeader{justify-content:center}

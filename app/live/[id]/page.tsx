@@ -8,10 +8,14 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  LocalAudioTrack,
+  LocalVideoTrack,
   RemoteTrack,
   Room,
   RoomEvent,
   Track,
+  createLocalAudioTrack,
+  createLocalVideoTrack,
 } from "livekit-client";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -45,6 +49,12 @@ export default function LiveViewerPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioContainerRef = useRef<HTMLDivElement | null>(null);
   const channelRef = useRef<any>(null);
+  const guestVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteGuestVideoRef = useRef<HTMLVideoElement | null>(null);
+  const guestAudioContainerRef = useRef<HTMLDivElement | null>(null);
+  const localGuestVideoTrackRef = useRef<LocalVideoTrack | null>(null);
+  const localGuestAudioTrackRef = useRef<LocalAudioTrack | null>(null);
+  const remoteGuestVideoTrackRef = useRef<RemoteTrack | null>(null);
 
   const [session, setSession] = useState<LiveSession | null>(null);
   const [viewerEmail, setViewerEmail] = useState("");
@@ -58,6 +68,8 @@ export default function LiveViewerPage() {
   const [showReactions, setShowReactions] = useState(false);
   const [joinRequested, setJoinRequested] = useState(false);
   const [joinApproved, setJoinApproved] = useState(false);
+  const [isGuestLive, setIsGuestLive] = useState(false);
+  const [remoteGuestEmail, setRemoteGuestEmail] = useState("");
 
   useEffect(() => {
     void openLive();
@@ -73,8 +85,26 @@ export default function LiveViewerPage() {
       channelRef.current = null;
     }
 
+    localGuestVideoTrackRef.current?.stop();
+    localGuestAudioTrackRef.current?.stop();
+
+    localGuestVideoTrackRef.current = null;
+    localGuestAudioTrackRef.current = null;
+    remoteGuestVideoTrackRef.current = null;
+
     await roomRef.current?.disconnect();
     roomRef.current = null;
+  }
+
+  function participantMeta(metadata?: string) {
+    try {
+      return JSON.parse(metadata || "{}") as {
+        email?: string;
+        role?: string;
+      };
+    } catch {
+      return {};
+    }
   }
 
   async function getToken() {
@@ -167,16 +197,67 @@ export default function LiveViewerPage() {
       room.on(
         RoomEvent.TrackSubscribed,
         (
-          track: RemoteTrack
+          track: RemoteTrack,
+          _publication,
+          participant
         ) => {
-          if (track.kind === Track.Kind.Video && videoRef.current) {
-            track.attach(videoRef.current);
+          const meta = participantMeta(participant.metadata);
+          const role = String(meta.role || "");
+
+          if (role === "guest") {
+            const email = String(
+              meta.email || participant.name || ""
+            );
+
+            setRemoteGuestEmail(email);
+
+            if (track.kind === Track.Kind.Video) {
+              remoteGuestVideoTrackRef.current = track;
+
+              window.setTimeout(() => {
+                if (remoteGuestVideoRef.current) {
+                  track.attach(remoteGuestVideoRef.current);
+                }
+              }, 30);
+            }
+
+            if (
+              track.kind === Track.Kind.Audio &&
+              guestAudioContainerRef.current
+            ) {
+              const element = track.attach();
+              element.autoplay = true;
+              guestAudioContainerRef.current.appendChild(element);
+            }
+
+            return;
           }
 
-          if (track.kind === Track.Kind.Audio && audioContainerRef.current) {
-            const element = track.attach();
-            element.autoplay = true;
-            audioContainerRef.current.appendChild(element);
+          if (role === "host") {
+            if (track.kind === Track.Kind.Video && videoRef.current) {
+              track.attach(videoRef.current);
+            }
+
+            if (
+              track.kind === Track.Kind.Audio &&
+              audioContainerRef.current
+            ) {
+              const element = track.attach();
+              element.autoplay = true;
+              audioContainerRef.current.appendChild(element);
+            }
+          }
+        }
+      );
+
+      room.on(
+        RoomEvent.ParticipantDisconnected,
+        (participant) => {
+          const meta = participantMeta(participant.metadata);
+
+          if (meta.role === "guest") {
+            remoteGuestVideoTrackRef.current = null;
+            setRemoteGuestEmail("");
           }
         }
       );
@@ -233,28 +314,50 @@ export default function LiveViewerPage() {
         .on(
           "broadcast",
           { event: "join-response" },
-          ({ payload }) => {
-           const email = String(payload?.email || "");
-const currentUserEmail = String(user.email || "");
+          async ({ payload }) => {
+            const email = String(payload?.email || "");
+            const currentUserEmail = String(user.email || "");
 
-if (
-  !currentUserEmail ||
-  email.toLowerCase() !== currentUserEmail.toLowerCase()
-) {
-  return;
-}
+            if (
+              !currentUserEmail ||
+              email.toLowerCase() !== currentUserEmail.toLowerCase()
+            ) {
+              return;
+            }
 
             const approved = payload?.approved === true;
 
-            setJoinApproved(approved);
             setJoinRequested(false);
-            setMessage(
-              approved
-                ? "Host approved you for the guest queue."
-                : "Host declined your join request."
-            );
+
+            if (approved) {
+              setJoinApproved(true);
+              setMessage("Host approved you. Starting guest camera...");
+              await becomeGuest();
+            } else {
+              setJoinApproved(false);
+              setMessage("Host declined your join request.");
+            }
 
             window.setTimeout(() => setMessage(""), 3000);
+          }
+        )
+        .on(
+          "broadcast",
+          { event: "guest-removed" },
+          async ({ payload }) => {
+            const email = String(payload?.email || "");
+            const currentUserEmail = String(user.email || "");
+
+            if (
+              !currentUserEmail ||
+              email.toLowerCase() !== currentUserEmail.toLowerCase()
+            ) {
+              return;
+            }
+
+            await leaveGuestSeat();
+            setMessage("Host removed you from the guest seat.");
+            window.setTimeout(() => setMessage(""), 2600);
           }
         )
         .on(
@@ -306,6 +409,96 @@ if (
           ? error.message
           : "Could not join this Live."
       );
+    }
+  }
+
+  async function becomeGuest() {
+    const room = roomRef.current;
+
+    if (!room || isGuestLive) return;
+
+    try {
+      const [videoTrack, audioTrack] = await Promise.all([
+        createLocalVideoTrack({
+          facingMode: "user",
+          resolution: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+          },
+        }),
+        createLocalAudioTrack({
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }),
+      ]);
+
+      localGuestVideoTrackRef.current = videoTrack;
+      localGuestAudioTrackRef.current = audioTrack;
+
+      if (guestVideoRef.current) {
+        videoTrack.attach(guestVideoRef.current);
+      }
+
+      await room.localParticipant.publishTrack(videoTrack, {
+        source: Track.Source.Camera,
+        simulcast: true,
+      });
+
+      await room.localParticipant.publishTrack(audioTrack, {
+        source: Track.Source.Microphone,
+      });
+
+      setIsGuestLive(true);
+      setJoinApproved(true);
+      setMessage("You're live with the host.");
+
+      window.setTimeout(() => setMessage(""), 2600);
+    } catch (error) {
+      console.error("Guest publish failed:", error);
+
+      setJoinApproved(false);
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not start your guest camera."
+      );
+    }
+  }
+
+  async function leaveGuestSeat() {
+    const room = roomRef.current;
+
+    if (!room) return;
+
+    const videoTrack = localGuestVideoTrackRef.current;
+    const audioTrack = localGuestAudioTrackRef.current;
+
+    if (videoTrack) {
+      await room.localParticipant.unpublishTrack(videoTrack);
+      videoTrack.stop();
+    }
+
+    if (audioTrack) {
+      await room.localParticipant.unpublishTrack(audioTrack);
+      audioTrack.stop();
+    }
+
+    localGuestVideoTrackRef.current = null;
+    localGuestAudioTrackRef.current = null;
+
+    setIsGuestLive(false);
+    setJoinApproved(false);
+
+    if (channelRef.current) {
+      await channelRef.current.send({
+        type: "broadcast",
+        event: "guest-left",
+        payload: {
+          email: viewerEmail,
+        },
+      });
     }
   }
 
@@ -425,9 +618,59 @@ if (
     <main className="viewerPage">
       <style>{styles}</style>
 
-      <section className="stage">
+      <section
+        className={
+          isGuestLive || remoteGuestEmail
+            ? "stage hasGuest"
+            : "stage"
+        }
+      >
         <video ref={videoRef} autoPlay playsInline className="hostVideo" />
         <div ref={audioContainerRef} className="audioTracks" />
+
+        {isGuestLive && (
+          <div className="guestViewerPanel">
+            <video
+              ref={guestVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="guestViewerVideo mirroredGuest"
+            />
+
+            <div className="guestViewerLabel">
+              YOU • GUEST
+            </div>
+
+            <button
+              type="button"
+              className="leaveGuestButton"
+              onClick={leaveGuestSeat}
+            >
+              Leave Guest
+            </button>
+          </div>
+        )}
+
+        {!isGuestLive && remoteGuestEmail && (
+          <div className="guestViewerPanel">
+            <video
+              ref={remoteGuestVideoRef}
+              autoPlay
+              playsInline
+              className="guestViewerVideo"
+            />
+
+            <div
+              ref={guestAudioContainerRef}
+              className="guestAudioTracks"
+            />
+
+            <div className="guestViewerLabel">
+              GUEST • {remoteGuestEmail.split("@")[0]}
+            </div>
+          </div>
+        )}
 
         {!connected && (
           <div className="connecting">
@@ -498,24 +741,26 @@ if (
         </div>
 
         <div className="viewerActions">
-          <button
-            type="button"
-            className={
-              joinApproved
-                ? "joinLiveButton approved"
+          {!remoteGuestEmail && !isGuestLive && (
+            <button
+              type="button"
+              className={
+                joinApproved
+                  ? "joinLiveButton approved"
+                  : joinRequested
+                  ? "joinLiveButton requested"
+                  : "joinLiveButton"
+              }
+              onClick={requestToJoin}
+              disabled={joinRequested || joinApproved}
+            >
+              {joinApproved
+                ? "✓ Joining..."
                 : joinRequested
-                ? "joinLiveButton requested"
-                : "joinLiveButton"
-            }
-            onClick={requestToJoin}
-            disabled={joinRequested || joinApproved}
-          >
-            {joinApproved
-              ? "✓ Guest Queue"
-              : joinRequested
-              ? "Request Sent"
-              : "＋ Request to Join"}
-          </button>
+                ? "Request Sent"
+                : "＋ Request to Join"}
+            </button>
+          )}
 
           <button
             type="button"
@@ -560,7 +805,7 @@ if (
 
 const styles = `
   *{box-sizing:border-box}html,body{background:#000}button,input{font:inherit}.viewerPage,.loadingPage,.endedPage{min-height:100dvh;color:#fff;background:#000}
-  .viewerPage{display:grid;place-items:center;overflow:hidden}.stage{position:relative;width:min(100vw,560px);height:100dvh;overflow:hidden;background:#050505}.hostVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#050505}
+  .viewerPage{display:grid;place-items:center;overflow:hidden}.stage{position:relative;width:min(100vw,560px);height:100dvh;overflow:hidden;background:#050505}.hostVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#050505}.stage.hasGuest .hostVideo{height:50%;bottom:auto}.guestViewerPanel{position:absolute;left:0;right:0;bottom:0;height:50%;z-index:3;overflow:hidden;border-top:2px solid rgba(82,247,200,.55);background:#080808}.guestViewerVideo{width:100%;height:100%;object-fit:cover}.mirroredGuest{transform:scaleX(-1)}.guestAudioTracks{position:absolute;width:1px;height:1px;overflow:hidden}.guestViewerLabel{position:absolute;left:12px;bottom:86px;padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.5);color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:.8px;backdrop-filter:blur(12px)}.leaveGuestButton{position:absolute;right:12px;bottom:86px;min-height:34px;padding:0 11px;color:#fff;border:1px solid rgba(255,90,110,.28);border-radius:999px;background:rgba(255,45,85,.72);font-size:9px;font-weight:950}
   .audioTracks{position:absolute;width:1px;height:1px;overflow:hidden}.topShade,.bottomShade{position:absolute;left:0;right:0;z-index:5;pointer-events:none}.topShade{top:0;height:220px;background:linear-gradient(180deg,rgba(0,0,0,.78),transparent)}.bottomShade{bottom:0;height:400px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}
   .connecting{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;gap:9px;background:#050505;color:rgba(255,255,255,.7);font-size:12px;font-weight:850}.connecting span{width:10px;height:10px;border-radius:50%;background:#52f7c8;box-shadow:0 0 18px rgba(82,247,200,.8);animation:pulse 1s infinite}
   .topBar{position:absolute;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:8px}.hostButton{min-width:0;display:flex;align-items:center;gap:8px;padding:0;color:#fff;border:0;background:transparent;text-align:left}.avatar{width:40px;height:40px;display:grid;place-items:center;border:2px solid #52f7c8;border-radius:50%;background:linear-gradient(135deg,#52f7c8,#7b61ff);font-weight:950}.hostButton>div{display:grid;gap:1px;min-width:0}.hostButton strong{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.hostButton small{color:rgba(255,255,255,.6);font-size:9px}
