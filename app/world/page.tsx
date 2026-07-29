@@ -61,6 +61,7 @@ type WorldItem = {
   booking_url?: string;
   contact_email?: string;
   status?: string;
+  live_session_id?: string;
   _latitude?: number;
   _longitude?: number;
 };
@@ -960,6 +961,13 @@ export default function WorldPage() {
         email
       )}`
     );
+  }
+
+  function openLive(
+    item?: WorldItem | null
+  ) {
+    if (!item?.live_session_id) return;
+    router.push(`/live/${item.live_session_id}`);
   }
 
   function openMessage(
@@ -2139,6 +2147,16 @@ export default function WorldPage() {
               </div>
 
               <div className="sheetActions">
+                {selected.is_live && selected.live_session_id && (
+                  <button
+                    className="worldWatchLive"
+                    onClick={() => openLive(selected)}
+                  >
+                    🔴
+                    <span>Watch Live</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() =>
                     openDirections(
@@ -2187,6 +2205,16 @@ export default function WorldPage() {
                   <span>Share</span>
                 </button>
               </div>
+
+              {selected.is_live && selected.live_session_id && (
+                <button
+                  className="worldLivePrimary"
+                  onClick={() => openLive(selected)}
+                >
+                  <span className="worldLivePulse" />
+                  WATCH LIVE NOW
+                </button>
+              )}
 
               <button
                 className="viewProfileButton"

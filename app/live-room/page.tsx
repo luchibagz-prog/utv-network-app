@@ -358,6 +358,56 @@ export default function LiveRoomPage() {
     realtimeChannelRef.current = channel;
   }
 
+
+  async function notifyFollowersLive(
+    sessionId: string,
+    hostEmail: string
+  ) {
+    try {
+      const { data: followerRows, error: followError } = await supabase
+        .from("follows")
+        .select("follower_email")
+        .eq("following_email", hostEmail);
+
+      if (followError) {
+        console.info("Live follower lookup skipped:", followError.message);
+        return;
+      }
+
+      const recipients = Array.from(
+        new Set(
+          (followerRows || [])
+            .map((row: any) => row.follower_email)
+            .filter((email: string) => email && email !== hostEmail)
+        )
+      );
+
+      if (!recipients.length) return;
+
+      const link = `/live/${sessionId}`;
+
+      const rows = recipients.map((recipientEmail) => ({
+        user_email: recipientEmail,
+        actor_email: hostEmail,
+        type: "live_started",
+        title: "🔴 LIVE NOW",
+        message: `${hostEmail.split("@")[0]} is live — ${title.trim() || category}.`,
+        link,
+        is_read: false,
+      }));
+
+      const { error } = await supabase
+        .from("notifications")
+        .insert(rows);
+
+      if (error) {
+        console.info("Live follower notifications skipped:", error.message);
+      }
+    } catch (error) {
+      console.info("Live notification error:", error);
+    }
+  }
+
   function beginReplayRecording() {
     const videoTrack = videoTrackRef.current?.mediaStreamTrack;
     const audioTrack = audioTrackRef.current?.mediaStreamTrack;
@@ -525,6 +575,8 @@ export default function LiveRoomPage() {
       );
 
       beginReplayRecording();
+
+      void notifyFollowersLive(sessionId, user.email);
 
       if (timerRef.current) clearInterval(timerRef.current);
 

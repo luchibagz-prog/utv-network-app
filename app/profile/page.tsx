@@ -24,6 +24,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [uploads, setUploads] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [liveSessions, setLiveSessions] = useState<any[]>([]);
+  const [activeLive, setActiveLive] = useState<any | null>(null);
+  const [profileMessage, setProfileMessage] = useState("");
   const [crew, setCrew] = useState(0);
   const [following, setFollowing] = useState(0);
   const [collabs, setCollabs] = useState(0);
@@ -71,6 +74,16 @@ export default function ProfilePage() {
 
     setEvents((eventData || []).filter(Boolean));
 
+    const { data: liveData } = await supabase
+      .from("live_sessions")
+      .select("*")
+      .eq("host_email", userEmail)
+      .order("created_at", { ascending: false });
+
+    const sessionRows = (liveData || []).filter(Boolean);
+    setLiveSessions(sessionRows);
+    setActiveLive(sessionRows.find((item) => item.status === "live") || null);
+
     const { count: crewCount } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
@@ -93,6 +106,32 @@ export default function ProfilePage() {
 
     setCollabs(collabCount || 0);
     setLoading(false);
+  }
+
+  async function deleteLiveSession(id: string) {
+    const confirmed = window.confirm("Delete this old Live from your history?");
+    if (!confirmed) return;
+
+    await supabase
+      .from("world_posts")
+      .delete()
+      .eq("live_session_id", id)
+      .eq("creator_email", email);
+
+    const { error } = await supabase
+      .from("live_sessions")
+      .delete()
+      .eq("id", id)
+      .eq("host_email", email);
+
+    if (error) {
+      setProfileMessage(error.message);
+      return;
+    }
+
+    setLiveSessions((current) => current.filter((item) => item.id !== id));
+    setProfileMessage("Live deleted.");
+    window.setTimeout(() => setProfileMessage(""), 1600);
   }
 
   async function logout() {
@@ -378,6 +417,15 @@ export default function ProfilePage() {
           border:1px solid rgba(255,255,255,.12);
         }
 
+
+        .activeLiveBanner {
+          width:calc(100% - 32px);max-width:900px;margin:16px auto 0;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:13px 14px;color:white;text-align:left;border:1px solid rgba(255,78,104,.35);border-radius:20px;background:linear-gradient(135deg,rgba(255,45,85,.20),rgba(82,247,200,.09));box-shadow:0 18px 45px rgba(0,0,0,.24);
+        }
+        .activeLiveDot {width:11px;height:11px;border-radius:50%;background:#ff2d55;box-shadow:0 0 0 6px rgba(255,45,85,.12),0 0 20px rgba(255,45,85,.7)}
+        .activeLiveBanner>div{display:grid;gap:2px;min-width:0}.activeLiveBanner b{color:#ff6078;font-size:9px;letter-spacing:1.4px}.activeLiveBanner strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.activeLiveBanner small{color:rgba(255,255,255,.55);font-size:9px}.activeLiveBanner i{color:#07110e;padding:8px 10px;border-radius:999px;background:#52f7c8;font-size:9px;font-style:normal;font-weight:950}
+        .profileLiveToast{position:fixed;left:50%;bottom:100px;z-index:1000;transform:translateX(-50%);padding:9px 13px;border-radius:999px;background:#07110e;color:#52f7c8;font-size:11px;font-weight:900}
+        .liveHistoryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;padding:0 16px 24px}.liveHistoryCard{padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:20px;background:rgba(255,255,255,.055)}.liveHistoryTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.liveHistoryTop small{color:rgba(255,255,255,.42);font-size:9px}.historyStatus{color:rgba(255,255,255,.58);font-size:9px;font-weight:950;letter-spacing:1px}.historyStatus.active{color:#ff526b}.liveHistoryCard h3{margin:10px 0 4px}.liveHistoryCard p{margin:0;color:rgba(255,255,255,.58);font-size:11px}.liveHistoryActions{display:flex;gap:8px;margin-top:12px}.liveHistoryActions button{min-height:38px;padding:0 12px;color:#06110d;border:0;border-radius:12px;background:#52f7c8;font-weight:900}.liveHistoryActions button.danger{color:#ff9bad;border:1px solid rgba(255,78,104,.18);background:rgba(255,78,104,.08)}
+
         @media (min-width: 900px) {
           .profileShell,
           .tabs,
@@ -392,6 +440,23 @@ export default function ProfilePage() {
           }
         }
       `}</style>
+
+      {profileMessage && <div className="profileLiveToast">{profileMessage}</div>}
+
+      {activeLive && (
+        <button
+          className="activeLiveBanner"
+          onClick={() => router.push(`/live/${activeLive.id}`)}
+        >
+          <span className="activeLiveDot" />
+          <div>
+            <b>YOU ARE LIVE NOW</b>
+            <strong>{activeLive.title || "UTV Live"}</strong>
+            <small>Tap to open your broadcast · 👁 {Number(activeLive.viewer_count || 0)}</small>
+          </div>
+          <i>WATCH</i>
+        </button>
+      )}
 
       <section className="profileShell">
         <div className="banner">
@@ -495,7 +560,34 @@ export default function ProfilePage() {
         ))}
       </section>
 
-      {tab === "events" ? (
+      {tab === "lives" ? (
+        liveSessions.length === 0 ? (
+          <section className="emptyCard"><h2>No Live history yet</h2><p>Start a Live and it will appear here.</p></section>
+        ) : (
+          <section className="liveHistoryGrid">
+            {liveSessions.map((live) => (
+              <article className="liveHistoryCard" key={live.id}>
+                <div className="liveHistoryTop">
+                  <span className={live.status === "live" ? "historyStatus active" : "historyStatus"}>
+                    {live.status === "live" ? "● LIVE NOW" : "ENDED"}
+                  </span>
+                  <small>{new Date(live.created_at).toLocaleString()}</small>
+                </div>
+                <h3>{live.title || "UTV Live"}</h3>
+                <p>{live.category || "Live"} · 👁 {Number(live.viewer_count || 0)}</p>
+                <div className="liveHistoryActions">
+                  {live.status === "live" && (
+                    <button onClick={() => router.push(`/live/${live.id}`)}>Open Live</button>
+                  )}
+                  {live.status !== "live" && (
+                    <button className="danger" onClick={() => deleteLiveSession(live.id)}>Delete</button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </section>
+        )
+      ) : tab === "events" ? (
         events.length === 0 ? (
           <section className="emptyCard"><h2>No events yet</h2></section>
         ) : (

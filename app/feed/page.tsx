@@ -60,6 +60,8 @@ export default function FeedPage() {
 
   const [stories, setStories] = useState<any[]>([]);
 
+  const [activeLives, setActiveLives] = useState<any[]>([]);
+
   const [suggestedCreators, setSuggestedCreators] = useState<any[]>([]);
 
   const [followingEmails, setFollowingEmails] = useState<string[]>([]);
@@ -132,6 +134,10 @@ export default function FeedPage() {
       });
     }, 4200);
 
+    const liveTimer = window.setInterval(() => {
+      void loadEverything(false, false);
+    }, 15000);
+
     const freshnessTimer = window.setInterval(() => {
       if (document.visibilityState === "visible") {
         checkForFreshPosts();
@@ -153,6 +159,7 @@ export default function FeedPage() {
     return () => {
       window.clearInterval(heroTimer);
       window.clearInterval(freshnessTimer);
+      window.clearInterval(liveTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       observerRef.current?.disconnect();
     };
@@ -232,6 +239,7 @@ export default function FeedPage() {
       loadFeed(following, email, rotateOlder),
       loadStories(following),
       loadSuggestedCreators(email, following),
+      loadActiveLives(following, email),
     ]);
 
     setPendingFreshPosts([]);
@@ -451,6 +459,45 @@ export default function FeedPage() {
     setStories(sortedStories);
 
     await loadProfiles(sortedStories.map((story) => story.user_email));
+  }
+
+
+  async function loadActiveLives(
+    following: string[] = followingEmails,
+    currentEmail: string = viewerEmail
+  ) {
+    const { data, error } = await supabase
+      .from("live_sessions")
+      .select("*")
+      .eq("status", "live")
+      .order("created_at", { ascending: false })
+      .limit(30);
+
+    if (error) {
+      console.info("Live discovery skipped:", error.message);
+      setActiveLives([]);
+      return;
+    }
+
+    const ranked = [...(data || [])].sort((a, b) => {
+      const aFollow = following.includes(a.host_email) ? 1 : 0;
+      const bFollow = following.includes(b.host_email) ? 1 : 0;
+
+      if (aFollow !== bFollow) return bFollow - aFollow;
+
+      const aMine = a.host_email === currentEmail ? 1 : 0;
+      const bMine = b.host_email === currentEmail ? 1 : 0;
+
+      if (aMine !== bMine) return bMine - aMine;
+
+      return (
+        new Date(b.created_at || 0).getTime() -
+        new Date(a.created_at || 0).getTime()
+      );
+    });
+
+    setActiveLives(ranked);
+    await loadProfiles(ranked.map((live) => live.host_email));
   }
 
   async function loadFeed(
@@ -1266,6 +1313,56 @@ export default function FeedPage() {
           📺 UTV
         </button>
       </section>
+
+
+      {activeLives.length > 0 && (
+        <section className="liveNowSection">
+          <div className="liveNowHeading">
+            <div>
+              <span className="liveNowPulse" />
+              <b>LIVE NOW</b>
+              <small>Creators broadcasting on UTV</small>
+            </div>
+
+            <button onClick={() => router.push("/live")}>See all</button>
+          </div>
+
+          <div className="liveNowRail">
+            {activeLives.map((live) => {
+              const host = live.host_email || "";
+              const avatar = profileAvatar(host);
+              const name = profileName(host);
+              const followingLive = followingEmails.includes(host);
+
+              return (
+                <button
+                  className={followingLive ? "liveNowCard followingLive" : "liveNowCard"}
+                  key={live.id}
+                  onClick={() => router.push(`/live/${live.id}`)}
+                >
+                  <div className="liveNowAvatar">
+                    {avatar ? (
+                      <img src={avatar} alt={name} />
+                    ) : (
+                      <span>{name.slice(0, 1).toUpperCase()}</span>
+                    )}
+                    <i>LIVE</i>
+                  </div>
+
+                  <div className="liveNowCopy">
+                    <strong>{name}</strong>
+                    <span>{live.title || "UTV Live"}</span>
+                    <small>
+                      {live.category || "Live"} · 👁 {Number(live.viewer_count || 0)}
+                      {followingLive ? " · Following" : ""}
+                    </small>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section className="stories">
         <div className="storyWrap">
@@ -2826,4 +2923,127 @@ const styles = `
     font-size: 12px;
     font-weight: 950;
   }
+  .liveNowSection {
+    margin: 6px 0 12px;
+    padding: 0 14px;
+  }
+
+  .liveNowHeading {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .liveNowHeading > div {
+    display:grid;
+    grid-template-columns:auto auto 1fr;
+    align-items:center;
+    gap:7px;
+  }
+
+  .liveNowHeading b {
+    color:#ff4f68;
+    font-size:11px;
+    letter-spacing:1.4px;
+  }
+
+  .liveNowHeading small {
+    color:rgba(255,255,255,.48);
+    font-size:10px;
+  }
+
+  .liveNowHeading button {
+    color:#52f7c8;
+    border:0;
+    background:transparent;
+    font-size:11px;
+    font-weight:900;
+  }
+
+  .liveNowPulse {
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#ff2d55;
+    box-shadow:0 0 0 5px rgba(255,45,85,.12),0 0 18px rgba(255,45,85,.65);
+    animation:utvLivePulse 1s ease-in-out infinite;
+  }
+
+  .liveNowRail {
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding-bottom:4px;
+    scrollbar-width:none;
+  }
+
+  .liveNowRail::-webkit-scrollbar { display:none; }
+
+  .liveNowCard {
+    width:min(78vw,320px);
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:64px 1fr;
+    align-items:center;
+    gap:11px;
+    padding:10px;
+    color:#fff;
+    text-align:left;
+    border:1px solid rgba(255,78,104,.22);
+    border-radius:19px;
+    background:linear-gradient(135deg,rgba(255,45,85,.13),rgba(82,247,200,.055));
+    box-shadow:0 15px 35px rgba(0,0,0,.18);
+  }
+
+  .liveNowCard.followingLive {
+    border-color:rgba(82,247,200,.30);
+  }
+
+  .liveNowAvatar {
+    position:relative;
+    width:60px;
+    height:60px;
+    display:grid;
+    place-items:center;
+    border:2px solid #ff3658;
+    border-radius:18px;
+    background:linear-gradient(135deg,#52f7c8,#7b61ff);
+    font-size:22px;
+    font-weight:950;
+  }
+
+  .liveNowAvatar img {
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:15px;
+  }
+
+  .liveNowAvatar i {
+    position:absolute;
+    right:-5px;
+    bottom:-5px;
+    padding:4px 6px;
+    color:#fff;
+    border:2px solid #07111e;
+    border-radius:7px;
+    background:#ff2d55;
+    font-size:7px;
+    font-style:normal;
+    font-weight:950;
+    letter-spacing:.7px;
+  }
+
+  .liveNowCopy { min-width:0; display:grid; gap:2px; }
+  .liveNowCopy strong,.liveNowCopy span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .liveNowCopy strong { font-size:13px; }
+  .liveNowCopy span { font-size:12px; font-weight:850; }
+  .liveNowCopy small { color:rgba(255,255,255,.52); font-size:9px; }
+
+  @keyframes utvLivePulse {
+    50% { opacity:.45; transform:scale(.78); }
+  }
+
 `;
