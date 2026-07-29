@@ -399,6 +399,12 @@ export default function WorldPage() {
   const [globeSpinning, setGlobeSpinning] =
     useState(true);
 
+  const [worldView, setWorldView] =
+    useState<"world" | "near" | "today">("world");
+
+  const [radarOpen, setRadarOpen] =
+    useState(true);
+
   useEffect(() => {
     void supabase.auth.getUser().then(({ data }) => {
       setViewerEmail(data.user?.email || "");
@@ -654,7 +660,7 @@ export default function WorldPage() {
 
         map.easeTo({
           center: [
-            center.lng + 0.45,
+            center.lng + 0.28,
             center.lat,
           ],
           duration: 950,
@@ -710,11 +716,9 @@ export default function WorldPage() {
       map.dragPan.enable();
       map.scrollZoom.enable();
       map.touchZoomRotate.enable();
-      map.touchZoomRotate.disableRotation();
       map.doubleClickZoom.enable();
       map.keyboard.enable();
 
-      map.dragRotate.disable();
       map.touchPitch.disable();
 
       const canvas = map.getCanvas();
@@ -725,13 +729,13 @@ export default function WorldPage() {
       }
 
       map.setFog?.({
-        color: "rgb(8, 18, 35)",
+        color: "rgb(11, 24, 37)",
         "high-color":
-          "rgb(62, 83, 145)",
-        "horizon-blend": 0.09,
+          "rgb(76, 93, 165)",
+        "horizon-blend": 0.035,
         "space-color":
-          "rgb(1, 2, 10)",
-        "star-intensity": 0.72,
+          "rgb(1, 3, 8)",
+        "star-intensity": 0.9,
       });
 
       const layers =
@@ -849,9 +853,9 @@ export default function WorldPage() {
         SACRAMENTO.longitude,
         SACRAMENTO.latitude,
       ],
-      zoom: 3.2,
-      pitch: 18,
-      bearing: -12,
+      zoom: 1.65,
+      pitch: 0,
+      bearing: 0,
       duration: 1300,
       essential: true,
     });
@@ -1462,7 +1466,7 @@ export default function WorldPage() {
       <section className="worldTop">
         <div>
           <p className="worldEyebrow">
-            EXPLORE • CONNECT • BOOK
+            ENTER • EXPLORE • DISCOVER
           </p>
 
           <h1 className="worldTitle">
@@ -1470,9 +1474,9 @@ export default function WorldPage() {
           </h1>
 
           <p className="worldSub">
-            Find live streams, events, casting,
-            bookings, businesses, music, sports,
-            comedy, and creator opportunities.
+            Spin the planet. Tap what is happening.
+            Discover Lives, events, opportunities,
+            creators and culture everywhere.
           </p>
         </div>
 
@@ -1505,20 +1509,68 @@ export default function WorldPage() {
         </div>
       </section>
 
-      <section className="worldControls">
+      <section className="worldCommandBar">
         <button
           className={
-            locationOn
-              ? "locationButton activeLocation"
-              : "locationButton"
+            worldView === "world"
+              ? "worldMode active"
+              : "worldMode"
           }
-          onClick={toggleLocation}
+          onClick={() => {
+            setWorldView("world");
+            resetMap();
+            window.setTimeout(() => startGlobeSpin(), 900);
+          }}
         >
-          {locationOn
-            ? "📍 Location On"
-            : "📍 Near Me"}
+          🌎
+          <span>WORLD</span>
         </button>
 
+        <button
+          className={
+            worldView === "near"
+              ? "worldMode active"
+              : "worldMode"
+          }
+          onClick={() => {
+            setWorldView("near");
+            if (!locationOn) {
+              toggleLocation();
+            } else if (userLocation) {
+              flyToLocation(userLocation, 12.8);
+            }
+          }}
+        >
+          📍
+          <span>NEAR ME</span>
+        </button>
+
+        <button
+          className={
+            worldView === "today"
+              ? "worldMode active"
+              : "worldMode"
+          }
+          onClick={() => {
+            setWorldView("today");
+            setFilter("All");
+            setSelected(null);
+          }}
+        >
+          ⚡
+          <span>TODAY</span>
+        </button>
+
+        <button
+          className="worldMode radarToggle"
+          onClick={() => setRadarOpen((current) => !current)}
+        >
+          📡
+          <span>RADAR</span>
+        </button>
+      </section>
+
+      <section className="worldSearchDock">
         <div className="searchWrap">
           <span>⌕</span>
 
@@ -1527,62 +1579,83 @@ export default function WorldPage() {
             placeholder="Search city, event, casting, creator..."
             value={search}
             onChange={(event) =>
-              setSearch(
-                event.target.value
-              )
+              setSearch(event.target.value)
             }
           />
 
           {search && (
-            <button
-              onClick={() =>
-                setSearch("")
-              }
-            >
+            <button onClick={() => setSearch("")}>
               ✕
             </button>
           )}
         </div>
 
-        <p className="worldMessage">
-          {locationMessage}
-        </p>
-      </section>
-
-      <section className="worldCategoryPanel">
-        <div className="worldCategoryScroll">
-          {filters.map((name) => (
-            <button
-              key={name}
-              className={
-                filter === name
-                  ? "worldFilter active"
-                  : "worldFilter"
-              }
-              onClick={() => {
-                setFilter(name);
-                setSelected(null);
-              }}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
+        <button
+          className="worldRefreshButton compact"
+          onClick={() => loadWorld(false)}
+          disabled={refreshing}
+        >
+          {refreshing ? "…" : "↻"}
+        </button>
       </section>
 
       <section className="worldMapStage">
         <div className="worldMapShell">
-          <div className="mapBadge">
+          <div className="mapBadge planetBadge">
             <span>🌍</span>
             UTV WORLD
           </div>
 
-          <button
-            className="resetMapButton"
-            onClick={resetMap}
-          >
-            ◎ Reset
-          </button>
+          {radarOpen && (
+            <aside className="worldRadar">
+              <div className="radarHead">
+                <div>
+                  <span>📡 UTV RADAR</span>
+                  <strong>What&apos;s happening</strong>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setRadarOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="radarGrid">
+                <button onClick={() => setFilter("Live")}>
+                  <b>{counts.live}</b>
+                  <span>🔴 LIVE NOW</span>
+                </button>
+
+                <button onClick={() => setFilter("Events")}>
+                  <b>{counts.events}</b>
+                  <span>🎉 EVENTS</span>
+                </button>
+
+                <button onClick={() => setFilter("Casting")}>
+                  <b>{counts.casting}</b>
+                  <span>🎭 CASTING</span>
+                </button>
+
+                <button onClick={() => setFilter("Build Together")}>
+                  <b>{counts.build}</b>
+                  <span>🤝 BUILD</span>
+                </button>
+              </div>
+
+              <div className="radarStatus">
+                <span className={mapReady ? "radarDot active" : "radarDot"} />
+                {mapReady ? "WORLD SIGNAL ONLINE" : "CONNECTING WORLD"}
+              </div>
+            </aside>
+          )}
+
+          <div className="planetHint">
+            <span>↔</span>
+            DRAG TO SPIN • PINCH TO ZOOM • TAP A SIGNAL
+          </div>
+
 
           <div className="worldMapControls">
             <button
@@ -1686,12 +1759,12 @@ export default function WorldPage() {
               }
               initialViewState={{
                 longitude:
-                  SACRAMENTO.longitude,
+                  -98,
                 latitude:
-                  SACRAMENTO.latitude,
-                zoom: 3.2,
-                pitch: 18,
-                bearing: -12,
+                  28,
+                zoom: 1.65,
+                pitch: 0,
+                bearing: 0,
               }}
               mapStyle={
                 mapMode === "night"
@@ -1711,7 +1784,7 @@ export default function WorldPage() {
               }}
               attributionControl
               dragPan
-              dragRotate={false}
+              dragRotate
               scrollZoom
               touchZoomRotate
               touchPitch={false}
@@ -1719,7 +1792,7 @@ export default function WorldPage() {
               keyboard
               cooperativeGestures={false}
               maxPitch={62}
-              minZoom={3}
+              minZoom={1.2}
               maxZoom={18}
               onLoad={handleMapLoad}
               onClick={() =>
@@ -1793,14 +1866,82 @@ export default function WorldPage() {
               </strong>
 
               <span>
-                Connecting lives,
-                events, bookings,
-                and opportunities...
+                Building your planet,
+                lighting up cities,
+                and connecting signals...
               </span>
             </div>
           )}
         </div>
       </section>
+
+      <section className="worldOrbitFilters">
+        <div className="worldCategoryScroll">
+          {filters.map((name) => (
+            <button
+              key={name}
+              className={
+                filter === name
+                  ? "orbitFilter active"
+                  : "orbitFilter"
+              }
+              onClick={() => {
+                setFilter(name);
+                setSelected(null);
+              }}
+            >
+              <span>{categoryIcon(name, name === "Live")}</span>
+              {name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {worldView === "today" && (
+        <section className="todayPanel">
+          <div className="todayTop">
+            <div>
+              <p>⚡ TODAY IN YOUR WORLD</p>
+              <h2>Your daily pulse</h2>
+            </div>
+            <span>{filteredItems.length}</span>
+          </div>
+
+          <div className="todayChecklist">
+            <button onClick={() => setFilter("Live")}>
+              <i>○</i>
+              <div>
+                <strong>See who&apos;s Live now</strong>
+                <small>{counts.live} active signals</small>
+              </div>
+            </button>
+
+            <button onClick={() => setFilter("Casting")}>
+              <i>○</i>
+              <div>
+                <strong>Check casting opportunities</strong>
+                <small>{counts.casting} casting posts</small>
+              </div>
+            </button>
+
+            <button onClick={() => setFilter("Build Together")}>
+              <i>○</i>
+              <div>
+                <strong>Find somebody to build with</strong>
+                <small>{counts.build} creator opportunities</small>
+              </div>
+            </button>
+
+            <button onClick={() => router.push("/submit?type=feed")}>
+              <i>＋</i>
+              <div>
+                <strong>Put something in the World</strong>
+                <small>Post your own signal today</small>
+              </div>
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="worldStatsPanel">
         <button
@@ -1808,7 +1949,7 @@ export default function WorldPage() {
           onClick={() => setFilter("Live")}
         >
           <b>{counts.live}</b>
-          <span>🔴 Live</span>
+          <span>🔴 Live Now</span>
         </button>
 
         <button
@@ -3821,6 +3962,521 @@ const styles = `
     .worldList {
       grid-template-columns:
         repeat(3, minmax(0,1fr));
+    }
+  }
+
+
+  /* =========================================================
+     UTV WORLD PACK 1 — THE PLANET
+     ========================================================= */
+
+  .worldPage {
+    background:
+      radial-gradient(circle at 50% -10%, rgba(82,247,200,.10), transparent 26%),
+      radial-gradient(circle at 85% 5%, rgba(123,97,255,.14), transparent 30%),
+      linear-gradient(180deg,#02060d 0%,#03070c 42%,#05080f 100%);
+  }
+
+  .worldTop {
+    position:relative;
+    z-index:3;
+    max-width:1200px;
+    margin:0 auto;
+    padding:18px 16px 10px;
+  }
+
+  .worldTitle {
+    font-size:clamp(40px,9vw,74px);
+    letter-spacing:-3px;
+    text-shadow:0 0 34px rgba(82,247,200,.18);
+  }
+
+  .worldSub {
+    max-width:650px;
+    color:rgba(255,255,255,.58);
+  }
+
+  .worldTopActions {
+    display:none;
+  }
+
+  .worldCommandBar {
+    position:sticky;
+    top:78px;
+    z-index:60;
+    width:min(calc(100% - 20px),760px);
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:5px;
+    margin:4px auto 8px;
+    padding:6px;
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:22px;
+    background:rgba(3,8,13,.78);
+    box-shadow:0 16px 45px rgba(0,0,0,.28);
+    backdrop-filter:blur(22px);
+    -webkit-backdrop-filter:blur(22px);
+  }
+
+  .worldMode {
+    min-height:47px;
+    display:grid;
+    justify-items:center;
+    align-content:center;
+    gap:2px;
+    color:rgba(255,255,255,.52);
+    border:0;
+    border-radius:16px;
+    background:transparent;
+    font-size:17px;
+  }
+
+  .worldMode span {
+    font-size:8px;
+    font-weight:950;
+    letter-spacing:.7px;
+  }
+
+  .worldMode.active {
+    color:#06120d;
+    background:linear-gradient(135deg,#52f7c8,#9b7cff);
+    box-shadow:0 0 28px rgba(82,247,200,.17);
+  }
+
+  .radarToggle {
+    color:#52f7c8;
+  }
+
+  .worldSearchDock {
+    width:min(calc(100% - 20px),760px);
+    display:grid;
+    grid-template-columns:1fr 46px;
+    gap:7px;
+    margin:0 auto 9px;
+  }
+
+  .worldRefreshButton.compact {
+    width:46px;
+    min-height:46px;
+    padding:0;
+    border-radius:16px;
+  }
+
+  .worldMapStage {
+    position:relative;
+    padding:0 8px;
+  }
+
+  .worldMapShell {
+    position:relative;
+    width:min(100%,1220px);
+    height:min(72dvh,760px);
+    min-height:520px;
+    margin:0 auto;
+    overflow:hidden;
+    border:1px solid rgba(126,164,255,.18);
+    border-radius:34px;
+    background:
+      radial-gradient(circle at 50% 46%,rgba(16,40,68,.55),transparent 31%),
+      radial-gradient(circle at 50% 50%,rgba(82,247,200,.06),transparent 52%),
+      #01040a;
+    box-shadow:
+      0 35px 90px rgba(0,0,0,.54),
+      inset 0 0 100px rgba(78,94,195,.06),
+      0 0 55px rgba(82,247,200,.05);
+  }
+
+  .worldMapShell::before {
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:3;
+    pointer-events:none;
+    background:
+      radial-gradient(circle at 50% 48%,transparent 30%,rgba(0,0,0,.08) 50%,rgba(0,0,0,.46) 100%),
+      linear-gradient(180deg,rgba(3,7,16,.08),transparent 34%,rgba(0,0,0,.15));
+  }
+
+  .worldMapShell::after {
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:9%;
+    z-index:2;
+    width:62%;
+    height:12%;
+    pointer-events:none;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:rgba(82,247,200,.08);
+    filter:blur(34px);
+  }
+
+  .planetBadge {
+    z-index:30;
+    border-color:rgba(82,247,200,.22);
+    background:rgba(3,10,14,.64);
+    backdrop-filter:blur(12px);
+  }
+
+  .worldRadar {
+    position:absolute;
+    top:62px;
+    left:14px;
+    z-index:35;
+    width:min(290px,calc(100% - 28px));
+    padding:12px;
+    border:1px solid rgba(82,247,200,.16);
+    border-radius:20px;
+    background:rgba(3,9,13,.76);
+    box-shadow:0 18px 50px rgba(0,0,0,.34);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    animation:radarEnter .28s ease;
+  }
+
+  .radarHead {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:10px;
+  }
+
+  .radarHead>div {
+    display:grid;
+    gap:1px;
+  }
+
+  .radarHead span {
+    color:#52f7c8;
+    font-size:8px;
+    font-weight:950;
+    letter-spacing:1.2px;
+  }
+
+  .radarHead strong {
+    font-size:15px;
+  }
+
+  .radarHead button {
+    width:30px;
+    height:30px;
+    color:rgba(255,255,255,.6);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:50%;
+    background:rgba(255,255,255,.04);
+  }
+
+  .radarGrid {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+
+  .radarGrid button {
+    min-height:68px;
+    display:grid;
+    align-content:center;
+    justify-items:start;
+    gap:1px;
+    padding:9px;
+    color:white;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:15px;
+    background:rgba(255,255,255,.035);
+    text-align:left;
+  }
+
+  .radarGrid b {
+    font-size:22px;
+    line-height:1;
+  }
+
+  .radarGrid span {
+    color:rgba(255,255,255,.49);
+    font-size:7px;
+    font-weight:950;
+    letter-spacing:.5px;
+  }
+
+  .radarStatus {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    margin-top:9px;
+    color:rgba(255,255,255,.38);
+    font-size:7px;
+    font-weight:900;
+    letter-spacing:.8px;
+  }
+
+  .radarDot {
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#ffd166;
+  }
+
+  .radarDot.active {
+    background:#52f7c8;
+    box-shadow:0 0 10px rgba(82,247,200,.65);
+  }
+
+  .planetHint {
+    position:absolute;
+    bottom:12px;
+    left:50%;
+    z-index:35;
+    transform:translateX(-50%);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    width:max-content;
+    max-width:calc(100% - 24px);
+    padding:8px 11px;
+    color:rgba(255,255,255,.45);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    background:rgba(2,7,11,.62);
+    backdrop-filter:blur(14px);
+    font-size:7px;
+    font-weight:950;
+    letter-spacing:.7px;
+    pointer-events:none;
+  }
+
+  .planetHint span {
+    color:#52f7c8;
+    font-size:12px;
+    animation:hintMove 1.2s ease-in-out infinite;
+  }
+
+  .worldMapControls {
+    z-index:38;
+  }
+
+  .utvPin {
+    transform-origin:50% 100%;
+    animation:planetPinFloat 2.5s ease-in-out infinite;
+    transition:transform .2s ease,filter .2s ease;
+  }
+
+  .utvPin:hover {
+    transform:translateY(-5px) scale(1.1);
+  }
+
+  .pinLive {
+    animation:livePlanetPulse 1.25s ease-in-out infinite !important;
+  }
+
+  .worldOrbitFilters {
+    width:min(calc(100% - 16px),1220px);
+    margin:10px auto 4px;
+    overflow:hidden;
+  }
+
+  .worldCategoryScroll {
+    display:flex;
+    gap:7px;
+    overflow-x:auto;
+    padding:2px 1px 8px;
+    scrollbar-width:none;
+  }
+
+  .worldCategoryScroll::-webkit-scrollbar {
+    display:none;
+  }
+
+  .orbitFilter {
+    flex:0 0 auto;
+    min-height:42px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:0 12px;
+    color:rgba(255,255,255,.58);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:999px;
+    background:rgba(255,255,255,.035);
+    font-size:9px;
+    font-weight:900;
+  }
+
+  .orbitFilter span {
+    font-size:14px;
+  }
+
+  .orbitFilter.active {
+    color:#04110c;
+    border-color:transparent;
+    background:linear-gradient(135deg,#52f7c8,#9b7cff);
+    box-shadow:0 10px 25px rgba(82,247,200,.12);
+  }
+
+  .todayPanel {
+    width:min(calc(100% - 20px),900px);
+    margin:10px auto;
+    padding:15px;
+    border:1px solid rgba(255,209,102,.13);
+    border-radius:24px;
+    background:
+      radial-gradient(circle at 90% 0%,rgba(255,209,102,.09),transparent 25%),
+      rgba(255,255,255,.025);
+  }
+
+  .todayTop {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:10px;
+  }
+
+  .todayTop p {
+    margin:0;
+    color:#ffd166;
+    font-size:8px;
+    font-weight:950;
+    letter-spacing:1px;
+  }
+
+  .todayTop h2 {
+    margin:2px 0 0;
+    font-size:23px;
+  }
+
+  .todayTop>span {
+    min-width:48px;
+    height:48px;
+    display:grid;
+    place-items:center;
+    border:1px solid rgba(255,209,102,.18);
+    border-radius:16px;
+    background:rgba(255,209,102,.06);
+    font-size:19px;
+    font-weight:950;
+  }
+
+  .todayChecklist {
+    display:grid;
+    gap:6px;
+  }
+
+  .todayChecklist button {
+    display:grid;
+    grid-template-columns:34px 1fr;
+    align-items:center;
+    gap:8px;
+    min-height:58px;
+    padding:9px;
+    color:white;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:16px;
+    background:rgba(0,0,0,.18);
+    text-align:left;
+  }
+
+  .todayChecklist i {
+    width:30px;
+    height:30px;
+    display:grid;
+    place-items:center;
+    color:#52f7c8;
+    border:1px solid rgba(82,247,200,.16);
+    border-radius:50%;
+    font-style:normal;
+  }
+
+  .todayChecklist div {
+    display:grid;
+    gap:2px;
+  }
+
+  .todayChecklist strong {
+    font-size:11px;
+  }
+
+  .todayChecklist small {
+    color:rgba(255,255,255,.42);
+    font-size:8px;
+  }
+
+  .worldStatsPanel {
+    border-radius:22px;
+    background:rgba(255,255,255,.025);
+  }
+
+  @keyframes planetPinFloat {
+    0%,100% { transform:translateY(0) scale(1); }
+    50% { transform:translateY(-5px) scale(1.04); }
+  }
+
+  @keyframes livePlanetPulse {
+    0%,100% {
+      transform:translateY(0) scale(1);
+      filter:drop-shadow(0 0 4px rgba(255,49,95,.45));
+    }
+    50% {
+      transform:translateY(-7px) scale(1.13);
+      filter:drop-shadow(0 0 15px rgba(255,49,95,.95));
+    }
+  }
+
+  @keyframes hintMove {
+    50% { transform:translateX(4px); }
+  }
+
+  @keyframes radarEnter {
+    from {
+      opacity:0;
+      transform:translateY(-7px) scale(.97);
+    }
+  }
+
+  @media(max-width:700px) {
+    .worldTop {
+      padding-top:10px;
+    }
+
+    .worldTitle {
+      font-size:47px;
+    }
+
+    .worldSub {
+      font-size:10px;
+      line-height:1.45;
+    }
+
+    .worldCommandBar {
+      top:72px;
+    }
+
+    .worldMapShell {
+      height:64dvh;
+      min-height:500px;
+      border-radius:28px;
+    }
+
+    .worldRadar {
+      top:54px;
+      width:235px;
+      padding:10px;
+    }
+
+    .radarGrid button {
+      min-height:60px;
+    }
+
+    .worldMapControls {
+      top:auto;
+      right:10px;
+      bottom:50px;
+    }
+
+    .planetHint {
+      bottom:10px;
+      font-size:6px;
     }
   }
 `;
