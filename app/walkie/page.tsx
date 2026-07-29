@@ -153,7 +153,7 @@ export default function WalkieLobbyPage() {
         ascending: false,
       });
 
-  setInvites(
+setInvites(
   (inviteRows || []).map((row: any) => ({
     room_id: String(row.room_id || ""),
     user_email: String(row.user_email || ""),
@@ -404,14 +404,16 @@ export default function WalkieLobbyPage() {
 
           <div className="selectionStatus">
             <span>
-              {selected.length + 1}/4
+              {selected.length === 0
+                ? "READY"
+                : `${selected.length} selected`}
             </span>
             <small>
               {selected.length === 0
-                ? "Choose up to 3 people"
+                ? "Tap 1 person or choose up to 3"
                 : selected.length === 1
-                ? "Private channel"
-                : "Group channel"}
+                ? "1-on-1 Walkie ready"
+                : `${selected.length + 1} people total · Group ready`}
             </small>
           </div>
 
@@ -480,20 +482,68 @@ export default function WalkieLobbyPage() {
           </p>
         )}
 
-        <button
-          type="button"
-          className="startWalkie"
-          disabled={!selected.length || creating}
-          onClick={createChannel}
-        >
-          <span className="signalDot" />
+        {selected.length > 0 && (
+          <section className="walkieStartDock">
+            <div className="selectedPreview">
+              <div className="selectedAvatars">
+                {selectedPeople
+                  .slice(0, 3)
+                  .map((person, index) => (
+                    <span
+                      className="miniSelectedAvatar"
+                      key={person.email}
+                      style={{
+                        zIndex:
+                          selectedPeople.length -
+                          index,
+                      }}
+                    >
+                      {person.avatar ? (
+                        <img
+                          src={person.avatar}
+                          alt=""
+                        />
+                      ) : (
+                        person.name
+                          .slice(0, 1)
+                          .toUpperCase()
+                      )}
+                    </span>
+                  ))}
+              </div>
 
-          {creating
-            ? "OPENING CHANNEL..."
-            : selected.length > 1
-            ? "START GROUP WALKIE"
-            : "START WALKIE"}
-        </button>
+              <div className="selectedDockCopy">
+                <strong>
+                  {selected.length === 1
+                    ? selectedPeople[0]?.name ||
+                      "Private Walkie"
+                    : `${selected.length} people selected`}
+                </strong>
+
+                <span>
+                  {selected.length === 1
+                    ? "1-on-1 channel ready"
+                    : `${selected.length + 1} total · Group channel`}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="startWalkie"
+              disabled={creating}
+              onClick={createChannel}
+            >
+              <span className="signalDot" />
+
+              {creating
+                ? "OPENING..."
+                : selected.length > 1
+                ? "START GROUP WALKIE"
+                : "📡 START WALKIE"}
+            </button>
+          </section>
+        )}
       </section>
     </main>
   );
@@ -507,7 +557,7 @@ const styles = `
     radial-gradient(circle at 50% 8%,rgba(82,247,200,.13),transparent 25%),
     radial-gradient(circle at 10% 70%,rgba(123,97,255,.10),transparent 28%),
     #050706}
-  .walkieShell{width:min(100%,650px);margin:0 auto;padding:20px 14px 110px}
+  .walkieShell{width:min(100%,650px);margin:0 auto;padding:20px 14px 190px}
   .hero{display:flex;align-items:center;gap:14px;margin:4px 0 24px}
   .radioOrb{width:74px;height:74px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(82,247,200,.24);border-radius:24px;background:rgba(82,247,200,.08);box-shadow:0 0 35px rgba(82,247,200,.10)}
   .radioOrb span{font-size:34px;animation:orbPulse 1.8s ease-in-out infinite}
@@ -527,6 +577,7 @@ const styles = `
   .avatar{width:58px;height:58px;display:grid;place-items:center;overflow:hidden;border:2px solid rgba(255,255,255,.12);border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.22),rgba(123,97,255,.22));font-size:20px;font-weight:950}.avatar img{width:100%;height:100%;object-fit:cover}.personCard strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.personCard small{color:rgba(255,255,255,.43);font-size:8px}
   .emptyState{padding:28px 12px;color:rgba(255,255,255,.48);text-align:center;font-size:11px}
   .message{margin:10px 2px 0;padding:9px 11px;color:#ffd166;border:1px solid rgba(255,209,102,.16);border-radius:13px;background:rgba(255,209,102,.06);font-size:10px}
-  .startWalkie{position:fixed;right:14px;bottom:max(16px,env(safe-area-inset-bottom));left:14px;z-index:50;width:min(calc(100% - 28px),622px);min-height:58px;display:flex;align-items:center;justify-content:center;gap:9px;margin:0 auto;color:#07120e;border:0;border-radius:18px;background:linear-gradient(135deg,#52f7c8,#8effdc);box-shadow:0 18px 45px rgba(82,247,200,.17);font-size:13px;font-weight:950;letter-spacing:.5px}.startWalkie:disabled{opacity:.36}.signalDot{width:10px;height:10px;border-radius:50%;background:#07120e;box-shadow:0 0 0 5px rgba(7,18,14,.12)}
+  .walkieStartDock{position:fixed;right:10px;bottom:88px;left:10px;z-index:1300;width:min(calc(100% - 20px),630px);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px;margin:0 auto;padding:9px;border:1px solid rgba(82,247,200,.22);border-radius:22px;background:rgba(5,10,8,.94);box-shadow:0 18px 55px rgba(0,0,0,.50),0 0 34px rgba(82,247,200,.08);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:startDockIn .20s ease}.selectedPreview{display:flex;align-items:center;gap:9px;min-width:0}.selectedAvatars{display:flex;align-items:center;padding-left:4px}.miniSelectedAvatar{width:34px;height:34px;display:grid;place-items:center;overflow:hidden;margin-left:-7px;border:2px solid #07100c;border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.30),rgba(123,97,255,.32));font-size:10px;font-weight:950}.miniSelectedAvatar:first-child{margin-left:0}.miniSelectedAvatar img{width:100%;height:100%;object-fit:cover}.selectedDockCopy{display:grid;gap:1px;min-width:0}.selectedDockCopy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.selectedDockCopy span{color:rgba(255,255,255,.45);font-size:8px}.startWalkie{min-height:48px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;color:#07120e;border:0;border-radius:15px;background:linear-gradient(135deg,#52f7c8,#8effdc);box-shadow:0 12px 30px rgba(82,247,200,.17);font-size:10px;font-weight:950;letter-spacing:.25px;white-space:nowrap}.startWalkie:disabled{opacity:.50}.signalDot{width:8px;height:8px;border-radius:50%;background:#07120e;box-shadow:0 0 0 4px rgba(7,18,14,.12)}@keyframes startDockIn{from{opacity:0;transform:translateY(12px) scale(.97)}}
   @keyframes orbPulse{50%{transform:scale(1.08);filter:drop-shadow(0 0 8px rgba(82,247,200,.45))}}
+  @media(max-width:390px){.walkieStartDock{grid-template-columns:1fr}.selectedPreview{padding:1px 3px}.startWalkie{width:100%}}
 `;
