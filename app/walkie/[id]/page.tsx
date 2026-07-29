@@ -86,6 +86,12 @@ export default function WalkieRoomPage() {
   const holdingRef =
     useRef(false);
 
+  const claimingRef =
+    useRef(false);
+
+  const releaseInFlightRef =
+    useRef(false);
+
   const [email, setEmail] =
     useState("");
 
@@ -110,29 +116,63 @@ export default function WalkieRoomPage() {
   const [incomingMuted, setIncomingMuted] =
     useState(false);
 
+  const [soundOn, setSoundOn] =
+    useState(true);
+
+  const [hapticsOn, setHapticsOn] =
+    useState(true);
+
+  const [audioNeedsUnlock, setAudioNeedsUnlock] =
+    useState(false);
+
+  const [connectionLabel, setConnectionLabel] =
+    useState("CONNECTING");
+
+  const [realAudioSpeaker, setRealAudioSpeaker] =
+    useState("");
+
   const [message, setMessage] =
     useState("Connecting channel...");
 
+  const effectiveSpeakerEmail =
+    speakerEmail || realAudioSpeaker;
+
   const speakerName =
-    speakerEmail
-      ? speakerEmail.split("@")[0]
+    effectiveSpeakerEmail
+      ? effectiveSpeakerEmail.split("@")[0]
       : "";
 
   const isBusy =
     Boolean(
-      speakerEmail &&
-        speakerEmail.toLowerCase() !==
+      effectiveSpeakerEmail &&
+        effectiveSpeakerEmail.toLowerCase() !==
           email.toLowerCase()
     );
 
-  const joinedMembers = useMemo(
+  const visibleMembers = useMemo(
     () =>
       members.filter(
         (member) =>
-          member.status === "joined"
+          member.status === "joined" ||
+          member.status === "invited"
       ),
     [members]
   );
+
+  function feedbackBeep(
+    frequency: number,
+    duration = 0.06
+  ) {
+    if (!soundOn) return;
+    beep(frequency, duration);
+  }
+
+  function feedbackVibrate(
+    pattern: number | number[]
+  ) {
+    if (!hapticsOn) return;
+    vibrate(pattern);
+  }
 
   useEffect(() => {
     void openChannel();
@@ -141,6 +181,64 @@ export default function WalkieRoomPage() {
       void cleanup();
     };
   }, [roomId]);
+
+  useEffect(() => {
+    try {
+      const savedSound =
+        localStorage.getItem("utv_walkie_sound");
+
+      const savedHaptics =
+        localStorage.getItem("utv_walkie_haptics");
+
+      if (savedSound !== null) {
+        setSoundOn(savedSound !== "off");
+      }
+
+      if (savedHaptics !== null) {
+        setHapticsOn(savedHaptics !== "off");
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const releaseIfTalking = () => {
+      if (holdingRef.current) {
+        void releaseTalk();
+      }
+    };
+
+    const releaseWhenHidden = () => {
+      if (
+        document.visibilityState === "hidden" &&
+        holdingRef.current
+      ) {
+        void releaseTalk();
+      }
+    };
+
+    window.addEventListener(
+      "pagehide",
+      releaseIfTalking
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      releaseWhenHidden
+    );
+
+    return () => {
+      window.removeEventListener(
+        "pagehide",
+        releaseIfTalking
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        releaseWhenHidden
+      );
+    };
+  }, [email, roomId]);
+
 
   async function cleanup() {
     if (holdingRef.current) {
@@ -291,9 +389,76 @@ export default function WalkieRoomPage() {
       );
 
       lkRoom.on(
+        RoomEvent.ActiveSpeakersChanged,
+        (speakers) => {
+          const loudest = speakers[0];
+
+          if (!loudest) {
+            setRealAudioSpeaker("");
+            return;
+          }
+
+          if (loudest.isLocal) {
+            setRealAudioSpeaker(
+              String(user.email || "")
+            );
+            return;
+          }
+
+          try {
+            const metadata =
+              JSON.parse(
+                loudest.metadata || "{}"
+              );
+
+            setRealAudioSpeaker(
+              String(
+                metadata?.email ||
+                loudest.name ||
+                ""
+              )
+            );
+          } catch {
+            setRealAudioSpeaker(
+              String(loudest.name || "")
+            );
+          }
+        }
+      );
+
+      lkRoom.on(
+        RoomEvent.AudioPlaybackStatusChanged,
+        () => {
+          setAudioNeedsUnlock(
+            !lkRoom.canPlaybackAudio
+          );
+        }
+      );
+
+      lkRoom.on(
+        RoomEvent.Reconnecting,
+        () => {
+          setConnectionLabel("RECONNECTING");
+          setMessage(
+            "Reconnecting Walkie..."
+          );
+        }
+      );
+
+      lkRoom.on(
+        RoomEvent.Reconnected,
+        () => {
+          setConnected(true);
+          setConnectionLabel("CONNECTED");
+          setMessage("CHANNEL OPEN");
+        }
+      );
+
+      lkRoom.on(
         RoomEvent.Disconnected,
         () => {
           setConnected(false);
+          setConnectionLabel("DISCONNECTED");
           setMessage(
             "Walkie connection ended."
           );
@@ -318,6 +483,7 @@ export default function WalkieRoomPage() {
         .setMicrophoneEnabled(false);
 
       setConnected(true);
+      setConnectionLabel("CONNECTED");
       setMessage("CHANNEL OPEN");
 
       const channel = supabase.channel(
@@ -368,12 +534,12 @@ export default function WalkieRoomPage() {
               speakingEmail
             );
 
-          if (
-  speakingEmail.toLowerCase() !==
-  String(user.email || "").toLowerCase()
-) {
-              beep(740, 0.035);
-              vibrate(24);
+            if (
+              speakingEmail.toLowerCase() !==
+              String(user.email || "").toLowerCase()
+            ) {
+              feedbackBeep(740, 0.035);
+              feedbackVibrate(24);
             }
           }
         )
@@ -382,6 +548,28 @@ export default function WalkieRoomPage() {
           { event: "floor-end" },
           () => {
             setSpeakerEmail("");
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "walkie_members",
+            filter: `room_id=eq.${roomId}`,
+          },
+          async () => {
+            const { data: memberRows } =
+              await supabase
+                .from("walkie_members")
+                .select(
+                  "user_email,role,status"
+                )
+                .eq("room_id", roomId);
+
+            setMembers(
+              (memberRows || []) as Member[]
+            );
           }
         )
         .on(
@@ -444,86 +632,125 @@ export default function WalkieRoomPage() {
     if (
       !connected ||
       holdingRef.current ||
+      claimingRef.current ||
+      releaseInFlightRef.current ||
       isBusy ||
       !email
     ) {
       return;
     }
 
-    const { data, error } =
+    claimingRef.current = true;
+    setMessage("GRABBING CHANNEL...");
+
+    try {
+      const { data, error } =
+        await supabase.rpc(
+          "claim_walkie_floor",
+          {
+            p_room_id: roomId,
+          }
+        );
+
+      if (error || data !== true) {
+        setMessage("CHANNEL BUSY");
+        feedbackVibrate(30);
+        return;
+      }
+
+      const participant =
+        liveKitRoomRef.current
+          ?.localParticipant;
+
+      if (!participant) {
+        throw new Error(
+          "Walkie audio is not connected."
+        );
+      }
+
+      holdingRef.current = true;
+      setTransmitting(true);
+      setSpeakerEmail(email);
+      setMessage("TRANSMITTING");
+
+      feedbackBeep(920, 0.055);
+      feedbackVibrate(35);
+
+      await Promise.all([
+        participant.setMicrophoneEnabled(true),
+        realtimeRef.current?.send({
+          type: "broadcast",
+          event: "floor-start",
+          payload: {
+            email,
+          },
+        }),
+      ]);
+    } catch (error) {
+      holdingRef.current = false;
+      setTransmitting(false);
+
       await supabase.rpc(
-        "claim_walkie_floor",
+        "release_walkie_floor",
         {
           p_room_id: roomId,
         }
       );
 
-    if (error || data !== true) {
+      setSpeakerEmail("");
       setMessage(
-        "CHANNEL BUSY"
+        error instanceof Error
+          ? error.message
+          : "Could not transmit."
       );
-
-      vibrate(30);
-      return;
+    } finally {
+      claimingRef.current = false;
     }
-
-    holdingRef.current = true;
-    setTransmitting(true);
-    setSpeakerEmail(email);
-    setMessage("TRANSMITTING");
-
-    beep(920, 0.055);
-    vibrate(35);
-
-    await liveKitRoomRef.current
-      ?.localParticipant
-      .setMicrophoneEnabled(true);
-
-    await realtimeRef.current?.send({
-      type: "broadcast",
-      event: "floor-start",
-      payload: {
-        email,
-      },
-    });
   }
 
   async function releaseTalk() {
     if (
       !holdingRef.current ||
-      !email
+      !email ||
+      releaseInFlightRef.current
     ) {
       return;
     }
 
+    releaseInFlightRef.current = true;
     holdingRef.current = false;
 
-    // Mute first so nobody hears trailing audio.
-    await liveKitRoomRef.current
-      ?.localParticipant
-      .setMicrophoneEnabled(false);
+    try {
+      await liveKitRoomRef.current
+        ?.localParticipant
+        .setMicrophoneEnabled(false);
 
-    await supabase.rpc(
-      "release_walkie_floor",
-      {
-        p_room_id: roomId,
-      }
-    );
+      await Promise.all([
+        supabase.rpc(
+          "release_walkie_floor",
+          {
+            p_room_id: roomId,
+          }
+        ),
+        realtimeRef.current?.send({
+          type: "broadcast",
+          event: "floor-end",
+          payload: {
+            email,
+          },
+        }),
+      ]);
 
-    await realtimeRef.current?.send({
-      type: "broadcast",
-      event: "floor-end",
-      payload: {
-        email,
-      },
-    });
+      setTransmitting(false);
+      setSpeakerEmail("");
+      setRealAudioSpeaker("");
+      setMessage("CHANNEL OPEN");
 
-    setTransmitting(false);
-    setSpeakerEmail("");
-    setMessage("CHANNEL OPEN");
-
-    beep(510, 0.04);
-    vibrate(18);
+      feedbackBeep(510, 0.04);
+      feedbackVibrate(18);
+    } finally {
+      releaseInFlightRef.current = false;
+    }
   }
 
   function startPointer(
@@ -569,6 +796,52 @@ export default function WalkieRoomPage() {
       .forEach((audio) => {
         audio.muted = next;
       });
+  }
+
+  async function unlockAudio() {
+    try {
+      await liveKitRoomRef.current
+        ?.startAudio();
+
+      setAudioNeedsUnlock(false);
+      feedbackBeep(680, 0.04);
+    } catch {
+      setMessage(
+        "Tap again to enable Walkie audio."
+      );
+    }
+  }
+
+  function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+
+    try {
+      localStorage.setItem(
+        "utv_walkie_sound",
+        next ? "on" : "off"
+      );
+    } catch {}
+
+    if (next) {
+      beep(780, 0.04);
+    }
+  }
+
+  function toggleHaptics() {
+    const next = !hapticsOn;
+    setHapticsOn(next);
+
+    try {
+      localStorage.setItem(
+        "utv_walkie_haptics",
+        next ? "on" : "off"
+      );
+    } catch {}
+
+    if (next) {
+      vibrate(25);
+    }
   }
 
   async function leaveChannel() {
@@ -630,6 +903,16 @@ export default function WalkieRoomPage() {
         className="audioContainer"
       />
 
+      {audioNeedsUnlock && (
+        <button
+          type="button"
+          className="audioUnlock"
+          onClick={unlockAudio}
+        >
+          🔊 Tap to enable Walkie audio
+        </button>
+      )}
+
       <header className="channelHeader">
         <button
           type="button"
@@ -669,9 +952,7 @@ export default function WalkieRoomPage() {
             }
           />
 
-          {connected
-            ? "CONNECTED"
-            : "CONNECTING"}
+          {connectionLabel}
 
           <i>
             {room?.mode === "group"
@@ -681,7 +962,7 @@ export default function WalkieRoomPage() {
         </div>
 
         <div className="people">
-          {joinedMembers.map(
+          {visibleMembers.map(
             (member) => {
               const isOnline =
                 onlineEmails.some(
@@ -691,8 +972,13 @@ export default function WalkieRoomPage() {
                 );
 
               const speaking =
-                speakerEmail.toLowerCase() ===
-                member.user_email.toLowerCase();
+                effectiveSpeakerEmail
+                  .toLowerCase() ===
+                member.user_email
+                  .toLowerCase();
+
+              const waiting =
+                member.status === "invited";
 
               return (
                 <div
@@ -720,9 +1006,11 @@ export default function WalkieRoomPage() {
                   <small>
                     {speaking
                       ? "TALKING"
+                      : waiting
+                      ? "INVITED"
                       : isOnline
                       ? "ONLINE"
-                      : "WAITING"}
+                      : "CONNECTED"}
                   </small>
                 </div>
               );
@@ -779,11 +1067,9 @@ export default function WalkieRoomPage() {
           onPointerCancel={
             endPointer
           }
-          onPointerLeave={(event) => {
-            if (
-              holdingRef.current
-            ) {
-              endPointer(event);
+          onLostPointerCapture={() => {
+            if (holdingRef.current) {
+              void releaseTalk();
             }
           }}
           onContextMenu={(event) =>
@@ -848,6 +1134,24 @@ export default function WalkieRoomPage() {
             </small>
           </div>
 
+          <div className="quickToggles">
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-label="Toggle Walkie sounds"
+            >
+              {soundOn ? "🔔" : "🔕"}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleHaptics}
+              aria-label="Toggle Walkie vibration"
+            >
+              {hapticsOn ? "📳" : "📴"}
+            </button>
+          </div>
+
           <button
             type="button"
             className="leaveButton"
@@ -880,7 +1184,7 @@ const styles = `
   .channelPage{min-height:100dvh;overflow:hidden;color:#fff;background:
     radial-gradient(circle at 50% 32%,rgba(82,247,200,.10),transparent 30%),
     linear-gradient(180deg,#070a08,#020302)}
-  .audioContainer{position:absolute;width:1px;height:1px;overflow:hidden}
+  .audioContainer{position:absolute;width:1px;height:1px;overflow:hidden}.audioUnlock{position:fixed;top:max(76px,calc(env(safe-area-inset-top) + 62px));left:50%;z-index:100;width:min(calc(100% - 28px),420px);min-height:44px;transform:translateX(-50%);color:#07120e;border:0;border-radius:15px;background:#ffd166;box-shadow:0 12px 35px rgba(0,0,0,.38);font-size:10px;font-weight:950;animation:unlockPulse 1.4s ease-in-out infinite}
   .channelHeader{position:relative;z-index:20;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding:max(14px,env(safe-area-inset-top)) 13px 10px}.channelHeader>button{width:42px;height:42px;display:grid;place-items:center;color:#fff;border:1px solid rgba(255,255,255,.10);border-radius:50%;background:rgba(255,255,255,.05);font-size:18px}.channelHeader>div{display:grid;justify-items:center;gap:1px;min-width:0}.channelHeader span{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.5px}.channelHeader strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
   .statusStage{position:relative;min-height:calc(100dvh - 365px);display:grid;align-content:start;justify-items:center;padding:8px 14px}.channelMeta{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.035);color:rgba(255,255,255,.65);font-size:8px;font-weight:900;letter-spacing:.8px}.channelMeta i{margin-left:3px;color:#52f7c8;font-style:normal}.connectedDot{width:7px;height:7px;border-radius:50%;background:#52f7c8;box-shadow:0 0 10px rgba(82,247,200,.7)}.connectedDot.offline{background:#ffb44f;box-shadow:none}
   .people{width:min(100%,520px);display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:17px}.person{min-width:75px;display:grid;justify-items:center;gap:3px;padding:7px;border-radius:17px;transition:.18s}.personAvatar{width:52px;height:52px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.13);border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.18),rgba(123,97,255,.20));font-size:18px;font-weight:950}.person strong{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.person small{color:rgba(255,255,255,.38);font-size:7px;font-weight:900;letter-spacing:.8px}.person.speaking{background:rgba(82,247,200,.06)}.person.speaking .personAvatar{border-color:#52f7c8;box-shadow:0 0 0 6px rgba(82,247,200,.08),0 0 25px rgba(82,247,200,.30);animation:speakingRing .8s ease-in-out infinite}.person.speaking small{color:#52f7c8}
@@ -888,8 +1192,7 @@ const styles = `
   .talkState{display:grid;justify-items:center;gap:2px;text-align:center}.talkState small{color:rgba(255,255,255,.45);font-size:9px;font-weight:950;letter-spacing:1.7px}.talkState strong{font-size:clamp(26px,8vw,42px);line-height:1;letter-spacing:-1.5px}.talkState>span{margin-top:2px;color:rgba(255,255,255,.48);font-size:10px}.transmitting .talkState strong{color:#52f7c8}.listening .talkState strong{color:#ffd166}
   .pttZone{position:absolute;right:0;bottom:0;left:0;z-index:30;display:grid;justify-items:center;padding:5px 14px max(16px,env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(0,0,0,.96),rgba(0,0,0,.75),transparent)}
   .pttButton{width:190px;height:190px;padding:0;border:0;border-radius:50%;background:radial-gradient(circle,rgba(82,247,200,.14),rgba(82,247,200,.04) 57%,transparent 59%);-webkit-tap-highlight-color:transparent;user-select:none}.pttButton:disabled{opacity:.58}.pttCore{width:142px;height:142px;display:grid;place-items:center;align-content:center;gap:2px;margin:auto;border:2px solid rgba(82,247,200,.58);border-radius:50%;background:linear-gradient(145deg,#10251d,#07100c);box-shadow:0 0 0 11px rgba(82,247,200,.05),0 18px 55px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.12)}.pttCore i{font-size:25px;font-style:normal}.pttCore strong{font-size:20px;letter-spacing:.7px}.pttCore small{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.4px}.transmitting .pttCore{transform:scale(.94);border-color:#fff;background:linear-gradient(145deg,#52f7c8,#1ea879);color:#03100b;box-shadow:0 0 0 15px rgba(82,247,200,.08),0 0 55px rgba(82,247,200,.36)}.transmitting .pttCore small{color:#03100b}.listening .pttCore{border-color:rgba(255,209,102,.55)}.listening .pttCore small{color:#ffd166}
-  .bottomControls{width:min(100%,520px);display:grid;grid-template-columns:64px 1fr 64px;align-items:center;gap:8px;margin-top:-4px}.bottomControls>button{height:55px;display:grid;place-items:center;align-content:center;gap:1px;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.04)}.bottomControls>button span{font-size:17px}.bottomControls>button small{color:rgba(255,255,255,.48);font-size:7px;font-weight:900}.leaveButton span{color:#ff6c81}.channelLabel{display:grid;justify-items:center;gap:2px}.channelLabel span{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1px}.channelLabel small{color:rgba(255,255,255,.28);font-size:7px;letter-spacing:1.2px}
-  @keyframes speakingRing{50%{box-shadow:0 0 0 10px rgba(82,247,200,.03),0 0 35px rgba(82,247,200,.42)}}@keyframes radioWave{50%{opacity:.25;transform:scaleY(.55)}}
+  .bottomControls{width:min(100%,540px);display:grid;grid-template-columns:58px 1fr 72px 58px;align-items:center;gap:7px;margin-top:-4px}.bottomControls>button{height:55px;display:grid;place-items:center;align-content:center;gap:1px;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.04)}.bottomControls>button span{font-size:17px}.bottomControls>button small{color:rgba(255,255,255,.48);font-size:7px;font-weight:900}.quickToggles{height:55px;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.035)}.quickToggles button{display:grid;place-items:center;padding:0;color:#fff;border:0;border-radius:12px;background:rgba(255,255,255,.045);font-size:15px}.leaveButton span{color:#ff6c81}.channelLabel{display:grid;justify-items:center;gap:2px}.channelLabel span{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1px}.channelLabel small{color:rgba(255,255,255,.28);font-size:7px;letter-spacing:1.2px}
+  @keyframes speakingRing{50%{box-shadow:0 0 0 10px rgba(82,247,200,.03),0 0 35px rgba(82,247,200,.42)}}@keyframes radioWave{50%{opacity:.25;transform:scaleY(.55)}}@keyframes unlockPulse{50%{transform:translateX(-50%) scale(.98);opacity:.82}}
   @media(max-height:690px){.statusStage{min-height:calc(100dvh - 320px)}.pttButton{width:160px;height:160px}.pttCore{width:122px;height:122px}.people{margin-top:8px}.radioSignal{height:58px}}
 `;
-
