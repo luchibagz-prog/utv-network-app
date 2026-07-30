@@ -110,6 +110,21 @@ export default function StoryViewerPage() {
   const [muted, setMuted] =
     useState(false);
 
+  const [audioNeedsUnlock, setAudioNeedsUnlock] =
+    useState(false);
+
+  const [storyComments, setStoryComments] =
+    useState<any[]>([]);
+
+  const [storyCommentReactions, setStoryCommentReactions] =
+    useState<Record<string, Record<string, number>>>({});
+
+  const [replyingToStoryComment, setReplyingToStoryComment] =
+    useState<any | null>(null);
+
+  const [showStoryComments, setShowStoryComments] =
+    useState(false);
+
   const [reply, setReply] =
     useState("");
 
@@ -316,24 +331,68 @@ export default function StoryViewerPage() {
 
     video
       ?.play()
-      .catch(() => {});
+      .catch(() => {
+        if (!muted) setAudioNeedsUnlock(true);
+      });
 
     audio
       ?.play()
-      .catch(() => {});
+      .then(() => setAudioNeedsUnlock(false))
+      .catch(() => setAudioNeedsUnlock(true));
   }, [
     paused,
     showActions,
     story?.id,
   ]);
 
+  async function loadStoryComments(activeStoryId: string) {
+    const { data: rows, error } = await supabase
+      .from("story_comments")
+      .select("*")
+      .eq("story_id", String(activeStoryId))
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.info("Story comments unavailable:", error.message);
+      setStoryComments([]);
+      return;
+    }
+
+    const comments = rows || [];
+    setStoryComments(comments);
+
+    const ids = comments.map((row: any) => String(row.id || "")).filter(Boolean);
+    if (!ids.length) {
+      setStoryCommentReactions({});
+      return;
+    }
+
+    const { data: reactionRows } = await supabase
+      .from("story_comment_reactions")
+      .select("comment_id,reaction")
+      .in("comment_id", ids);
+
+    const next: Record<string, Record<string, number>> = {};
+    (reactionRows || []).forEach((row: any) => {
+      const id = String(row.comment_id || "");
+      const emoji = String(row.reaction || "");
+      if (!id || !emoji) return;
+      if (!next[id]) next[id] = {};
+      next[id][emoji] = (next[id][emoji] || 0) + 1;
+    });
+    setStoryCommentReactions(next);
+  }
+
   async function loadStory() {
     setLoading(true);
     setMessage("");
     setProgress(0);
     setReply("");
+    setReplyingToStoryComment(null);
+    setShowStoryComments(false);
     setShowActions(false);
     setVideoDuration(0);
+    setAudioNeedsUnlock(false);
 
     progressValueRef.current = 0;
 
@@ -461,6 +520,8 @@ export default function StoryViewerPage() {
       }
     }
 
+    await loadStoryComments(String(currentStory.id));
+
     setMuted(false);
     setPaused(false);
     setLoading(false);
@@ -493,23 +554,31 @@ export default function StoryViewerPage() {
 
     audioRef.current
       ?.play()
-      .catch(() => {});
+      .then(() => setAudioNeedsUnlock(false))
+      .catch(() => setAudioNeedsUnlock(true));
+  }
+
+  async function unlockStoryAudio() {
+    setMuted(false);
+    if (videoRef.current) videoRef.current.muted = false;
+    if (audioRef.current) audioRef.current.muted = false;
+
+    const results = await Promise.allSettled([
+      videoRef.current?.play(),
+      audioRef.current?.play(),
+    ]);
+
+    setAudioNeedsUnlock(
+      results.some((result) => result.status === "rejected")
+    );
   }
 
   function toggleSound() {
     const nextMuted = !muted;
-
     setMuted(nextMuted);
-
-    if (videoRef.current) {
-      videoRef.current.muted =
-        nextMuted;
-    }
-
-    if (audioRef.current) {
-      audioRef.current.muted =
-        nextMuted;
-    }
+    if (videoRef.current) videoRef.current.muted = nextMuted;
+    if (audioRef.current) audioRef.current.muted = nextMuted;
+    if (!nextMuted) void unlockStoryAudio();
   }
 
   function handlePointerDown(
@@ -667,59 +736,140 @@ export default function StoryViewerPage() {
     router.push("/feed");
   }
 
-  async function sendReply(
-    event?: FormEvent
-  ) {
+  async function sendReply(event?: FormEvent) {
     event?.preventDefault();
 
     if (!story || !viewerEmail) {
-      setMessage(
-        "Sign in to reply to Stories."
-      );
+      setMessage("Sign in to comment on Stories.");
       return;
     }
 
-    const text = reply.trim();
-
-    if (!text) return;
+    const value = reply.trim();
+    if (!value) return;
 
     setSending(true);
     pauseStory();
 
     try {
-      const { error } = await supabase
-        .from("messages")
-        .insert({
-          sender_email: viewerEmail,
-          receiver_email: story.user_email,
-          message: text,
-        });
-
+      const parent = replyingToStoryComment;
+      const { error } = await supabase.from("story_comments").insert({
+        story_id: String(story.id),
+        user_email: viewerEmail,
+        comment: value,
+        parent_comment_id: parent?.id ? String(parent.id) : null,
+      });
       if (error) throw error;
 
-      await supabase
-        .from("notifications")
-        .insert({
-          user_email: story.user_email,
-          type: "story_reply",
-          title: "Story Reply",
-          message: `${viewerEmail.split("@")[0]} replied to your story.`,
+      const notifyEmail = parent?.user_email || story.user_email;
+      if (notifyEmail && notifyEmail.toLowerCase() !== viewerEmail.toLowerCase()) {
+        await supabase.from("notifications").insert({
+          user_email: notifyEmail,
+          actor_email: viewerEmail,
+          type: parent ? "story_comment_reply" : "story_comment",
+          title: parent ? "Story Comment Reply" : "Story Comment",
+          message: parent
+            ? `${viewerEmail.split("@")[0]} replied to your Story comment.`
+            : `${viewerEmail.split("@")[0]} commented on your Story.`,
+          link: `/stories/${story.id}`,
           is_read: false,
         });
+      }
 
       setReply("");
-      setMessage("Reply sent.");
+      setReplyingToStoryComment(null);
+      setShowStoryComments(true);
+      await loadStoryComments(String(story.id));
+      setMessage(parent ? "Reply posted." : "Comment posted.");
     } catch (error: any) {
-      setMessage(
-        error?.message ||
-          "Could not send reply."
-      );
+      setMessage(error?.message || "Could not post Story comment.");
     } finally {
       setSending(false);
-      window.setTimeout(() => {
-        resumeStory();
-      }, 550);
+      window.setTimeout(() => resumeStory(), 450);
     }
+  }
+
+  async function reactToStoryComment(comment: any, emoji: string) {
+    if (!viewerEmail || !story) {
+      setMessage("Sign in to react to comments.");
+      return;
+    }
+
+    const commentId = String(comment.id);
+    const { data: existing } = await supabase
+      .from("story_comment_reactions")
+      .select("id")
+      .eq("comment_id", commentId)
+      .eq("user_email", viewerEmail)
+      .eq("reaction", emoji)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await supabase.from("story_comment_reactions").delete().eq("id", existing.id);
+    } else {
+      const { error } = await supabase.from("story_comment_reactions").insert({
+        comment_id: commentId,
+        user_email: viewerEmail,
+        reaction: emoji,
+      });
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (comment.user_email && comment.user_email.toLowerCase() !== viewerEmail.toLowerCase()) {
+        await supabase.from("notifications").insert({
+          user_email: comment.user_email,
+          actor_email: viewerEmail,
+          type: "story_comment_reaction",
+          title: `${emoji} Story Comment Reaction`,
+          message: `${viewerEmail.split("@")[0]} reacted to your Story comment.`,
+          link: `/stories/${story.id}`,
+          is_read: false,
+        });
+      }
+    }
+
+    await loadStoryComments(String(story.id));
+  }
+
+  function renderStoryComment(comment: any, replyComment = false) {
+    const reactions = storyCommentReactions[String(comment.id)] || {};
+    const children = replyComment
+      ? []
+      : storyComments.filter(
+          (row: any) => String(row.parent_comment_id || "") === String(comment.id)
+        );
+
+    return (
+      <div className={replyComment ? "storyComment reply" : "storyComment"} key={comment.id}>
+        <div className="storyCommentBubble">
+          <strong>{String(comment.user_email || "UTV User").split("@")[0]}</strong>
+          <span>{comment.comment}</span>
+        </div>
+        <div className="storyCommentActions">
+          <button
+            type="button"
+            onClick={() => {
+              setReplyingToStoryComment(comment);
+              setShowStoryComments(true);
+              pauseStory();
+            }}
+          >
+            Reply
+          </button>
+          {["❤️", "🔥", "😂", "👏", "💯"].map((emoji) => (
+            <button type="button" key={emoji} onClick={() => reactToStoryComment(comment, emoji)}>
+              {emoji}{reactions[emoji] ? ` ${reactions[emoji]}` : ""}
+            </button>
+          ))}
+        </div>
+        {children.length > 0 && (
+          <div className="storyCommentReplies">
+            {children.map((child: any) => renderStoryComment(child, true))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   async function sendReaction(
@@ -929,7 +1079,14 @@ export default function StoryViewerPage() {
               autoPlay
               loop
               muted={muted}
+              onPlay={() => setAudioNeedsUnlock(false)}
             />
+          )}
+
+          {audioNeedsUnlock && (isVideo || story.music_url) && (
+            <button type="button" className="storyAudioUnlock" onClick={unlockStoryAudio}>
+              🔊 Tap for Story sound
+            </button>
           )}
 
           {story.drawing_data && (
@@ -1146,68 +1303,76 @@ export default function StoryViewerPage() {
         )}
 
         <section className="storyFooter">
-          {!isOwner && (
-            <>
-              <div className="reactionRow">
-                {reactionChoices.map(
-                  (emoji) => (
-                    <button
-                      type="button"
-                      key={emoji}
-                      onClick={() =>
-                        sendReaction(
-                          emoji
-                        )
-                      }
-                    >
-                      {emoji}
-                    </button>
-                  )
+          <div
+            className="storyConversation"
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerUp={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="storyCommentToggle"
+              onClick={() => {
+                const next = !showStoryComments;
+                setShowStoryComments(next);
+                if (next) pauseStory(); else resumeStory();
+              }}
+            >
+              💬 {storyComments.length} {storyComments.length === 1 ? "comment" : "comments"}
+            </button>
+
+            {showStoryComments && (
+              <div className="storyCommentList">
+                {storyComments.length === 0 ? (
+                  <p className="storyNoComments">Be the first to comment.</p>
+                ) : (
+                  storyComments
+                    .filter((comment: any) => !comment.parent_comment_id)
+                    .map((comment: any) => renderStoryComment(comment))
                 )}
               </div>
+            )}
 
-              <form
-                className="replyRow"
-                onSubmit={
-                  sendReply
+            {!isOwner && (
+              <div className="reactionRow">
+                {reactionChoices.map((emoji) => (
+                  <button type="button" key={emoji} onClick={() => sendReaction(emoji)}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {replyingToStoryComment && (
+              <div className="storyReplyingTo">
+                <span>
+                  Replying to <b>{String(replyingToStoryComment.user_email || "UTV User").split("@")[0]}</b>
+                </span>
+                <button type="button" onClick={() => setReplyingToStoryComment(null)}>✕</button>
+              </div>
+            )}
+
+            <form className="replyRow" onSubmit={sendReply}>
+              <input
+                value={reply}
+                maxLength={500}
+                placeholder={
+                  replyingToStoryComment
+                    ? "Write a reply..."
+                    : isOwner
+                    ? "Comment on your Story..."
+                    : `Comment on ${creatorName}'s Story...`
                 }
-              >
-                <input
-                  value={reply}
-                  maxLength={500}
-                  placeholder={
-                    `Reply to ${creatorName}...`
-                  }
-                  onFocus={
-                    pauseStory
-                  }
-                  onBlur={() => {
-                    if (!sending) {
-                      resumeStory();
-                    }
-                  }}
-                  onChange={(event) =>
-                    setReply(
-                      event.target
-                        .value
-                    )
-                  }
-                />
-
-                <button
-                  type="submit"
-                  disabled={
-                    sending ||
-                    !reply.trim()
-                  }
-                >
-                  {sending
-                    ? "..."
-                    : "Send"}
-                </button>
-              </form>
-            </>
-          )}
+                onFocus={pauseStory}
+                onBlur={() => {
+                  if (!sending && !showStoryComments) resumeStory();
+                }}
+                onChange={(event) => setReply(event.target.value)}
+              />
+              <button type="submit" disabled={sending || !reply.trim()}>
+                {sending ? "..." : "Send"}
+              </button>
+            </form>
+          </div>
 
           {isOwner && (
             <div className="ownerStoryBar">
@@ -2171,4 +2336,21 @@ const styles = `
       font-size: 20px;
     }
   }
+
+  /* UTV PACK 2 — Story sound + conversations */
+  .storyAudioUnlock { position:absolute; left:50%; top:50%; z-index:48; transform:translate(-50%,-50%); min-height:46px; padding:0 16px; color:white; border:1px solid rgba(82,247,200,.28); border-radius:999px; background:rgba(2,8,11,.76); box-shadow:0 16px 44px rgba(0,0,0,.32); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); font-size:12px; font-weight:950; }
+  .storyConversation { display:grid; gap:8px; }
+  .storyCommentToggle { width:max-content; min-height:32px; padding:6px 10px; color:white; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:rgba(0,0,0,.34); font-size:11px; font-weight:900; }
+  .storyCommentList { max-height:min(34vh,290px); overflow:auto; display:grid; gap:8px; padding:10px; border:1px solid rgba(255,255,255,.08); border-radius:16px; background:rgba(0,0,0,.5); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+  .storyNoComments { margin:0; color:rgba(255,255,255,.55); font-size:11px; }
+  .storyComment { display:grid; gap:4px; }
+  .storyComment.reply { margin-left:20px; padding-left:9px; border-left:1px solid rgba(82,247,200,.18); }
+  .storyCommentBubble { display:flex; gap:6px; align-items:flex-start; color:white; font-size:11px; line-height:1.35; }
+  .storyCommentBubble strong { color:#52f7c8; }
+  .storyCommentActions { display:flex; flex-wrap:wrap; gap:4px; }
+  .storyCommentActions button { min-height:24px; padding:2px 6px; color:rgba(255,255,255,.72); border:0; border-radius:999px; background:rgba(255,255,255,.06); font-size:9px; font-weight:850; }
+  .storyCommentReplies { display:grid; gap:5px; }
+  .storyReplyingTo { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px; color:rgba(255,255,255,.72); border:1px solid rgba(82,247,200,.14); border-radius:11px; background:rgba(82,247,200,.06); font-size:10px; }
+  .storyReplyingTo button { color:white; border:0; background:transparent; }
+
 `;

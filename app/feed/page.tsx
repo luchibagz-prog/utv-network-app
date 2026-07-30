@@ -76,6 +76,15 @@ export default function FeedPage() {
 
   const [commentText, setCommentText] = useState<Record<string, string>>({});
 
+  const [expandedComments, setExpandedComments] =
+    useState<Record<string, boolean>>({});
+
+  const [replyTargets, setReplyTargets] =
+    useState<Record<string, any | null>>({});
+
+  const [commentReactions, setCommentReactions] =
+    useState<Record<string, Record<string, number>>>({});
+
   const [muted, setMuted] = useState<Record<string, boolean>>({});
 
   const [mediaFits, setMediaFits] = useState<
@@ -685,18 +694,31 @@ export default function FeedPage() {
       .from("feed_comments")
       .select("*")
       .eq("upload_id", id)
-      .order("created_at", {
-        ascending: true,
-      });
+      .order("created_at", { ascending: true });
 
     const commentRows = data || [];
 
-    setComments((current) => ({
-      ...current,
-      [id]: commentRows,
-    }));
-
+    setComments((current) => ({ ...current, [id]: commentRows }));
     await loadProfiles(commentRows.map((comment) => comment.user_email));
+
+    const ids = commentRows.map((comment) => String(comment.id || "")).filter(Boolean);
+    if (!ids.length) return;
+
+    const { data: reactionRows } = await supabase
+      .from("feed_comment_reactions")
+      .select("comment_id,reaction")
+      .in("comment_id", ids);
+
+    const next: Record<string, Record<string, number>> = {};
+    (reactionRows || []).forEach((row: any) => {
+      const key = String(row.comment_id || "");
+      const emoji = String(row.reaction || "");
+      if (!key || !emoji) return;
+      if (!next[key]) next[key] = {};
+      next[key][emoji] = (next[key][emoji] || 0) + 1;
+    });
+
+    setCommentReactions((current) => ({ ...current, ...next }));
   }
 
   async function createNotification({
@@ -896,46 +918,92 @@ export default function FeedPage() {
   }
 
   async function addComment(id: string, creatorEmail?: string) {
-    const text = commentText[id]?.trim();
-
-    if (!text) return;
+    const value = commentText[id]?.trim();
+    if (!value) return;
 
     const { data: auth } = await supabase.auth.getUser();
-
     const userEmail = auth.user?.email;
-
     if (!userEmail) {
       router.push("/login");
       return;
     }
 
+    const target = replyTargets[id];
+
     const { error } = await supabase.from("feed_comments").insert({
       upload_id: id,
       user_email: userEmail,
-      comment: text,
+      comment: value,
+      parent_comment_id: target?.id ? String(target.id) : null,
     });
 
     if (error) {
-      alert(error.message);
+      showFeedMessage(error.message);
       return;
     }
 
-    setCommentText((current) => ({
-      ...current,
-      [id]: "",
-    }));
+    setCommentText((current) => ({ ...current, [id]: "" }));
+    setReplyTargets((current) => ({ ...current, [id]: null }));
+    setExpandedComments((current) => ({ ...current, [id]: true }));
 
     await loadComments(id);
 
     await createNotification({
-      recipientEmail: creatorEmail,
+      recipientEmail: target?.user_email || creatorEmail,
       actorEmail: userEmail,
-      type: "comment",
-      title: "New Comment",
-      message: `${profileName(userEmail)} commented: "${text}"`,
+      type: target ? "comment_reply" : "comment",
+      title: target ? "New Reply" : "New Comment",
+      message: target
+        ? `${profileName(userEmail)} replied to your comment.`
+        : `${profileName(userEmail)} commented: "${value}"`,
       link: `/feed#post-${id}`,
     });
   }
+
+  async function reactToComment(uploadId: string, comment: any, emoji: string) {
+    const { data: auth } = await supabase.auth.getUser();
+    const userEmail = auth.user?.email;
+    if (!userEmail) {
+      router.push("/login");
+      return;
+    }
+
+    const commentId = String(comment.id);
+    const { data: existing } = await supabase
+      .from("feed_comment_reactions")
+      .select("id")
+      .eq("comment_id", commentId)
+      .eq("user_email", userEmail)
+      .eq("reaction", emoji)
+      .maybeSingle();
+
+    if (existing?.id) {
+      await supabase.from("feed_comment_reactions").delete().eq("id", existing.id);
+    } else {
+      const { error } = await supabase.from("feed_comment_reactions").insert({
+        comment_id: commentId,
+        user_email: userEmail,
+        reaction: emoji,
+      });
+
+      if (error) {
+        showFeedMessage(error.message);
+        return;
+      }
+
+      await createNotification({
+        recipientEmail: comment.user_email,
+        actorEmail: userEmail,
+        type: "comment_reaction",
+        title: `${emoji} Comment Reaction`,
+        message: `${profileName(userEmail)} reacted to your comment.`,
+        link: `/feed#post-${uploadId}`,
+      });
+    }
+
+    await loadComments(uploadId);
+  }
+
   async function sharePost(item: any) {
     const url = `${window.location.origin}/watch/${item.id}`;
     const shareData = {
@@ -1161,6 +1229,64 @@ export default function FeedPage() {
 
     return [...activeStories, ...followedNoStory, ...suggestedNoStory];
   }, [stories, followingEmails, suggestedCreators]);
+
+  function renderFeedComment(
+    uploadId: string,
+    comment: any,
+    postComments: any[],
+    reply = false
+  ) {
+    const reactions = commentReactions[String(comment.id)] || {};
+    const children = reply
+      ? []
+      : postComments.filter(
+          (row) => String(row.parent_comment_id || "") === String(comment.id)
+        );
+
+    return (
+      <div className={reply ? "commentThread replyThread" : "commentThread"} key={comment.id}>
+        <div className="commentBubble">
+          <button className="commentUser" onClick={() => openProfile(comment.user_email)}>
+            {profileName(comment.user_email)}
+          </button>
+          <span>{comment.comment}</span>
+        </div>
+
+        <div className="commentActions">
+          <button
+            type="button"
+            onClick={() => {
+              setReplyTargets((current) => ({ ...current, [uploadId]: comment }));
+              setExpandedComments((current) => ({ ...current, [uploadId]: true }));
+              window.setTimeout(() => {
+                const input = document.getElementById(`comment-${uploadId}`) as HTMLInputElement | null;
+                input?.focus();
+              }, 20);
+            }}
+          >
+            Reply
+          </button>
+
+          {["❤️", "🔥", "😂", "👏", "💯"].map((emoji) => (
+            <button
+              type="button"
+              className="commentReactionButton"
+              key={emoji}
+              onClick={() => reactToComment(uploadId, comment, emoji)}
+            >
+              {emoji}{reactions[emoji] ? ` ${reactions[emoji]}` : ""}
+            </button>
+          ))}
+        </div>
+
+        {children.length > 0 && (
+          <div className="commentReplies">
+            {children.map((child) => renderFeedComment(uploadId, child, postComments, true))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const filteredItems = useMemo(() => {
     let base = items;
@@ -1777,32 +1903,57 @@ export default function FeedPage() {
                   ) : null}
 
                   <section className="commentSection">
-                    {postComments.length > 2 && (
-                      <p className="viewComments">
-                        View all {postComments.length} comments
-                      </p>
+                    {postComments.length > 0 && (
+                      <button
+                        type="button"
+                        className="viewComments"
+                        onClick={() =>
+                          setExpandedComments((current) => ({
+                            ...current,
+                            [item.id]: !current[item.id],
+                          }))
+                        }
+                      >
+                        {expandedComments[item.id]
+                          ? "Hide comments"
+                          : `View all ${postComments.length} comments`}
+                      </button>
                     )}
 
                     <div className="commentPreview">
-                      {postComments.slice(-2).map((comment) => (
-                        <p className="commentLine" key={comment.id}>
-                          <button
-                            className="commentUser"
-                            onClick={() => openProfile(comment.user_email)}
-                          >
-                            {profileName(comment.user_email)}
-                          </button>{" "}
-                          {comment.comment}
-                        </p>
-                      ))}
+                      {(expandedComments[item.id]
+                        ? postComments.filter((comment) => !comment.parent_comment_id)
+                        : postComments.filter((comment) => !comment.parent_comment_id).slice(-2)
+                      ).map((comment) =>
+                        renderFeedComment(item.id, comment, postComments)
+                      )}
                     </div>
+
+                    {replyTargets[item.id] && (
+                      <div className="replyingToBanner">
+                        <span>
+                          Replying to <b>{profileName(replyTargets[item.id]?.user_email)}</b>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReplyTargets((current) => ({ ...current, [item.id]: null }))
+                          }
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
 
                     <div className="commentComposer">
                       <span>😊</span>
-
                       <input
                         id={`comment-${item.id}`}
-                        placeholder="Add a comment..."
+                        placeholder={
+                          replyTargets[item.id]
+                            ? `Reply to ${profileName(replyTargets[item.id]?.user_email)}...`
+                            : "Add a comment..."
+                        }
                         value={commentText[item.id] || ""}
                         onChange={(event) =>
                           setCommentText((current) => ({
@@ -1811,16 +1962,10 @@ export default function FeedPage() {
                           }))
                         }
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            addComment(item.id, creatorEmail);
-                          }
+                          if (event.key === "Enter") addComment(item.id, creatorEmail);
                         }}
                       />
-
-                      <button
-                        className="sendComment"
-                        onClick={() => addComment(item.id, creatorEmail)}
-                      >
+                      <button className="sendComment" onClick={() => addComment(item.id, creatorEmail)}>
                         ➤
                       </button>
                     </div>
@@ -3078,5 +3223,18 @@ const styles = `
         0 0 30px rgba(255,45,85,.42);
     }
   }
+
+
+  /* UTV PACK 2 — comment conversations */
+  .viewComments { display:inline-flex; padding:0; color:rgba(255,255,255,.58); border:0; background:transparent; font-size:12px; font-weight:850; }
+  .commentThread { display:grid; gap:5px; margin-top:9px; }
+  .replyThread { margin-left:24px; padding-left:11px; border-left:1px solid rgba(82,247,200,.14); }
+  .commentBubble { display:flex; align-items:flex-start; gap:6px; color:rgba(255,255,255,.9); font-size:13px; line-height:1.4; }
+  .commentActions { display:flex; gap:5px; align-items:center; flex-wrap:wrap; padding-left:2px; }
+  .commentActions button { min-height:25px; padding:3px 7px; color:rgba(255,255,255,.52); border:0; border-radius:999px; background:rgba(255,255,255,.035); font-size:10px; font-weight:800; }
+  .commentActions .commentReactionButton { color:rgba(255,255,255,.72); }
+  .commentReplies { display:grid; gap:4px; }
+  .replyingToBanner { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; padding:8px 10px; border:1px solid rgba(82,247,200,.14); border-radius:12px; background:rgba(82,247,200,.055); color:rgba(255,255,255,.66); font-size:11px; }
+  .replyingToBanner button { color:white; border:0; background:transparent; }
 
 `;
