@@ -1,0 +1,19 @@
+{
+  "name": "UTV - Urban Television",
+  "short_name": "UTV",
+  "description": "Urban Television \u2014 The Culture Streams.",
+  "start_url": "/feed",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/utv-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
