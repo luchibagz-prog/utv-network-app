@@ -1,4 +1,5 @@
 import "./globals.css";
+import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 
 export const metadata = {
   title: "UTV - Urban Television",
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
+        <UTVNotificationBootstrap />
       </body>
     </html>
   );
