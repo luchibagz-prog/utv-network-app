@@ -2,6 +2,7 @@ import "./globals.css";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
+import UTVAppShell from "./components/UTVAppShell";
 export const metadata = {
   title: "UTV - Urban Television",
   description:
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+          <UTVAppShell />
           <UTVRealtimeBridge />
         {children}
         <UTVNotificationBootstrap />
