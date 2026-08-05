@@ -174,6 +174,61 @@ export default function FeedPage() {
     };
   }, []);
 
+
+  useEffect(() => {
+    let refreshTimer: number | null = null;
+
+    function handleUTVRealtime(event: Event) {
+      const detail = (event as CustomEvent).detail || {};
+      const table = detail.table || "";
+
+      if (
+        table !== "feed_comments" &&
+        table !== "feed_comment_reactions" &&
+        table !== "feed_likes"
+      ) {
+        return;
+      }
+
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+
+      refreshTimer = window.setTimeout(() => {
+        const payload = detail.payload || {};
+        const row = payload.new || payload.old || {};
+        const uploadId =
+          row.upload_id ||
+          row.post_id ||
+          "";
+
+        if (uploadId) {
+          void loadComments(String(uploadId));
+          void loadLikes(String(uploadId), viewerEmail);
+          return;
+        }
+
+        void loadEverything(false, false);
+      }, 120);
+    }
+
+    window.addEventListener(
+      "utv:realtime",
+      handleUTVRealtime,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "utv:realtime",
+        handleUTVRealtime,
+      );
+
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+    };
+  }, [viewerEmail]);
+
   const observeVideos = useCallback(() => {
     observerRef.current?.disconnect();
 

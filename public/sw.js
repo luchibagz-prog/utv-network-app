@@ -1,5 +1,5 @@
-const CACHE_NAME = "utv-shell-v4a";
-const SHELL = ["/", "/feed", "/activity", "/utv-logo.png", "/manifest.json"];
+const CACHE_NAME = "utv-shell-v7a";
+const SHELL = ["/", "/feed", "/activity", "/notifications", "/messages", "/settings", "/utv-logo.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL).catch(() => undefined)));
@@ -7,9 +7,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))));
   self.clients.claim();
 });
 
@@ -28,7 +26,10 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("push", (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() || "New UTV activity." }; }
+  try { data = event.data ? event.data.json() : {}; }
+  catch { data = { body: event.data?.text() || "New UTV activity." }; }
+
+  const target = data.link || data.url || "/notifications";
 
   event.waitUntil(
     self.registration.showNotification(data.title || "UTV", {
@@ -37,15 +38,21 @@ self.addEventListener("push", (event) => {
       badge: data.badge || "/utv-logo.png",
       tag: data.tag || `utv-${Date.now()}`,
       renotify: true,
-      vibrate: [110, 50, 110],
-      data: { url: data.url || "/activity" },
+      vibrate: [120, 55, 120],
+      data: { url: target },
+      actions: [
+        { action: "open", title: "Open UTV" },
+        { action: "dismiss", title: "Dismiss" },
+      ],
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/activity", self.location.origin).href;
+  if (event.action === "dismiss") return;
+
+  const target = new URL(event.notification.data?.url || "/notifications", self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {

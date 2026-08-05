@@ -1,0 +1,10 @@
+Add this variable in Vercel Project → Settings → Environment Variables:
+
+Name:
+UTV_PUSH_WEBHOOK_SECRET
+
+Value:
+c446bef1e19dd47236b69771703fdf9daef9925224729fc7
+
+Apply it to Production, Preview, and Development.
+Then redeploy before running the Supabase SQL.

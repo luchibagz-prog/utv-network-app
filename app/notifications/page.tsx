@@ -40,13 +40,35 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadNotifications();
+    void loadNotifications();
 
-    const timer = setInterval(() => {
-      loadNotifications(false);
-    }, 20000);
+    let channel: any = null;
+    let alive = true;
 
-    return () => clearInterval(timer);
+    void supabase.auth.getUser().then(({ data }) => {
+      const userEmail = data.user?.email || "";
+      if (!alive || !userEmail) return;
+
+      channel = supabase
+        .channel(`utv-notifications-${userEmail}`)
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_email=eq.${userEmail}`,
+        }, () => void loadNotifications(false))
+        .subscribe();
+    });
+
+    const timer = window.setInterval(() => {
+      void loadNotifications(false);
+    }, 30000);
+
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, []);
 
   async function loadNotifications(showLoading = true) {

@@ -18,7 +18,36 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadMessages();
+    void loadMessages();
+
+    let channel: any = null;
+    let alive = true;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      const userEmail = data.user?.email || "";
+      if (!alive || !userEmail) return;
+
+      channel = supabase
+        .channel(`utv-messages-${userEmail}`)
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_email=eq.${userEmail}`,
+        }, () => void loadMessages())
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `sender_email=eq.${userEmail}`,
+        }, () => void loadMessages())
+        .subscribe();
+    });
+
+    return () => {
+      alive = false;
+      if (channel) void supabase.removeChannel(channel);
+    };
   }, []);
 
   async function loadProfiles(emails: string[]) {

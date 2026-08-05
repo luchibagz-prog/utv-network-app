@@ -1,123 +1,266 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-const FOUNDER_EMAIL = "luchibagz@gmail.com";
+type PermissionState = "loading" | "unsupported" | "default" | "denied" | "granted";
+
+const STORAGE_KEY = "utv-user-settings-v1";
+
+const defaults = {
+  notificationSound: true,
+  vibration: true,
+  messageAlerts: true,
+  socialAlerts: true,
+  liveAlerts: true,
+  profileMusic: true,
+  autoplayVideo: true,
+  dataSaver: false,
+  walkieAutoSpeaker: true,
+  walkieVibration: true,
+  showOnlineStatus: true,
+};
+
+function fromBase64Url(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
+}
 
 export default function SettingsPage() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
-  const [category, setCategory] = useState("Creator");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [bannerUrl, setBannerUrl] = useState("");
-  const [songUrl, setSongUrl] = useState("");
-  const [themeColor, setThemeColor] = useState("#000000");
-  const [accentColor, setAccentColor] = useState("#37f2a3");
-
-  const isFounder = email.toLowerCase() === FOUNDER_EMAIL;
+  const [permission, setPermission] = useState<PermissionState>("loading");
+  const [subscriptionReady, setSubscriptionReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [prefs, setPrefs] = useState(defaults);
 
   useEffect(() => {
-    loadSettings();
+    void boot();
   }, []);
 
-  async function loadSettings() {
-    setLoading(true);
-
+  async function boot() {
     const { data } = await supabase.auth.getUser();
-
     if (!data.user) {
       router.push("/login");
       return;
     }
 
-    const userEmail = data.user.email || "";
-    setEmail(userEmail);
+    setEmail(data.user.email || "");
 
-    const { data: existingProfile } = await supabase
-      .from("creator_profiles")
-      .select("*")
-      .eq("email", userEmail)
-      .maybeSingle();
-
-    if (existingProfile) {
-      setProfile(existingProfile);
-      setDisplayName(existingProfile.display_name || "");
-      setUsername(existingProfile.username || "");
-      setBio(existingProfile.bio || "");
-      setCategory(existingProfile.category || "Creator");
-      setAvatarUrl(existingProfile.avatar_url || "");
-      setBannerUrl(existingProfile.profile_background || existingProfile.profile_background_url || "");
-      setSongUrl(existingProfile.profile_song || existingProfile.profile_song_url || "");
-      setThemeColor(existingProfile.theme_color || existingProfile.profile_theme || "#000000");
-      setAccentColor(existingProfile.accent_color || "#37f2a3");
-    } else {
-      setDisplayName(isFounder ? "UTV CEO" : "UTV Creator");
-      setUsername(userEmail.split("@")[0] || "creator");
-      setBio(isFounder ? "CEO of UTV" : "The Future of Entertainment.");
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      setPrefs({ ...defaults, ...saved });
+    } catch {
+      setPrefs(defaults);
     }
 
-    setLoading(false);
+    await refreshNotificationState();
   }
 
-  async function saveSettings() {
-    setSaving(true);
-
-    const payload = {
-      email,
-      booking_email: email,
-      display_name: displayName || "UTV Creator",
-      username: username || email.split("@")[0],
-      bio: bio || "The Future of Entertainment.",
-      category,
-      avatar_url: avatarUrl,
-      profile_background: bannerUrl,
-      profile_background_url: bannerUrl,
-      profile_song: songUrl,
-      profile_song_url: songUrl,
-      theme_color: themeColor,
-      profile_theme: themeColor,
-      accent_color: accentColor,
-    };
-
-    const { error } = await supabase
-      .from("creator_profiles")
-      .upsert(payload, { onConflict: "email" });
-
-    setSaving(false);
-
-    if (error) {
-      alert(error.message);
+  async function refreshNotificationState() {
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window) ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) {
+      setPermission("unsupported");
+      setSubscriptionReady(false);
       return;
     }
 
-    alert("Settings saved.");
-    loadSettings();
+    setPermission(Notification.permission as PermissionState);
+
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      setSubscriptionReady(Boolean(subscription));
+    } catch {
+      setSubscriptionReady(false);
+    }
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    router.push("/login");
+  function savePref(key: keyof typeof defaults, value: boolean) {
+    const next = { ...prefs, [key]: value };
+    setPrefs(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setNotice("Setting saved.");
+    window.setTimeout(() => setNotice(""), 1500);
   }
 
-  if (loading) {
+  async function enableNotifications() {
+    setBusy(true);
+    setNotice("");
+
+    try {
+      if (!("Notification" in window)) {
+        throw new Error("Notifications are not supported on this device.");
+      }
+
+      const result = await Notification.requestPermission();
+      setPermission(result as PermissionState);
+
+      if (result !== "granted") {
+        throw new Error(
+          result === "denied"
+            ? "Notifications are blocked in browser settings."
+            : "Notification permission was not enabled.",
+        );
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!publicKey) {
+        throw new Error("UTV is missing its public notification key.");
+      }
+
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: fromBase64Url(publicKey),
+        });
+      }
+
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ subscription }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Could not connect this device.");
+      }
+
+      setSubscriptionReady(true);
+      setNotice("UTV alerts are enabled on this device.");
+    } catch (error: any) {
+      setNotice(error?.message || "Could not enable notifications.");
+    } finally {
+      setBusy(false);
+      await refreshNotificationState();
+    }
+  }
+
+  async function repairNotifications() {
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const existing = await registration.pushManager.getSubscription();
+
+      if (!existing) {
+        await enableNotifications();
+        return;
+      }
+
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ subscription: existing }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Repair failed.");
+      }
+
+      setNotice("This device was reconnected to UTV alerts.");
+      setSubscriptionReady(true);
+    } catch (error: any) {
+      setNotice(error?.message || "Could not repair notifications.");
+    } finally {
+      setBusy(false);
+      await refreshNotificationState();
+    }
+  }
+
+  async function testNotification() {
+    setBusy(true);
+    setNotice("");
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      const response = await fetch("/api/push/test", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Test notification failed.");
+      }
+
+      setNotice(
+        payload.sent > 0
+          ? `Test alert sent to ${payload.sent} connected device${payload.sent === 1 ? "" : "s"}.`
+          : "No connected notification device was found.",
+      );
+    } catch (error: any) {
+      setNotice(error?.message || "Test notification failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const permissionLabel = useMemo(() => {
+    if (permission === "granted" && subscriptionReady) return "Enabled";
+    if (permission === "granted") return "Permission allowed — repair needed";
+    if (permission === "denied") return "Blocked in browser settings";
+    if (permission === "default") return "Not enabled";
+    if (permission === "unsupported") return "Not supported";
+    return "Checking…";
+  }, [permission, subscriptionReady]);
+
+  function Toggle({
+    setting,
+    title,
+    description,
+  }: {
+    setting: keyof typeof defaults;
+    title: string;
+    description: string;
+  }) {
     return (
-      <main className="settingsPage">
-        <UTVNav />
-        <section className="settingsCard">
-          <h1>Loading settings...</h1>
-        </section>
-      </main>
+      <button
+        type="button"
+        className="settingRow"
+        onClick={() => savePref(setting, !prefs[setting])}
+      >
+        <span>
+          <strong>{title}</strong>
+          <small>{description}</small>
+        </span>
+        <span className={`switch ${prefs[setting] ? "on" : ""}`}>
+          <i />
+        </span>
+      </button>
     );
   }
 
@@ -125,365 +268,92 @@ export default function SettingsPage() {
     <main className="settingsPage">
       <UTVNav />
 
-      <style>{`
-        .settingsPage {
-          min-height: 100vh;
-          padding-bottom: 120px;
-          color: white;
-          background:
-            radial-gradient(circle at 15% 0%, ${accentColor}33, transparent 30%),
-            radial-gradient(circle at 88% 6%, rgba(123,97,255,.22), transparent 35%),
-            linear-gradient(180deg,#07111e,#000);
-        }
+      <header className="hero">
+        <p>UTV CONTROL CENTER</p>
+        <h1>Settings</h1>
+        <span>{email}</span>
+      </header>
 
-        .settingsHero {
-          padding: 22px 16px 14px;
-        }
+      <section className="shell">
+        <article className="card">
+          <div className="cardTitle">
+            <div>
+              <p>DEVICE ALERTS</p>
+              <h2>Notifications</h2>
+            </div>
+            <span className={`status ${permission === "granted" && subscriptionReady ? "good" : ""}`}>
+              {permissionLabel}
+            </span>
+          </div>
 
-        .settingsHero h1 {
-          margin: 0;
-          font-size: 42px;
-          letter-spacing: -1.5px;
-        }
+          <p className="muted">
+            Each phone must enable alerts separately. Use Repair when permission is
+            allowed but UTV still says notifications are not enabled.
+          </p>
 
-        .settingsHero p {
-          color: rgba(255,255,255,.68);
-          line-height: 1.45;
-          margin: 8px 0 0;
-        }
+          <div className="actionGrid">
+            <button onClick={enableNotifications} disabled={busy}>🔔 Enable alerts</button>
+            <button onClick={repairNotifications} disabled={busy}>🛠 Repair this phone</button>
+            <button onClick={testNotification} disabled={busy || permission !== "granted"}>
+              🧪 Send test alert
+            </button>
+          </div>
 
-        .settingsShell {
-          display: grid;
-          gap: 14px;
-          padding: 0 16px 18px;
-        }
+          {permission === "denied" && (
+            <div className="warning">
+              Open the browser site settings for UTV, change Notifications to
+              <strong> Allow</strong>, then return here and tap Repair this phone.
+            </div>
+          )}
+        </article>
 
-        .settingsCard {
-          border: 1px solid rgba(255,255,255,.13);
-          background: rgba(255,255,255,.07);
-          backdrop-filter: blur(18px);
-          border-radius: 26px;
-          padding: 16px;
-          box-shadow: 0 18px 45px rgba(0,0,0,.24);
-        }
+        <article className="card">
+          <div className="cardTitle"><div><p>ALERT TYPES</p><h2>What reaches you</h2></div></div>
+          <Toggle setting="messageAlerts" title="Messages" description="Direct messages and replies." />
+          <Toggle setting="socialAlerts" title="Social activity" description="Comments, reactions, mentions, and follows." />
+          <Toggle setting="liveAlerts" title="Live and walkie alerts" description="Incoming sessions, calls, and live invitations." />
+          <Toggle setting="notificationSound" title="Notification sound" description="Play the UTV alert sound when supported." />
+          <Toggle setting="vibration" title="Vibration" description="Vibrate for alerts on supported devices." />
+        </article>
 
-        .settingsCard h2 {
-          margin: 0 0 12px;
-          font-size: 22px;
-        }
+        <article className="card">
+          <div className="cardTitle"><div><p>MEDIA</p><h2>Playback</h2></div></div>
+          <Toggle setting="autoplayVideo" title="Autoplay videos" description="Start feed videos automatically." />
+          <Toggle setting="profileMusic" title="Profile music" description="Allow profile songs to begin on profiles." />
+          <Toggle setting="dataSaver" title="Data saver" description="Reduce automatic media loading." />
+        </article>
 
-        .settingsGrid {
-          display: grid;
-          gap: 12px;
-        }
+        <article className="card">
+          <div className="cardTitle"><div><p>COMMUNICATION</p><h2>Walkie and presence</h2></div></div>
+          <Toggle setting="walkieAutoSpeaker" title="Walkie speaker" description="Use speaker mode automatically." />
+          <Toggle setting="walkieVibration" title="Incoming vibration" description="Vibrate for walkie and call requests." />
+          <Toggle setting="showOnlineStatus" title="Online status" description="Let friends know when you are available." />
+        </article>
 
-        .field label {
-          display: block;
-          font-size: 12px;
-          color: rgba(255,255,255,.62);
-          font-weight: 900;
-          margin-bottom: 6px;
-          text-transform: uppercase;
-          letter-spacing: .8px;
-        }
+        <article className="card links">
+          <button onClick={() => router.push("/notifications")}>🔔 Activity and notifications <span>›</span></button>
+          <button onClick={() => router.push("/messages")}>💬 Messages <span>›</span></button>
+          <button onClick={() => router.push("/profile")}>👤 Edit profile <span>›</span></button>
+          <button onClick={() => router.push("/walkie")}>🎙 Walkie and calls <span>›</span></button>
+        </article>
+      </section>
 
-        .field input,
-        .field textarea,
-        .field select {
-          width: 100%;
-          box-sizing: border-box;
-          border: 1px solid rgba(255,255,255,.15);
-          background: rgba(0,0,0,.28);
-          color: white;
-          border-radius: 18px;
-          padding: 13px 14px;
-          outline: none;
-          font-size: 15px;
-        }
+      {notice && <div className="toast">{notice}</div>}
 
-        .field textarea {
-          min-height: 95px;
-          resize: vertical;
-        }
-
-        .previewBanner {
-          height: 160px;
-          border-radius: 22px;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,.13);
-          background:
-            linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.65)),
-            ${bannerUrl ? `url(${bannerUrl})` : `linear-gradient(135deg, ${themeColor}, #111, ${accentColor})`};
-          background-size: cover;
-          background-position: center;
-          position: relative;
-        }
-
-        .previewAvatar {
-          width: 82px;
-          height: 82px;
-          border-radius: 50%;
-          border: 3px solid ${accentColor};
-          background: #111;
-          position: absolute;
-          left: 14px;
-          bottom: 14px;
-          object-fit: cover;
-          display: grid;
-          place-items: center;
-          font-size: 32px;
-        }
-
-        .badgeRow {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-top: 12px;
-        }
-
-        .badge {
-          border-radius: 999px;
-          padding: 8px 11px;
-          font-size: 11px;
-          font-weight: 950;
-          border: 1px solid rgba(255,255,255,.18);
-          background: rgba(255,255,255,.09);
-        }
-
-        .founder {
-          color: #06120d;
-          background: linear-gradient(135deg,#52f7c8,#d4af37);
-        }
-                  .saveBtn{
-          width:100%;
-          border:none;
-          border-radius:20px;
-          padding:16px;
-          font-size:16px;
-          font-weight:900;
-          cursor:pointer;
-          color:#04120d;
-          background:linear-gradient(135deg,#37f2a3,#7b61ff);
-          margin-top:12px;
-        }
-
-        .logoutBtn{
-          width:100%;
-          border:none;
-          border-radius:20px;
-          padding:16px;
-          font-size:16px;
-          font-weight:900;
-          cursor:pointer;
-          color:white;
-          background:#b91c1c;
-          margin-top:12px;
-        }
+      <style jsx>{`
+        .settingsPage{min-height:100vh;padding-bottom:120px;color:white;background:radial-gradient(circle at 10% 0%,rgba(69,247,208,.2),transparent 30%),radial-gradient(circle at 95% 8%,rgba(123,97,255,.24),transparent 35%),linear-gradient(180deg,#07111e,#000)}
+        .hero{padding:24px 16px 12px}.hero p,.cardTitle p{margin:0;color:#52f7c8;font-size:11px;font-weight:950;letter-spacing:.14em}.hero h1{margin:4px 0;font-size:44px;letter-spacing:-.045em}.hero span{color:rgba(255,255,255,.58);font-size:13px}
+        .shell{display:grid;gap:14px;padding:0 14px}.card{border:1px solid rgba(255,255,255,.13);border-radius:25px;padding:16px;background:rgba(255,255,255,.07);box-shadow:0 22px 55px rgba(0,0,0,.28);backdrop-filter:blur(20px)}
+        .cardTitle{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.cardTitle h2{margin:4px 0 0;font-size:23px}.muted{margin:0 0 14px;color:rgba(255,255,255,.65);font-size:13px;line-height:1.48}
+        .status{max-width:160px;padding:7px 10px;border-radius:999px;color:#ffd38a;background:rgba(255,169,64,.12);font-size:11px;font-weight:900;text-align:center}.status.good{color:#062018;background:linear-gradient(135deg,#52f7c8,#baff74)}
+        .actionGrid{display:grid;grid-template-columns:1fr;gap:9px}.actionGrid button,.links button{border:1px solid rgba(255,255,255,.14);border-radius:17px;padding:13px 14px;color:white;font-weight:900;background:rgba(0,0,0,.28);text-align:left}.actionGrid button:disabled{opacity:.5}
+        .warning{margin-top:12px;padding:12px;border:1px solid rgba(255,176,80,.3);border-radius:15px;color:#ffd9a2;background:rgba(255,150,40,.1);font-size:12px;line-height:1.45}
+        .settingRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-top:1px solid rgba(255,255,255,.08);padding:14px 0;color:white;background:transparent;text-align:left}.settingRow strong{display:block;font-size:15px}.settingRow small{display:block;margin-top:4px;color:rgba(255,255,255,.55);font-size:12px;line-height:1.35}
+        .switch{flex:none;width:48px;height:28px;padding:3px;border-radius:999px;background:rgba(255,255,255,.16);transition:.2s}.switch i{display:block;width:22px;height:22px;border-radius:50%;background:white;transition:.2s}.switch.on{background:linear-gradient(135deg,#52f7c8,#7b61ff)}.switch.on i{transform:translateX(20px)}
+        .links{padding:7px 14px}.links button{width:100%;display:flex;justify-content:space-between;border:0;border-bottom:1px solid rgba(255,255,255,.08);border-radius:0;background:transparent;padding:16px 2px}.links button:last-child{border-bottom:0}
+        .toast{position:fixed;z-index:99999;left:50%;bottom:100px;width:min(88vw,420px);padding:14px 16px;border:1px solid rgba(82,247,200,.35);border-radius:18px;color:white;background:rgba(7,15,24,.96);box-shadow:0 20px 55px rgba(0,0,0,.5);transform:translateX(-50%);text-align:center;font-size:13px;font-weight:900}
+        @media(min-width:720px){.shell{max-width:760px;margin:auto}.actionGrid{grid-template-columns:repeat(3,1fr)}}
       `}</style>
-
-      <section className="settingsHero">
-        <h1>⚙️ Settings</h1>
-        <p>Customize your UTV experience.</p>
-      </section>
-
-      <section className="settingsShell">
-
-        <div className="settingsCard">
-
-          <div className="previewBanner">
-
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                className="previewAvatar"
-              />
-            ) : (
-              <div className="previewAvatar">👤</div>
-            )}
-
-          </div>
-
-          <div className="badgeRow">
-
-            {isFounder && (
-              <div className="badge founder">
-                👑 UTV Founder
-              </div>
-            )}
-
-            <div className="badge">
-              🎬 Creator
-            </div>
-
-            <div className="badge">
-              ⭐ Creator Score 100
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="settingsCard">
-
-          <h2>Edit Profile</h2>
-
-          <div className="settingsGrid">
-
-            <div className="field">
-              <label>Name</label>
-              <input
-                value={displayName}
-                onChange={(e)=>setDisplayName(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Username</label>
-              <input
-                value={username}
-                onChange={(e)=>setUsername(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Bio</label>
-              <textarea
-                value={bio}
-                onChange={(e)=>setBio(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Category</label>
-
-              <select
-                value={category}
-                onChange={(e)=>setCategory(e.target.value)}
-              >
-                <option>Creator</option>
-                <option>Artist</option>
-                <option>Business</option>
-                <option>Podcast</option>
-                <option>Sports</option>
-                <option>Comedy</option>
-                <option>Director</option>
-              </select>
-
-            </div>
-
-            <div className="field">
-              <label>Avatar URL</label>
-              <input
-                value={avatarUrl}
-                onChange={(e)=>setAvatarUrl(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Banner URL</label>
-              <input
-                value={bannerUrl}
-                onChange={(e)=>setBannerUrl(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Profile Song</label>
-              <input
-                value={songUrl}
-                onChange={(e)=>setSongUrl(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Theme Color</label>
-              <input
-                type="color"
-                value={themeColor}
-                onChange={(e)=>setThemeColor(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label>Accent Color</label>
-              <input
-                type="color"
-                value={accentColor}
-                onChange={(e)=>setAccentColor(e.target.value)}
-              />
-            </div>
-
-          </div>
-
-          <button
-            className="saveBtn"
-            disabled={saving}
-            onClick={saveSettings}
-          >
-            {saving ? "Saving..." : "💾 Save Settings"}
-          </button>
-
-        </div>
-
-        <div className="settingsCard">
-
-          <h2>Membership</h2>
-
-          <p>Current Plan: <b>{isFounder ? "Founder Gold" : "Free"}</b></p>
-
-          <div className="badgeRow">
-
-            <div className="badge">
-              🟢 Free
-            </div>
-
-            <div className="badge">
-              🥈 Silver
-            </div>
-
-            <div className="badge">
-              👑 Gold
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="settingsCard">
-
-          <h2>Creator Tools</h2>
-
-          <div className="settingsGrid">
-
-            <button className="saveBtn" onClick={()=>router.push("/submit")}>
-              Upload Content
-            </button>
-
-            <button className="saveBtn" onClick={()=>router.push("/messages")}>
-              Messages
-            </button>
-
-            <button className="saveBtn" onClick={()=>router.push("/notifications")}>
-              Notifications
-            </button>
-
-            <button className="saveBtn" onClick={()=>router.push("/profile")}>
-              My Profile
-            </button>
-
-          </div>
-
-        </div>
-
-        <button
-          className="logoutBtn"
-          onClick={logout}
-        >
-          Logout
-        </button>
-
-      </section>
-
     </main>
   );
 }
