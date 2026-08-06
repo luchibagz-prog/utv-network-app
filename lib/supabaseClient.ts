@@ -11,6 +11,22 @@ if (!supabaseAnonKey) {
   throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required.");
 }
 
+const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+const defaultStorageKey = `sb-${projectRef}-auth-token`;
+
+if (typeof window !== "undefined") {
+  try {
+    const pack14Session = window.localStorage.getItem("utv-auth-session");
+    const existingSession = window.localStorage.getItem(defaultStorageKey);
+
+    if (!existingSession && pack14Session) {
+      window.localStorage.setItem(defaultStorageKey, pack14Session);
+    }
+  } catch {
+    // Browser storage may be unavailable in private mode.
+  }
+}
+
 export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey,
@@ -20,7 +36,7 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: "pkce",
-      storageKey: "utv-auth-session",
+      storageKey: defaultStorageKey,
     },
   }
 );

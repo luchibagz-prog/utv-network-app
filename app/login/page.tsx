@@ -181,9 +181,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setMessage(
-        "We could not send a sign-in link. Existing users can try Reset Password."
-      );
+      setMessage(error.message || "Could not send the sign-in link.");
       return;
     }
 
