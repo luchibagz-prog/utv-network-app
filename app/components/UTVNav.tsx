@@ -46,7 +46,7 @@ const navItems = [
     icon: "🔴",
   },
   {
-    href: "/activity",
+    href: "/social-v11",
     label: "Activity",
     icon: "🔔",
     activity: true,
