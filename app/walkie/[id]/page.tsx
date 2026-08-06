@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import {
+  ConnectionState,
   RemoteTrack,
   Room,
   RoomEvent,
@@ -16,51 +17,20 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 
-type WalkieRoom = {
+type WalkieRoomRow = {
   id: string;
   name: string;
-  mode: "private" | "group";
-  status: "active" | "ended";
+  mode: string;
+  status: string;
   created_by: string;
-  current_speaker_email: string | null;
+  current_speaker_email?: string | null;
 };
 
 type Member = {
   user_email: string;
-  role: "host" | "member";
+  role: string;
   status: string;
 };
-
-function beep(
-  frequency: number,
-  duration = 0.06
-) {
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as any).webkitAudioContext;
-
-    const context = new AudioContextClass();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-
-    oscillator.frequency.value = frequency;
-    oscillator.type = "square";
-    gain.gain.value = 0.025;
-
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-
-    oscillator.start();
-    oscillator.stop(
-      context.currentTime + duration
-    );
-
-    window.setTimeout(() => {
-      void context.close();
-    }, 180);
-  } catch {}
-}
 
 function vibrate(pattern: number | number[]) {
   try {
@@ -68,203 +38,119 @@ function vibrate(pattern: number | number[]) {
   } catch {}
 }
 
-export default function WalkieRoomPage() {
+function beep(frequency: number, duration = 0.07) {
+  try {
+    const Context =
+      window.AudioContext ||
+      (window as any).webkitAudioContext;
+
+    const context = new Context();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = "square";
+    oscillator.frequency.value = frequency;
+    gain.gain.value = 0.025;
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + duration);
+
+    window.setTimeout(() => {
+      void context.close();
+    }, 200);
+  } catch {}
+}
+
+export default function WalkieProRoomPage() {
   const params = useParams();
   const router = useRouter();
-
   const roomId = String(params.id || "");
 
-  const liveKitRoomRef =
-    useRef<Room | null>(null);
+  const liveKitRef = useRef<Room | null>(null);
+  const realtimeRef = useRef<any>(null);
+  const audioRootRef = useRef<HTMLDivElement | null>(null);
+  const holdingRef = useRef(false);
+  const reconnectTimerRef = useRef<number | null>(null);
 
-  const realtimeRef =
-    useRef<any>(null);
-
-  const audioContainerRef =
-    useRef<HTMLDivElement | null>(null);
-
-  const holdingRef =
-    useRef(false);
-
-  const claimingRef =
-    useRef(false);
-
-  const releaseInFlightRef =
-    useRef(false);
-
-  const [email, setEmail] =
-    useState("");
-
-  const [room, setRoom] =
-    useState<WalkieRoom | null>(null);
-
-  const [members, setMembers] =
-    useState<Member[]>([]);
-
-  const [onlineEmails, setOnlineEmails] =
-    useState<string[]>([]);
-
-  const [speakerEmail, setSpeakerEmail] =
-    useState("");
-
-  const [connected, setConnected] =
-    useState(false);
-
-  const [transmitting, setTransmitting] =
-    useState(false);
-
-  const [incomingMuted, setIncomingMuted] =
-    useState(false);
-
-  const [soundOn, setSoundOn] =
-    useState(true);
-
-  const [hapticsOn, setHapticsOn] =
-    useState(true);
-
-  const [audioNeedsUnlock, setAudioNeedsUnlock] =
-    useState(false);
-
-  const [connectionLabel, setConnectionLabel] =
-    useState("CONNECTING");
-
-  const [realAudioSpeaker, setRealAudioSpeaker] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("Connecting channel...");
-
-  const effectiveSpeakerEmail =
-    speakerEmail || realAudioSpeaker;
-
-  const speakerName =
-    effectiveSpeakerEmail
-      ? effectiveSpeakerEmail.split("@")[0]
-      : "";
-
-  const isBusy =
-    Boolean(
-      effectiveSpeakerEmail &&
-        effectiveSpeakerEmail.toLowerCase() !==
-          email.toLowerCase()
-    );
+  const [email, setEmail] = useState("");
+  const [roomRow, setRoomRow] = useState<WalkieRoomRow | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(true);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [transmitting, setTransmitting] = useState(false);
+  const [incomingMuted, setIncomingMuted] = useState(false);
+  const [speakerEmail, setSpeakerEmail] = useState("");
+  const [quality, setQuality] = useState<"great" | "good" | "weak">("good");
+  const [message, setMessage] = useState("Connecting to UTV Walkie…");
+  const [duration, setDuration] = useState(0);
 
   const visibleMembers = useMemo(
     () =>
-      members.filter(
-        (member) =>
-          member.status === "joined" ||
-          member.status === "invited"
+      members.filter((member) =>
+        ["joined", "invited"].includes(member.status)
       ),
     [members]
   );
 
-  function feedbackBeep(
-    frequency: number,
-    duration = 0.06
-  ) {
-    if (!soundOn) return;
-    beep(frequency, duration);
-  }
-
-  function feedbackVibrate(
-    pattern: number | number[]
-  ) {
-    if (!hapticsOn) return;
-    vibrate(pattern);
-  }
-
   useEffect(() => {
-    void openChannel();
+    void openRoom();
+
+    const tick = window.setInterval(() => {
+      if (connected) {
+        setDuration((value) => value + 1);
+      }
+    }, 1000);
 
     return () => {
+      window.clearInterval(tick);
       void cleanup();
     };
   }, [roomId]);
 
   useEffect(() => {
-    try {
-      const savedSound =
-        localStorage.getItem("utv_walkie_sound");
-
-      const savedHaptics =
-        localStorage.getItem("utv_walkie_haptics");
-
-      if (savedSound !== null) {
-        setSoundOn(savedSound !== "off");
-      }
-
-      if (savedHaptics !== null) {
-        setHapticsOn(savedHaptics !== "off");
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    const releaseIfTalking = () => {
-      if (holdingRef.current) {
-        void releaseTalk();
-      }
-    };
-
-    const releaseWhenHidden = () => {
+    function releaseOnHide() {
       if (
         document.visibilityState === "hidden" &&
         holdingRef.current
       ) {
-        void releaseTalk();
+        void stopTalking();
       }
-    };
-
-    window.addEventListener(
-      "pagehide",
-      releaseIfTalking
-    );
+    }
 
     document.addEventListener(
       "visibilitychange",
-      releaseWhenHidden
+      releaseOnHide
+    );
+
+    window.addEventListener(
+      "pagehide",
+      releaseOnHide
     );
 
     return () => {
-      window.removeEventListener(
-        "pagehide",
-        releaseIfTalking
-      );
-
       document.removeEventListener(
         "visibilitychange",
-        releaseWhenHidden
+        releaseOnHide
+      );
+
+      window.removeEventListener(
+        "pagehide",
+        releaseOnHide
       );
     };
-  }, [email, roomId]);
+  }, []);
 
-
-  async function cleanup() {
-    if (holdingRef.current) {
-      await releaseTalk();
-    }
-
-    if (realtimeRef.current) {
-      await supabase.removeChannel(
-        realtimeRef.current
-      );
-
-      realtimeRef.current = null;
-    }
-
-    await liveKitRoomRef.current?.disconnect();
-    liveKitRoomRef.current = null;
-  }
-
-  async function getWalkieToken() {
+  async function getToken() {
     const { data } =
       await supabase.auth.getSession();
 
-    const accessToken =
+    const token =
       data.session?.access_token;
 
-    if (!accessToken) {
+    if (!token) {
       throw new Error(
         "Your UTV login expired."
       );
@@ -278,7 +164,7 @@ export default function WalkieRoomPage() {
           "Content-Type":
             "application/json",
           Authorization:
-            `Bearer ${accessToken}`,
+            `Bearer ${token}`,
         },
         body: JSON.stringify({
           roomId,
@@ -302,8 +188,15 @@ export default function WalkieRoomPage() {
     };
   }
 
-  async function openChannel() {
+  async function openRoom() {
     try {
+      setConnecting(true);
+      setMessage(
+        reconnecting
+          ? "Reconnecting Walkie…"
+          : "Opening Walkie channel…"
+      );
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -315,43 +208,55 @@ export default function WalkieRoomPage() {
 
       setEmail(user.email);
 
-      const { data: roomRow, error } =
-        await supabase
+      const [
+        roomResult,
+        memberResult,
+      ] = await Promise.all([
+        supabase
           .from("walkie_rooms")
           .select("*")
           .eq("id", roomId)
-          .maybeSingle();
+          .maybeSingle(),
 
-      if (error || !roomRow) {
+        supabase
+          .from("walkie_members")
+          .select("user_email,role,status")
+          .eq("room_id", roomId),
+      ]);
+
+      if (
+        roomResult.error ||
+        !roomResult.data
+      ) {
         throw new Error(
-          error?.message ||
+          roomResult.error?.message ||
             "Walkie channel not found."
         );
       }
 
-      if (roomRow.status !== "active") {
+      if (
+        roomResult.data.status !==
+        "active"
+      ) {
         throw new Error(
           "This Walkie channel has ended."
         );
       }
 
-      setRoom(roomRow as WalkieRoom);
-
-      const { data: memberRows } =
-        await supabase
-          .from("walkie_members")
-          .select("user_email,role,status")
-          .eq("room_id", roomId);
+      setRoomRow(
+        roomResult.data as WalkieRoomRow
+      );
 
       setMembers(
-        (memberRows || []) as Member[]
+        (memberResult.data || []) as Member[]
       );
 
       const tokenData =
-        await getWalkieToken();
+        await getToken();
 
       const serverUrl =
-        process.env.NEXT_PUBLIC_LIVEKIT_URL;
+        process.env
+          .NEXT_PUBLIC_LIVEKIT_URL;
 
       if (!serverUrl) {
         throw new Error(
@@ -359,840 +264,1260 @@ export default function WalkieRoomPage() {
         );
       }
 
-      const lkRoom = new Room({
+      await liveKitRef.current?.disconnect();
+
+      const liveKitRoom = new Room({
         adaptiveStream: true,
         dynacast: true,
+        disconnectOnPageLeave: false,
       });
 
-      liveKitRoomRef.current =
-        lkRoom;
+      liveKitRef.current =
+        liveKitRoom;
 
-      lkRoom.on(
+      liveKitRoom.on(
         RoomEvent.TrackSubscribed,
-        (track: RemoteTrack) => {
+        (
+          track: RemoteTrack,
+          _publication,
+          participant
+        ) => {
           if (
-            track.kind ===
-              Track.Kind.Audio &&
-            audioContainerRef.current
+            track.kind !==
+            Track.Kind.Audio
           ) {
-            const element =
-              track.attach();
-
-            element.autoplay = true;
-            element.muted =
-              incomingMuted;
-
-            audioContainerRef.current
-              .appendChild(element);
-          }
-        }
-      );
-
-      lkRoom.on(
-        RoomEvent.ActiveSpeakersChanged,
-        (speakers) => {
-          const loudest = speakers[0];
-
-          if (!loudest) {
-            setRealAudioSpeaker("");
             return;
           }
 
-          if (loudest.isLocal) {
-            setRealAudioSpeaker(
-              String(user.email || "")
+          const element =
+            track.attach();
+
+          element.autoplay = true;
+          element.setAttribute(
+            "playsinline",
+            "true"
+          );
+
+          audioRootRef.current
+            ?.appendChild(element);
+
+          const metadata =
+            participant.metadata
+              ? JSON.parse(
+                  participant.metadata
+                )
+              : {};
+
+          setSpeakerEmail(
+            String(
+              metadata?.email ||
+                participant.name ||
+                ""
+            )
+          );
+        }
+      );
+
+      liveKitRoom.on(
+        RoomEvent.TrackUnsubscribed,
+        (track) => {
+          track
+            .detach()
+            .forEach((element) =>
+              element.remove()
             );
+
+          setSpeakerEmail("");
+        }
+      );
+
+      liveKitRoom.on(
+        RoomEvent.ActiveSpeakersChanged,
+        (participants) => {
+          const first =
+            participants[0];
+
+          if (!first) {
+            setSpeakerEmail("");
             return;
           }
 
           try {
             const metadata =
-              JSON.parse(
-                loudest.metadata || "{}"
-              );
+              first.metadata
+                ? JSON.parse(
+                    first.metadata
+                  )
+                : {};
 
-            setRealAudioSpeaker(
+            setSpeakerEmail(
               String(
                 metadata?.email ||
-                loudest.name ||
-                ""
+                  first.name ||
+                  ""
               )
             );
           } catch {
-            setRealAudioSpeaker(
-              String(loudest.name || "")
+            setSpeakerEmail(
+              first.name || ""
             );
           }
         }
       );
 
-      lkRoom.on(
-        RoomEvent.AudioPlaybackStatusChanged,
-        () => {
-          setAudioNeedsUnlock(
-            !lkRoom.canPlaybackAudio
+      liveKitRoom.on(
+        RoomEvent.ConnectionStateChanged,
+        (state) => {
+          setConnected(
+            state ===
+              ConnectionState.Connected
           );
-        }
-      );
 
-      lkRoom.on(
-        RoomEvent.Reconnecting,
-        () => {
-          setConnectionLabel("RECONNECTING");
-          setMessage(
-            "Reconnecting Walkie..."
+          setReconnecting(
+            state ===
+              ConnectionState.Reconnecting
           );
+
+          setConnectionQuality(state);
         }
       );
 
-      lkRoom.on(
-        RoomEvent.Reconnected,
-        () => {
-          setConnected(true);
-          setConnectionLabel("CONNECTED");
-          setMessage("CHANNEL OPEN");
-        }
-      );
-
-      lkRoom.on(
+      liveKitRoom.on(
         RoomEvent.Disconnected,
         () => {
           setConnected(false);
-          setConnectionLabel("DISCONNECTED");
-          setMessage(
-            "Walkie connection ended."
-          );
+          setTransmitting(false);
+          holdingRef.current = false;
+          scheduleReconnect();
         }
       );
 
-      await lkRoom.connect(
+      await liveKitRoom.connect(
         serverUrl,
-        tokenData.token
+        tokenData.token,
+        {
+          autoSubscribe: true,
+        }
       );
 
-      // Create the mic once so press/release is instant.
-      await lkRoom.localParticipant
-        .setMicrophoneEnabled(true, {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        });
-
-      // Start silent.
-      await lkRoom.localParticipant
+      await liveKitRoom.localParticipant
         .setMicrophoneEnabled(false);
 
       setConnected(true);
-      setConnectionLabel("CONNECTED");
-      setMessage("CHANNEL OPEN");
-
-      const channel = supabase.channel(
-        `utv-walkie:${roomId}`,
-        {
-          config: {
-            presence: {
-              key: user.email,
-            },
-          },
-        }
-      );
-
-      channel
-        .on(
-          "presence",
-          { event: "sync" },
-          () => {
-            const state =
-              channel.presenceState();
-
-            const online = Array.from(
-              new Set(
-                Object.values(state)
-                  .flat()
-                  .map((item: any) =>
-                    String(
-                      item?.email || ""
-                    )
-                  )
-                  .filter(Boolean)
-              )
-            );
-
-            setOnlineEmails(online);
-          }
-        )
-        .on(
-          "broadcast",
-          { event: "floor-start" },
-          ({ payload }) => {
-            const speakingEmail =
-              String(
-                payload?.email || ""
-              );
-
-            setSpeakerEmail(
-              speakingEmail
-            );
-
-            if (
-              speakingEmail.toLowerCase() !==
-              String(user.email || "").toLowerCase()
-            ) {
-              feedbackBeep(740, 0.035);
-              feedbackVibrate(24);
-            }
-          }
-        )
-        .on(
-          "broadcast",
-          { event: "floor-end" },
-          () => {
-            setSpeakerEmail("");
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "walkie_members",
-            filter: `room_id=eq.${roomId}`,
-          },
-          async () => {
-            const { data: memberRows } =
-              await supabase
-                .from("walkie_members")
-                .select(
-                  "user_email,role,status"
-                )
-                .eq("room_id", roomId);
-
-            setMembers(
-              (memberRows || []) as Member[]
-            );
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "walkie_rooms",
-            filter: `id=eq.${roomId}`,
-          },
-          (payload) => {
-            const next =
-              payload.new as WalkieRoom;
-
-            setRoom(next);
-
-            setSpeakerEmail(
-              next.current_speaker_email ||
-                ""
-            );
-
-            if (
-              next.status === "ended"
-            ) {
-              setMessage(
-                "CHANNEL ENDED"
-              );
-
-              window.setTimeout(() => {
-                router.replace("/walkie");
-              }, 900);
-            }
-          }
-        )
-        .subscribe(
-          async (status) => {
-            if (
-              status === "SUBSCRIBED"
-            ) {
-              await channel.track({
-                email: user.email,
-                joined_at:
-                  new Date().toISOString(),
-              });
-            }
-          }
-        );
-
-      realtimeRef.current = channel;
-    } catch (error) {
+      setConnecting(false);
+      setReconnecting(false);
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not open Walkie."
+        "Hold the button to talk."
       );
+
+      subscribeRealtime();
+
+      vibrate([30, 30, 70]);
+      beep(880);
+    } catch (error: any) {
+      setConnecting(false);
+      setConnected(false);
+      setMessage(
+        error?.message ||
+          "Could not connect Walkie."
+      );
+
+      scheduleReconnect();
     }
   }
 
-  async function claimTalk() {
+  function setConnectionQuality(
+    state: ConnectionState
+  ) {
     if (
-      !connected ||
-      holdingRef.current ||
-      claimingRef.current ||
-      releaseInFlightRef.current ||
-      isBusy ||
-      !email
+      state ===
+      ConnectionState.Connected
+    ) {
+      setQuality("great");
+      return;
+    }
+
+    if (
+      state ===
+      ConnectionState.Reconnecting
+    ) {
+      setQuality("weak");
+      return;
+    }
+
+    setQuality("good");
+  }
+
+  function subscribeRealtime() {
+    if (realtimeRef.current) {
+      void supabase.removeChannel(
+        realtimeRef.current
+      );
+    }
+
+    const channel = supabase
+      .channel(
+        `utv-walkie-v13-${roomId}`
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "walkie_members",
+          filter: `room_id=eq.${roomId}`,
+        },
+        async () => {
+          const { data } =
+            await supabase
+              .from("walkie_members")
+              .select(
+                "user_email,role,status"
+              )
+              .eq("room_id", roomId);
+
+          setMembers(
+            (data || []) as Member[]
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "walkie_rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        (payload) => {
+          const next =
+            payload.new as WalkieRoomRow;
+
+          setRoomRow(next);
+
+          if (
+            next.status === "ended"
+          ) {
+            setMessage(
+              "This Walkie channel ended."
+            );
+
+            window.setTimeout(
+              () => router.push("/walkie"),
+              900
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    realtimeRef.current =
+      channel;
+  }
+
+  function scheduleReconnect() {
+    if (
+      reconnectTimerRef.current
     ) {
       return;
     }
 
-    claimingRef.current = true;
-    setMessage("GRABBING CHANNEL...");
+    setReconnecting(true);
+    setMessage(
+      "Signal dropped. Reconnecting…"
+    );
+
+    reconnectTimerRef.current =
+      window.setTimeout(() => {
+        reconnectTimerRef.current =
+          null;
+
+        void openRoom();
+      }, 1600);
+  }
+
+  async function startTalking(
+    event?: PointerEvent<HTMLButtonElement>
+  ) {
+    event?.currentTarget
+      .setPointerCapture?.(
+        event.pointerId
+      );
+
+    if (
+      !connected ||
+      transmitting ||
+      incomingMuted
+    ) {
+      return;
+    }
+
+    const liveKitRoom =
+      liveKitRef.current;
+
+    if (!liveKitRoom) return;
 
     try {
-      const { data, error } =
-        await supabase.rpc(
-          "claim_walkie_floor",
-          {
-            p_room_id: roomId,
-          }
-        );
-
-      if (error || data !== true) {
-        setMessage("CHANNEL BUSY");
-        feedbackVibrate(30);
-        return;
-      }
-
-      const participant =
-        liveKitRoomRef.current
-          ?.localParticipant;
-
-      if (!participant) {
-        throw new Error(
-          "Walkie audio is not connected."
-        );
-      }
-
       holdingRef.current = true;
+
+      await liveKitRoom.localParticipant
+        .setMicrophoneEnabled(true);
+
       setTransmitting(true);
       setSpeakerEmail(email);
       setMessage("TRANSMITTING");
 
-      feedbackBeep(920, 0.055);
-      feedbackVibrate(35);
-
-      await Promise.all([
-        participant.setMicrophoneEnabled(true),
-        realtimeRef.current?.send({
-          type: "broadcast",
-          event: "floor-start",
-          payload: {
+      await supabase
+        .from("walkie_rooms")
+        .update({
+          current_speaker_email:
             email,
-          },
-        }),
-      ]);
-    } catch (error) {
+        })
+        .eq("id", roomId);
+
+      vibrate(45);
+      beep(960);
+    } catch {
       holdingRef.current = false;
       setTransmitting(false);
-
-      await supabase.rpc(
-        "release_walkie_floor",
-        {
-          p_room_id: roomId,
-        }
-      );
-
-      setSpeakerEmail("");
       setMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not transmit."
+        "Microphone permission is required."
       );
-    } finally {
-      claimingRef.current = false;
     }
   }
 
-  async function releaseTalk() {
-    if (
-      !holdingRef.current ||
-      !email ||
-      releaseInFlightRef.current
-    ) {
+  async function stopTalking() {
+    if (!holdingRef.current) {
       return;
     }
 
-    releaseInFlightRef.current = true;
     holdingRef.current = false;
 
+    const liveKitRoom =
+      liveKitRef.current;
+
     try {
-      await liveKitRoomRef.current
+      await liveKitRoom
         ?.localParticipant
         .setMicrophoneEnabled(false);
+    } catch {}
 
-      await Promise.all([
-        supabase.rpc(
-          "release_walkie_floor",
-          {
-            p_room_id: roomId,
-          }
-        ),
-        realtimeRef.current?.send({
-          type: "broadcast",
-          event: "floor-end",
-          payload: {
-            email,
-          },
-        }),
-      ]);
+    setTransmitting(false);
+    setSpeakerEmail("");
+    setMessage(
+      connected
+        ? "Hold the button to talk."
+        : "Reconnecting…"
+    );
 
-      setTransmitting(false);
-      setSpeakerEmail("");
-      setRealAudioSpeaker("");
-      setMessage("CHANNEL OPEN");
-
-      feedbackBeep(510, 0.04);
-      feedbackVibrate(18);
-    } finally {
-      releaseInFlightRef.current = false;
-    }
-  }
-
-  function startPointer(
-    event: PointerEvent<HTMLButtonElement>
-  ) {
-    event.preventDefault();
-
-    event.currentTarget
-      .setPointerCapture(
-        event.pointerId
+    await supabase
+      .from("walkie_rooms")
+      .update({
+        current_speaker_email:
+          null,
+      })
+      .eq("id", roomId)
+      .eq(
+        "current_speaker_email",
+        email
       );
 
-    void claimTalk();
+    vibrate(22);
+    beep(520);
   }
 
-  function endPointer(
-    event: PointerEvent<HTMLButtonElement>
-  ) {
-    event.preventDefault();
+  async function endRoom() {
+    if (!roomRow) return;
+
+    await stopTalking();
 
     if (
-      event.currentTarget
-        .hasPointerCapture(
-          event.pointerId
-        )
+      roomRow.created_by ===
+      email
     ) {
-      event.currentTarget
-        .releasePointerCapture(
-          event.pointerId
-        );
-    }
-
-    void releaseTalk();
-  }
-
-  function toggleIncomingAudio() {
-    const next = !incomingMuted;
-
-    setIncomingMuted(next);
-
-    audioContainerRef.current
-      ?.querySelectorAll("audio")
-      .forEach((audio) => {
-        audio.muted = next;
-      });
-  }
-
-  async function unlockAudio() {
-    try {
-      await liveKitRoomRef.current
-        ?.startAudio();
-
-      setAudioNeedsUnlock(false);
-      feedbackBeep(680, 0.04);
-    } catch {
-      setMessage(
-        "Tap again to enable Walkie audio."
-      );
-    }
-  }
-
-  function toggleSound() {
-    const next = !soundOn;
-    setSoundOn(next);
-
-    try {
-      localStorage.setItem(
-        "utv_walkie_sound",
-        next ? "on" : "off"
-      );
-    } catch {}
-
-    if (next) {
-      beep(780, 0.04);
-    }
-  }
-
-  function toggleHaptics() {
-    const next = !hapticsOn;
-    setHapticsOn(next);
-
-    try {
-      localStorage.setItem(
-        "utv_walkie_haptics",
-        next ? "on" : "off"
-      );
-    } catch {}
-
-    if (next) {
-      vibrate(25);
-    }
-  }
-
-  async function leaveChannel() {
-    await releaseTalk();
-
-    if (email) {
+      await supabase
+        .from("walkie_rooms")
+        .update({
+          status: "ended",
+          ended_at:
+            new Date().toISOString(),
+          current_speaker_email:
+            null,
+        })
+        .eq("id", roomId);
+    } else {
       await supabase
         .from("walkie_members")
         .update({
           status: "left",
         })
         .eq("room_id", roomId)
-        .eq("user_email", email);
+        .eq(
+          "user_email",
+          email
+        );
     }
 
-    router.replace("/walkie");
+    router.push("/walkie");
   }
 
-  async function endChannel() {
+  async function cleanup() {
     if (
-      !room ||
-      room.created_by.toLowerCase() !==
-        email.toLowerCase()
+      reconnectTimerRef.current
     ) {
-      await leaveChannel();
-      return;
+      window.clearTimeout(
+        reconnectTimerRef.current
+      );
+
+      reconnectTimerRef.current =
+        null;
     }
 
-    await releaseTalk();
+    if (holdingRef.current) {
+      await stopTalking();
+    }
 
-    await supabase
-      .from("walkie_rooms")
-      .update({
-        status: "ended",
-        current_speaker_email: null,
-        ended_at:
-          new Date().toISOString(),
-      })
-      .eq("id", roomId)
-      .eq("created_by", email);
+    if (realtimeRef.current) {
+      await supabase.removeChannel(
+        realtimeRef.current
+      );
 
-    router.replace("/walkie");
+      realtimeRef.current = null;
+    }
+
+    await liveKitRef.current
+      ?.disconnect();
+
+    liveKitRef.current = null;
   }
+
+  function toggleIncomingMute() {
+    const next = !incomingMuted;
+    setIncomingMuted(next);
+
+    liveKitRef.current
+      ?.remoteParticipants
+      .forEach((participant) => {
+        participant.audioTrackPublications
+          .forEach((publication) => {
+            const track =
+              publication.track;
+
+            track?.attachedElements
+              .forEach((element) => {
+                (
+                  element as HTMLMediaElement
+                ).muted = next;
+              });
+          });
+      });
+  }
+
+  const minutes =
+    String(
+      Math.floor(duration / 60)
+    ).padStart(2, "0");
+
+  const seconds =
+    String(duration % 60)
+      .padStart(2, "0");
+
+  const speakerName =
+    speakerEmail
+      ? speakerEmail.split("@")[0]
+      : "";
 
   return (
-    <main
-      className={
-        transmitting
-          ? "channelPage transmitting"
-          : isBusy
-          ? "channelPage listening"
-          : "channelPage"
-      }
-    >
-      <style>{styles}</style>
-
+    <main className="walkieRoom">
       <div
-        ref={audioContainerRef}
-        className="audioContainer"
+        ref={audioRootRef}
+        className="audioRoot"
       />
 
-      {audioNeedsUnlock && (
+      <header className="topBar">
         <button
-          type="button"
-          className="audioUnlock"
-          onClick={unlockAudio}
+          onClick={() =>
+            router.push("/walkie")
+          }
         >
-          🔊 Tap to enable Walkie audio
-        </button>
-      )}
-
-      <header className="channelHeader">
-        <button
-          type="button"
-          onClick={leaveChannel}
-        >
-          ←
+          ‹
         </button>
 
         <div>
-          <span>
-            📡 UTV WALKIE
-          </span>
-
-          <strong>
-            {room?.name ||
-              "Opening channel..."}
-          </strong>
+          <p>UTV WALKIE PRO</p>
+          <h1>
+            {roomRow?.name ||
+              "Walkie channel"}
+          </h1>
         </div>
 
         <button
-          type="button"
-          onClick={toggleIncomingAudio}
+          className="endButton"
+          onClick={endRoom}
+        >
+          End
+        </button>
+      </header>
+
+      <section className="statusCard">
+        <div
+          className={`signal ${quality}`}
+        >
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+
+        <div>
+          <span>
+            {reconnecting
+              ? "RECONNECTING"
+              : connected
+              ? "LIVE CONNECTION"
+              : "CONNECTING"}
+          </span>
+
+          <strong>
+            {minutes}:{seconds}
+          </strong>
+        </div>
+
+        <span className="memberCount">
+          {visibleMembers.length} people
+        </span>
+      </section>
+
+      <section
+        className={`speakerStage ${
+          transmitting
+            ? "transmitting"
+            : speakerName
+            ? "receiving"
+            : ""
+        }`}
+      >
+        <div className="rings">
+          <i />
+          <i />
+          <i />
+          <div className="speakerOrb">
+            {transmitting
+              ? "🎙"
+              : speakerName
+              ? "🔊"
+              : "📡"}
+          </div>
+        </div>
+
+        <p>
+          {transmitting
+            ? "YOU ARE TALKING"
+            : speakerName
+            ? `${speakerName} IS TALKING`
+            : connecting
+            ? "CONNECTING"
+            : "CHANNEL READY"}
+        </p>
+
+        <h2>{message}</h2>
+      </section>
+
+      <section className="members">
+        {visibleMembers.map(
+          (member) => {
+            const active =
+              speakerEmail
+                .toLowerCase() ===
+              member.user_email
+                .toLowerCase();
+
+            return (
+              <article
+                key={
+                  member.user_email
+                }
+                className={
+                  active
+                    ? "active"
+                    : ""
+                }
+              >
+                <span>
+                  {member.user_email
+                    .slice(0, 1)
+                    .toUpperCase()}
+                </span>
+
+                <b>
+                  {member.user_email
+                    .split("@")[0]}
+                </b>
+
+                <small>
+                  {active
+                    ? "TALKING"
+                    : member.status.toUpperCase()}
+                </small>
+              </article>
+            );
+          }
+        )}
+      </section>
+
+      <section className="controls">
+        <button
+          onClick={
+            toggleIncomingMute
+          }
         >
           {incomingMuted
             ? "🔇"
             : "🔊"}
-        </button>
-      </header>
-
-      <section className="statusStage">
-        <div className="channelMeta">
-          <span
-            className={
-              connected
-                ? "connectedDot"
-                : "connectedDot offline"
-            }
-          />
-
-          {connectionLabel}
-
-          <i>
-            {room?.mode === "group"
-              ? "GROUP"
-              : "PRIVATE"}
-          </i>
-        </div>
-
-        <div className="people">
-          {visibleMembers.map(
-            (member) => {
-              const isOnline =
-                onlineEmails.some(
-                  (item) =>
-                    item.toLowerCase() ===
-                    member.user_email.toLowerCase()
-                );
-
-              const speaking =
-                effectiveSpeakerEmail
-                  .toLowerCase() ===
-                member.user_email
-                  .toLowerCase();
-
-              const waiting =
-                member.status === "invited";
-
-              return (
-                <div
-                  className={
-                    speaking
-                      ? "person speaking"
-                      : "person"
-                  }
-                  key={member.user_email}
-                >
-                  <span className="personAvatar">
-                    {member.user_email
-                      .slice(0, 1)
-                      .toUpperCase()}
-                  </span>
-
-                  <strong>
-                    {
-                      member.user_email.split(
-                        "@"
-                      )[0]
-                    }
-                  </strong>
-
-                  <small>
-                    {speaking
-                      ? "TALKING"
-                      : waiting
-                      ? "INVITED"
-                      : isOnline
-                      ? "ONLINE"
-                      : "CONNECTED"}
-                  </small>
-                </div>
-              );
-            }
-          )}
-        </div>
-
-        <div className="radioSignal">
-          <i />
-          <i />
-          <span>📡</span>
-          <i />
-          <i />
-        </div>
-
-        <div className="talkState">
-          <small>
-            {transmitting
-              ? "YOU ARE"
-              : isBusy
-              ? `${speakerName} IS`
-              : "CHANNEL"}
-          </small>
-
-          <strong>
-            {transmitting
-              ? "TRANSMITTING"
-              : isBusy
-              ? "TALKING"
-              : "OPEN"}
-          </strong>
-
           <span>
-            {transmitting
-              ? "Release when you're done"
-              : isBusy
-              ? "Listen — your turn is next"
-              : "Hold the button to talk"}
+            {incomingMuted
+              ? "Unmute"
+              : "Speaker"}
           </span>
-        </div>
-      </section>
+        </button>
 
-      <section className="pttZone">
         <button
-          type="button"
-          className="pttButton"
+          className={`talkButton ${
+            transmitting
+              ? "active"
+              : ""
+          }`}
           disabled={
-            !connected || isBusy
+            !connected ||
+            reconnecting
           }
           onPointerDown={
-            startPointer
+            startTalking
           }
-          onPointerUp={endPointer}
-          onPointerCancel={
-            endPointer
+          onPointerUp={() =>
+            void stopTalking()
           }
-          onLostPointerCapture={() => {
-            if (holdingRef.current) {
-              void releaseTalk();
+          onPointerCancel={() =>
+            void stopTalking()
+          }
+          onPointerLeave={() => {
+            if (
+              holdingRef.current
+            ) {
+              void stopTalking();
             }
           }}
-          onContextMenu={(event) =>
-            event.preventDefault()
-          }
         >
-          <span className="pttCore">
-            <i>
-              {transmitting
-                ? ")))"
-                : "📡"}
-            </i>
-
-            <strong>
-              {transmitting
-                ? "TALKING"
-                : isBusy
-                ? "BUSY"
-                : "HOLD"}
-            </strong>
-
-            <small>
-              {transmitting
-                ? "RELEASE"
-                : isBusy
-                ? "LISTEN"
-                : "TO TALK"}
-            </small>
+          <span>
+            {transmitting
+              ? "TALKING"
+              : "HOLD"}
           </span>
+          <b>
+            {transmitting
+              ? "Release to stop"
+              : "Push to talk"}
+          </b>
         </button>
 
-        <div className="bottomControls">
-          <button
-            type="button"
-            onClick={
-              toggleIncomingAudio
-            }
-          >
-            <span>
-              {incomingMuted
-                ? "🔇"
-                : "🔊"}
-            </span>
-
-            <small>
-              {incomingMuted
-                ? "Unmute"
-                : "Speaker"}
-            </small>
-          </button>
-
-          <div className="channelLabel">
-            <span>
-              {message}
-            </span>
-
-            <small>
-              CHANNEL{" "}
-              {roomId
-                .slice(0, 4)
-                .toUpperCase()}
-            </small>
-          </div>
-
-          <div className="quickToggles">
-            <button
-              type="button"
-              onClick={toggleSound}
-              aria-label="Toggle Walkie sounds"
-            >
-              {soundOn ? "🔔" : "🔕"}
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleHaptics}
-              aria-label="Toggle Walkie vibration"
-            >
-              {hapticsOn ? "📳" : "📴"}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="leaveButton"
-            onClick={
-              room?.created_by.toLowerCase() ===
-              email.toLowerCase()
-                ? endChannel
-                : leaveChannel
-            }
-          >
-            <span>✕</span>
-
-            <small>
-              {room?.created_by.toLowerCase() ===
-              email.toLowerCase()
-                ? "End"
-                : "Leave"}
-            </small>
-          </button>
-        </div>
+        <button
+          onClick={() =>
+            navigator.mediaDevices
+              ?.getUserMedia({
+                audio: {
+                  echoCancellation:
+                    true,
+                  noiseSuppression:
+                    true,
+                  autoGainControl:
+                    true,
+                },
+              })
+              .then((stream) =>
+                stream
+                  .getTracks()
+                  .forEach(
+                    (track) =>
+                      track.stop()
+                  )
+              )
+              .then(() =>
+                setMessage(
+                  "Microphone is ready."
+                )
+              )
+              .catch(() =>
+                setMessage(
+                  "Allow microphone access."
+                )
+              )
+          }
+        >
+          🎚
+          <span>Audio</span>
+        </button>
       </section>
+
+      <style jsx>{`
+        .walkieRoom {
+          min-height: 100vh;
+          padding:
+            max(
+              16px,
+              env(
+                safe-area-inset-top
+              )
+            )
+            14px
+            calc(
+              28px +
+              env(
+                safe-area-inset-bottom
+              )
+            );
+          color: white;
+          background:
+            radial-gradient(
+              circle at 50% 10%,
+              rgba(
+                82,
+                247,
+                200,
+                .22
+              ),
+              transparent 32%
+            ),
+            radial-gradient(
+              circle at 85% 85%,
+              rgba(
+                126,
+                90,
+                255,
+                .24
+              ),
+              transparent 36%
+            ),
+            linear-gradient(
+              180deg,
+              #07111d,
+              #02040a
+            );
+        }
+
+        .audioRoot {
+          display: none;
+        }
+
+        .topBar {
+          display: grid;
+          grid-template-columns:
+            auto minmax(0,1fr)
+            auto;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .topBar button {
+          min-width: 46px;
+          height: 46px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .14
+            );
+          border-radius: 16px;
+          color: white;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .06
+            );
+          font-weight: 900;
+        }
+
+        .topBar p {
+          margin: 0;
+          color: #58f5d1;
+          font-size: 9px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+        }
+
+        .topBar h1 {
+          margin: 4px 0 0;
+          overflow: hidden;
+          font-size: 19px;
+          text-overflow:
+            ellipsis;
+          white-space: nowrap;
+        }
+
+        .topBar .endButton {
+          color: #ff9bab;
+          border-color:
+            rgba(
+              255,
+              80,
+              110,
+              .28
+            );
+          background:
+            rgba(
+              255,
+              60,
+              90,
+              .11
+            );
+        }
+
+        .statusCard {
+          display: grid;
+          grid-template-columns:
+            auto minmax(0,1fr)
+            auto;
+          align-items: center;
+          gap: 13px;
+          margin-top: 18px;
+          padding: 15px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .11
+            );
+          border-radius: 22px;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .045
+            );
+        }
+
+        .signal {
+          width: 42px;
+          height: 28px;
+          display: flex;
+          align-items: end;
+          gap: 3px;
+        }
+
+        .signal i {
+          width: 6px;
+          border-radius: 4px;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .2
+            );
+        }
+
+        .signal i:nth-child(1) {
+          height: 7px;
+        }
+
+        .signal i:nth-child(2) {
+          height: 12px;
+        }
+
+        .signal i:nth-child(3) {
+          height: 19px;
+        }
+
+        .signal i:nth-child(4) {
+          height: 27px;
+        }
+
+        .signal.great i {
+          background: #58f5d1;
+        }
+
+        .signal.good i:nth-child(-n+3) {
+          background: #ffd36b;
+        }
+
+        .signal.weak i:nth-child(-n+1) {
+          background: #ff647f;
+        }
+
+        .statusCard span {
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .5
+            );
+          font-size: 9px;
+          font-weight: 950;
+          letter-spacing: .1em;
+        }
+
+        .statusCard strong {
+          display: block;
+          margin-top: 4px;
+          font-size: 21px;
+        }
+
+        .memberCount {
+          padding: 8px 10px;
+          border-radius: 999px;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .07
+            );
+          letter-spacing: 0 !important;
+        }
+
+        .speakerStage {
+          min-height: 360px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+        }
+
+        .rings {
+          position: relative;
+          width: 220px;
+          height: 220px;
+          display: grid;
+          place-items: center;
+        }
+
+        .rings > i {
+          position: absolute;
+          inset: 50%;
+          border:
+            1px solid
+            rgba(
+              82,
+              247,
+              200,
+              .2
+            );
+          border-radius: 50%;
+          transform:
+            translate(
+              -50%,
+              -50%
+            );
+          animation:
+            pulse 2s
+            ease-out infinite;
+        }
+
+        .rings > i:nth-child(1) {
+          width: 110px;
+          height: 110px;
+        }
+
+        .rings > i:nth-child(2) {
+          width: 155px;
+          height: 155px;
+          animation-delay: .3s;
+        }
+
+        .rings > i:nth-child(3) {
+          width: 205px;
+          height: 205px;
+          animation-delay: .6s;
+        }
+
+        .speakerOrb {
+          position: relative;
+          z-index: 2;
+          width: 100px;
+          height: 100px;
+          display: grid;
+          place-items: center;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .18
+            );
+          border-radius: 34px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                82,
+                247,
+                200,
+                .35
+              ),
+              rgba(
+                126,
+                90,
+                255,
+                .45
+              )
+            );
+          box-shadow:
+            0 25px 70px
+            rgba(
+              0,
+              0,
+              0,
+              .48
+            );
+          font-size: 42px;
+        }
+
+        .speakerStage p {
+          margin: 0;
+          color: #58f5d1;
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+        }
+
+        .speakerStage h2 {
+          margin: 8px 0 0;
+          font-size: 20px;
+        }
+
+        .speakerStage.transmitting
+        .speakerOrb {
+          background:
+            linear-gradient(
+              135deg,
+              #58f5d1,
+              #9dff75
+            );
+          transform: scale(1.08);
+        }
+
+        .speakerStage.receiving
+        .speakerOrb {
+          background:
+            linear-gradient(
+              135deg,
+              #6f9dff,
+              #a76fff
+            );
+        }
+
+        @keyframes pulse {
+          from {
+            opacity: .8;
+          }
+
+          to {
+            width: 230px;
+            height: 230px;
+            opacity: 0;
+          }
+        }
+
+        .members {
+          display: flex;
+          gap: 9px;
+          overflow-x: auto;
+          padding-bottom: 8px;
+          scrollbar-width: none;
+        }
+
+        .members article {
+          flex: none;
+          width: 92px;
+          padding: 11px 8px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .1
+            );
+          border-radius: 19px;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .04
+            );
+          text-align: center;
+        }
+
+        .members article.active {
+          border-color:
+            rgba(
+              82,
+              247,
+              200,
+              .4
+            );
+          background:
+            rgba(
+              82,
+              247,
+              200,
+              .1
+            );
+        }
+
+        .members article > span {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          margin: auto;
+          border-radius: 15px;
+          color: #071510;
+          background:
+            linear-gradient(
+              135deg,
+              #58f5d1,
+              #8e83ff
+            );
+          font-weight: 1000;
+        }
+
+        .members b,
+        .members small {
+          display: block;
+          overflow: hidden;
+          text-overflow:
+            ellipsis;
+          white-space: nowrap;
+        }
+
+        .members b {
+          margin-top: 7px;
+          font-size: 10px;
+        }
+
+        .members small {
+          margin-top: 3px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .42
+            );
+          font-size: 7px;
+        }
+
+        .controls {
+          display: grid;
+          grid-template-columns:
+            72px
+            minmax(0,1fr)
+            72px;
+          align-items: center;
+          gap: 10px;
+          margin-top: 16px;
+        }
+
+        .controls > button {
+          min-height: 66px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .12
+            );
+          border-radius: 22px;
+          color: white;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .05
+            );
+          font-weight: 900;
+        }
+
+        .controls > button span {
+          display: block;
+          margin-top: 4px;
+          font-size: 8px;
+        }
+
+        .talkButton {
+          min-height: 86px !important;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border: 0 !important;
+          border-radius: 28px !important;
+          color: #071510 !important;
+          background:
+            linear-gradient(
+              135deg,
+              #58f5d1,
+              #8e83ff
+            ) !important;
+          box-shadow:
+            0 20px 55px
+            rgba(
+              82,
+              247,
+              200,
+              .2
+            );
+          touch-action: none;
+          user-select: none;
+        }
+
+        .talkButton.active {
+          background:
+            linear-gradient(
+              135deg,
+              #ff5f87,
+              #ffb45f
+            ) !important;
+          transform: scale(.98);
+        }
+
+        .talkButton span {
+          margin: 0 !important;
+          font-size: 11px !important;
+          letter-spacing: .12em;
+        }
+
+        .talkButton b {
+          margin-top: 5px;
+          font-size: 16px;
+        }
+
+        .talkButton:disabled {
+          opacity: .45;
+        }
+
+        @media (
+          min-width: 760px
+        ) {
+          .walkieRoom {
+            max-width: 760px;
+            margin: auto;
+          }
+        }
+      `}</style>
     </main>
   );
 }
-
-const styles = `
-  *{box-sizing:border-box}
-  html,body{background:#030504;overscroll-behavior:none}
-  button{font:inherit;touch-action:none}
-  .channelPage{min-height:100dvh;overflow:hidden;color:#fff;background:
-    radial-gradient(circle at 50% 32%,rgba(82,247,200,.10),transparent 30%),
-    linear-gradient(180deg,#070a08,#020302)}
-  .audioContainer{position:absolute;width:1px;height:1px;overflow:hidden}.audioUnlock{position:fixed;top:max(76px,calc(env(safe-area-inset-top) + 62px));left:50%;z-index:100;width:min(calc(100% - 28px),420px);min-height:44px;transform:translateX(-50%);color:#07120e;border:0;border-radius:15px;background:#ffd166;box-shadow:0 12px 35px rgba(0,0,0,.38);font-size:10px;font-weight:950;animation:unlockPulse 1.4s ease-in-out infinite}
-  .channelHeader{position:relative;z-index:20;display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding:max(14px,env(safe-area-inset-top)) 13px 10px}.channelHeader>button{width:42px;height:42px;display:grid;place-items:center;color:#fff;border:1px solid rgba(255,255,255,.10);border-radius:50%;background:rgba(255,255,255,.05);font-size:18px}.channelHeader>div{display:grid;justify-items:center;gap:1px;min-width:0}.channelHeader span{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.5px}.channelHeader strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
-  .statusStage{position:relative;min-height:calc(100dvh - 365px);display:grid;align-content:start;justify-items:center;padding:8px 14px}.channelMeta{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.035);color:rgba(255,255,255,.65);font-size:8px;font-weight:900;letter-spacing:.8px}.channelMeta i{margin-left:3px;color:#52f7c8;font-style:normal}.connectedDot{width:7px;height:7px;border-radius:50%;background:#52f7c8;box-shadow:0 0 10px rgba(82,247,200,.7)}.connectedDot.offline{background:#ffb44f;box-shadow:none}
-  .people{width:min(100%,520px);display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:17px}.person{min-width:75px;display:grid;justify-items:center;gap:3px;padding:7px;border-radius:17px;transition:.18s}.personAvatar{width:52px;height:52px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.13);border-radius:50%;background:linear-gradient(135deg,rgba(82,247,200,.18),rgba(123,97,255,.20));font-size:18px;font-weight:950}.person strong{max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}.person small{color:rgba(255,255,255,.38);font-size:7px;font-weight:900;letter-spacing:.8px}.person.speaking{background:rgba(82,247,200,.06)}.person.speaking .personAvatar{border-color:#52f7c8;box-shadow:0 0 0 6px rgba(82,247,200,.08),0 0 25px rgba(82,247,200,.30);animation:speakingRing .8s ease-in-out infinite}.person.speaking small{color:#52f7c8}
-  .radioSignal{height:78px;display:flex;align-items:center;gap:8px;margin-top:7px}.radioSignal span{font-size:27px}.radioSignal i{width:5px;height:24px;border-radius:999px;border:1px solid rgba(82,247,200,.36)}.radioSignal i:nth-child(2),.radioSignal i:nth-child(4){height:40px}.transmitting .radioSignal i,.listening .radioSignal i{background:#52f7c8;box-shadow:0 0 13px rgba(82,247,200,.45);animation:radioWave .8s ease-in-out infinite}.radioSignal i:nth-child(2),.radioSignal i:nth-child(4){animation-delay:.12s}
-  .talkState{display:grid;justify-items:center;gap:2px;text-align:center}.talkState small{color:rgba(255,255,255,.45);font-size:9px;font-weight:950;letter-spacing:1.7px}.talkState strong{font-size:clamp(26px,8vw,42px);line-height:1;letter-spacing:-1.5px}.talkState>span{margin-top:2px;color:rgba(255,255,255,.48);font-size:10px}.transmitting .talkState strong{color:#52f7c8}.listening .talkState strong{color:#ffd166}
-  .pttZone{position:absolute;right:0;bottom:0;left:0;z-index:30;display:grid;justify-items:center;padding:5px 14px max(16px,env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(0,0,0,.96),rgba(0,0,0,.75),transparent)}
-  .pttButton{width:190px;height:190px;padding:0;border:0;border-radius:50%;background:radial-gradient(circle,rgba(82,247,200,.14),rgba(82,247,200,.04) 57%,transparent 59%);-webkit-tap-highlight-color:transparent;user-select:none}.pttButton:disabled{opacity:.58}.pttCore{width:142px;height:142px;display:grid;place-items:center;align-content:center;gap:2px;margin:auto;border:2px solid rgba(82,247,200,.58);border-radius:50%;background:linear-gradient(145deg,#10251d,#07100c);box-shadow:0 0 0 11px rgba(82,247,200,.05),0 18px 55px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.12)}.pttCore i{font-size:25px;font-style:normal}.pttCore strong{font-size:20px;letter-spacing:.7px}.pttCore small{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.4px}.transmitting .pttCore{transform:scale(.94);border-color:#fff;background:linear-gradient(145deg,#52f7c8,#1ea879);color:#03100b;box-shadow:0 0 0 15px rgba(82,247,200,.08),0 0 55px rgba(82,247,200,.36)}.transmitting .pttCore small{color:#03100b}.listening .pttCore{border-color:rgba(255,209,102,.55)}.listening .pttCore small{color:#ffd166}
-  .bottomControls{width:min(100%,540px);display:grid;grid-template-columns:58px 1fr 72px 58px;align-items:center;gap:7px;margin-top:-4px}.bottomControls>button{height:55px;display:grid;place-items:center;align-content:center;gap:1px;color:#fff;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.04)}.bottomControls>button span{font-size:17px}.bottomControls>button small{color:rgba(255,255,255,.48);font-size:7px;font-weight:900}.quickToggles{height:55px;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.035)}.quickToggles button{display:grid;place-items:center;padding:0;color:#fff;border:0;border-radius:12px;background:rgba(255,255,255,.045);font-size:15px}.leaveButton span{color:#ff6c81}.channelLabel{display:grid;justify-items:center;gap:2px}.channelLabel span{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1px}.channelLabel small{color:rgba(255,255,255,.28);font-size:7px;letter-spacing:1.2px}
-  @keyframes speakingRing{50%{box-shadow:0 0 0 10px rgba(82,247,200,.03),0 0 35px rgba(82,247,200,.42)}}@keyframes radioWave{50%{opacity:.25;transform:scaleY(.55)}}@keyframes unlockPulse{50%{transform:translateX(-50%) scale(.98);opacity:.82}}
-  @media(max-height:690px){.statusStage{min-height:calc(100dvh - 320px)}.pttButton{width:160px;height:160px}.pttCore{width:122px;height:122px}.people{margin-top:8px}.radioSignal{height:58px}}
-`;
