@@ -1334,6 +1334,18 @@ const messageChannelRef =
     <main className="activityPage">
       <UTVNav />
 
+      <nav className="utvSocialSwitch" aria-label="UTV social sections">
+        <button type="button" onClick={() => router.push("/activity")} className="active">
+          🔔 Activity
+        </button>
+        <button type="button" onClick={() => router.push("/messages")}>
+          💬 Messages
+        </button>
+        <button type="button" onClick={() => router.push("/settings")}>
+          ⚙️ Settings
+        </button>
+      </nav>
+
       <style>{styles}</style>
 
       <section className="activityHero">

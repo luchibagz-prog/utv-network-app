@@ -176,6 +176,16 @@ export default function ProfilePage() {
     return (
       <main className="profilePage">
         <UTVNav />
+
+      <button
+        type="button"
+        className="utvFloatingSettings"
+        onClick={() => router.push("/settings")}
+        aria-label="Open UTV settings"
+        title="Settings"
+      >
+        ⚙️
+      </button>
         <section className="loadingCard">
           <h1>Loading your UTV profile...</h1>
         </section>
@@ -188,6 +198,29 @@ export default function ProfilePage() {
       <UTVNav />
 
       <style>{`
+        .utvFloatingSettings {
+          position: fixed;
+          z-index: 1200;
+          top: calc(14px + env(safe-area-inset-top));
+          right: 14px;
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255,255,255,.18);
+          border-radius: 17px;
+          color: white;
+          font-size: 22px;
+          background: linear-gradient(135deg,rgba(82,247,200,.18),rgba(123,97,255,.28)),rgba(5,8,15,.9);
+          box-shadow: 0 14px 38px rgba(0,0,0,.4);
+          backdrop-filter: blur(18px);
+          cursor: pointer;
+        }
+
+        .utvFloatingSettings:active {
+          transform: scale(.93);
+        }
+
         .profilePage {
           min-height:100vh;
           padding-bottom:120px;
@@ -583,7 +616,7 @@ export default function ProfilePage() {
 
   <button
     className="btn secondary"
-    onClick={() => router.push("/creator/settings")}
+    onClick={() => router.push("/settings")}
   >
     Edit Profile
   </button>

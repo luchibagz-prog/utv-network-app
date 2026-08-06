@@ -80,6 +80,8 @@ export default function UTVNav() {
       "/submit",
       "/live-room",
       "/activity",
+      "/messages",
+      "/settings",
       "/profile",
     ];
 
