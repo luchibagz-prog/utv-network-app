@@ -52,7 +52,7 @@ const navItems = [
     activity: true,
   },
   {
-    href: "/profile-v10",
+    href: "/profile-pro-v12",
     label: "Profile",
     icon: "👤",
   },
