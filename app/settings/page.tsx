@@ -333,7 +333,7 @@ export default function SettingsPage() {
         <article className="card links">
           <button onClick={() => router.push("/notifications")}>🔔 Activity and notifications <span>›</span></button>
           <button onClick={() => router.push("/messages")}>💬 Messages <span>›</span></button>
-          <button onClick={() => router.push("/profile")}>👤 Edit profile <span>›</span></button>
+          <button onClick={() => router.push("/profile-v10")}>👤 Edit profile <span>›</span></button>
           <button onClick={() => router.push("/walkie")}>🎙 Walkie and calls <span>›</span></button>
         </article>
       </section>

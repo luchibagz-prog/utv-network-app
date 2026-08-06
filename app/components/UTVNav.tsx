@@ -52,7 +52,7 @@ const navItems = [
     activity: true,
   },
   {
-    href: "/profile",
+    href: "/profile-v10",
     label: "Profile",
     icon: "👤",
   },
@@ -82,6 +82,7 @@ export default function UTVNav() {
       "/activity",
       "/messages",
       "/settings",
+      "/profile-v10",
       "/profile",
     ];
 
