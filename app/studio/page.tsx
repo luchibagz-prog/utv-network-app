@@ -399,7 +399,7 @@ export default function StudioPage() {
 
               <div className="profileActions">
                 <button type="button" className="primaryButton" onClick={() => router.push(`/u/${encodeURIComponent(email)}`)}>View Profile</button>
-                <button type="button" className="secondaryButton" onClick={() => router.push("/settings")}>Edit Profile</button>
+                <button type="button" className="secondaryButton" onClick={() => router.push("/profile-pro-v12")}>Edit Profile</button>
               </div>
             </aside>
 
