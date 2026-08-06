@@ -421,7 +421,8 @@ export default function StudioPage() {
               <section className="sectionCard card">
                 <div className="sectionHeader"><h2>Quick Create</h2><span>Keep your page moving</span></div>
                 <div className="quickGrid">
-                  <button type="button" className="quickButton" onClick={() => router.push("/submit")}><span>⬆️</span><strong>Upload Content</strong></button>
+                  <button type="button" className="quickButton" onClick={() => router.push("/creator-upload-v16")}><span>⬆️</span><strong>Upload Content</strong></button>
+                  <button type="button" className="quickButton" onClick={() => router.push("/creator-analytics-v17")}><span>📊</span><strong>Creator Analytics</strong></button>
                   <button type="button" className="quickButton" onClick={() => router.push("/submit?type=story")}><span>📖</span><strong>Create Story</strong></button>
                   <button type="button" className="quickButton" onClick={() => router.push("/live-room")}><span>🔴</span><strong>Go Live</strong></button>
                   <button type="button" className="quickButton" onClick={() => router.push("/events/new")}><span>🎟️</span><strong>Create Event</strong></button>
