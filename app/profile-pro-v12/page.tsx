@@ -83,7 +83,7 @@ export default function ProfileProV12Page() {
         .from("follows")
         .select("follower_email")
         .eq("following_email", userEmail)
-        .limit(6),
+        .limit(8),
     ]);
 
     const crewEmails = (crewResult.data || [])
@@ -260,7 +260,7 @@ export default function ProfileProV12Page() {
       >
         <div className="topActions">
           <button onClick={() => router.push("/settings")}>⚙️</button>
-          <button onClick={() => router.push("/profile")}>Edit profile</button>
+          <button onClick={() => router.push("/profile-edit")}>Edit profile</button>
         </div>
 
         <div className="identity">
@@ -297,7 +297,7 @@ export default function ProfileProV12Page() {
         <article><strong>{posts.length}</strong><span>Posts</span></article>
         <article><strong>{followers}</strong><span>Crew</span></article>
         <article><strong>{following}</strong><span>Following</span></article>
-        <article><strong>{crew.length}/6</strong><span>Top Crew</span></article>
+        <article><strong>{crew.length}/8</strong><span>Top Crew</span></article>
       </section>
 
       <nav className="tabs">
@@ -305,7 +305,7 @@ export default function ProfileProV12Page() {
           [
             ["featured", "✨ Featured"],
             ["posts", "🎬 Posts"],
-            ["crew", "👥 Top 6"],
+            ["crew", "👥 Top 8"],
             ["about", "⚡ About"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
@@ -350,9 +350,9 @@ export default function ProfileProV12Page() {
             <div className="sectionHeading">
               <div>
                 <p>INNER CIRCLE</p>
-                <h2>Top 6 Crew</h2>
+                <h2>Top 8 Crew</h2>
               </div>
-              <button onClick={() => router.push("/settings")}>Customize</button>
+              <button onClick={() => router.push("/top-crew")}>Customize</button>
             </div>
 
             <CrewGrid crew={crew} router={router} />
@@ -720,7 +720,7 @@ function CrewGrid({
     return (
       <article className="empty">
         <span>👥</span>
-        <h3>Your Top 6 starts with your crew.</h3>
+        <h3>Your Top 8 starts with your crew.</h3>
         <p>Connect with creators to fill this section.</p>
 
         <style jsx>{`

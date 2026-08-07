@@ -1759,7 +1759,7 @@ const selectedSticker = stickers.find(
         destinations.profile &&
         !destinations.feed
       ) {
-        router.push("/profile");
+        router.push("/profile-pro-v12");
         return;
       }
 

@@ -26,7 +26,7 @@ const defaults = {
 function fromBase64Url(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
+  const raw = (() => { try { return window.atob(base64); } catch { throw new Error("Invalid VAPID public key."); } })();
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
@@ -333,7 +333,7 @@ export default function SettingsPage() {
         <article className="card links">
           <button onClick={() => router.push("/notifications")}>🔔 Activity and notifications <span>›</span></button>
           <button onClick={() => router.push("/messages")}>💬 Messages <span>›</span></button>
-          <button onClick={() => router.push("/profile-v10")}>👤 Edit profile <span>›</span></button>
+          <button onClick={() => router.push("/profile-edit")}>👤 Edit profile <span>›</span></button>
           <button onClick={() => router.push("/walkie")}>🎙 Walkie and calls <span>›</span></button>
         </article>
       </section>

@@ -8,7 +8,7 @@ const PUBLIC_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 function urlBase64ToUint8Array(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = window.atob(base64);
+  const raw = (() => { try { return window.atob(base64); } catch { throw new Error("Invalid VAPID public key."); } })();
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
