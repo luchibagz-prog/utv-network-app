@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import CreatorEarningsCard from "../components/CreatorEarningsCard";
 import { supabase } from "../../lib/supabaseClient";
 
 const fmt=(n:number)=>new Intl.NumberFormat("en-US",{notation:n>999?"compact":"standard",maximumFractionDigits:1}).format(n);
@@ -10,12 +11,14 @@ export default function CreatorAnalyticsV17Page(){
   const router=useRouter();
   const [uploads,setUploads]=useState<any[]>([]);
   const [followers,setFollowers]=useState(0);
+  const [creatorEmail,setCreatorEmail]=useState("");
 
   useEffect(()=>{void load()},[]);
 
   async function load(){
     const {data}=await supabase.auth.getUser();
     if(!data.user?.email){router.push("/login");return}
+    setCreatorEmail(data.user.email);
     const [u,f]=await Promise.all([
       supabase.from("uploads").select("*").eq("creator_email",data.user.email).order("created_at",{ascending:false}),
       supabase.from("follows").select("*",{count:"exact",head:true}).eq("following_email",data.user.email)
@@ -44,6 +47,7 @@ export default function CreatorAnalyticsV17Page(){
       <article><strong>{fmt(followers)}</strong><span>Crew</span></article>
       <article><strong>{uploads.length?Math.round((stats.approved/uploads.length)*100):0}%</strong><span>Approval</span></article>
     </section>
+    <CreatorEarningsCard creatorEmail={creatorEmail}/>
     <section className="card">
       <h2>Top content</h2>
       {top.length?top.map((item,index)=><button key={item.id} onClick={()=>router.push(`/watch/${item.id}`)}>

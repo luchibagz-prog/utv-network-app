@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import CreatorSupportPanel from "../components/CreatorSupportPanel";
 import { supabase } from "../../lib/supabaseClient";
 
 type Tab = "featured" | "posts" | "crew" | "about";
@@ -288,6 +289,7 @@ export default function ProfileProV12Page() {
           <button onClick={toggleMusic}>
             {playing ? "⏸ Music" : "▶ Music"}
           </button>
+          <CreatorSupportPanel creatorEmail={email} creatorName={name} />
         </div>
       </section>
 
