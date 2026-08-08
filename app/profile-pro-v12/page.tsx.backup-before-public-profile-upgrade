@@ -166,12 +166,6 @@ export default function ProfileProV12Page() {
     ["profile_song_url", "profile_song", "music_url"]
   );
 
-  const songTitle = pick(
-    profile,
-    ["profile_song_title", "music_title", "song_title"],
-    song ? "Profile Soundtrack" : ""
-  );
-
   const bio = pick(
     profile,
     ["bio", "description"],
@@ -269,26 +263,8 @@ export default function ProfileProV12Page() {
         }}
       >
         <div className="topActions">
-          <button
-            className="viewPublicButton"
-            onClick={() =>
-              router.push(`/u/${encodeURIComponent(email)}?preview=1`)
-            }
-          >
-            👁 View my profile
-          </button>
-
-          <button onClick={() => router.push("/studio")}>
-            🎬 Studio
-          </button>
-
-          <button onClick={() => router.push("/settings")}>
-            ⚙️
-          </button>
-
-          <button onClick={() => router.push("/profile-edit")}>
-            Edit profile
-          </button>
+          <button onClick={() => router.push("/settings")}>⚙️</button>
+          <button onClick={() => router.push("/profile-edit")}>Edit profile</button>
         </div>
 
         <div className="identity">
@@ -353,14 +329,8 @@ export default function ProfileProV12Page() {
             <section className="musicCard">
               <div>
                 <p>PROFILE SOUNDTRACK</p>
-                <h2>
-                  {song ? songTitle : "Add your profile music."}
-                </h2>
-                <span>
-                  {song
-                    ? "Your profile soundtrack"
-                    : "Visitors can play your soundtrack while exploring your profile."}
-                </span>
+                <h2>{song ? "Your profile has a sound." : "Add your profile music."}</h2>
+                <span>Visitors can play your soundtrack while exploring your profile.</span>
               </div>
               <button onClick={toggleMusic}>{playing ? "Pause" : "Play"}</button>
             </section>
@@ -392,7 +362,8 @@ export default function ProfileProV12Page() {
             <CrewGrid crew={crew} router={router} />
 
             <p className="note">
-              Your Top 8 is your featured inner circle on UTV.
+              Pack 12 displays six crew members from your latest connections.
+              Manual ordering can be added with the next database pack.
             </p>
           </>
         )}
@@ -774,7 +745,7 @@ function CrewGrid({
 
   return (
     <div className="crewGrid">
-      {crew.slice(0, 8).map((person) => (
+      {crew.slice(0, 6).map((person) => (
         <button
           key={person.email}
           onClick={() =>
