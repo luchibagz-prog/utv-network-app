@@ -26,7 +26,7 @@ const defaults = {
 function fromBase64Url(value: string) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = (() => { try { return window.atob(base64); } catch { throw new Error("Invalid VAPID public key."); } })();
+  const raw = (() => { try { return window.atob(base64); } catch { throw new Error("Push notifications still need setup."); } })();
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
@@ -118,7 +118,7 @@ export default function SettingsPage() {
 
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
       if (!publicKey) {
-        throw new Error("UTV is missing its public notification key.");
+        throw new Error("Push notifications still need setup.");
       }
 
       let subscription = await registration.pushManager.getSubscription();

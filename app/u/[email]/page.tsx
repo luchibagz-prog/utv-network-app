@@ -304,7 +304,7 @@ export default function PublicProfile() {
         <div className="previewBar">
           <div>
             <b>👁 Public profile preview</b>
-            <span>This is what people see when they visit you.</span>
+            <span>This is exactly how visitors see your UTV profile.</span>
           </div>
 
           <button
@@ -360,25 +360,7 @@ export default function PublicProfile() {
               {playing ? "⏸ Music" : "▶ Music"}
             </button>
           </div>
-        ) : (
-          <div className="ownerActions">
-            <button
-              onClick={() =>
-                router.push("/profile-pro-v12")
-              }
-            >
-              ← My profile controls
-            </button>
-
-            <button onClick={() => router.push("/profile-edit")}>
-              ✏️ Edit
-            </button>
-
-            <button onClick={() => router.push("/studio")}>
-              🎬 Studio
-            </button>
-          </div>
-        )}
+        ) : null}
       </section>
 
       <section className="stats">
