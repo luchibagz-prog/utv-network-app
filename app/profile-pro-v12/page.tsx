@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import OwnerProfileTools from "../components/OwnerProfileTools";
+import ProfileSoundtrackMeta from "../components/ProfileSoundtrackMeta";
 import CreatorSupportPanel from "../components/CreatorSupportPanel";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -205,6 +207,8 @@ export default function ProfileProV12Page() {
     return (
       <main className="page loading">
         <UTVNav />
+      <OwnerProfileTools />
+      <ProfileSoundtrackMeta />
         <div className="spinner" />
         <h1>Loading Creator Profile Pro…</h1>
 

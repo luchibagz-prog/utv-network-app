@@ -39,7 +39,7 @@ export default function ProfileEditPage(){
       email,
       ...form,
       username:String(form.username||"").replace(/^@/,""),
-      updated_at:new Date().toISOString()
+
     },{onConflict:"email"});
     setSaving(false);
     if(error){setNotice(error.message);return}
