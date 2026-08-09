@@ -126,6 +126,12 @@ export default function FeedPage() {
   const [composerText, setComposerText] = useState("");
   const [postingText, setPostingText] = useState(false);
 
+  const [composerFile, setComposerFile] =
+    useState<File | null>(null);
+
+  const [composerPreview, setComposerPreview] =
+    useState("");
+
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
@@ -835,17 +841,102 @@ export default function FeedPage() {
     }, 1800);
   }
 
-  async function createTextPost() {
-    const caption = composerText.trim();
+  function clearComposerMedia() {
+    if (composerPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(composerPreview);
+    }
 
-    if (!caption || postingText) {
+    setComposerFile(null);
+    setComposerPreview("");
+  }
+
+  function pickComposerMedia(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const selected =
+      event.target.files?.[0] || null;
+
+    event.target.value = "";
+
+    if (!selected) return;
+
+    if (!selected.type.startsWith("image/")) {
+      showFeedMessage(
+        "Choose a photo for this post."
+      );
+      return;
+    }
+
+    if (composerPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(composerPreview);
+    }
+
+    setComposerFile(selected);
+    setComposerPreview(
+      URL.createObjectURL(selected)
+    );
+  }
+
+  async function uploadComposerPhoto(
+    file: File,
+    email: string
+  ) {
+    const safeName =
+      file.name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9._-]/g, "");
+
+    const filePath =
+      `creator-posts/${email.replace(
+        /[^a-zA-Z0-9]/g,
+        "-"
+      )}/${Date.now()}-${safeName || "photo.jpg"}`;
+
+    const { error } =
+      await supabase.storage
+        .from("uploads")
+        .upload(
+          filePath,
+          file,
+          {
+            upsert: false,
+            contentType:
+              file.type ||
+              "image/jpeg",
+            cacheControl:
+              "3600",
+          }
+        );
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } =
+      supabase.storage
+        .from("uploads")
+        .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  async function createTextPost() {
+    const caption =
+      composerText.trim();
+
+    if (
+      (!caption && !composerFile) ||
+      postingText
+    ) {
       return;
     }
 
     const { data: authData } =
       await supabase.auth.getUser();
 
-    const user = authData.user;
+    const user =
+      authData.user;
 
     if (!user?.email) {
       router.push("/login");
@@ -855,6 +946,16 @@ export default function FeedPage() {
     setPostingText(true);
 
     try {
+      let photoUrl = "";
+
+      if (composerFile) {
+        photoUrl =
+          await uploadComposerPhoto(
+            composerFile,
+            user.email
+          );
+      }
+
       const { data: uploadRow, error: uploadError } =
         await supabase
           .from("uploads")
@@ -862,16 +963,23 @@ export default function FeedPage() {
             title: "",
             description: caption,
             category: "Feed",
-            creator_email: user.email,
+            creator_email:
+              user.email,
 
             video_url: "",
-            thumbnail_url: "",
-            media_url: "",
-            file_url: "",
+            thumbnail_url:
+              photoUrl,
+            media_url:
+              photoUrl,
+            file_url:
+              photoUrl,
             external_url: "",
 
             visibility: "feed",
-            content_type: "Feed",
+            content_type:
+              photoUrl
+                ? "image"
+                : "Feed",
 
             needs_approval: false,
             approved: true,
@@ -885,22 +993,27 @@ export default function FeedPage() {
 
       if (!uploadRow?.id) {
         throw new Error(
-          "Post saved but UTV did not receive the new post ID."
+          "UTV did not receive the new post ID."
         );
       }
 
-      /*
-       * Verify the exact row exists in Supabase before
-       * showing success.
-       */
-      const { data: verifiedRow, error: verifyError } =
+      const {
+        data: verifiedRow,
+        error: verifyError,
+      } =
         await supabase
           .from("uploads")
           .select("*")
-          .eq("id", uploadRow.id)
+          .eq(
+            "id",
+            uploadRow.id
+          )
           .single();
 
-      if (verifyError || !verifiedRow) {
+      if (
+        verifyError ||
+        !verifiedRow
+      ) {
         throw (
           verifyError ||
           new Error(
@@ -909,28 +1022,10 @@ export default function FeedPage() {
         );
       }
 
-      /*
-       * Put user into the correct Feed view so their
-       * new post cannot be hidden by Following/Near/UTV
-       * filters or an old search.
-       */
       setFeedTab("forYou");
       setSearch("");
 
-      /*
-       * Force the actual verified Supabase row to the
-       * top of the Feed wall immediately.
-       */
-      setItems((current) => [
-        verifiedRow,
-        ...current.filter(
-          (item) =>
-            String(item.id) !==
-            String(verifiedRow.id)
-        ),
-      ]);
-
-      itemsRef.current = [
+      const nextItems = [
         verifiedRow,
         ...itemsRef.current.filter(
           (item) =>
@@ -939,62 +1034,74 @@ export default function FeedPage() {
         ),
       ];
 
+      setItems(nextItems);
+      itemsRef.current =
+        nextItems;
+
       setLikes((current) => ({
         ...current,
-        [String(verifiedRow.id)]: 0,
+        [String(
+          verifiedRow.id
+        )]: 0,
       }));
 
-      setComments((current) => ({
-        ...current,
-        [String(verifiedRow.id)]: [],
-      }));
+      setComments(
+        (current) => ({
+          ...current,
+          [String(
+            verifiedRow.id
+          )]: [],
+        })
+      );
 
-      setLikedPosts((current) => ({
-        ...current,
-        [String(verifiedRow.id)]: false,
-      }));
+      setLikedPosts(
+        (current) => ({
+          ...current,
+          [String(
+            verifiedRow.id
+          )]: false,
+        })
+      );
 
       await loadProfiles([
         user.email,
       ]);
 
       setComposerText("");
+      clearComposerMedia();
       setComposerOpen(false);
-      setLastUpdatedAt(new Date());
+      setLastUpdatedAt(
+        new Date()
+      );
 
-      /*
-       * Confirm from server again shortly after local
-       * placement without making the user wait.
-       */
       window.setTimeout(() => {
-        void loadEverything(false, false);
+        void loadEverything(
+          false,
+          false
+        );
       }, 900);
 
       window.setTimeout(() => {
-        const newPost =
+        const element =
           document.getElementById(
             `post-${verifiedRow.id}`
           );
 
-        if (newPost) {
-          newPost.scrollIntoView({
-            behavior: "smooth",
+        if (element) {
+          element.scrollIntoView({
+            behavior:
+              "smooth",
             block: "start",
           });
-        } else {
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-          });
         }
-      }, 80);
+      }, 100);
 
       showFeedMessage(
         "Posted to your UTV Feed 🔥"
       );
     } catch (error: any) {
       console.error(
-        "Caption post error:",
+        "Composer post error:",
         error
       );
 
@@ -1711,14 +1818,26 @@ export default function FeedPage() {
           <button
             type="button"
             onClick={() =>
-              router.push(
-                "/submit?type=photo"
-              )
+              document
+                .getElementById(
+                  "motion-photo-input"
+                )
+                ?.click()
             }
           >
             <span>📷</span>
             Photo
           </button>
+
+          <input
+            id="motion-photo-input"
+            hidden
+            type="file"
+            accept="image/*"
+            onChange={
+              pickComposerMedia
+            }
+          />
 
           <button
             type="button"
@@ -2351,7 +2470,8 @@ export default function FeedPage() {
                 className="composerPost"
                 disabled={
                   postingText ||
-                  !composerText.trim()
+                  !composerText.trim() &&
+                  !composerFile
                 }
                 onClick={() =>
                   void createTextPost()
@@ -2392,6 +2512,26 @@ export default function FeedPage() {
               </div>
             </div>
 
+            {composerPreview && (
+              <div className="composerPhotoPreview">
+                <img
+                  src={
+                    composerPreview
+                  }
+                  alt="Post preview"
+                />
+
+                <button
+                  type="button"
+                  onClick={
+                    clearComposerMedia
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <textarea
               autoFocus
               value={composerText}
@@ -2408,16 +2548,27 @@ export default function FeedPage() {
               <div className="composerMediaOptions">
                 <button
                   type="button"
-                  onClick={() => {
-                    setComposerOpen(false);
-                    router.push(
-                      "/submit?type=photo"
-                    );
-                  }}
+                  onClick={() =>
+                    document
+                      .getElementById(
+                        "composer-sheet-photo-input"
+                      )
+                      ?.click()
+                  }
                 >
                   📷
                   <span>Photo</span>
                 </button>
+
+                <input
+                  id="composer-sheet-photo-input"
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={
+                    pickComposerMedia
+                  }
+                />
 
                 <button
                   type="button"
@@ -4160,6 +4311,45 @@ const styles = `
     .textOnlyPost p {
       font-size: 24px;
     }
+  }
+
+
+
+  .composerPhotoPreview {
+    position: relative;
+    width: 100%;
+    max-height: 420px;
+    margin-top: 14px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #000;
+  }
+
+  .composerPhotoPreview img {
+    width: 100%;
+    max-height: 420px;
+    display: block;
+    object-fit: contain;
+    background: #000;
+  }
+
+  .composerPhotoPreview button {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 1px solid
+      rgba(255,255,255,.18);
+    border-radius: 50%;
+    color: white;
+    background:
+      rgba(0,0,0,.68);
+    backdrop-filter:
+      blur(10px);
+    font-size: 20px;
   }
 
 

@@ -470,6 +470,8 @@ const selectedSticker = stickers.find(
           facingMode: {
             ideal: facing,
           },
+
+          // Keep constraints broadly compatible with mobile browsers.
           width: {
             ideal: 3840,
           },
@@ -2398,6 +2400,30 @@ if (mode === "camera") {
         />
 
         <div className="cameraShade" />
+
+        <div className="cameraGrid">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <div className="cameraStatus">
+          <span className="cameraStatusDot" />
+
+          <strong>
+            {recording
+              ? "REC"
+              : "UTV CAMERA"}
+          </strong>
+
+          <small>
+            {cameraFacing ===
+            "user"
+              ? "FRONT"
+              : "BACK"}
+          </small>
+        </div>
 
         {message && (
           <div className="cameraMessage">
@@ -5214,4 +5240,205 @@ const styles = `
     .storyLayerDock button { min-width: 34px; padding: 0 8px; }
   }
 }
+
+  /* ======================================================
+     UTV PREMIUM CAMERA
+     ====================================================== */
+
+  .utvCameraPage {
+    background: #000;
+  }
+
+  .cameraViewport {
+    background: #000;
+  }
+
+  .cameraPreview {
+    image-rendering: auto;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+
+  .cameraShade {
+    z-index: 3;
+    background:
+      radial-gradient(
+        circle at center,
+        transparent 43%,
+        rgba(0,0,0,.16) 78%,
+        rgba(0,0,0,.34) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.46),
+        transparent 19%,
+        transparent 69%,
+        rgba(0,0,0,.68)
+      );
+  }
+
+  .cameraGrid {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: .16;
+  }
+
+  .cameraGrid span {
+    position: absolute;
+    background:
+      rgba(255,255,255,.36);
+  }
+
+  .cameraGrid span:nth-child(1),
+  .cameraGrid span:nth-child(2) {
+    top: 0;
+    bottom: 0;
+    width: 1px;
+  }
+
+  .cameraGrid span:nth-child(1) {
+    left: 33.333%;
+  }
+
+  .cameraGrid span:nth-child(2) {
+    left: 66.666%;
+  }
+
+  .cameraGrid span:nth-child(3),
+  .cameraGrid span:nth-child(4) {
+    right: 0;
+    left: 0;
+    height: 1px;
+  }
+
+  .cameraGrid span:nth-child(3) {
+    top: 33.333%;
+  }
+
+  .cameraGrid span:nth-child(4) {
+    top: 66.666%;
+  }
+
+  .cameraStatus {
+    position: absolute;
+    top:
+      max(
+        92px,
+        calc(
+          env(safe-area-inset-top)
+          + 78px
+        )
+      );
+    left: 50%;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+    border-radius: 999px;
+    color: white;
+    background:
+      rgba(0,0,0,.35);
+    backdrop-filter: blur(13px);
+    transform:
+      translateX(-50%);
+  }
+
+  .cameraStatusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #52f7c8;
+    box-shadow:
+      0 0 12px
+      rgba(82,247,200,.75);
+  }
+
+  .cameraStatus strong {
+    font-size: 8px;
+    letter-spacing: .08em;
+  }
+
+  .cameraStatus small {
+    color:
+      rgba(255,255,255,.4);
+    font-size: 6px;
+  }
+
+  .cameraHeader {
+    padding-left: 14px;
+    padding-right: 14px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.76),
+        rgba(0,0,0,.25),
+        transparent
+      );
+  }
+
+  .cameraHeaderButton {
+    width: 46px;
+    height: 46px;
+    border:
+      1px solid
+      rgba(255,255,255,.17);
+    background:
+      rgba(0,0,0,.34);
+    backdrop-filter:
+      blur(12px);
+  }
+
+  .cameraBrand strong {
+    font-size: 30px;
+  }
+
+  .cameraControls {
+    padding-top: 42px;
+    background:
+      linear-gradient(
+        180deg,
+        transparent,
+        rgba(0,0,0,.38) 18%,
+        rgba(0,0,0,.86) 54%,
+        #000 100%
+      );
+  }
+
+  .cameraModeRow {
+    max-width: 510px;
+    margin: 0 auto;
+  }
+
+  .cameraModeButton {
+    opacity: .8;
+  }
+
+  .cameraModeButton:active {
+    transform: scale(.91);
+  }
+
+  .mainCaptureButton {
+    width: 78px;
+    height: 78px;
+    border-width: 4px;
+    box-shadow:
+      0 0 0 3px
+      rgba(255,255,255,.96),
+      0 0 0 8px
+      rgba(123,97,255,.16),
+      0 0 34px
+      rgba(123,97,255,.31);
+  }
+
+  .cameraQuickModes {
+    margin-top: 13px;
+  }
+
+
 `;
