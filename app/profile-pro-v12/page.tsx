@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
-import ProfileSoundtrackMeta from "../components/ProfileSoundtrackMeta";
 import CreatorSupportPanel from "../components/CreatorSupportPanel";
 import { supabase } from "../../lib/supabaseClient";
 
-type Tab = "home" | "content" | "crew" | "about";
+type Tab = "featured" | "posts" | "crew" | "about";
+type ViewMode = "owner" | "public";
 
 function pick(row: any, keys: string[], fallback = "") {
   for (const key of keys) {
@@ -40,31 +40,43 @@ function crewStorageKey(email: string) {
   return `utv-top8-order:${email.toLowerCase()}`;
 }
 
-function sortCrewBySavedOrder(items: any[], email: string) {
-  if (typeof window === "undefined" || !email) return items;
+function restoreCrewOrder(items: any[], email: string) {
+  if (
+    typeof window === "undefined" ||
+    !email ||
+    !items.length
+  ) {
+    return items;
+  }
 
   try {
-    const raw = window.localStorage.getItem(crewStorageKey(email));
+    const raw = window.localStorage.getItem(
+      crewStorageKey(email)
+    );
 
     if (!raw) return items;
 
-    const saved = JSON.parse(raw);
+    const stored = JSON.parse(raw);
 
-    if (!Array.isArray(saved)) return items;
+    if (!Array.isArray(stored)) return items;
 
-    const order = new Map(
-      saved.map((crewEmail: string, index: number) => [
-        String(crewEmail).toLowerCase(),
+    const orderMap = new Map(
+      stored.map((itemEmail: string, index: number) => [
+        String(itemEmail).toLowerCase(),
         index,
       ])
     );
 
     return [...items].sort((a, b) => {
       const aIndex =
-        order.get(String(a.email || "").toLowerCase()) ?? 9999;
+        orderMap.get(
+          String(a.email || "").toLowerCase()
+        ) ?? 9999;
 
       const bIndex =
-        order.get(String(b.email || "").toLowerCase()) ?? 9999;
+        orderMap.get(
+          String(b.email || "").toLowerCase()
+        ) ?? 9999;
 
       return aIndex - bIndex;
     });
@@ -84,19 +96,25 @@ export default function ProfileProV12Page() {
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
 
-  const [tab, setTab] = useState<Tab>("home");
   const [loading, setLoading] = useState(true);
+  const [playing, setPlaying] = useState(false);
+
+  const [tab, setTab] =
+    useState<Tab>("featured");
+
+  const [viewMode, setViewMode] =
+    useState<ViewMode>("owner");
+
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    void load();
+    void loadProfile();
   }, []);
 
-  async function load() {
-    setLoading(true);
-
-    const { data: auth } = await supabase.auth.getUser();
-    const user = auth.user;
+  async function loadProfile() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       router.push("/login");
@@ -123,28 +141,40 @@ export default function ProfileProV12Page() {
         .from("uploads")
         .select("*")
         .eq("creator_email", userEmail)
-        .order("created_at", { ascending: false })
-        .limit(36),
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(40),
 
       supabase
         .from("follows")
-        .select("*", { count: "exact", head: true })
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
         .eq("following_email", userEmail),
 
       supabase
         .from("follows")
-        .select("*", { count: "exact", head: true })
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
         .eq("follower_email", userEmail),
 
       supabase
         .from("follows")
         .select("follower_email")
         .eq("following_email", userEmail)
-        .limit(30),
+        .limit(50),
     ]);
 
-    const crewEmails = (crewResult.data || [])
-      .map((row: any) => String(row.follower_email || ""))
+    const crewEmails = (
+      crewResult.data || []
+    )
+      .map((row: any) =>
+        String(row.follower_email || "")
+      )
       .filter(Boolean);
 
     let crewProfiles: any[] = [];
@@ -155,57 +185,73 @@ export default function ProfileProV12Page() {
         .select("*")
         .in("email", crewEmails);
 
-      const profileMap = new Map(
+      const creatorMap = new Map(
         (data || []).map((item: any) => [
-          String(item.email || "").toLowerCase(),
+          String(
+            item.email || ""
+          ).toLowerCase(),
           item,
         ])
       );
 
-      crewProfiles = crewEmails.map((crewEmail) => {
-        const member =
-          profileMap.get(crewEmail.toLowerCase()) || {};
+      crewProfiles = crewEmails.map(
+        (crewEmail) => {
+          const member =
+            creatorMap.get(
+              crewEmail.toLowerCase()
+            ) || {};
 
-        return {
-          email: crewEmail,
+          return {
+            email: crewEmail,
 
-          name: pick(
-            member,
-            [
-              "display_name",
-              "creator_name",
-              "full_name",
-              "username",
-            ],
-            crewEmail.split("@")[0]
-          ),
+            name: pick(
+              member,
+              [
+                "display_name",
+                "creator_name",
+                "full_name",
+                "username",
+              ],
+              crewEmail.split("@")[0]
+            ),
 
-          username: pick(
-            member,
-            ["username"],
-            crewEmail.split("@")[0]
-          ),
+            username: pick(
+              member,
+              ["username"],
+              crewEmail.split("@")[0]
+            ),
 
-          avatar: pick(member, [
-            "avatar_url",
-            "creator_avatar",
-            "profile_image",
-            "image_url",
-          ]),
-        };
-      });
+            avatar: pick(member, [
+              "avatar_url",
+              "creator_avatar",
+              "profile_image",
+              "image_url",
+            ]),
+          };
+        }
+      );
     }
 
-    crewProfiles = sortCrewBySavedOrder(
-      crewProfiles,
-      userEmail
+    setProfile(
+      profileResult.data || null
     );
 
-    setProfile(profileResult.data || null);
     setPosts(postsResult.data || []);
-    setFollowers(followersResult.count || 0);
-    setFollowing(followingResult.count || 0);
-    setCrew(crewProfiles);
+
+    setFollowers(
+      followersResult.count || 0
+    );
+
+    setFollowing(
+      followingResult.count || 0
+    );
+
+    setCrew(
+      restoreCrewOrder(
+        crewProfiles,
+        userEmail
+      )
+    );
 
     setLoading(false);
   }
@@ -248,13 +294,13 @@ export default function ProfileProV12Page() {
   const bio = pick(
     profile,
     ["bio", "description"],
-    "Creating, building and streaming on UTV."
+    "Building on UTV."
   );
 
   const category = pick(
     profile,
     ["category", "creator_type"],
-    "UTV Creator"
+    "Creator"
   );
 
   const location = pick(profile, [
@@ -263,116 +309,182 @@ export default function ProfileProV12Page() {
     "creator_location",
   ]);
 
+  const song = pick(profile, [
+    "profile_song_url",
+    "profile_song",
+    "music_url",
+  ]);
+
+  const songTitle = pick(
+    profile,
+    [
+      "profile_song_title",
+      "music_title",
+      "song_title",
+    ],
+    song
+      ? "Profile Soundtrack"
+      : "Add your soundtrack"
+  );
+
+  const songArtist = pick(
+    profile,
+    [
+      "profile_song_artist",
+      "music_artist",
+      "song_artist",
+      "creator_name",
+    ],
+    name
+  );
+
   const featured = useMemo(
     () => posts.slice(0, 4),
     [posts]
   );
 
-  function saveCrewOrder(nextCrew: any[]) {
-    setCrew(nextCrew);
+  async function toggleMusic() {
+    const audio =
+      audioRef.current;
+
+    if (!song || !audio) {
+      setNotice(
+        "Add your profile song from Edit Profile."
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        1800
+      );
+
+      return;
+    }
+
+    try {
+      if (audio.paused) {
+        await audio.play();
+      } else {
+        audio.pause();
+      }
+    } catch {
+      setNotice(
+        "Tap again to play your soundtrack."
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        1800
+      );
+    }
+  }
+
+  function saveCrewOrder(
+    next: any[]
+  ) {
+    setCrew(next);
 
     try {
       window.localStorage.setItem(
         crewStorageKey(email),
         JSON.stringify(
-          nextCrew.map((person) => person.email)
+          next.map(
+            (person) => person.email
+          )
         )
       );
 
       setNotice("Top 8 order saved");
 
-      window.setTimeout(() => {
-        setNotice("");
-      }, 1400);
+      window.setTimeout(
+        () => setNotice(""),
+        1200
+      );
     } catch {
-      setNotice("Could not save Top 8 order");
-
-      window.setTimeout(() => {
-        setNotice("");
-      }, 1600);
+      setNotice(
+        "Could not save Top 8 order"
+      );
     }
   }
 
-  function moveCrew(index: number, direction: -1 | 1) {
-    const nextIndex = index + direction;
+  function moveCrew(
+    index: number,
+    direction: -1 | 1
+  ) {
+    const nextIndex =
+      index + direction;
 
     if (
       nextIndex < 0 ||
-      nextIndex >= Math.min(crew.length, 8)
+      nextIndex >=
+        Math.min(crew.length, 8)
     ) {
       return;
     }
 
     const next = [...crew];
 
-    const temp = next[index];
-    next[index] = next[nextIndex];
-    next[nextIndex] = temp;
+    [next[index], next[nextIndex]] = [
+      next[nextIndex],
+      next[index],
+    ];
 
     saveCrewOrder(next);
   }
 
   if (loading) {
     return (
-      <main className="loadingPage">
-        <UTVNav />
-
-        <div className="loadingBox">
-          <div className="spinner" />
-
-          <img
-            src="/utv-logo.png"
-            alt="UTV"
-            className="loadingLogo"
-          />
-
-          <h1>Loading profile</h1>
-
-          <p>Preparing your UTV creator page</p>
-        </div>
+      <main className="boot">
+        <div className="bootGlow" />
+        <img
+          src="/utv-logo.png"
+          alt="UTV"
+        />
 
         <style jsx>{`
-          .loadingPage {
+          .boot {
             min-height: 100vh;
             display: grid;
             place-items: center;
-            color: white;
-            background: #020409;
+            position: relative;
+            overflow: hidden;
+            background:
+              radial-gradient(
+                circle at center,
+                rgba(102, 255, 198, 0.08),
+                transparent 36%
+              ),
+              #020307;
           }
 
-          .loadingBox {
-            display: grid;
-            justify-items: center;
-            gap: 12px;
+          img {
+            width: 105px;
+            position: relative;
+            z-index: 2;
+            animation: reveal 0.65s ease both;
           }
 
-          .spinner {
-            width: 42px;
-            height: 42px;
-            border: 4px solid rgba(255,255,255,.1);
-            border-top-color: #55f4ca;
+          .bootGlow {
+            position: absolute;
+            width: 220px;
+            height: 220px;
             border-radius: 50%;
-            animation: spin .8s linear infinite;
+            background:
+              radial-gradient(
+                circle,
+                rgba(87, 246, 202, 0.15),
+                transparent 70%
+              );
           }
 
-          .loadingLogo {
-            width: 76px;
-          }
+          @keyframes reveal {
+            from {
+              opacity: 0;
+              transform: scale(0.92);
+            }
 
-          h1 {
-            margin: 5px 0 0;
-            font-size: 24px;
-          }
-
-          p {
-            margin: 0;
-            color: rgba(255,255,255,.45);
-            font-size: 12px;
-          }
-
-          @keyframes spin {
             to {
-              transform: rotate(360deg);
+              opacity: 1;
+              transform: scale(1);
             }
           }
         `}</style>
@@ -384,254 +496,552 @@ export default function ProfileProV12Page() {
     <main className="page">
       <UTVNav />
 
+      {song && (
+        <audio
+          ref={audioRef}
+          src={song}
+          loop
+          preload="metadata"
+          onPlay={() =>
+            setPlaying(true)
+          }
+          onPause={() =>
+            setPlaying(false)
+          }
+          onEnded={() =>
+            setPlaying(false)
+          }
+        />
+      )}
+
+      {viewMode === "public" && (
+        <section className="previewBanner">
+          <div>
+            <b>
+              👁 Public profile preview
+            </b>
+
+            <span>
+              This is how visitors see
+              your UTV profile.
+            </span>
+          </div>
+
+          <button
+            onClick={() =>
+              setViewMode("owner")
+            }
+          >
+            Back to my controls
+          </button>
+        </section>
+      )}
+
       <section
-        className="hero"
+        className="profileHero"
         style={{
           backgroundImage: `
             linear-gradient(
               180deg,
-              rgba(0,0,0,.08) 0%,
-              rgba(0,0,0,.16) 28%,
-              rgba(2,4,9,.72) 68%,
-              #020409 100%
+              rgba(0,0,0,.06) 0%,
+              rgba(0,0,0,.10) 34%,
+              rgba(2,3,8,.32) 52%,
+              rgba(2,3,8,.88) 82%,
+              #020307 100%
             ),
             url("${cover}")
           `,
         }}
       >
-        <div className="heroTop">
-          <div className="ownerTag">
-            <span />
-            OWNER
-          </div>
+        {viewMode === "owner" && (
+          <div className="heroOwnerTop">
+            <span className="ownerBadge">
+              OWNER VIEW
+            </span>
 
-          <button
-            className="settingsButton"
-            onClick={() => router.push("/settings")}
-            aria-label="Settings"
-          >
-            ⚙️
-          </button>
-        </div>
+            <button
+              onClick={() =>
+                router.push(
+                  "/settings"
+                )
+              }
+            >
+              ⚙️
+            </button>
+          </div>
+        )}
 
         <div className="identity">
-          <div className="avatarWrap">
+          <div className="avatarRing">
             <div className="avatar">
               {avatar ? (
-                <img src={avatar} alt={name} />
+                <img
+                  src={avatar}
+                  alt={name}
+                />
               ) : (
                 <span>
-                  {name.slice(0, 1).toUpperCase()}
+                  {name
+                    .slice(0, 1)
+                    .toUpperCase()}
                 </span>
               )}
             </div>
-
-            <i />
           </div>
 
           <div className="identityText">
-            <div className="nameRow">
+            <span className="creatorType">
+              {category}
+            </span>
+
+            <div className="nameLine">
               <h1>{name}</h1>
 
-              <span className="verified">✓</span>
+              <span className="verified">
+                ✓
+              </span>
             </div>
 
-            <p className="username">@{username}</p>
+            <p className="username">
+              @{username}
+            </p>
 
-            <div className="meta">
-              <span>{category}</span>
+            <p className="bio">
+              {bio}
+            </p>
 
-              {location && (
-                <>
-                  <b>•</b>
-                  <span>{location}</span>
-                </>
-              )}
-            </div>
-
-            <p className="bio">{bio}</p>
+            {location && (
+              <p className="location">
+                📍 {location}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="primaryActions">
-          <button
-            className="create"
-            onClick={() => router.push("/submit")}
-          >
-            ＋ Create
-          </button>
+        {viewMode === "owner" ? (
+          <section className="ownerActions">
+            <button
+              className="createButton"
+              onClick={() =>
+                router.push("/submit")
+              }
+            >
+              ＋ Create
+            </button>
 
-          <button
-            onClick={() => router.push("/profile-edit")}
-          >
-            ✎ Edit
-          </button>
+            <button
+              onClick={() =>
+                router.push(
+                  "/messages"
+                )
+              }
+            >
+              💬 Messages
+            </button>
 
-          <button
-            onClick={() =>
-              router.push(
-                `/u/${encodeURIComponent(email)}`
-              )
-            }
-          >
-            👁 Public
-          </button>
-        </div>
-      </section>
+            <button
+              onClick={() =>
+                router.push("/walkie")
+              }
+            >
+              🎙 Walkie
+            </button>
 
-      <section className="dashboard">
-        <div className="dashboardHeading">
-          <div>
-            <p>CREATOR HQ</p>
-            <h2>Your profile</h2>
-          </div>
+            <button
+              onClick={toggleMusic}
+            >
+              {playing
+                ? "⏸ Music"
+                : "▶ Music"}
+            </button>
 
-          <span className="online">
-            <i />
-            Live
-          </span>
-        </div>
-
-        <div className="stats">
-          <article>
-            <strong>
-              {compactNumber(posts.length)}
-            </strong>
-            <span>Posts</span>
-          </article>
-
-          <article>
-            <strong>
-              {compactNumber(followers)}
-            </strong>
-            <span>Crew</span>
-          </article>
-
-          <article>
-            <strong>
-              {compactNumber(following)}
-            </strong>
-            <span>Following</span>
-          </article>
-
-          <article>
-            <strong>
-              {Math.min(crew.length, 8)}/8
-            </strong>
-            <span>Top 8</span>
-          </article>
-        </div>
-
-        <div className="quickGrid">
-          <button onClick={() => router.push("/studio")}>
-            <span>🎬</span>
-
-            <div>
-              <b>Studio</b>
-              <small>Manage content</small>
-            </div>
-          </button>
-
-          <button onClick={() => router.push("/messages")}>
-            <span>💬</span>
-
-            <div>
-              <b>Messages</b>
-              <small>Your inbox</small>
-            </div>
-          </button>
-
-          <button onClick={() => router.push("/live")}>
-            <span>🔴</span>
-
-            <div>
-              <b>Go Live</b>
-              <small>Broadcast</small>
-            </div>
-          </button>
-
-          <button onClick={() => router.push("/world")}>
-            <span>🌎</span>
-
-            <div>
-              <b>UTV World</b>
-              <small>Explore</small>
-            </div>
-          </button>
-        </div>
-      </section>
-
-      <nav className="tabs">
-        <button
-          className={tab === "home" ? "active" : ""}
-          onClick={() => setTab("home")}
-        >
-          Home
-        </button>
-
-        <button
-          className={tab === "content" ? "active" : ""}
-          onClick={() => setTab("content")}
-        >
-          Content
-        </button>
-
-        <button
-          className={tab === "crew" ? "active" : ""}
-          onClick={() => setTab("crew")}
-        >
-          Top 8
-        </button>
-
-        <button
-          className={tab === "about" ? "active" : ""}
-          onClick={() => setTab("about")}
-        >
-          About
-        </button>
-      </nav>
-
-      <section className="content">
-        {tab === "home" && (
-          <>
-            <SectionTitle
-              eyebrow="YOUR SPOTLIGHT"
-              title="Featured content"
-              action="View all"
-              onAction={() => setTab("content")}
+            <button
+              className="supportButton"
+              onClick={() =>
+                document
+                  .getElementById(
+                    "creator-support"
+                  )
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                  })
+              }
+            >
+              ☆ Support
+            </button>
+          </section>
+        ) : (
+          <section className="publicStats">
+            <Stat
+              value={posts.length}
+              label="Posts"
             />
 
-            <MediaGrid items={featured} />
+            <Stat
+              value={followers}
+              label="Crew"
+            />
 
-            <section className="soundtrackSection">
-              <div className="soundtrackHeading">
-                <span>YOUR SOUND</span>
-                <h2>Profile Soundtrack</h2>
+            <Stat
+              value={following}
+              label="Following"
+            />
+
+            <Stat
+              value={
+                Math.min(
+                  crew.length,
+                  8
+                )
+              }
+              label="Top Crew"
+            />
+          </section>
+        )}
+      </section>
+
+      {viewMode === "owner" && (
+        <section className="ownerStats">
+          <Stat
+            value={posts.length}
+            label="Posts"
+          />
+
+          <Stat
+            value={followers}
+            label="Crew"
+          />
+
+          <Stat
+            value={following}
+            label="Following"
+          />
+
+          <Stat
+            value={
+              `${Math.min(
+                crew.length,
+                8
+              )}/8`
+            }
+            label="Top Crew"
+          />
+        </section>
+      )}
+
+      {viewMode === "owner" && (
+        <section className="management">
+          <div className="sectionIntro">
+            <p>MANAGE YOUR UTV</p>
+
+            <span>
+              Preview your public profile
+              or manage your creator tools.
+            </span>
+          </div>
+
+          <div className="manageList">
+            <button
+              onClick={() => {
+                setViewMode("public");
+                window.scrollTo({
+                  top: 0,
+                  behavior: "smooth",
+                });
+              }}
+            >
+              <span className="manageIcon">
+                👁
+              </span>
+
+              <div>
+                <b>
+                  View my profile
+                </b>
+
+                <small>
+                  See what people see
+                </small>
               </div>
 
-              <ProfileSoundtrackMeta />
+              <i>›</i>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push(
+                  "/profile-edit"
+                )
+              }
+            >
+              <span className="manageIcon">
+                ✎
+              </span>
+
+              <div>
+                <b>Edit profile</b>
+
+                <small>
+                  Photo, bio, music &
+                  profile
+                </small>
+              </div>
+
+              <i>›</i>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push(
+                  "/studio"
+                )
+              }
+            >
+              <span className="manageIcon">
+                🎬
+              </span>
+
+              <div>
+                <b>
+                  Creator Studio
+                </b>
+
+                <small>
+                  Manage uploads &
+                  content
+                </small>
+              </div>
+
+              <i>›</i>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push(
+                  "/settings"
+                )
+              }
+            >
+              <span className="manageIcon">
+                ⚙️
+              </span>
+
+              <div>
+                <b>Settings</b>
+
+                <small>
+                  Account, alerts &
+                  preferences
+                </small>
+              </div>
+
+              <i>›</i>
+            </button>
+          </div>
+        </section>
+      )}
+
+      {viewMode === "public" && (
+        <nav className="tabs">
+          <button
+            className={
+              tab === "featured"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setTab("featured")
+            }
+          >
+            ✨ Featured
+          </button>
+
+          <button
+            className={
+              tab === "posts"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setTab("posts")
+            }
+          >
+            🎬 Posts
+          </button>
+
+          <button
+            className={
+              tab === "crew"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setTab("crew")
+            }
+          >
+            👥 Top 8
+          </button>
+
+          <button
+            className={
+              tab === "about"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setTab("about")
+            }
+          >
+            ⚡ About
+          </button>
+        </nav>
+      )}
+
+      <section className="profileContent">
+        {(viewMode === "owner" ||
+          tab === "featured") && (
+          <>
+            <section className="soundtrack">
+              <div className="songArt">
+                <span>♫</span>
+              </div>
+
+              <div className="songInfo">
+                <p>
+                  PROFILE SOUNDTRACK
+                </p>
+
+                <h2>
+                  {songTitle}
+                </h2>
+
+                <span>
+                  {songArtist}
+                </span>
+              </div>
+
+              <button
+                onClick={
+                  toggleMusic
+                }
+              >
+                {playing
+                  ? "Ⅱ"
+                  : "▶"}
+              </button>
             </section>
 
-            <SectionTitle
-              eyebrow="YOUR CIRCLE"
-              title="Top Crew"
-              action="See Top 8"
-              onAction={() => setTab("crew")}
+            <SectionHeader
+              eyebrow="TOP 8 CREW"
+              title="Your circle"
             />
 
-            <CrewPreview
-              crew={crew.slice(0, 8)}
+            <CrewDisplay
+              crew={crew.slice(
+                0,
+                8
+              )}
               router={router}
             />
 
-            <section className="supportSection">
-              <div>
-                <p>CREATOR SUPPORT</p>
-                <h2>Build your UTV presence.</h2>
+            {viewMode ===
+              "owner" && (
+              <section className="reorderSection">
+                <div className="sectionIntro">
+                  <p>
+                    ARRANGE TOP 8
+                  </p>
+
+                  <span>
+                    Move your crew into
+                    your preferred order.
+                  </span>
+                </div>
+
+                <TopCrewEditor
+                  crew={crew.slice(
+                    0,
+                    8
+                  )}
+                  onMove={moveCrew}
+                />
+              </section>
+            )}
+          </>
+        )}
+
+        {viewMode ===
+          "public" &&
+          tab === "posts" && (
+            <>
+              <SectionHeader
+                eyebrow="CONTENT"
+                title="Posts"
+              />
+
+              <MediaGrid
+                items={posts}
+              />
+            </>
+          )}
+
+        {viewMode ===
+          "public" &&
+          tab === "crew" && (
+            <>
+              <SectionHeader
+                eyebrow="INNER CIRCLE"
+                title="Top 8 Crew"
+              />
+
+              <CrewDisplay
+                crew={crew.slice(
+                  0,
+                  8
+                )}
+                router={router}
+              />
+            </>
+          )}
+
+        {viewMode ===
+          "public" &&
+          tab === "about" && (
+            <section className="aboutCard">
+              <p>
+                ABOUT {name.toUpperCase()}
+              </p>
+
+              <h2>{name}</h2>
+
+              <span>{bio}</span>
+
+              <div className="aboutMeta">
+                <b>{category}</b>
+
+                {location && (
+                  <b>
+                    {location}
+                  </b>
+                )}
+              </div>
+            </section>
+          )}
+
+        {viewMode ===
+          "owner" && (
+            <section
+              id="creator-support"
+              className="supportArea"
+            >
+              <div className="sectionIntro">
+                <p>
+                  CREATOR SUPPORT
+                </p>
 
                 <span>
-                  Your profile is your home base for
-                  content, connections and opportunities.
+                  Support tools for your
+                  creator profile.
                 </span>
               </div>
 
@@ -640,105 +1050,7 @@ export default function ProfileProV12Page() {
                 creatorName={name}
               />
             </section>
-          </>
-        )}
-
-        {tab === "content" && (
-          <>
-            <SectionTitle
-              eyebrow="YOUR LIBRARY"
-              title="Your content"
-              action="+ Create"
-              onAction={() => router.push("/submit")}
-            />
-
-            <MediaGrid items={posts} />
-          </>
-        )}
-
-        {tab === "crew" && (
-          <>
-            <SectionTitle
-              eyebrow="YOUR INNER CIRCLE"
-              title="Top 8"
-            />
-
-            <p className="crewHelp">
-              Use the arrows to put your Top 8 in the
-              exact order you want. Your order saves
-              automatically on this device.
-            </p>
-
-            <TopCrewGrid
-              crew={crew.slice(0, 8)}
-              router={router}
-              onMove={moveCrew}
-            />
-          </>
-        )}
-
-        {tab === "about" && (
-          <>
-            <SectionTitle
-              eyebrow="PROFILE CONTROL"
-              title="Make UTV yours"
-              action="Edit profile"
-              onAction={() =>
-                router.push("/profile-edit")
-              }
-            />
-
-            <div className="aboutGrid">
-              <button
-                onClick={() =>
-                  router.push("/profile-edit")
-                }
-              >
-                <span>✎</span>
-                <b>Edit profile</b>
-                <small>
-                  Photo, background, bio and identity
-                </small>
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push("/messages")
-                }
-              >
-                <span>💬</span>
-                <b>Messages</b>
-                <small>
-                  Talk with your UTV connections
-                </small>
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push("/walkie")
-                }
-              >
-                <span>🎙</span>
-                <b>Walkie</b>
-                <small>
-                  Instant UTV voice communication
-                </small>
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push("/settings")
-                }
-              >
-                <span>⚙️</span>
-                <b>Settings</b>
-                <small>
-                  Account and profile controls
-                </small>
-              </button>
-            </div>
-          </>
-        )}
+          )}
       </section>
 
       {notice && (
@@ -752,19 +1064,19 @@ export default function ProfileProV12Page() {
           min-height: 100vh;
           padding-bottom: 150px;
           overflow-x: hidden;
-          color: #fff;
+          color: white;
           background:
             radial-gradient(
-              circle at 0% 10%,
-              rgba(80,245,199,.07),
+              circle at 0% 15%,
+              rgba(85, 244, 202, 0.06),
               transparent 28%
             ),
             radial-gradient(
-              circle at 100% 30%,
-              rgba(124,87,255,.07),
-              transparent 28%
+              circle at 100% 25%,
+              rgba(132, 89, 255, 0.07),
+              transparent 30%
             ),
-            #020409;
+            #020307;
         }
 
         button {
@@ -773,114 +1085,171 @@ export default function ProfileProV12Page() {
           -webkit-tap-highlight-color: transparent;
         }
 
-        .hero {
+        .previewBanner {
+          width: calc(
+            100% - 28px
+          );
+          max-width: 760px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          margin: 15px auto 0;
+          padding: 15px 16px;
+          color: #04130f;
+          background:
+            linear-gradient(
+              135deg,
+              #58f4ca,
+              #a6ff79
+            );
+        }
+
+        .previewBanner b,
+        .previewBanner span {
+          display: block;
+        }
+
+        .previewBanner b {
+          font-size: 13px;
+        }
+
+        .previewBanner span {
+          margin-top: 4px;
+          font-size: 9px;
+          line-height: 1.4;
+        }
+
+        .previewBanner button {
+          flex: 0 0 auto;
+          min-height: 44px;
+          max-width: 125px;
+          border: 0;
+          padding: 0 12px;
+          color: white;
+          background: #05070b;
+          font-size: 9px;
+          font-weight: 900;
+        }
+
+        .profileHero {
           width: 100%;
-          min-height: 510px;
+          min-height: 470px;
           position: relative;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          padding:
-            max(18px, env(safe-area-inset-top))
-            18px
-            26px;
+          justify-content: flex-end;
+          padding: 20px 18px 26px;
           background-size: cover;
           background-position: center;
         }
 
-        .heroTop {
+        .heroOwnerTop {
+          position: absolute;
+          top: 17px;
+          left: 18px;
+          right: 18px;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
         }
 
-        .ownerTag {
+        .ownerBadge {
           min-height: 34px;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 0 11px;
-          border: 1px solid rgba(255,255,255,.16);
-          color: rgba(255,255,255,.8);
-          background: rgba(2,4,9,.58);
-          backdrop-filter: blur(16px);
+          padding: 0 12px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.14
+            );
+          color: #55f4ca;
+          background:
+            rgba(
+              2,
+              3,
+              8,
+              0.64
+            );
+          backdrop-filter:
+            blur(16px);
           font-size: 8px;
           font-weight: 1000;
-          letter-spacing: .14em;
+          letter-spacing: 0.13em;
         }
 
-        .ownerTag span {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #55f4ca;
-          box-shadow: 0 0 12px #55f4ca;
-        }
-
-        .settingsButton {
+        .heroOwnerTop button {
           width: 42px;
           height: 42px;
-          border: 1px solid rgba(255,255,255,.14);
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.13
+            );
           color: white;
-          background: rgba(2,4,9,.58);
-          backdrop-filter: blur(16px);
-          font-size: 17px;
+          background:
+            rgba(
+              2,
+              3,
+              8,
+              0.64
+            );
+          backdrop-filter:
+            blur(16px);
+          font-size: 18px;
         }
 
         .identity {
           display: flex;
           align-items: flex-end;
-          gap: 14px;
-          margin-top: auto;
+          gap: 15px;
         }
 
-        .avatarWrap {
-          position: relative;
+        .avatarRing {
+          width: 106px;
+          height: 106px;
           flex: 0 0 auto;
-        }
-
-        .avatar {
-          width: 92px;
-          height: 92px;
-          padding: 3px;
-          overflow: hidden;
+          padding: 4px;
+          border-radius: 50%;
           background:
             linear-gradient(
               135deg,
               #55f4ca,
-              #8065ff,
-              #fff
+              #825eff,
+              #ff62ac
+            );
+        }
+
+        .avatar {
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          border: 4px solid
+            #05070c;
+          border-radius: 50%;
+          background:
+            linear-gradient(
+              135deg,
+              #55f4ca,
+              #8c6bff
             );
         }
 
         .avatar img,
-        .avatar > span {
+        .avatar span {
           width: 100%;
           height: 100%;
           display: grid;
           place-items: center;
-          border: 3px solid #05080d;
           object-fit: cover;
-          background:
-            linear-gradient(
-              135deg,
-              #55f4ca,
-              #8065ff
-            );
-          color: #03110d;
-          font-size: 32px;
+          color: #04120e;
+          font-size: 34px;
           font-weight: 1000;
-        }
-
-        .avatarWrap > i {
-          position: absolute;
-          width: 18px;
-          height: 18px;
-          right: -4px;
-          bottom: -4px;
-          border: 4px solid #020409;
-          border-radius: 50%;
-          background: #55f4ca;
         }
 
         .identityText {
@@ -888,30 +1257,44 @@ export default function ProfileProV12Page() {
           flex: 1;
         }
 
-        .nameRow {
-          display: flex;
-          align-items: center;
-          gap: 7px;
+        .creatorType {
+          color: #55f4ca;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
         }
 
-        .nameRow h1 {
+        .nameLine {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 5px;
+        }
+
+        .nameLine h1 {
           margin: 0;
           overflow: hidden;
           color: white;
-          font-size: clamp(30px,9vw,44px);
-          line-height: .93;
-          letter-spacing: -.05em;
+          font-size: clamp(
+            32px,
+            9vw,
+            46px
+          );
+          line-height: 0.94;
+          letter-spacing:
+            -0.045em;
           text-overflow: ellipsis;
         }
 
         .verified {
-          width: 19px;
-          height: 19px;
+          width: 20px;
+          height: 20px;
           flex: 0 0 auto;
           display: grid;
           place-items: center;
           border-radius: 50%;
-          color: #03110d;
+          color: #04120e;
           background: #55f4ca;
           font-size: 11px;
           font-weight: 1000;
@@ -924,378 +1307,577 @@ export default function ProfileProV12Page() {
           font-weight: 900;
         }
 
-        .meta {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 6px;
-          margin-top: 6px;
-          color: rgba(255,255,255,.5);
-          font-size: 9px;
-        }
-
-        .meta b {
-          color: rgba(255,255,255,.2);
-        }
-
         .bio {
-          max-width: 520px;
-          margin: 8px 0 0;
-          color: rgba(255,255,255,.72);
+          max-width: 490px;
+          margin: 7px 0 0;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.72
+            );
           font-size: 10px;
-          line-height: 1.45;
+          line-height: 1.5;
         }
 
-        .primaryActions {
+        .location {
+          margin: 6px 0 0;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.42
+            );
+          font-size: 8px;
+        }
+
+        .ownerActions {
           display: grid;
-          grid-template-columns: 1.3fr 1fr 1fr;
+          grid-template-columns:
+            repeat(
+              2,
+              minmax(0, 1fr)
+            );
           gap: 7px;
-          margin-top: 19px;
+          margin-top: 22px;
         }
 
-        .primaryActions button {
-          min-height: 46px;
-          border: 1px solid rgba(255,255,255,.14);
+        .ownerActions button {
+          min-height: 48px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.12
+            );
           color: white;
-          background: rgba(5,8,14,.76);
-          backdrop-filter: blur(16px);
+          background:
+            rgba(
+              4,
+              6,
+              11,
+              0.72
+            );
+          backdrop-filter:
+            blur(16px);
           font-size: 10px;
-          font-weight: 950;
+          font-weight: 900;
         }
 
-        .primaryActions .create {
+        .ownerActions .createButton {
+          grid-column: span 2;
           border: 0;
-          color: #03110d;
+          color: #04130f;
           background:
             linear-gradient(
               135deg,
               #55f4ca,
-              #a8ff85
+              #a6ff79
             );
         }
 
-        .dashboard {
-          width: calc(100% - 28px);
-          max-width: 900px;
-          margin: 0 auto;
-          padding-top: 22px;
+        .ownerActions .supportButton {
+          color: #1a1303;
+          border: 0;
+          background:
+            linear-gradient(
+              135deg,
+              #ffe169,
+              #ffb75e
+            );
         }
 
-        .dashboardHeading {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 12px;
+        .ownerStats,
+        .publicStats {
+          display: grid;
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
+          gap: 7px;
         }
 
-        .dashboardHeading p {
+        .ownerStats {
+          width: calc(
+            100% - 28px
+          );
+          max-width: 760px;
+          margin: 13px auto 0;
+        }
+
+        .publicStats {
+          margin-top: 24px;
+        }
+
+        .management {
+          width: calc(
+            100% - 28px
+          );
+          max-width: 760px;
+          margin: 23px auto 0;
+          padding: 18px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+          background:
+            linear-gradient(
+              145deg,
+              rgba(
+                85,
+                244,
+                202,
+                0.045
+              ),
+              rgba(
+                132,
+                89,
+                255,
+                0.05
+              )
+            );
+        }
+
+        .sectionIntro p {
           margin: 0;
           color: #55f4ca;
           font-size: 8px;
           font-weight: 1000;
-          letter-spacing: .15em;
+          letter-spacing: 0.14em;
         }
 
-        .dashboardHeading h2 {
-          margin: 5px 0 0;
-          font-size: 22px;
-          letter-spacing: -.03em;
+        .sectionIntro span {
+          display: block;
+          margin-top: 5px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.43
+            );
+          font-size: 9px;
         }
 
-        .online {
-          min-height: 30px;
-          display: inline-flex;
-          align-items: center;
+        .manageList {
+          display: grid;
           gap: 6px;
-          padding: 0 9px;
-          border: 1px solid rgba(85,244,202,.15);
-          color: rgba(255,255,255,.55);
-          background: rgba(85,244,202,.04);
-          font-size: 8px;
-          font-weight: 900;
+          margin-top: 15px;
         }
 
-        .online i {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #55f4ca;
-        }
-
-        .stats {
+        .manageList button {
+          min-height: 67px;
           display: grid;
           grid-template-columns:
-            repeat(4,minmax(0,1fr));
-          gap: 6px;
-          margin-top: 14px;
-        }
-
-        .stats article {
-          min-width: 0;
-          padding: 16px 4px;
-          border: 1px solid rgba(255,255,255,.075);
-          background: rgba(255,255,255,.018);
-          text-align: center;
-        }
-
-        .stats strong {
-          display: block;
-          font-size: 20px;
-        }
-
-        .stats span {
-          display: block;
-          margin-top: 4px;
-          color: rgba(255,255,255,.4);
-          font-size: 8px;
-          font-weight: 900;
-        }
-
-        .quickGrid {
-          display: grid;
-          grid-template-columns:
-            repeat(2,minmax(0,1fr));
-          gap: 7px;
-          margin-top: 7px;
-        }
-
-        .quickGrid button {
-          min-width: 0;
-          display: flex;
+            auto
+            minmax(0, 1fr)
+            auto;
           align-items: center;
-          gap: 10px;
-          min-height: 68px;
-          padding: 10px 12px;
-          border: 1px solid rgba(255,255,255,.075);
+          gap: 11px;
+          padding: 10px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.055
+            );
           color: white;
-          background: rgba(255,255,255,.02);
+          background:
+            linear-gradient(
+              90deg,
+              rgba(
+                255,
+                255,
+                255,
+                0.04
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                0.018
+              )
+            );
           text-align: left;
         }
 
-        .quickGrid > button > span {
-          width: 38px;
-          height: 38px;
-          flex: 0 0 auto;
+        .manageIcon {
+          width: 42px;
+          height: 42px;
           display: grid;
           place-items: center;
-          background: rgba(85,244,202,.07);
-          font-size: 17px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(
+                85,
+                244,
+                202,
+                0.14
+              ),
+              rgba(
+                131,
+                92,
+                255,
+                0.17
+              )
+            );
+          font-size: 18px;
         }
 
-        .quickGrid b,
-        .quickGrid small {
+        .manageList b,
+        .manageList small {
           display: block;
         }
 
-        .quickGrid b {
+        .manageList b {
           font-size: 11px;
         }
 
-        .quickGrid small {
+        .manageList small {
           margin-top: 3px;
-          color: rgba(255,255,255,.35);
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.38
+            );
           font-size: 8px;
+        }
+
+        .manageList i {
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.32
+            );
+          font-size: 21px;
+          font-style: normal;
         }
 
         .tabs {
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          width: calc(100% - 28px);
-          max-width: 900px;
+          width: calc(
+            100% - 28px
+          );
+          max-width: 760px;
           display: grid;
           grid-template-columns:
-            repeat(4,minmax(0,1fr));
-          margin: 18px auto 0;
-          border-top: 1px solid rgba(255,255,255,.08);
-          border-bottom: 1px solid rgba(255,255,255,.08);
-          background: rgba(2,4,9,.94);
-          backdrop-filter: blur(20px);
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
+          gap: 4px;
+          margin: 17px auto 0;
+          padding: 5px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+          border-radius: 18px;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
         }
 
         .tabs button {
-          min-height: 49px;
-          position: relative;
+          min-height: 39px;
           border: 0;
-          color: rgba(255,255,255,.39);
+          border-radius: 13px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.44
+            );
           background: transparent;
-          font-size: 9px;
-          font-weight: 950;
+          font-size: 8px;
+          font-weight: 900;
         }
 
         .tabs button.active {
-          color: white;
-        }
-
-        .tabs button.active::after {
-          content: "";
-          position: absolute;
-          left: 28%;
-          right: 28%;
-          bottom: 0;
-          height: 2px;
+          color: #07110e;
           background:
             linear-gradient(
-              90deg,
+              135deg,
               #55f4ca,
-              #8165ff
+              #8f7cff
             );
         }
 
-        .content {
-          width: calc(100% - 28px);
-          max-width: 900px;
+        .profileContent {
+          width: calc(
+            100% - 28px
+          );
+          max-width: 760px;
           margin: 0 auto;
-          padding: 7px 0 45px;
+          padding-top: 18px;
         }
 
-        .soundtrackSection {
-          margin-top: 33px;
-          padding-top: 25px;
-          border-top: 1px solid rgba(255,255,255,.08);
-        }
-
-        .soundtrackHeading {
-          margin: 0 2px 12px;
-        }
-
-        .soundtrackHeading span {
-          color: #55f4ca;
-          font-size: 8px;
-          font-weight: 1000;
-          letter-spacing: .15em;
-        }
-
-        .soundtrackHeading h2 {
-          margin: 5px 0 0;
-          font-size: 21px;
-        }
-
-        .supportSection {
+        .soundtrack {
           display: grid;
-          gap: 15px;
-          margin-top: 32px;
-          padding: 22px 16px;
-          border-top: 1px solid rgba(255,255,255,.08);
-          border-bottom: 1px solid rgba(255,255,255,.08);
+          grid-template-columns:
+            auto
+            minmax(0, 1fr)
+            auto;
+          align-items: center;
+          gap: 12px;
+          padding: 14px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
           background:
             linear-gradient(
-              90deg,
-              rgba(85,244,202,.04),
-              rgba(126,88,255,.035)
+              135deg,
+              rgba(
+                82,
+                244,
+                201,
+                0.055
+              ),
+              rgba(
+                125,
+                81,
+                255,
+                0.09
+              )
             );
         }
 
-        .supportSection p {
+        .songArt {
+          width: 54px;
+          height: 54px;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              135deg,
+              #53f4c9,
+              #765cff,
+              #ff5cb5
+            );
+        }
+
+        .songArt span {
+          font-size: 25px;
+        }
+
+        .songInfo {
+          min-width: 0;
+        }
+
+        .songInfo p {
+          margin: 0;
+          color: #55f4ca;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: 0.13em;
+        }
+
+        .songInfo h2 {
+          margin: 5px 0 0;
+          overflow: hidden;
+          color: white;
+          font-size: 15px;
+          text-overflow: ellipsis;
+        }
+
+        .songInfo span {
+          display: block;
+          margin-top: 3px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.42
+            );
+          font-size: 8px;
+        }
+
+        .soundtrack > button {
+          width: 44px;
+          height: 44px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.12
+            );
+          border-radius: 50%;
+          color: white;
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.28
+            );
+          font-weight: 1000;
+        }
+
+        .reorderSection,
+        .supportArea {
+          margin-top: 27px;
+          padding-top: 21px;
+          border-top: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+        }
+
+        .aboutCard {
+          padding: 21px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
+        }
+
+        .aboutCard p {
           margin: 0;
           color: #55f4ca;
           font-size: 8px;
           font-weight: 1000;
-          letter-spacing: .14em;
+          letter-spacing: 0.13em;
         }
 
-        .supportSection h2 {
-          margin: 5px 0 0;
-          font-size: 20px;
+        .aboutCard h2 {
+          margin: 8px 0 0;
         }
 
-        .supportSection > div > span {
+        .aboutCard > span {
           display: block;
-          margin-top: 7px;
-          color: rgba(255,255,255,.43);
+          margin-top: 9px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.61
+            );
           font-size: 10px;
-          line-height: 1.5;
+          line-height: 1.55;
         }
 
-        .crewHelp {
-          margin: 2px 0 17px;
-          color: rgba(255,255,255,.46);
-          font-size: 10px;
-          line-height: 1.5;
-        }
-
-        .aboutGrid {
-          display: grid;
-          grid-template-columns:
-            repeat(2,minmax(0,1fr));
-          gap: 7px;
-        }
-
-        .aboutGrid button {
-          min-height: 142px;
+        .aboutMeta {
           display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          padding: 15px;
-          border: 1px solid rgba(255,255,255,.075);
-          color: white;
-          background: rgba(255,255,255,.02);
-          text-align: left;
+          gap: 7px;
+          margin-top: 15px;
         }
 
-        .aboutGrid button > span {
-          width: 38px;
-          height: 38px;
-          display: grid;
-          place-items: center;
-          margin-bottom: 17px;
-          background: rgba(85,244,202,.07);
-          font-size: 17px;
-        }
-
-        .aboutGrid b {
-          font-size: 12px;
-        }
-
-        .aboutGrid small {
-          margin-top: 5px;
-          color: rgba(255,255,255,.38);
+        .aboutMeta b {
+          padding: 7px 9px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.55
+            );
           font-size: 8px;
-          line-height: 1.4;
         }
 
         .notice {
           position: fixed;
           z-index: 4000;
           left: 50%;
-          bottom: 125px;
+          bottom: 126px;
           width: min(
             380px,
-            calc(100% - 32px)
+            calc(
+              100% - 30px
+            )
           );
           padding: 13px;
-          border: 1px solid rgba(85,244,202,.24);
+          border: 1px solid
+            rgba(
+              85,
+              244,
+              202,
+              0.25
+            );
           color: white;
-          background: rgba(3,7,13,.97);
-          transform: translateX(-50%);
+          background:
+            rgba(
+              3,
+              6,
+              12,
+              0.97
+            );
+          transform:
+            translateX(-50%);
           text-align: center;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 900;
         }
 
         @media (min-width: 760px) {
-          .hero {
+          .profileHero {
             width: min(
-              900px,
-              calc(100% - 30px)
+              760px,
+              calc(
+                100% - 28px
+              )
             );
-            min-height: 590px;
-            margin: 18px auto 0;
+            min-height: 540px;
+            margin: 16px auto 0;
           }
 
-          .avatar {
-            width: 112px;
-            height: 112px;
-          }
-
-          .quickGrid {
+          .ownerActions {
             grid-template-columns:
-              repeat(4,minmax(0,1fr));
+              repeat(
+                4,
+                minmax(0, 1fr)
+              );
           }
 
-          .aboutGrid {
-            grid-template-columns:
-              repeat(4,minmax(0,1fr));
+          .ownerActions .createButton {
+            grid-column: span 4;
           }
         }
       `}</style>
@@ -1303,37 +1885,83 @@ export default function ProfileProV12Page() {
   );
 }
 
-function SectionTitle({
+function Stat({
+  value,
+  label,
+}: {
+  value: number | string;
+  label: string;
+}) {
+  return (
+    <article className="stat">
+      <strong>
+        {typeof value === "number"
+          ? compactNumber(value)
+          : value}
+      </strong>
+
+      <span>{label}</span>
+
+      <style jsx>{`
+        .stat {
+          min-width: 0;
+          padding: 15px 4px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.018
+            );
+          text-align: center;
+        }
+
+        strong {
+          display: block;
+          color: white;
+          font-size: 20px;
+        }
+
+        span {
+          display: block;
+          margin-top: 4px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.39
+            );
+          font-size: 8px;
+          font-weight: 900;
+        }
+      `}</style>
+    </article>
+  );
+}
+
+function SectionHeader({
   eyebrow,
   title,
-  action,
-  onAction,
 }: {
   eyebrow: string;
   title: string;
-  action?: string;
-  onAction?: () => void;
 }) {
   return (
-    <div className="sectionTitle">
-      <div>
-        <p>{eyebrow}</p>
-        <h2>{title}</h2>
-      </div>
-
-      {action && onAction && (
-        <button onClick={onAction}>
-          {action}
-        </button>
-      )}
+    <div className="sectionHeader">
+      <p>{eyebrow}</p>
+      <h2>{title}</h2>
 
       <style jsx>{`
-        .sectionTitle {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 12px;
-          margin: 23px 2px 12px;
+        .sectionHeader {
+          margin: 26px 2px 12px;
         }
 
         p {
@@ -1341,61 +1969,52 @@ function SectionTitle({
           color: #55f4ca;
           font-size: 8px;
           font-weight: 1000;
-          letter-spacing: .15em;
+          letter-spacing: 0.14em;
         }
 
         h2 {
           margin: 5px 0 0;
           color: white;
-          font-size: 21px;
-          letter-spacing: -.025em;
-        }
-
-        button {
-          min-height: 34px;
-          padding: 0 10px;
-          border: 1px solid rgba(255,255,255,.09);
-          color: rgba(255,255,255,.62);
-          background: transparent;
-          font-size: 8px;
-          font-weight: 900;
+          font-size: 20px;
         }
       `}</style>
     </div>
   );
 }
 
-function CrewPreview({
+function CrewDisplay({
   crew,
   router,
 }: {
   crew: any[];
-  router: ReturnType<typeof useRouter>;
+  router: ReturnType<
+    typeof useRouter
+  >;
 }) {
   if (!crew.length) {
     return (
       <div className="empty">
-        <span>👥</span>
-        <b>Build your Top 8.</b>
+        No Top 8 selected yet.
 
         <style jsx>{`
           .empty {
-            min-height: 120px;
-            display: grid;
-            place-items: center;
-            align-content: center;
-            gap: 8px;
-            border: 1px dashed rgba(255,255,255,.13);
-            color: rgba(255,255,255,.45);
-          }
-
-          span {
-            font-size: 25px;
-          }
-
-          b {
-            color: white;
-            font-size: 11px;
+            padding: 32px;
+            border: 1px dashed
+              rgba(
+                255,
+                255,
+                255,
+                0.11
+              );
+            color:
+              rgba(
+                255,
+                255,
+                255,
+                0.4
+              );
+            text-align: center;
+            font-size: 9px;
           }
         `}</style>
       </div>
@@ -1403,7 +2022,7 @@ function CrewPreview({
   }
 
   return (
-    <div className="crewPreview">
+    <div className="crewGrid">
       {crew.map((person) => (
         <button
           key={person.email}
@@ -1415,7 +2034,7 @@ function CrewPreview({
             )
           }
         >
-          <div>
+          <div className="crewAvatar">
             {person.avatar ? (
               <img
                 src={person.avatar}
@@ -1431,49 +2050,78 @@ function CrewPreview({
           </div>
 
           <b>{person.name}</b>
-          <small>@{person.username}</small>
+
+          <small>
+            @{person.username}
+          </small>
         </button>
       ))}
 
       <style jsx>{`
-        .crewPreview {
+        .crewGrid {
           display: grid;
           grid-template-columns:
-            repeat(4,minmax(0,1fr));
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
           gap: 6px;
         }
 
         button {
           min-width: 0;
           padding: 9px 4px 11px;
-          border: 1px solid rgba(255,255,255,.07);
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.06
+            );
           color: white;
-          background: rgba(255,255,255,.018);
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.018
+            );
         }
 
-        button > div {
-          width: 52px;
-          height: 52px;
+        .crewAvatar {
+          width: 54px;
+          height: 54px;
           margin: auto;
+          padding: 2px;
           overflow: hidden;
-          border: 2px solid #55f4ca;
+          border-radius: 50%;
           background:
             linear-gradient(
               135deg,
               #55f4ca,
-              #8065ff
+              #845fff,
+              #ff5ca8
             );
         }
 
-        img,
-        button > div > span {
+        .crewAvatar img,
+        .crewAvatar span {
           width: 100%;
           height: 100%;
           display: grid;
           place-items: center;
+          border: 3px solid
+            #05070c;
+          border-radius: 50%;
           object-fit: cover;
-          color: #03110d;
-          font-size: 18px;
+          color: #04120e;
+          background:
+            linear-gradient(
+              135deg,
+              #55f4ca,
+              #8669ff
+            );
+          font-size: 17px;
           font-weight: 1000;
         }
 
@@ -1487,24 +2135,28 @@ function CrewPreview({
 
         b {
           margin-top: 7px;
-          font-size: 9px;
+          font-size: 8px;
         }
 
         small {
           margin-top: 2px;
-          color: rgba(255,255,255,.34);
-          font-size: 7px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.32
+            );
+          font-size: 6px;
         }
 
-        @media (min-width: 700px) {
-          .crewPreview {
+        @media (min-width: 650px) {
+          .crewGrid {
             grid-template-columns:
-              repeat(8,minmax(0,1fr));
-          }
-
-          button > div {
-            width: 64px;
-            height: 64px;
+              repeat(
+                8,
+                minmax(0, 1fr)
+              );
           }
         }
       `}</style>
@@ -1512,218 +2164,144 @@ function CrewPreview({
   );
 }
 
-function TopCrewGrid({
+function TopCrewEditor({
   crew,
-  router,
   onMove,
 }: {
   crew: any[];
-  router: ReturnType<typeof useRouter>;
   onMove: (
     index: number,
     direction: -1 | 1
   ) => void;
 }) {
-  if (!crew.length) {
-    return (
-      <div className="empty">
-        <span>👥</span>
-        <h3>Your Top 8 starts here.</h3>
-        <p>
-          Connect with creators to fill your
-          inner circle.
-        </p>
-
-        <style jsx>{`
-          .empty {
-            padding: 45px 20px;
-            border: 1px dashed rgba(255,255,255,.13);
-            color: rgba(255,255,255,.43);
-            text-align: center;
-          }
-
-          span {
-            font-size: 30px;
-          }
-
-          h3 {
-            margin: 10px 0 0;
-            color: white;
-          }
-
-          p {
-            margin: 6px 0 0;
-            font-size: 9px;
-          }
-        `}</style>
-      </div>
-    );
-  }
-
   return (
-    <div className="topCrew">
-      {crew.map((person, index) => (
-        <article key={person.email}>
-          <span className="number">
-            #{String(index + 1).padStart(2, "0")}
-          </span>
-
-          <button
-            className="person"
-            onClick={() =>
-              router.push(
-                `/u/${encodeURIComponent(
-                  person.email
-                )}`
-              )
-            }
+    <div className="editor">
+      {crew.map(
+        (person, index) => (
+          <div
+            className="row"
+            key={person.email}
           >
-            <div className="avatar">
-              {person.avatar ? (
-                <img
-                  src={person.avatar}
-                  alt={person.name}
-                />
-              ) : (
-                <span>
-                  {person.name
-                    .slice(0, 1)
-                    .toUpperCase()}
-                </span>
-              )}
+            <span className="number">
+              {index + 1}
+            </span>
+
+            <div className="person">
+              <b>
+                {person.name}
+              </b>
+
+              <small>
+                @{person.username}
+              </small>
             </div>
 
-            <b>{person.name}</b>
-            <small>@{person.username}</small>
-          </button>
-
-          <div className="moveButtons">
             <button
               disabled={index === 0}
               onClick={() =>
                 onMove(index, -1)
               }
             >
-              ←
+              ↑
             </button>
 
             <button
               disabled={
-                index === crew.length - 1
+                index ===
+                crew.length - 1
               }
               onClick={() =>
                 onMove(index, 1)
               }
             >
-              →
+              ↓
             </button>
           </div>
-        </article>
-      ))}
+        )
+      )}
 
       <style jsx>{`
-        .topCrew {
+        .editor {
+          display: grid;
+          gap: 5px;
+          margin-top: 13px;
+        }
+
+        .row {
+          min-height: 52px;
           display: grid;
           grid-template-columns:
-            repeat(2,minmax(0,1fr));
+            auto
+            minmax(0, 1fr)
+            36px
+            36px;
+          align-items: center;
           gap: 7px;
-        }
-
-        article {
-          min-width: 0;
-          position: relative;
-          padding: 24px 8px 9px;
-          border: 1px solid rgba(255,255,255,.075);
-          background: rgba(255,255,255,.018);
-        }
-
-        .number {
-          position: absolute;
-          top: 8px;
-          left: 9px;
-          color: #55f4ca;
-          font-size: 7px;
-          font-weight: 1000;
-          letter-spacing: .1em;
-        }
-
-        .person {
-          width: 100%;
-          border: 0;
-          padding: 0;
-          color: white;
-          background: transparent;
-        }
-
-        .avatar {
-          width: 70px;
-          height: 70px;
-          margin: auto;
-          overflow: hidden;
-          border: 2px solid #55f4ca;
-          background:
-            linear-gradient(
-              135deg,
-              #55f4ca,
-              #8065ff
+          padding: 7px;
+          border-bottom: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.06
             );
         }
 
-        .avatar img,
-        .avatar > span {
-          width: 100%;
-          height: 100%;
+        .number {
+          width: 28px;
+          height: 28px;
           display: grid;
           place-items: center;
-          object-fit: cover;
-          color: #03110d;
-          font-size: 24px;
+          border-radius: 50%;
+          color: #04120e;
+          background: #55f4ca;
+          font-size: 8px;
           font-weight: 1000;
         }
 
         .person b,
         .person small {
           display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
         }
 
         .person b {
-          margin-top: 8px;
-          font-size: 10px;
+          font-size: 9px;
         }
 
         .person small {
           margin-top: 2px;
-          color: rgba(255,255,255,.34);
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.34
+            );
           font-size: 7px;
         }
 
-        .moveButtons {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 4px;
-          margin-top: 9px;
-        }
-
-        .moveButtons button {
-          min-height: 30px;
-          border: 1px solid rgba(255,255,255,.08);
+        button {
+          height: 34px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
           color: #55f4ca;
-          background: rgba(255,255,255,.025);
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
           font-weight: 1000;
         }
 
-        .moveButtons button:disabled {
-          opacity: .2;
-        }
-
-        @media (min-width: 700px) {
-          .topCrew {
-            grid-template-columns:
-              repeat(4,minmax(0,1fr));
-          }
+        button:disabled {
+          opacity: 0.18;
         }
       `}</style>
     </div>
@@ -1738,29 +2316,27 @@ function MediaGrid({
   if (!items.length) {
     return (
       <div className="emptyMedia">
-        <span>🎬</span>
-        <h3>Your content will appear here.</h3>
+        Your content will appear here.
 
         <style jsx>{`
           .emptyMedia {
-            min-height: 170px;
-            display: grid;
-            place-items: center;
-            align-content: center;
-            gap: 8px;
-            border: 1px dashed rgba(255,255,255,.13);
-            color: rgba(255,255,255,.43);
+            padding: 40px;
+            border: 1px dashed
+              rgba(
+                255,
+                255,
+                255,
+                0.11
+              );
+            color:
+              rgba(
+                255,
+                255,
+                255,
+                0.4
+              );
             text-align: center;
-          }
-
-          span {
-            font-size: 30px;
-          }
-
-          h3 {
-            margin: 0;
-            color: white;
-            font-size: 12px;
+            font-size: 9px;
           }
         `}</style>
       </div>
@@ -1770,19 +2346,25 @@ function MediaGrid({
   return (
     <div className="mediaGrid">
       {items.map((item) => {
-        const image = pick(item, [
-          "thumbnail_url",
-          "cover_url",
-          "image_url",
-          "poster_url",
-        ]);
+        const image = pick(
+          item,
+          [
+            "thumbnail_url",
+            "cover_url",
+            "image_url",
+            "poster_url",
+          ]
+        );
 
-        const video = pick(item, [
-          "video_url",
-          "file_url",
-          "media_url",
-          "url",
-        ]);
+        const video = pick(
+          item,
+          [
+            "video_url",
+            "file_url",
+            "media_url",
+            "url",
+          ]
+        );
 
         const title = pick(
           item,
@@ -1802,7 +2384,10 @@ function MediaGrid({
                 window.location.href =
                   `/watch/${item.id}`;
               } else if (video) {
-                window.open(video, "_blank");
+                window.open(
+                  video,
+                  "_blank"
+                );
               }
             }}
           >
@@ -1826,10 +2411,7 @@ function MediaGrid({
 
             <i />
 
-            <div>
-              <small>UTV</small>
-              <b>{title}</b>
-            </div>
+            <b>{title}</b>
           </button>
         );
       })}
@@ -1838,19 +2420,22 @@ function MediaGrid({
         .mediaGrid {
           display: grid;
           grid-template-columns:
-            repeat(2,minmax(0,1fr));
+            repeat(
+              2,
+              minmax(0, 1fr)
+            );
           gap: 6px;
         }
 
-        .mediaGrid > button {
+        button {
           min-width: 0;
           position: relative;
-          aspect-ratio: .84;
+          aspect-ratio: 0.83;
           overflow: hidden;
           border: 0;
           padding: 0;
           color: white;
-          background: #080c13;
+          background: #090c13;
           text-align: left;
         }
 
@@ -1868,54 +2453,46 @@ function MediaGrid({
           background:
             linear-gradient(
               135deg,
-              #7657ff,
-              #05080e
+              #7555ff,
+              #05070c
             );
-          font-size: 25px;
+          font-size: 27px;
           font-weight: 1000;
         }
 
         i {
           position: absolute;
-          inset: 40% 0 0;
+          inset: 45% 0 0;
           background:
             linear-gradient(
               transparent,
-              rgba(0,0,0,.94)
+              rgba(
+                0,
+                0,
+                0,
+                0.92
+              )
             );
         }
 
-        .mediaGrid > button > div {
+        b {
           position: absolute;
           left: 10px;
           right: 10px;
           bottom: 10px;
-        }
-
-        small,
-        b {
-          display: block;
           overflow: hidden;
+          font-size: 9px;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        small {
-          margin-bottom: 3px;
-          color: #55f4ca;
-          font-size: 6px;
-          font-weight: 1000;
-          letter-spacing: .12em;
-        }
-
-        b {
-          font-size: 9px;
-        }
-
-        @media (min-width: 680px) {
+        @media (min-width: 650px) {
           .mediaGrid {
             grid-template-columns:
-              repeat(3,minmax(0,1fr));
+              repeat(
+                3,
+                minmax(0, 1fr)
+              );
           }
         }
       `}</style>
