@@ -122,6 +122,10 @@ export default function FeedPage() {
   const [pullDistance, setPullDistance] = useState(0);
   const [pullReady, setPullReady] = useState(false);
 
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerText, setComposerText] = useState("");
+  const [postingText, setPostingText] = useState(false);
+
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
@@ -831,6 +835,91 @@ export default function FeedPage() {
     }, 1800);
   }
 
+  async function createTextPost() {
+    const caption = composerText.trim();
+
+    if (!caption || postingText) return;
+
+    const { data: auth } =
+      await supabase.auth.getUser();
+
+    const userEmail =
+      auth.user?.email || "";
+
+    if (!userEmail) {
+      router.push("/login");
+      return;
+    }
+
+    setPostingText(true);
+
+    const { data, error } =
+      await supabase
+        .from("uploads")
+        .insert({
+          creator_email: userEmail,
+          description: caption,
+          category: "post",
+          visibility: "feed",
+          approved: true,
+        })
+        .select("*")
+        .single();
+
+    if (error) {
+      console.error(
+        "Text post error:",
+        error
+      );
+
+      showFeedMessage(
+        error.message ||
+          "Could not post."
+      );
+
+      setPostingText(false);
+      return;
+    }
+
+    setComposerText("");
+    setComposerOpen(false);
+    setPostingText(false);
+
+    if (data) {
+      setItems((current) => [
+        data,
+        ...current.filter(
+          (item) =>
+            String(item.id) !==
+            String(data.id)
+        ),
+      ]);
+
+      await loadProfiles([
+        userEmail,
+      ]);
+
+      await Promise.all([
+        loadLikes(
+          String(data.id),
+          userEmail
+        ),
+        loadComments(
+          String(data.id)
+        ),
+      ]);
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    showFeedMessage(
+      "Posted to UTV 🔥"
+    );
+  }
+
   function beginEditPost(item: any) {
     setEditingPostId(item.id);
     setEditingCaption(item.description || "");
@@ -1495,6 +1584,90 @@ export default function FeedPage() {
         </button>
       </section>
 
+      <section className="motionComposer">
+        <button
+          type="button"
+          className="motionMain"
+          onClick={() =>
+            setComposerOpen(true)
+          }
+        >
+          <div className="motionAvatar">
+            {profileAvatar(viewerEmail) ? (
+              <img
+                src={profileAvatar(
+                  viewerEmail
+                )}
+                alt="You"
+              />
+            ) : (
+              <span>👤</span>
+            )}
+          </div>
+
+          <div className="motionPrompt">
+            <span>
+              What's the motion?
+            </span>
+
+            <small>
+              Share something with UTV
+            </small>
+          </div>
+
+          <span className="motionPlus">
+            ＋
+          </span>
+        </button>
+
+        <div className="motionActions">
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/submit?type=photo"
+              )
+            }
+          >
+            <span>📷</span>
+            Photo
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/submit?type=video"
+              )
+            }
+          >
+            <span>🎥</span>
+            Video
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/submit?type=reel"
+              )
+            }
+          >
+            <span>▶</span>
+            Reel
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setComposerOpen(true)
+            }
+          >
+            <span>Aa</span>
+            Post
+          </button>
+        </div>
+      </section>
 
       {activeLives.length > 0 && (
         <section className="liveNowSection">
@@ -2031,6 +2204,161 @@ export default function FeedPage() {
           })}
         </section>
       )}
+      {composerOpen && (
+        <div
+          className="composerBackdrop"
+          onClick={() => {
+            if (!postingText) {
+              setComposerOpen(false);
+            }
+          }}
+        >
+          <section
+            className="composerSheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="composerHandle" />
+
+            <header className="composerHeader">
+              <button
+                type="button"
+                className="composerClose"
+                disabled={postingText}
+                onClick={() =>
+                  setComposerOpen(false)
+                }
+              >
+                ×
+              </button>
+
+              <div>
+                <p>CREATE POST</p>
+                <h2>What's the motion?</h2>
+              </div>
+
+              <button
+                type="button"
+                className="composerPost"
+                disabled={
+                  postingText ||
+                  !composerText.trim()
+                }
+                onClick={() =>
+                  void createTextPost()
+                }
+              >
+                {postingText
+                  ? "Posting..."
+                  : "Post"}
+              </button>
+            </header>
+
+            <div className="composerIdentity">
+              <div className="composerAvatar">
+                {profileAvatar(
+                  viewerEmail
+                ) ? (
+                  <img
+                    src={profileAvatar(
+                      viewerEmail
+                    )}
+                    alt="You"
+                  />
+                ) : (
+                  <span>👤</span>
+                )}
+              </div>
+
+              <div>
+                <strong>
+                  {profileName(
+                    viewerEmail
+                  )}
+                </strong>
+
+                <span>
+                  🌎 UTV Feed
+                </span>
+              </div>
+            </div>
+
+            <textarea
+              autoFocus
+              value={composerText}
+              maxLength={2000}
+              onChange={(event) =>
+                setComposerText(
+                  event.target.value
+                )
+              }
+              placeholder="Say something..."
+            />
+
+            <div className="composerBottom">
+              <div className="composerMediaOptions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposerOpen(false);
+                    router.push(
+                      "/submit?type=photo"
+                    );
+                  }}
+                >
+                  📷
+                  <span>Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposerOpen(false);
+                    router.push(
+                      "/submit?type=video"
+                    );
+                  }}
+                >
+                  🎥
+                  <span>Video</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposerOpen(false);
+                    router.push(
+                      "/submit?type=reel"
+                    );
+                  }}
+                >
+                  ▶
+                  <span>Reel</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setComposerOpen(false);
+                    router.push(
+                      "/submit?type=story"
+                    );
+                  }}
+                >
+                  ✨
+                  <span>Story</span>
+                </button>
+              </div>
+
+              <span className="composerCount">
+                {composerText.length}/2000
+              </span>
+            </div>
+          </section>
+        </div>
+      )}
+
       {fullscreenPost &&
         (() => {
           const fullscreenImage = mediaImage(fullscreenPost);
@@ -3291,5 +3619,344 @@ const styles = `
   .commentReplies { display:grid; gap:4px; }
   .replyingToBanner { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; padding:8px 10px; border:1px solid rgba(82,247,200,.14); border-radius:12px; background:rgba(82,247,200,.055); color:rgba(255,255,255,.66); font-size:11px; }
   .replyingToBanner button { color:white; border:0; background:transparent; }
+
+
+  /* UTV MOTION COMPOSER */
+
+  .motionComposer {
+    margin: 10px 12px 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 18px;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.04),
+        rgba(255,255,255,.018)
+      );
+  }
+
+  .motionMain {
+    width: 100%;
+    min-height: 72px;
+    display: grid;
+    grid-template-columns:
+      auto minmax(0,1fr) auto;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 12px;
+    border: 0;
+    color: white;
+    background: transparent;
+    text-align: left;
+  }
+
+  .motionAvatar {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8065ff,
+        #ff5aa9
+      );
+  }
+
+  .motionAvatar img,
+  .motionAvatar > span {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border: 3px solid #07101b;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0c1420;
+  }
+
+  .motionPrompt span,
+  .motionPrompt small {
+    display: block;
+  }
+
+  .motionPrompt span {
+    color: rgba(255,255,255,.9);
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .motionPrompt small {
+    margin-top: 3px;
+    color: rgba(255,255,255,.35);
+    font-size: 9px;
+  }
+
+  .motionPlus {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #06120d;
+    background: #52f7c8;
+    font-weight: 1000;
+  }
+
+  .motionActions {
+    display: grid;
+    grid-template-columns:
+      repeat(4,minmax(0,1fr));
+    border-top:
+      1px solid rgba(255,255,255,.055);
+  }
+
+  .motionActions button {
+    min-height: 54px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    border: 0;
+    border-right:
+      1px solid rgba(255,255,255,.045);
+    color: rgba(255,255,255,.58);
+    background: transparent;
+    font-size: 8px;
+    font-weight: 850;
+  }
+
+  .motionActions button:last-child {
+    border-right: 0;
+  }
+
+  .motionActions button span {
+    color: white;
+    font-size: 16px;
+    font-weight: 1000;
+  }
+
+  .composerBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: grid;
+    align-items: end;
+    background: rgba(0,0,0,.68);
+    backdrop-filter: blur(10px);
+  }
+
+  .composerSheet {
+    width: 100%;
+    max-height: 91dvh;
+    overflow-y: auto;
+    padding:
+      8px 15px
+      max(20px, env(safe-area-inset-bottom));
+    border-top:
+      1px solid rgba(255,255,255,.13);
+    border-radius:
+      25px 25px 0 0;
+    color: white;
+    background:
+      radial-gradient(
+        circle at 100% 0%,
+        rgba(125,89,255,.10),
+        transparent 31%
+      ),
+      radial-gradient(
+        circle at 0% 20%,
+        rgba(82,247,200,.07),
+        transparent 31%
+      ),
+      #080d16;
+  }
+
+  .composerHandle {
+    width: 42px;
+    height: 4px;
+    margin: 1px auto 11px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.18);
+  }
+
+  .composerHeader {
+    display: grid;
+    grid-template-columns:
+      46px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .composerHeader > div {
+    text-align: center;
+  }
+
+  .composerHeader p {
+    margin: 0;
+    color: #52f7c8;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .14em;
+  }
+
+  .composerHeader h2 {
+    margin: 3px 0 0;
+    font-size: 15px;
+  }
+
+  .composerClose {
+    width: 40px;
+    height: 40px;
+    border:
+      1px solid rgba(255,255,255,.08);
+    border-radius: 50%;
+    color: white;
+    background: rgba(255,255,255,.035);
+    font-size: 21px;
+  }
+
+  .composerPost {
+    min-width: 62px;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    color: #06120d;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #a5ff86
+      );
+    font-size: 9px;
+    font-weight: 1000;
+  }
+
+  .composerPost:disabled {
+    opacity: .32;
+  }
+
+  .composerIdentity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 21px;
+  }
+
+  .composerAvatar {
+    width: 43px;
+    height: 43px;
+    overflow: hidden;
+    border-radius: 50%;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8065ff
+      );
+  }
+
+  .composerAvatar img,
+  .composerAvatar > span {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    object-fit: cover;
+  }
+
+  .composerIdentity strong,
+  .composerIdentity span {
+    display: block;
+  }
+
+  .composerIdentity strong {
+    font-size: 11px;
+  }
+
+  .composerIdentity span {
+    margin-top: 3px;
+    color: rgba(255,255,255,.38);
+    font-size: 8px;
+  }
+
+  .composerSheet textarea {
+    width: 100%;
+    min-height: 190px;
+    margin-top: 13px;
+    padding: 5px 0;
+    resize: none;
+    border: 0;
+    outline: 0;
+    color: white;
+    background: transparent;
+    font-size: 22px;
+    line-height: 1.42;
+  }
+
+  .composerSheet textarea::placeholder {
+    color: rgba(255,255,255,.31);
+  }
+
+  .composerBottom {
+    display: grid;
+    gap: 10px;
+    padding-top: 13px;
+    border-top:
+      1px solid rgba(255,255,255,.065);
+  }
+
+  .composerMediaOptions {
+    display: grid;
+    grid-template-columns:
+      repeat(4,minmax(0,1fr));
+    gap: 6px;
+  }
+
+  .composerMediaOptions button {
+    min-height: 62px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 4px;
+    border:
+      1px solid rgba(255,255,255,.065);
+    border-radius: 13px;
+    color: white;
+    background: rgba(255,255,255,.025);
+    font-size: 17px;
+  }
+
+  .composerMediaOptions button span {
+    color: rgba(255,255,255,.42);
+    font-size: 7px;
+    font-weight: 900;
+  }
+
+  .composerCount {
+    justify-self: end;
+    color: rgba(255,255,255,.27);
+    font-size: 8px;
+  }
+
+  @media (min-width:760px) {
+    .composerBackdrop {
+      place-items: center;
+      padding: 20px;
+    }
+
+    .composerSheet {
+      width: min(600px,100%);
+      min-height: 520px;
+      border:
+        1px solid rgba(255,255,255,.11);
+      border-radius: 24px;
+    }
+  }
 
 `;
