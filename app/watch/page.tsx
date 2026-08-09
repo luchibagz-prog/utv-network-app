@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -407,10 +408,13 @@ function WatchRow({
   );
 }
 
+
 function ReelCard({
   item,
+  onOpen,
 }: {
   item: WatchItem;
+  onOpen: () => void;
 }) {
   const image =
     contentImage(item);
@@ -419,9 +423,10 @@ function ReelCard({
     contentVideo(item);
 
   return (
-    <Link
-      href={`/watch/${item.id}`}
+    <button
+      type="button"
       className="reelCard"
+      onClick={onOpen}
     >
       <div className="reelMedia">
         {image ? (
@@ -449,7 +454,7 @@ function ReelCard({
         </span>
 
         <div className="reelInfo">
-          <p>UTV SHORT</p>
+          <p>UTV REEL</p>
 
           <h3>
             {contentTitle(item)}
@@ -461,7 +466,422 @@ function ReelCard({
           </span>
         </div>
       </div>
-    </Link>
+    </button>
+  );
+}
+
+function youtubeId(url: string) {
+  if (!url) return "";
+
+  try {
+    const parsed = new URL(url);
+
+    if (
+      parsed.hostname.includes("youtu.be")
+    ) {
+      return parsed.pathname
+        .replace("/", "")
+        .split("?")[0];
+    }
+
+    if (
+      parsed.hostname.includes("youtube.com")
+    ) {
+      if (
+        parsed.pathname.startsWith(
+          "/shorts/"
+        )
+      ) {
+        return parsed.pathname
+          .split("/shorts/")[1]
+          ?.split("/")[0] || "";
+      }
+
+      if (
+        parsed.pathname.startsWith(
+          "/embed/"
+        )
+      ) {
+        return parsed.pathname
+          .split("/embed/")[1]
+          ?.split("/")[0] || "";
+      }
+
+      return (
+        parsed.searchParams.get("v") ||
+        ""
+      );
+    }
+  } catch {}
+
+  return "";
+}
+
+function ReelPlayer({
+  item,
+  active,
+  onLike,
+  liked,
+  onShare,
+  onComments,
+}: {
+  item: WatchItem;
+  active: boolean;
+  liked: boolean;
+  onLike: () => void;
+  onShare: () => void;
+  onComments: () => void;
+}) {
+  const videoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const media =
+    contentVideo(item);
+
+  const image =
+    contentImage(item);
+
+  const ytId =
+    youtubeId(media);
+
+  const [muted, setMuted] =
+    useState(true);
+
+  const [paused, setPaused] =
+    useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    if (active && !paused) {
+      video
+        .play()
+        .catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [
+    active,
+    paused,
+  ]);
+
+  function togglePlayback() {
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    if (video.paused) {
+      setPaused(false);
+
+      video
+        .play()
+        .catch(() => {});
+    } else {
+      setPaused(true);
+      video.pause();
+    }
+  }
+
+  function toggleSound() {
+    const next = !muted;
+
+    setMuted(next);
+
+    if (videoRef.current) {
+      videoRef.current.muted =
+        next;
+    }
+  }
+
+  return (
+    <div className="fullReelMedia">
+      {ytId ? (
+        active ? (
+          <iframe
+            className="reelYoutube"
+            src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1`}
+            title={contentTitle(item)}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        ) : image ? (
+          <img
+            src={image}
+            alt={contentTitle(item)}
+          />
+        ) : (
+          <div className="fullReelFallback">
+            UTV
+          </div>
+        )
+      ) : media ? (
+        <video
+          ref={videoRef}
+          src={media}
+          poster={image || undefined}
+          muted={muted}
+          loop
+          playsInline
+          preload="metadata"
+          onClick={togglePlayback}
+        />
+      ) : image ? (
+        <img
+          src={image}
+          alt={contentTitle(item)}
+        />
+      ) : (
+        <div className="fullReelFallback">
+          UTV
+        </div>
+      )}
+
+      {!ytId && (
+        <button
+          type="button"
+          className="soundToggle"
+          onClick={toggleSound}
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
+      )}
+
+      <div className="fullReelShade" />
+
+      <div className="fullReelInfo">
+        <span>
+          @
+          {item.creator_name ||
+            "utv"}
+        </span>
+
+        <h3>
+          {contentTitle(item)}
+        </h3>
+
+        <p>
+          {contentDescription(item)}
+        </p>
+
+        <small>
+          ♪ {categoryLabel(item)}
+        </small>
+      </div>
+
+      <div className="reelActions">
+        <button
+          type="button"
+          className={
+            liked
+              ? "liked"
+              : ""
+          }
+          onClick={onLike}
+        >
+          {liked ? "♥" : "♡"}
+          <small>Like</small>
+        </button>
+
+        <button
+          type="button"
+          onClick={onComments}
+        >
+          💬
+          <small>Comment</small>
+        </button>
+
+        <button
+          type="button"
+          onClick={onShare}
+        >
+          ↗
+          <small>Share</small>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReelFeedItem({
+  item,
+  index,
+  activeIndex,
+  onActive,
+}: {
+  item: WatchItem;
+  index: number;
+  activeIndex: number;
+  onActive: (index: number) => void;
+}) {
+  const rootRef =
+    useRef<HTMLDivElement | null>(null);
+
+  const [liked, setLiked] =
+    useState(false);
+
+  const [
+    commentsOpen,
+    setCommentsOpen,
+  ] = useState(false);
+
+  useEffect(() => {
+    const element =
+      rootRef.current;
+
+    if (!element) return;
+
+    const observer =
+      new IntersectionObserver(
+        (entries) => {
+          const entry =
+            entries[0];
+
+          if (
+            entry.isIntersecting &&
+            entry.intersectionRatio >=
+              0.72
+          ) {
+            onActive(index);
+          }
+        },
+        {
+          threshold: [
+            0.3,
+            0.72,
+            0.9,
+          ],
+        }
+      );
+
+    observer.observe(element);
+
+    return () =>
+      observer.disconnect();
+  }, [
+    index,
+    onActive,
+  ]);
+
+  async function shareReel() {
+    const url =
+      `${window.location.origin}/watch/${item.id}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title:
+            contentTitle(item),
+          text:
+            contentDescription(item) ||
+            "Watch this Reel on UTV.",
+          url,
+        });
+
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        url
+      );
+
+      alert(
+        "UTV Reel link copied."
+      );
+    } catch {}
+  }
+
+  return (
+    <article
+      ref={rootRef}
+      className="fullReel"
+    >
+      <ReelPlayer
+        item={item}
+        active={
+          activeIndex === index
+        }
+        liked={liked}
+        onLike={() =>
+          setLiked(
+            (current) =>
+              !current
+          )
+        }
+        onShare={() =>
+          void shareReel()
+        }
+        onComments={() =>
+          setCommentsOpen(
+            true
+          )
+        }
+      />
+
+      {commentsOpen && (
+        <div
+          className="reelCommentsBackdrop"
+          onClick={() =>
+            setCommentsOpen(
+              false
+            )
+          }
+        >
+          <div
+            className="reelCommentsSheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="commentHandle" />
+
+            <div className="commentsTop">
+              <strong>
+                Comments
+              </strong>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCommentsOpen(
+                    false
+                  )
+                }
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="commentsEmpty">
+              <span>💬</span>
+
+              <b>
+                Start the conversation
+              </b>
+
+              <p>
+                Reel comments will connect
+                to UTV social comments in
+                the social-engine upgrade.
+              </p>
+            </div>
+
+            <div className="commentComposer">
+              <input
+                placeholder="Add a comment..."
+              />
+
+              <button
+                type="button"
+              >
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -501,6 +921,11 @@ export default function WatchPage() {
   const [
     heroIndex,
     setHeroIndex,
+  ] = useState(0);
+
+  const [
+    activeReelIndex,
+    setActiveReelIndex,
   ] = useState(0);
 
   useEffect(() => {
@@ -869,25 +1294,13 @@ export default function WatchPage() {
     );
 
   const shortContent =
-    useMemo(() => {
-      const explicit =
+    useMemo(
+      () =>
         uploads.filter(
           isShortContent
-        );
-
-      if (explicit.length) {
-        return explicit;
-      }
-
-      return uploads
-        .filter(
-          (item) =>
-            Boolean(
-              contentVideo(item)
-            )
-        )
-        .slice(0, 18);
-    }, [uploads]);
+        ),
+      [uploads]
+    );
 
   const recent =
     useMemo(
@@ -1171,6 +1584,28 @@ export default function WatchPage() {
                         item.id ||
                           index
                       )}
+                      onOpen={() => {
+                        setMode("reels");
+                        setActiveReelIndex(
+                          index
+                        );
+
+                        window.setTimeout(
+                          () => {
+                            document
+                              .getElementById(
+                                `utv-reel-${index}`
+                              )
+                              ?.scrollIntoView({
+                                behavior:
+                                  "smooth",
+                                block:
+                                  "start",
+                              });
+                          },
+                          80
+                        );
+                      }}
                     />
                   )
                 )}
@@ -1310,96 +1745,33 @@ export default function WatchPage() {
               </h2>
 
               <p>
-                Upload Reel or Short
-                category videos and
-                they will live here.
+                Upload videos with a Reel,
+                Short, Shorts, Clip, or
+                Vertical category and they
+                will live here.
               </p>
             </section>
           ) : (
             <div className="reelsFeed">
               {shortContent.map(
-                (
-                  item,
-                  index
-                ) => (
-                  <Link
-                    href={`/watch/${item.id}`}
-                    className="fullReel"
+                (item, index) => (
+                  <div
+                    id={`utv-reel-${index}`}
                     key={String(
-                      item.id ||
-                        index
+                      item.id || index
                     )}
                   >
-                    <div className="fullReelMedia">
-                      {contentImage(
-                        item
-                      ) ? (
-                        <img
-                          src={contentImage(
-                            item
-                          )}
-                          alt={contentTitle(
-                            item
-                          )}
-                        />
-                      ) : contentVideo(
-                          item
-                        ) ? (
-                        <video
-                          src={contentVideo(
-                            item
-                          )}
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <div className="fullReelFallback">
-                          UTV
-                        </div>
-                      )}
-
-                      <div className="fullReelShade" />
-
-                      <span className="bigPlay">
-                        ▶
-                      </span>
-
-                      <div className="fullReelInfo">
-                        <span>
-                          @
-                          {item.creator_name ||
-                            "utv"}
-                        </span>
-
-                        <h3>
-                          {contentTitle(
-                            item
-                          )}
-                        </h3>
-
-                        <p>
-                          {contentDescription(
-                            item
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="reelActions">
-                        <span>
-                          ♡
-                        </span>
-
-                        <span>
-                          💬
-                        </span>
-
-                        <span>
-                          ↗
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
+                    <ReelFeedItem
+                      item={item}
+                      index={index}
+                      activeIndex={
+                        activeReelIndex
+                      }
+                      onActive={
+                        setActiveReelIndex
+                      }
+                    />
+                  </div>
                 )
               )}
             </div>
@@ -1898,8 +2270,12 @@ const styles = `
   .reelCard {
     width: 127px;
     min-width: 127px;
+    padding: 0;
+    border: 0;
     color: white;
+    background: transparent;
     text-decoration: none;
+    text-align: left;
   }
 
   .reelMedia {
@@ -2224,26 +2600,38 @@ const styles = `
   }
 
   .reelsFeed {
+    height:
+      calc(
+        100dvh - 190px
+      );
     display: grid;
-    gap: 8px;
-    padding:
-      0 8px;
+    gap: 0;
+    padding: 0 8px;
+    overflow-y: auto;
+    overscroll-behavior-y:
+      contain;
     scroll-snap-type:
       y mandatory;
+    scrollbar-width: none;
+  }
+
+  .reelsFeed::-webkit-scrollbar {
+    display: none;
   }
 
   .fullReel {
+    position: relative;
     color: white;
-    text-decoration: none;
     scroll-snap-align:
       start;
+    scroll-snap-stop:
+      always;
   }
 
   .fullReelMedia {
     height:
-      min(
-        72dvh,
-        720px
+      calc(
+        100dvh - 190px
       );
     min-height: 535px;
     position: relative;
@@ -2350,20 +2738,199 @@ const styles = `
     gap: 13px;
   }
 
-  .reelActions span {
-    width: 42px;
-    height: 42px;
+  .reelActions button {
+    width: 48px;
+    min-height: 48px;
     display: grid;
     place-items: center;
+    align-content: center;
+    gap: 2px;
+    padding: 0;
     border:
       1px solid
       rgba(255,255,255,.12);
     border-radius: 50%;
+    color: white;
     background:
-      rgba(0,0,0,.38);
+      rgba(0,0,0,.42);
     backdrop-filter:
       blur(12px);
     font-size: 17px;
+  }
+
+  .reelActions button.liked {
+    color: #ff477e;
+    background:
+      rgba(255,71,126,.13);
+    border-color:
+      rgba(255,71,126,.34);
+  }
+
+  .reelActions button small {
+    display: none;
+  }
+
+  .soundToggle {
+    position: absolute;
+    z-index: 7;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+    border-radius: 50%;
+    color: white;
+    background:
+      rgba(0,0,0,.42);
+    backdrop-filter: blur(12px);
+  }
+
+  .reelYoutube {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #000;
+  }
+
+  .fullReelInfo small {
+    display: block;
+    margin-top: 7px;
+    color:
+      rgba(255,255,255,.53);
+    font-size: 8px;
+  }
+
+  .reelCommentsBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    align-items: end;
+    background:
+      rgba(0,0,0,.62);
+    backdrop-filter:
+      blur(8px);
+  }
+
+  .reelCommentsSheet {
+    width: 100%;
+    max-height: 72dvh;
+    min-height: 330px;
+    padding:
+      8px 15px
+      max(
+        18px,
+        env(safe-area-inset-bottom)
+      );
+    border-top:
+      1px solid
+      rgba(255,255,255,.12);
+    border-radius:
+      24px 24px 0 0;
+    color: white;
+    background:
+      linear-gradient(
+        180deg,
+        #111622,
+        #05070c
+      );
+  }
+
+  .commentHandle {
+    width: 42px;
+    height: 4px;
+    margin:
+      2px auto 12px;
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.18);
+  }
+
+  .commentsTop {
+    display: flex;
+    align-items: center;
+    justify-content:
+      space-between;
+  }
+
+  .commentsTop strong {
+    font-size: 16px;
+  }
+
+  .commentsTop button {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 50%;
+    color: white;
+    background:
+      rgba(255,255,255,.06);
+    font-size: 21px;
+  }
+
+  .commentsEmpty {
+    min-height: 205px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 6px;
+    padding: 25px;
+    text-align: center;
+  }
+
+  .commentsEmpty > span {
+    font-size: 28px;
+  }
+
+  .commentsEmpty b {
+    font-size: 12px;
+  }
+
+  .commentsEmpty p {
+    max-width: 330px;
+    margin: 0;
+    color:
+      rgba(255,255,255,.4);
+    font-size: 9px;
+    line-height: 1.5;
+  }
+
+  .commentComposer {
+    display: grid;
+    grid-template-columns:
+      minmax(0,1fr)
+      auto;
+    gap: 7px;
+    padding-top: 10px;
+    border-top:
+      1px solid
+      rgba(255,255,255,.07);
+  }
+
+  .commentComposer input {
+    min-width: 0;
+    height: 43px;
+    padding: 0 13px;
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+    outline: none;
+    color: white;
+    background:
+      rgba(255,255,255,.035);
+  }
+
+  .commentComposer button {
+    min-width: 62px;
+    border: 0;
+    color: #03110d;
+    background: #55f4ca;
+    font-size: 9px;
+    font-weight: 950;
   }
 
 
