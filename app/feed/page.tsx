@@ -859,7 +859,7 @@ export default function FeedPage() {
         await supabase
           .from("uploads")
           .insert({
-            title: "UTV Post",
+            title: "",
             description: caption,
             category: "Feed",
             creator_email: user.email,
@@ -883,53 +883,124 @@ export default function FeedPage() {
         throw uploadError;
       }
 
-      setComposerText("");
-      setComposerOpen(false);
-
-      if (uploadRow) {
-        setItems((current) => [
-          uploadRow,
-          ...current.filter(
-            (item) =>
-              String(item.id) !==
-              String(uploadRow.id)
-          ),
-        ]);
-
-        await loadProfiles([
-          user.email,
-        ]);
-
-        await Promise.all([
-          loadLikes(
-            String(uploadRow.id),
-            user.email
-          ),
-          loadComments(
-            String(uploadRow.id)
-          ),
-        ]);
+      if (!uploadRow?.id) {
+        throw new Error(
+          "Post saved but UTV did not receive the new post ID."
+        );
       }
 
+      /*
+       * Verify the exact row exists in Supabase before
+       * showing success.
+       */
+      const { data: verifiedRow, error: verifyError } =
+        await supabase
+          .from("uploads")
+          .select("*")
+          .eq("id", uploadRow.id)
+          .single();
+
+      if (verifyError || !verifiedRow) {
+        throw (
+          verifyError ||
+          new Error(
+            "UTV could not verify the saved post."
+          )
+        );
+      }
+
+      /*
+       * Put user into the correct Feed view so their
+       * new post cannot be hidden by Following/Near/UTV
+       * filters or an old search.
+       */
+      setFeedTab("forYou");
+      setSearch("");
+
+      /*
+       * Force the actual verified Supabase row to the
+       * top of the Feed wall immediately.
+       */
+      setItems((current) => [
+        verifiedRow,
+        ...current.filter(
+          (item) =>
+            String(item.id) !==
+            String(verifiedRow.id)
+        ),
+      ]);
+
+      itemsRef.current = [
+        verifiedRow,
+        ...itemsRef.current.filter(
+          (item) =>
+            String(item.id) !==
+            String(verifiedRow.id)
+        ),
+      ];
+
+      setLikes((current) => ({
+        ...current,
+        [String(verifiedRow.id)]: 0,
+      }));
+
+      setComments((current) => ({
+        ...current,
+        [String(verifiedRow.id)]: [],
+      }));
+
+      setLikedPosts((current) => ({
+        ...current,
+        [String(verifiedRow.id)]: false,
+      }));
+
+      await loadProfiles([
+        user.email,
+      ]);
+
+      setComposerText("");
+      setComposerOpen(false);
       setLastUpdatedAt(new Date());
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      /*
+       * Confirm from server again shortly after local
+       * placement without making the user wait.
+       */
+      window.setTimeout(() => {
+        void loadEverything(false, false);
+      }, 900);
+
+      window.setTimeout(() => {
+        const newPost =
+          document.getElementById(
+            `post-${verifiedRow.id}`
+          );
+
+        if (newPost) {
+          newPost.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        } else {
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+        }
+      }, 80);
 
       showFeedMessage(
-        "Posted to UTV 🔥"
+        "Posted to your UTV Feed 🔥"
       );
     } catch (error: any) {
       console.error(
-        "Text post error:",
+        "Caption post error:",
         error
       );
 
       showFeedMessage(
         error?.message ||
-          "Could not post to UTV."
+          "Could not post to your Feed."
       );
     } finally {
       setPostingText(false);
@@ -1872,6 +1943,15 @@ export default function FeedPage() {
 
             const videoUrl = mediaVideo(item);
 
+            const isTextOnly =
+              !image &&
+              !videoUrl &&
+              Boolean(
+                String(
+                  item.description || ""
+                ).trim()
+              );
+
             const useVideo =
               Boolean(videoUrl) &&
               (isDirectVideo(videoUrl) ||
@@ -2039,6 +2119,18 @@ export default function FeedPage() {
                         }
                       }}
                     />
+                  ) : isTextOnly ? (
+                    <div className="textOnlyPost">
+                      <div className="textOnlyGlow" />
+
+                      <div className="textOnlyBrand">
+                        UTV
+                      </div>
+
+                      <p>
+                        {item.description}
+                      </p>
+                    </div>
                   ) : (
                     <div className="fallbackMedia">UTV</div>
                   )}
@@ -2134,7 +2226,7 @@ export default function FeedPage() {
                         </button>
                       </div>
                     </div>
-                  ) : item.description ? (
+                  ) : item.description && !isTextOnly ? (
                     <p className="caption">
                       <button
                         className="creatorCaptionButton"
@@ -3974,5 +4066,101 @@ const styles = `
       border-radius: 24px;
     }
   }
+
+
+  /* ======================================================
+     UTV TEXT-ONLY FEED POSTS
+     ====================================================== */
+
+  .textOnlyPost {
+    position: relative;
+    min-height: 285px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 18px;
+    overflow: hidden;
+    padding: 42px 28px;
+    background:
+      radial-gradient(
+        circle at 15% 15%,
+        rgba(82,247,200,.16),
+        transparent 33%
+      ),
+      radial-gradient(
+        circle at 90% 85%,
+        rgba(123,97,255,.19),
+        transparent 36%
+      ),
+      linear-gradient(
+        145deg,
+        #101824,
+        #070a11 58%,
+        #130d20
+      );
+  }
+
+  .textOnlyGlow {
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    left: 50%;
+    top: 50%;
+    border-radius: 50%;
+    background:
+      rgba(82,247,200,.08);
+    filter: blur(45px);
+    transform:
+      translate(-50%,-50%);
+    pointer-events: none;
+  }
+
+  .textOnlyBrand {
+    position: relative;
+    z-index: 2;
+    padding: 6px 10px;
+    border:
+      1px solid
+      rgba(82,247,200,.20);
+    color: #52f7c8;
+    background:
+      rgba(0,0,0,.22);
+    font-size: 9px;
+    font-weight: 1000;
+    letter-spacing: .16em;
+  }
+
+  .textOnlyPost p {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 560px;
+    margin: 0;
+    color: white;
+    font-size:
+      clamp(
+        22px,
+        6vw,
+        34px
+      );
+    font-weight: 850;
+    line-height: 1.24;
+    letter-spacing: -.025em;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  @media (max-width:480px) {
+    .textOnlyPost {
+      min-height: 260px;
+      padding: 36px 22px;
+    }
+
+    .textOnlyPost p {
+      font-size: 24px;
+    }
+  }
+
 
 `;
