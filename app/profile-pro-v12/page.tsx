@@ -107,6 +107,12 @@ export default function ProfileProV12Page() {
 
   const [notice, setNotice] = useState("");
 
+  const [savingTop8, setSavingTop8] =
+    useState(false);
+
+  const [top8Dirty, setTop8Dirty] =
+    useState(false);
+
   useEffect(() => {
     void loadProfile();
   }, []);
@@ -246,12 +252,82 @@ export default function ProfileProV12Page() {
       followingResult.count || 0
     );
 
-    setCrew(
+    let orderedCrew =
       restoreCrewOrder(
         crewProfiles,
         userEmail
-      )
-    );
+      );
+
+    try {
+      const {
+        data: savedTop8,
+        error: savedTop8Error,
+      } =
+        await supabase
+          .from("top_crew")
+          .select(
+            "member_email, position"
+          )
+          .eq(
+            "owner_email",
+            userEmail
+          )
+          .order(
+            "position",
+            {
+              ascending: true,
+            }
+          );
+
+      if (
+        !savedTop8Error &&
+        savedTop8?.length
+      ) {
+        const positionMap =
+          new Map(
+            savedTop8.map(
+              (row: any) => [
+                String(
+                  row.member_email ||
+                    ""
+                ).toLowerCase(),
+                Number(
+                  row.position || 0
+                ),
+              ]
+            )
+          );
+
+        orderedCrew =
+          [...crewProfiles].sort(
+            (a, b) => {
+              const aPos =
+                positionMap.get(
+                  String(
+                    a.email || ""
+                  ).toLowerCase()
+                ) ?? 9999;
+
+              const bPos =
+                positionMap.get(
+                  String(
+                    b.email || ""
+                  ).toLowerCase()
+                ) ?? 9999;
+
+              return aPos - bPos;
+            }
+          );
+      }
+    } catch (error) {
+      console.warn(
+        "Top 8 server order unavailable:",
+        error
+      );
+    }
+
+    setCrew(orderedCrew);
+    setTop8Dirty(false);
 
     setLoading(false);
   }
@@ -378,57 +454,150 @@ export default function ProfileProV12Page() {
     }
   }
 
-  function saveCrewOrder(
-    next: any[]
+  function reorderCrew(
+    fromIndex: number,
+    toIndex: number
   ) {
-    setCrew(next);
-
-    try {
-      window.localStorage.setItem(
-        crewStorageKey(email),
-        JSON.stringify(
-          next.map(
-            (person) => person.email
-          )
-        )
+    const visibleCount =
+      Math.min(
+        crew.length,
+        8
       );
-
-      setNotice("Top 8 order saved");
-
-      window.setTimeout(
-        () => setNotice(""),
-        1200
-      );
-    } catch {
-      setNotice(
-        "Could not save Top 8 order"
-      );
-    }
-  }
-
-  function moveCrew(
-    index: number,
-    direction: -1 | 1
-  ) {
-    const nextIndex =
-      index + direction;
 
     if (
-      nextIndex < 0 ||
-      nextIndex >=
-        Math.min(crew.length, 8)
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= visibleCount ||
+      toIndex >= visibleCount ||
+      fromIndex === toIndex
     ) {
       return;
     }
 
-    const next = [...crew];
+    setCrew((current) => {
+      const next = [...current];
 
-    [next[index], next[nextIndex]] = [
-      next[nextIndex],
-      next[index],
-    ];
+      const [moved] =
+        next.splice(
+          fromIndex,
+          1
+        );
 
-    saveCrewOrder(next);
+      next.splice(
+        toIndex,
+        0,
+        moved
+      );
+
+      return next;
+    });
+
+    setTop8Dirty(true);
+  }
+
+  async function saveTop8Order() {
+    if (
+      !email ||
+      savingTop8
+    ) {
+      return;
+    }
+
+    const selected =
+      crew.slice(0, 8);
+
+    setSavingTop8(true);
+
+    try {
+      /*
+       * Keep local storage as instant/offline
+       * backup.
+       */
+      window.localStorage.setItem(
+        crewStorageKey(email),
+        JSON.stringify(
+          selected.map(
+            (person) =>
+              person.email
+          )
+        )
+      );
+
+      /*
+       * Server version is the source of truth
+       * for public profile order.
+       */
+      const {
+        error: deleteError,
+      } =
+        await supabase
+          .from("top_crew")
+          .delete()
+          .eq(
+            "owner_email",
+            email
+          );
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      if (selected.length) {
+        const payload =
+          selected.map(
+            (
+              person,
+              index
+            ) => ({
+              owner_email:
+                email,
+              member_email:
+                person.email,
+              position:
+                index + 1,
+            })
+          );
+
+        const {
+          error: insertError,
+        } =
+          await supabase
+            .from("top_crew")
+            .insert(payload);
+
+        if (insertError) {
+          throw insertError;
+        }
+      }
+
+      setTop8Dirty(false);
+
+      setNotice(
+        "Top 8 saved 🔥"
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        1600
+      );
+    } catch (error: any) {
+      console.error(
+        "Top 8 save error:",
+        error
+      );
+
+      setNotice(
+        error?.message ||
+          "Could not save Top 8"
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        2400
+      );
+    } finally {
+      setSavingTop8(false);
+    }
   }
 
   if (loading) {
@@ -963,7 +1132,18 @@ export default function ProfileProV12Page() {
                     0,
                     8
                   )}
-                  onMove={moveCrew}
+                  onReorder={
+                    reorderCrew
+                  }
+                  onSave={() =>
+                    void saveTop8Order()
+                  }
+                  saving={
+                    savingTop8
+                  }
+                  dirty={
+                    top8Dirty
+                  }
                 />
               </section>
             )}
@@ -2166,147 +2346,612 @@ function CrewDisplay({
 
 function TopCrewEditor({
   crew,
-  onMove,
+  onReorder,
+  onSave,
+  saving,
+  dirty,
 }: {
   crew: any[];
-  onMove: (
-    index: number,
-    direction: -1 | 1
+  onReorder: (
+    fromIndex: number,
+    toIndex: number
   ) => void;
+  onSave: () => void;
+  saving: boolean;
+  dirty: boolean;
 }) {
-  return (
-    <div className="editor">
-      {crew.map(
-        (person, index) => (
-          <div
-            className="row"
-            key={person.email}
-          >
-            <span className="number">
-              {index + 1}
-            </span>
+  const [
+    draggingIndex,
+    setDraggingIndex,
+  ] =
+    useState<number | null>(
+      null
+    );
 
-            <div className="person">
-              <b>
-                {person.name}
-              </b>
+  const [
+    overIndex,
+    setOverIndex,
+  ] =
+    useState<number | null>(
+      null
+    );
 
-              <small>
-                @{person.username}
-              </small>
-            </div>
+  const dragPointerRef =
+    useRef<number | null>(
+      null
+    );
 
-            <button
-              disabled={index === 0}
-              onClick={() =>
-                onMove(index, -1)
-              }
-            >
-              ↑
-            </button>
+  function beginDrag(
+    event:
+      React.PointerEvent<HTMLDivElement>,
+    index: number
+  ) {
+    /*
+     * Only primary touch/mouse.
+     */
+    if (
+      event.button !== 0 &&
+      event.pointerType !==
+        "touch"
+    ) {
+      return;
+    }
 
-            <button
-              disabled={
-                index ===
-                crew.length - 1
-              }
-              onClick={() =>
-                onMove(index, 1)
-              }
-            >
-              ↓
-            </button>
-          </div>
+    event.preventDefault();
+
+    dragPointerRef.current =
+      event.pointerId;
+
+    setDraggingIndex(index);
+    setOverIndex(index);
+
+    try {
+      event.currentTarget
+        .setPointerCapture(
+          event.pointerId
+        );
+    } catch {}
+  }
+
+  function moveDrag(
+    event:
+      React.PointerEvent<HTMLDivElement>
+  ) {
+    if (
+      draggingIndex === null ||
+      dragPointerRef.current !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const target =
+      document.elementFromPoint(
+        event.clientX,
+        event.clientY
+      ) as HTMLElement | null;
+
+    const row =
+      target?.closest(
+        "[data-top8-index]"
+      ) as HTMLElement | null;
+
+    if (!row) return;
+
+    const nextIndex =
+      Number(
+        row.dataset
+          .top8Index
+      );
+
+    if (
+      Number.isFinite(
+        nextIndex
+      )
+    ) {
+      setOverIndex(
+        nextIndex
+      );
+    }
+  }
+
+  function finishDrag(
+    event?:
+      React.PointerEvent<HTMLDivElement>
+  ) {
+    if (
+      draggingIndex !== null &&
+      overIndex !== null &&
+      draggingIndex !==
+        overIndex
+    ) {
+      onReorder(
+        draggingIndex,
+        overIndex
+      );
+    }
+
+    if (
+      event &&
+      event.currentTarget
+        .hasPointerCapture(
+          event.pointerId
         )
-      )}
+    ) {
+      try {
+        event.currentTarget
+          .releasePointerCapture(
+            event.pointerId
+          );
+      } catch {}
+    }
+
+    dragPointerRef.current =
+      null;
+
+    setDraggingIndex(
+      null
+    );
+
+    setOverIndex(null);
+  }
+
+  if (!crew.length) {
+    return (
+      <div className="top8Empty">
+        Add people to your crew
+        before arranging your
+        Top 8.
+
+        <style jsx>{`
+          .top8Empty {
+            margin-top: 13px;
+            padding: 25px;
+            border: 1px dashed
+              rgba(
+                255,
+                255,
+                255,
+                .12
+              );
+            color:
+              rgba(
+                255,
+                255,
+                255,
+                .42
+              );
+            text-align: center;
+            font-size: 9px;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div className="top8Editor">
+      <div className="dragHint">
+        <span>☰</span>
+
+        <div>
+          <b>
+            Hold + drag to reorder
+          </b>
+
+          <small>
+            Slide anyone directly
+            into #1–#8.
+          </small>
+        </div>
+      </div>
+
+      <div className="top8List">
+        {crew.map(
+          (
+            person,
+            index
+          ) => {
+            const active =
+              draggingIndex ===
+              index;
+
+            const target =
+              overIndex === index &&
+              draggingIndex !==
+                null;
+
+            return (
+              <div
+                key={
+                  person.email
+                }
+                data-top8-index={
+                  index
+                }
+                className={[
+                  "top8Row",
+                  active
+                    ? "dragging"
+                    : "",
+                  target
+                    ? "dragTarget"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                onPointerDown={(
+                  event
+                ) =>
+                  beginDrag(
+                    event,
+                    index
+                  )
+                }
+                onPointerMove={
+                  moveDrag
+                }
+                onPointerUp={
+                  finishDrag
+                }
+                onPointerCancel={
+                  finishDrag
+                }
+              >
+                <span className="top8Number">
+                  {index + 1}
+                </span>
+
+                <div className="top8Avatar">
+                  {person.avatar ? (
+                    <img
+                      src={
+                        person.avatar
+                      }
+                      alt={
+                        person.name
+                      }
+                    />
+                  ) : (
+                    <span>
+                      {person.name
+                        ?.slice(
+                          0,
+                          1
+                        )
+                        .toUpperCase()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="top8Person">
+                  <b>
+                    {person.name}
+                  </b>
+
+                  <small>
+                    @
+                    {
+                      person.username
+                    }
+                  </small>
+                </div>
+
+                <div className="dragHandle">
+                  <i />
+                  <i />
+                  <i />
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      <button
+        type="button"
+        className={
+          dirty
+            ? "saveTop8 dirty"
+            : "saveTop8"
+        }
+        disabled={
+          saving ||
+          !dirty
+        }
+        onClick={onSave}
+      >
+        {saving
+          ? "Saving..."
+          : dirty
+          ? "Save Top 8 Order"
+          : "Top 8 Saved ✓"}
+      </button>
 
       <style jsx>{`
-        .editor {
-          display: grid;
-          gap: 5px;
+        .top8Editor {
           margin-top: 13px;
         }
 
-        .row {
-          min-height: 52px;
+        .dragHint {
           display: grid;
           grid-template-columns:
             auto
-            minmax(0, 1fr)
-            36px
-            36px;
+            minmax(0, 1fr);
           align-items: center;
-          gap: 7px;
-          padding: 7px;
-          border-bottom: 1px solid
+          gap: 10px;
+          padding: 11px 12px;
+          border: 1px solid
             rgba(
-              255,
-              255,
-              255,
-              0.06
+              85,
+              244,
+              202,
+              .13
+            );
+          background:
+            rgba(
+              85,
+              244,
+              202,
+              .035
             );
         }
 
-        .number {
-          width: 28px;
-          height: 28px;
-          display: grid;
-          place-items: center;
-          border-radius: 50%;
-          color: #04120e;
-          background: #55f4ca;
-          font-size: 8px;
-          font-weight: 1000;
+        .dragHint > span {
+          color: #55f4ca;
+          font-size: 20px;
         }
 
-        .person b,
-        .person small {
+        .dragHint b,
+        .dragHint small {
           display: block;
         }
 
-        .person b {
+        .dragHint b {
           font-size: 9px;
         }
 
-        .person small {
-          margin-top: 2px;
+        .dragHint small {
+          margin-top: 3px;
           color:
             rgba(
               255,
               255,
               255,
-              0.34
+              .38
             );
           font-size: 7px;
         }
 
-        button {
-          height: 34px;
+        .top8List {
+          display: grid;
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .top8Row {
+          min-height: 66px;
+          display: grid;
+          grid-template-columns:
+            32px
+            46px
+            minmax(0, 1fr)
+            28px;
+          align-items: center;
+          gap: 9px;
+          padding: 7px 9px;
           border: 1px solid
             rgba(
               255,
               255,
               255,
-              0.08
+              .06
             );
-          color: #55f4ca;
+          color: white;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(
+                255,
+                255,
+                255,
+                .035
+              ),
+              rgba(
+                255,
+                255,
+                255,
+                .012
+              )
+            );
+          touch-action: none;
+          user-select: none;
+          -webkit-user-select:
+            none;
+          transition:
+            transform .14s ease,
+            border-color .14s ease,
+            background .14s ease,
+            opacity .14s ease;
+        }
+
+        .top8Row.dragging {
+          z-index: 5;
+          opacity: .68;
+          border-color:
+            rgba(
+              85,
+              244,
+              202,
+              .55
+            );
+          background:
+            rgba(
+              85,
+              244,
+              202,
+              .10
+            );
+          transform:
+            scale(.985);
+        }
+
+        .top8Row.dragTarget {
+          border-color:
+            #55f4ca;
+          box-shadow:
+            inset 3px 0 0
+            #55f4ca;
+        }
+
+        .top8Number {
+          width: 30px;
+          height: 30px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: #04120e;
+          background:
+            linear-gradient(
+              135deg,
+              #55f4ca,
+              #a6ff79
+            );
+          font-size: 9px;
+          font-weight: 1000;
+        }
+
+        .top8Avatar {
+          width: 44px;
+          height: 44px;
+          overflow: hidden;
+          padding: 2px;
+          border-radius: 50%;
+          background:
+            linear-gradient(
+              135deg,
+              #55f4ca,
+              #845fff,
+              #ff5ca8
+            );
+        }
+
+        .top8Avatar img,
+        .top8Avatar > span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          border: 2px solid
+            #05070c;
+          border-radius: 50%;
+          object-fit: cover;
+          color: #04120e;
+          background: #0a0e16;
+          font-weight: 1000;
+        }
+
+        .top8Person {
+          min-width: 0;
+        }
+
+        .top8Person b,
+        .top8Person small {
+          display: block;
+          overflow: hidden;
+          text-overflow:
+            ellipsis;
+          white-space: nowrap;
+        }
+
+        .top8Person b {
+          font-size: 10px;
+        }
+
+        .top8Person small {
+          margin-top: 3px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .36
+            );
+          font-size: 7px;
+        }
+
+        .dragHandle {
+          width: 28px;
+          height: 38px;
+          display: grid;
+          align-content: center;
+          gap: 4px;
+          padding: 5px;
+        }
+
+        .dragHandle i {
+          height: 2px;
+          border-radius: 99px;
           background:
             rgba(
               255,
               255,
               255,
-              0.025
+              .36
             );
+        }
+
+        .saveTop8 {
+          width: 100%;
+          min-height: 48px;
+          margin-top: 11px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .07
+            );
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .42
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .025
+            );
+          font-size: 9px;
           font-weight: 1000;
         }
 
-        button:disabled {
-          opacity: 0.18;
+        .saveTop8.dirty {
+          border: 0;
+          color: #04120e;
+          background:
+            linear-gradient(
+              135deg,
+              #55f4ca,
+              #a6ff79
+            );
+        }
+
+        .saveTop8:disabled {
+          cursor: default;
+          opacity: .62;
         }
       `}</style>
     </div>
   );
 }
+
 
 function MediaGrid({
   items,
