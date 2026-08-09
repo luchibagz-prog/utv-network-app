@@ -1669,9 +1669,9 @@ export default function WorldPage() {
           </h1>
 
           <p className="worldSub">
-            Spin the planet. Tap what is happening.
-            Discover Lives, events, opportunities,
-            creators and culture everywhere.
+            Enter a living world of creators, events,
+            Lives, opportunities and culture. Spin it,
+            explore it and tap any signal to jump in.
           </p>
         </div>
 
@@ -1799,6 +1799,33 @@ export default function WorldPage() {
           <div className="mapBadge planetBadge">
             <span>🌍</span>
             UTV WORLD
+          </div>
+
+          <div className="worldGameHud">
+            <div className="hudSignal">
+              <span className="hudPulse" />
+              <div>
+                <small>WORLD STATUS</small>
+                <strong>LIVE WORLD</strong>
+              </div>
+            </div>
+
+            <div className="hudNumbers">
+              <div>
+                <strong>{filteredItems.length}</strong>
+                <span>SIGNALS</span>
+              </div>
+
+              <div>
+                <strong>{counts.live}</strong>
+                <span>LIVE</span>
+              </div>
+
+              <div>
+                <strong>{cityClusters.length}</strong>
+                <span>CITIES</span>
+              </div>
+            </div>
           </div>
 
           {radarOpen && (
@@ -1981,9 +2008,9 @@ export default function WorldPage() {
                   -98,
                 latitude:
                   28,
-                zoom: 1.65,
-                pitch: 0,
-                bearing: 0,
+                zoom: 1.72,
+                pitch: 12,
+                bearing: -6,
               }}
               mapStyle={
                 mapMode === "night"
@@ -1995,7 +2022,7 @@ export default function WorldPage() {
               }}
               terrain={{
                 source: "utv-world-terrain",
-                exaggeration: 1.35,
+                exaggeration: 1.55,
               }}
               style={{
                 width: "100%",
@@ -5253,4 +5280,1258 @@ const styles = `
       padding:8px 9px;
     }
   }
+
+  /* =========================================================
+     UTV WORLD — PREMIUM LIVING WORLD
+     ========================================================= */
+
+  .worldPage {
+    --world-green:#55f5c8;
+    --world-purple:#8e6cff;
+    --world-pink:#ff4fa3;
+    --world-gold:#ffd166;
+    --world-blue:#4bcaff;
+
+    padding-bottom:150px;
+
+    background:
+      radial-gradient(
+        circle at 50% -5%,
+        rgba(85,245,200,.13),
+        transparent 26%
+      ),
+      radial-gradient(
+        circle at 95% 12%,
+        rgba(142,108,255,.16),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at 0% 48%,
+        rgba(75,202,255,.06),
+        transparent 32%
+      ),
+      linear-gradient(
+        180deg,
+        #020409 0%,
+        #030712 45%,
+        #010207 100%
+      );
+  }
+
+  .worldTop {
+    padding-top:24px;
+    padding-bottom:14px;
+  }
+
+  .worldEyebrow {
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    margin:0 0 7px;
+    color:var(--world-green);
+    font-size:8px;
+    font-weight:1000;
+    letter-spacing:.18em;
+  }
+
+  .worldEyebrow::before {
+    content:"";
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--world-green);
+    box-shadow:
+      0 0 12px var(--world-green),
+      0 0 30px rgba(85,245,200,.5);
+    animation:worldOnlinePulse 1.8s ease-in-out infinite;
+  }
+
+  .worldTitle {
+    margin:0;
+    font-size:clamp(43px,10vw,80px);
+    line-height:.88;
+    letter-spacing:-.065em;
+
+    background:
+      linear-gradient(
+        120deg,
+        #ffffff 10%,
+        #baffeb 45%,
+        #a793ff 72%,
+        #ffffff
+      );
+
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+
+    filter:
+      drop-shadow(
+        0 13px 30px
+        rgba(0,0,0,.38)
+      );
+  }
+
+  .worldSub {
+    max-width:570px;
+    margin-top:13px;
+    color:rgba(255,255,255,.57);
+    font-size:11px;
+    line-height:1.55;
+  }
+
+
+  /* ===== SIMPLE GAME-LIKE COMMAND DOCK ===== */
+
+  .worldCommandBar {
+    top:72px;
+    z-index:90;
+    width:min(
+      calc(100% - 20px),
+      690px
+    );
+
+    gap:3px;
+    margin-top:4px;
+    padding:5px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+
+    border-radius:18px;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(7,12,22,.91),
+        rgba(3,7,14,.91)
+      );
+
+    box-shadow:
+      0 18px 50px
+      rgba(0,0,0,.35);
+
+    backdrop-filter:blur(25px);
+    -webkit-backdrop-filter:blur(25px);
+  }
+
+  .worldMode {
+    min-height:48px;
+    border-radius:13px;
+    transition:
+      transform .18s ease,
+      background .18s ease,
+      color .18s ease;
+  }
+
+  .worldMode:active {
+    transform:scale(.94);
+  }
+
+  .worldMode.active {
+    color:#03110d;
+
+    background:
+      linear-gradient(
+        135deg,
+        var(--world-green),
+        #9cff83
+      );
+
+    box-shadow:
+      inset 0 1px
+      rgba(255,255,255,.55),
+      0 8px 24px
+      rgba(85,245,200,.19);
+  }
+
+  .worldMode span {
+    font-size:7px;
+    letter-spacing:.07em;
+  }
+
+
+  /* ===== SEARCH ===== */
+
+  .worldSearchDock {
+    width:min(
+      calc(100% - 20px),
+      690px
+    );
+
+    grid-template-columns:
+      minmax(0,1fr)
+      44px;
+
+    margin-bottom:9px;
+  }
+
+  .searchWrap {
+    border-radius:15px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.08) !important;
+
+    background:
+      rgba(255,255,255,.035) !important;
+
+    box-shadow:
+      inset 0 1px
+      rgba(255,255,255,.025);
+  }
+
+  .worldSearch {
+    font-size:10px !important;
+  }
+
+
+  /* =========================================================
+     THE WORLD — GAME / ANIMATED PLANET
+     ========================================================= */
+
+  .worldMapStage {
+    padding:0 7px;
+  }
+
+  .worldMapShell {
+    height:min(70dvh,730px);
+    min-height:510px;
+
+    border:
+      1px solid
+      rgba(116,154,255,.17);
+
+    border-radius:28px;
+
+    background:
+      radial-gradient(
+        circle at 50% 47%,
+        rgba(33,73,112,.43),
+        transparent 31%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(85,245,200,.08),
+        transparent 53%
+      ),
+      #010308;
+
+    box-shadow:
+      0 35px 85px
+      rgba(0,0,0,.58),
+      inset 0 0 100px
+      rgba(115,88,255,.055),
+      0 0 60px
+      rgba(85,245,200,.045);
+  }
+
+  .worldMapShell::before {
+    background:
+      radial-gradient(
+        circle at 50% 47%,
+        transparent 28%,
+        rgba(0,0,0,.035) 52%,
+        rgba(0,0,0,.52) 100%
+      ),
+
+      linear-gradient(
+        180deg,
+        rgba(3,7,16,.02),
+        transparent 35%,
+        rgba(0,0,0,.22)
+      );
+  }
+
+  .worldMapShell::after {
+    width:70%;
+    height:14%;
+    bottom:5%;
+
+    background:
+      radial-gradient(
+        ellipse,
+        rgba(85,245,200,.13),
+        rgba(131,94,255,.05),
+        transparent 72%
+      );
+
+    filter:blur(36px);
+  }
+
+
+  /* ===== WORLD HUD ===== */
+
+  .worldGameHud {
+    position:absolute;
+    top:13px;
+    left:13px;
+    right:13px;
+    z-index:36;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+
+    pointer-events:none;
+  }
+
+  .planetBadge {
+    display:none;
+  }
+
+  .hudSignal {
+    min-height:44px;
+
+    display:flex;
+    align-items:center;
+    gap:9px;
+
+    padding:7px 11px;
+
+    border:
+      1px solid
+      rgba(85,245,200,.17);
+
+    border-radius:14px;
+
+    background:
+      rgba(3,8,14,.68);
+
+    box-shadow:
+      0 15px 35px
+      rgba(0,0,0,.27);
+
+    backdrop-filter:blur(18px);
+  }
+
+  .hudPulse {
+    width:9px;
+    height:9px;
+    flex:0 0 auto;
+    border-radius:50%;
+
+    background:
+      var(--world-green);
+
+    box-shadow:
+      0 0 14px
+      rgba(85,245,200,.8);
+
+    animation:
+      worldHudPulse
+      1.5s
+      ease-in-out
+      infinite;
+  }
+
+  .hudSignal div {
+    display:grid;
+    gap:1px;
+  }
+
+  .hudSignal small {
+    color:
+      rgba(255,255,255,.36);
+    font-size:6px;
+    font-weight:900;
+    letter-spacing:.12em;
+  }
+
+  .hudSignal strong {
+    color:white;
+    font-size:9px;
+    letter-spacing:.06em;
+  }
+
+  .hudNumbers {
+    display:flex;
+    align-items:center;
+    gap:3px;
+
+    padding:4px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius:14px;
+
+    background:
+      rgba(3,8,14,.64);
+
+    backdrop-filter:blur(18px);
+  }
+
+  .hudNumbers > div {
+    min-width:46px;
+    display:grid;
+    justify-items:center;
+    gap:1px;
+    padding:5px 6px;
+  }
+
+  .hudNumbers strong {
+    color:white;
+    font-size:12px;
+  }
+
+  .hudNumbers span {
+    color:
+      rgba(255,255,255,.35);
+    font-size:5px;
+    font-weight:1000;
+    letter-spacing:.1em;
+  }
+
+
+  /* ===== RADAR ===== */
+
+  .worldRadar {
+    top:67px;
+    left:12px;
+
+    width:min(
+      245px,
+      calc(100% - 24px)
+    );
+
+    padding:10px;
+
+    border:
+      1px solid
+      rgba(85,245,200,.14);
+
+    border-radius:17px;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(4,12,17,.87),
+        rgba(6,7,20,.84)
+      );
+
+    box-shadow:
+      0 20px 55px
+      rgba(0,0,0,.42);
+
+    backdrop-filter:blur(22px);
+  }
+
+  .radarHead strong {
+    font-size:13px;
+  }
+
+  .radarGrid {
+    gap:5px;
+  }
+
+  .radarGrid button {
+    min-height:57px;
+    border-radius:12px;
+
+    background:
+      rgba(255,255,255,.028);
+
+    transition:
+      transform .16s ease,
+      border-color .16s ease;
+  }
+
+  .radarGrid button:active {
+    transform:scale(.95);
+  }
+
+  .radarGrid b {
+    font-size:19px;
+  }
+
+
+  /* =========================================================
+     ANIMATED SIGNAL PINS
+     ========================================================= */
+
+  .utvPin {
+    width:48px !important;
+    height:48px !important;
+
+    position:relative;
+
+    border:
+      2px solid
+      rgba(255,255,255,.8) !important;
+
+    border-radius:
+      17px 17px 17px 5px !important;
+
+    transform:
+      rotate(-8deg);
+
+    transform-origin:
+      50% 100%;
+
+    transition:
+      transform .2s ease,
+      filter .2s ease;
+
+    animation:
+      premiumPinFloat
+      2.25s
+      ease-in-out
+      infinite !important;
+  }
+
+  .utvPin::before {
+    content:"";
+    position:absolute;
+    inset:-7px;
+    z-index:-1;
+
+    border:
+      1px solid
+      currentColor;
+
+    border-radius:
+      21px 21px 21px 7px;
+
+    opacity:.25;
+
+    animation:
+      premiumPinAura
+      1.8s
+      ease-out
+      infinite;
+  }
+
+  .utvPin::after {
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:-17px;
+
+    width:22px;
+    height:7px;
+
+    border-radius:50%;
+
+    background:
+      rgba(0,0,0,.53);
+
+    filter:blur(3px);
+
+    transform:
+      translateX(-50%)
+      rotate(8deg);
+
+    animation:
+      pinShadowMove
+      2.25s
+      ease-in-out
+      infinite;
+  }
+
+  .utvPin:hover,
+  .utvPin:active {
+    transform:
+      translateY(-8px)
+      rotate(-2deg)
+      scale(1.13);
+  }
+
+  .pinIcon {
+    display:grid;
+    place-items:center;
+
+    transform:
+      rotate(8deg);
+
+    font-size:19px !important;
+
+    filter:
+      drop-shadow(
+        0 3px 4px
+        rgba(0,0,0,.4)
+      );
+  }
+
+  .pinLive {
+    border-radius:50% !important;
+
+    animation:
+      premiumLivePulse
+      1.1s
+      ease-in-out
+      infinite !important;
+  }
+
+  .pinLive .pinIcon {
+    transform:none;
+  }
+
+
+  /* ===== CITY HUBS ===== */
+
+  .cityHub {
+    min-width:100px;
+    min-height:44px;
+
+    border-radius:15px;
+
+    border:
+      1px solid
+      rgba(85,245,200,.24);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(4,13,17,.93),
+        rgba(8,8,22,.9)
+      );
+
+    box-shadow:
+      0 14px 34px
+      rgba(0,0,0,.42),
+      0 0 24px
+      rgba(85,245,200,.1);
+
+    animation:
+      premiumCityFloat
+      2.6s
+      ease-in-out
+      infinite;
+  }
+
+  .cityHub::after {
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:-13px;
+
+    width:36px;
+    height:7px;
+
+    border-radius:50%;
+
+    background:
+      rgba(85,245,200,.13);
+
+    filter:blur(5px);
+
+    transform:
+      translateX(-50%);
+  }
+
+  .cityHubGlow {
+    border-radius:18px;
+
+    animation:
+      premiumCityRing
+      1.9s
+      ease-out
+      infinite;
+  }
+
+  .cityHub.liveCity {
+    border-color:
+      rgba(255,49,95,.5);
+
+    box-shadow:
+      0 14px 36px
+      rgba(0,0,0,.4),
+      0 0 35px
+      rgba(255,49,95,.22);
+  }
+
+
+  /* ===== MAP BUTTONS ===== */
+
+  .worldMapControls {
+    right:10px;
+    bottom:45px;
+    top:auto;
+
+    gap:5px;
+  }
+
+  .worldMapControls button {
+    width:42px;
+    height:42px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.11);
+
+    border-radius:13px;
+
+    color:white;
+
+    background:
+      rgba(3,8,15,.72);
+
+    box-shadow:
+      0 10px 24px
+      rgba(0,0,0,.27);
+
+    backdrop-filter:blur(18px);
+
+    transition:
+      transform .15s ease,
+      background .15s ease;
+  }
+
+  .worldMapControls button:active {
+    transform:scale(.9);
+  }
+
+  .mapLocationActive,
+  .mapSpinActive {
+    color:#06130e !important;
+
+    background:
+      var(--world-green)
+      !important;
+
+    box-shadow:
+      0 0 25px
+      rgba(85,245,200,.25)
+      !important;
+  }
+
+  .planetHint {
+    bottom:10px;
+
+    padding:7px 10px;
+
+    border-radius:12px;
+
+    color:
+      rgba(255,255,255,.37);
+
+    background:
+      rgba(2,7,12,.67);
+
+    font-size:6px;
+  }
+
+
+  /* =========================================================
+     CATEGORY SELECTOR
+     ========================================================= */
+
+  .worldOrbitFilters {
+    margin-top:12px;
+  }
+
+  .worldCategoryScroll {
+    gap:6px;
+  }
+
+  .orbitFilter {
+    min-height:39px;
+
+    padding:0 11px;
+
+    border-radius:12px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+
+    background:
+      rgba(255,255,255,.025);
+
+    color:
+      rgba(255,255,255,.53);
+
+    font-size:8px;
+
+    transition:
+      transform .14s ease;
+  }
+
+  .orbitFilter:active {
+    transform:scale(.94);
+  }
+
+  .orbitFilter.active {
+    color:#03110d;
+
+    background:
+      linear-gradient(
+        135deg,
+        var(--world-green),
+        #9b7cff
+      );
+
+    box-shadow:
+      0 9px 24px
+      rgba(85,245,200,.12);
+  }
+
+
+  /* =========================================================
+     WORLD PULSE / CITY CARDS
+     ========================================================= */
+
+  .worldPulseStrip,
+  .nearPanel,
+  .todayPanel {
+    border-radius:18px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.03),
+        rgba(255,255,255,.012)
+      );
+
+    box-shadow:none;
+  }
+
+  .pulseCities {
+    gap:6px;
+  }
+
+  .pulseCity {
+    min-width:138px;
+
+    border-radius:13px;
+
+    background:
+      rgba(0,0,0,.2);
+
+    transition:
+      transform .15s ease;
+  }
+
+  .pulseCity:active {
+    transform:scale(.95);
+  }
+
+
+  /* =========================================================
+     DISCOVERY CARDS
+     ========================================================= */
+
+  .worldList {
+    gap:9px;
+
+    padding-left:10px;
+    padding-right:10px;
+  }
+
+  .worldCard {
+    position:relative;
+
+    overflow:hidden;
+
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    border-radius:18px;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(14,20,32,.95),
+        rgba(5,8,14,.98)
+      );
+
+    box-shadow:
+      0 18px 45px
+      rgba(0,0,0,.25);
+
+    transition:
+      transform .17s ease,
+      border-color .17s ease;
+  }
+
+  .worldCard:active {
+    transform:scale(.985);
+  }
+
+  .worldCardMedia {
+    height:180px;
+  }
+
+  .worldCardMedia::after {
+    content:"";
+    position:absolute;
+    inset:45% 0 0;
+
+    pointer-events:none;
+
+    background:
+      linear-gradient(
+        transparent,
+        rgba(3,5,10,.88)
+      );
+  }
+
+  .worldCardType {
+    z-index:3;
+
+    border-radius:10px !important;
+
+    backdrop-filter:
+      blur(12px);
+  }
+
+  .worldCardBody {
+    position:relative;
+    z-index:3;
+
+    padding-top:11px !important;
+  }
+
+  .worldCreatorRow {
+    border-radius:11px !important;
+  }
+
+  .worldCardActions {
+    gap:5px !important;
+  }
+
+  .worldCardActions button {
+    border-radius:10px !important;
+  }
+
+
+  /* =========================================================
+     SELECTED SIGNAL — PREMIUM BOTTOM SHEET
+     ========================================================= */
+
+  .worldSheetBackdrop {
+    background:
+      rgba(0,0,0,.68);
+
+    backdrop-filter:
+      blur(10px);
+  }
+
+  .worldSheet {
+    border-top:
+      1px solid
+      rgba(255,255,255,.13);
+
+    border-radius:
+      25px 25px 0 0;
+
+    background:
+      linear-gradient(
+        180deg,
+        #101624,
+        #050811 68%
+      );
+
+    box-shadow:
+      0 -30px 70px
+      rgba(0,0,0,.55);
+  }
+
+  .sheetHandle {
+    width:42px;
+    height:4px;
+
+    margin-top:8px;
+
+    border-radius:999px;
+
+    background:
+      rgba(255,255,255,.18);
+  }
+
+
+  /* ===== LOADING SIGNAL ===== */
+
+  .worldLoadingSignal {
+    top:69px;
+    right:11px;
+
+    min-width:128px;
+
+    border-radius:13px;
+
+    background:
+      rgba(2,8,13,.78);
+  }
+
+
+  /* =========================================================
+     ANIMATION
+     ========================================================= */
+
+  @keyframes worldOnlinePulse {
+    50% {
+      opacity:.55;
+      transform:scale(.78);
+    }
+  }
+
+  @keyframes worldHudPulse {
+    50% {
+      transform:scale(.72);
+      box-shadow:
+        0 0 28px
+        rgba(85,245,200,.95);
+    }
+  }
+
+  @keyframes premiumPinFloat {
+    0%,100% {
+      transform:
+        translateY(0)
+        rotate(-8deg)
+        scale(1);
+    }
+
+    50% {
+      transform:
+        translateY(-9px)
+        rotate(-4deg)
+        scale(1.05);
+    }
+  }
+
+  @keyframes premiumPinAura {
+    0% {
+      opacity:.38;
+      transform:scale(.82);
+    }
+
+    75%,100% {
+      opacity:0;
+      transform:scale(1.32);
+    }
+  }
+
+  @keyframes pinShadowMove {
+    0%,100% {
+      opacity:.48;
+      transform:
+        translateX(-50%)
+        rotate(8deg)
+        scale(1);
+    }
+
+    50% {
+      opacity:.2;
+      transform:
+        translateX(-50%)
+        rotate(8deg)
+        scale(.72);
+    }
+  }
+
+  @keyframes premiumLivePulse {
+    0%,100% {
+      transform:scale(1);
+      filter:
+        drop-shadow(
+          0 0 6px
+          rgba(255,49,95,.65)
+        );
+    }
+
+    50% {
+      transform:
+        translateY(-8px)
+        scale(1.12);
+
+      filter:
+        drop-shadow(
+          0 0 20px
+          rgba(255,49,95,1)
+        );
+    }
+  }
+
+  @keyframes premiumCityFloat {
+    0%,100% {
+      transform:
+        translateY(-8px);
+    }
+
+    50% {
+      transform:
+        translateY(-14px);
+    }
+  }
+
+  @keyframes premiumCityRing {
+    0% {
+      opacity:.48;
+      transform:scale(.88);
+    }
+
+    80%,100% {
+      opacity:0;
+      transform:scale(1.2);
+    }
+  }
+
+
+  /* =========================================================
+     MOBILE-FIRST WORLD
+     ========================================================= */
+
+  @media(max-width:700px) {
+
+    .worldTop {
+      padding:
+        14px
+        14px
+        9px;
+    }
+
+    .worldTitle {
+      font-size:48px;
+    }
+
+    .worldSub {
+      max-width:430px;
+
+      margin-top:9px;
+
+      font-size:9px;
+      line-height:1.48;
+    }
+
+    .worldCommandBar {
+      top:70px;
+
+      width:
+        calc(100% - 16px);
+
+      margin-bottom:6px;
+    }
+
+    .worldSearchDock {
+      width:
+        calc(100% - 16px);
+    }
+
+    .worldMapStage {
+      padding:0 5px;
+    }
+
+    .worldMapShell {
+      height:66dvh;
+      min-height:510px;
+
+      border-radius:24px;
+    }
+
+    .worldGameHud {
+      top:9px;
+      left:9px;
+      right:9px;
+    }
+
+    .hudSignal {
+      min-height:39px;
+      padding:6px 8px;
+    }
+
+    .hudSignal small {
+      display:none;
+    }
+
+    .hudSignal strong {
+      font-size:8px;
+    }
+
+    .hudNumbers {
+      gap:0;
+    }
+
+    .hudNumbers > div {
+      min-width:38px;
+      padding:5px 4px;
+    }
+
+    .hudNumbers strong {
+      font-size:10px;
+    }
+
+    .hudNumbers span {
+      font-size:4px;
+    }
+
+    .worldRadar {
+      top:57px;
+      left:9px;
+
+      width:218px;
+
+      padding:9px;
+    }
+
+    .radarHead strong {
+      font-size:11px;
+    }
+
+    .worldMapControls {
+      right:8px;
+      bottom:42px;
+    }
+
+    .worldMapControls button {
+      width:39px;
+      height:39px;
+    }
+
+    .utvPin {
+      width:44px !important;
+      height:44px !important;
+    }
+
+    .pinIcon {
+      font-size:17px !important;
+    }
+
+    .cityHub {
+      min-width:88px;
+      min-height:40px;
+    }
+
+    .cityHub b {
+      max-width:72px;
+      font-size:8px;
+    }
+
+    .cityHub small {
+      font-size:5px;
+    }
+
+    .worldPulseStrip,
+    .nearPanel,
+    .todayPanel {
+      width:
+        calc(100% - 14px);
+
+      margin-top:8px;
+
+      padding:11px;
+    }
+
+    .worldList {
+      padding:
+        0 7px
+        20px;
+    }
+
+    .worldCardMedia {
+      height:170px;
+    }
+  }
+
+
 `;
