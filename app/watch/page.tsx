@@ -11,287 +11,164 @@ import Link from "next/link";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
 
-type WatchItem = Record<string, any>;
+type WatchItem = {
+  id?: string | number;
+  title?: string;
+  name?: string;
+  description?: string;
+  caption?: string;
+  category?: string;
+  content_type?: string;
+  type?: string;
+  thumbnail_url?: string;
+  cover_url?: string;
+  image_url?: string;
+  poster_url?: string;
+  media_url?: string;
+  video_url?: string;
+  file_url?: string;
+  url?: string;
+  views?: number | string;
+  view_count?: number | string;
+  created_at?: string;
+  featured?: boolean;
+  is_featured?: boolean;
+  utv_original?: boolean;
+  original?: boolean;
+  creator_name?: string;
+  creator_email?: string;
+};
+
+type WatchMode =
+  | "home"
+  | "reels";
+
+type Category =
+  | "All"
+  | "Shows"
+  | "Movies"
+  | "Originals"
+  | "Live"
+  | "Music"
+  | "Podcasts"
+  | "Docs";
 
 const HERO_IMAGES = [
   "/utv-banner.png",
-  "/bbgroundup.png",
+  "/bbground-up.png",
   "/utv1.png",
   "/utv2art.png",
-  "/utv-logo.png",
 ];
 
-const STREAMING_WORDS = [
-  "show",
-  "tv show",
-  "television",
-  "series",
-  "episode",
-  "season",
-  "movie",
-  "film",
-  "short film",
-  "podcast",
-  "music video",
-  "documentary",
-  "docuseries",
-  "live event",
-  "live replay",
-  "concert",
-  "comedy special",
-  "original",
-  "utv original",
-  "streaming",
-];
+function value(
+  item: any,
+  keys: string[],
+  fallback = ""
+) {
+  for (const key of keys) {
+    const result = item?.[key];
 
-const BLOCKED_WORDS = [
-  "feed",
-  "story",
-  "photo",
-  "world",
-  "camera",
-  "status",
-  "profile",
-  "social post",
-  "feed post",
-  "world post",
-];
+    if (
+      result !== undefined &&
+      result !== null &&
+      String(result).trim() !== ""
+    ) {
+      return String(result);
+    }
+  }
 
-function stringValue(value: unknown) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return fallback;
 }
 
-function contentCategory(item: WatchItem) {
-  return stringValue(
-    item?.category ||
-      item?.content_type ||
-      item?.type ||
-      item?.format ||
-      item?.genre ||
-      item?.media_type
+function contentTitle(
+  item?: WatchItem | null
+) {
+  return value(
+    item,
+    ["title", "name"],
+    "UTV"
   );
 }
 
-function contentDestination(item: WatchItem) {
-  return stringValue(
-    item?.destination ||
-      item?.post_type ||
-      item?.visibility ||
-      item?.section
-  );
-}
-
-function contentImage(item: WatchItem) {
-  return (
-    item?.thumbnail_url ||
-    item?.poster_url ||
-    item?.cover_url ||
-    item?.image_url ||
-    item?.flyer_url ||
-    item?.artwork_url ||
+function contentDescription(
+  item?: WatchItem | null
+) {
+  return value(
+    item,
+    ["description", "caption"],
     ""
   );
 }
 
-function contentVideo(item: WatchItem) {
-  return (
-    item?.trailer_url ||
-    item?.video_url ||
-    item?.file_url ||
-    item?.media_url ||
-    item?.external_url ||
-    item?.playback_url ||
-    item?.url ||
-    ""
+function contentImage(
+  item?: WatchItem | null
+) {
+  return value(item, [
+    "thumbnail_url",
+    "cover_url",
+    "image_url",
+    "poster_url",
+  ]);
+}
+
+function contentVideo(
+  item?: WatchItem | null
+) {
+  return value(item, [
+    "video_url",
+    "file_url",
+    "media_url",
+    "url",
+  ]);
+}
+
+function categoryLabel(
+  item?: WatchItem | null
+) {
+  return value(
+    item,
+    [
+      "category",
+      "content_type",
+      "type",
+    ],
+    "UTV"
   );
 }
 
-function contentTitle(item: WatchItem) {
-  return (
-    item?.title ||
-    item?.show_title ||
-    item?.series_title ||
-    item?.episode_title ||
-    item?.name ||
-    "Untitled"
-  );
-}
-
-function contentDescription(item: WatchItem) {
-  return (
-    item?.description ||
-    item?.caption ||
-    item?.summary ||
-    ""
-  );
-}
-
-function contentSearchText(item: WatchItem) {
-  return [
-    contentCategory(item),
-    contentDestination(item),
-    contentTitle(item),
-    contentDescription(item),
-    item?.show_title,
-    item?.series_title,
-    item?.episode_title,
-    item?.season_title,
-    item?.creator_name,
-    item?.creator_email,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function isBlockedContent(item: WatchItem) {
-  const category = contentCategory(item);
-  const destination = contentDestination(item);
-
-  if (
-    item?.is_story === true ||
-    item?.is_feed_post === true ||
-    item?.is_world_post === true
-  ) {
-    return true;
-  }
-
-  return BLOCKED_WORDS.some(
-    (word) =>
-      category === word ||
-      destination === word ||
-      category.startsWith(`${word} `) ||
-      destination.startsWith(`${word} `)
-  );
-}
-
-function hasStreamingIdentity(item: WatchItem) {
-  const category = contentCategory(item);
-  const searchable = contentSearchText(item);
-
-  const categoryMatch =
-    STREAMING_WORDS.some(
-      (word) =>
-        category.includes(word) ||
-        searchable.includes(word)
-    );
-
-  const legacyFields = Boolean(
-    item?.trailer_url ||
-      item?.poster_url ||
-      item?.episode_number ||
-      item?.season_number ||
-      item?.series_id ||
-      item?.show_id ||
-      item?.movie_id ||
-      item?.podcast_id ||
-      item?.is_streaming === true ||
-      item?.is_premium === true ||
-      item?.is_original === true ||
-      item?.utv_original === true
-  );
-
-  return categoryMatch || legacyFields;
-}
-
-function isRejected(item: WatchItem) {
-  const status = stringValue(
-    item?.approval_status ||
-      item?.status
-  );
-
-  return (
-    status === "rejected" ||
-    status === "denied" ||
-    status === "removed"
-  );
-}
-
-function isWatchContent(item: WatchItem) {
-  if (!item || isBlockedContent(item)) {
-    return false;
-  }
-
-  if (isRejected(item)) {
-    return false;
-  }
-
-  return hasStreamingIdentity(item);
-}
-
-function categoryLabel(item: WatchItem) {
-  const category = contentCategory(item);
-  const searchable = contentSearchText(item);
-
-  if (
-    category.includes("show") ||
-    category.includes("series") ||
-    searchable.includes("episode")
-  ) {
-    return "Show";
-  }
-
-  if (
-    category.includes("movie") ||
-    category.includes("film")
-  ) {
-    return "Movie";
-  }
-
-  if (category.includes("podcast")) {
-    return "Podcast";
-  }
-
-  if (category.includes("music")) {
-    return "Music Video";
-  }
-
-  if (
-    category.includes("documentary") ||
-    category.includes("docuseries")
-  ) {
-    return "Documentary";
-  }
-
-  if (
-    category.includes("live") ||
-    category.includes("concert")
-  ) {
-    return "Live Event";
-  }
-
-  if (
-    searchable.includes("original") ||
-    item?.is_original === true ||
-    item?.utv_original === true
-  ) {
-    return "UTV Original";
-  }
-
-  return item?.category || "UTV Streaming";
+function normalizedCategory(
+  item: WatchItem
+) {
+  return categoryLabel(item)
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .trim();
 }
 
 function belongsToCategory(
   item: WatchItem,
-  words: string[]
+  names: string[]
 ) {
-  const value = contentSearchText(item);
+  const category =
+    normalizedCategory(item);
 
-  return words.some((word) =>
-    value.includes(word)
+  return names.some(
+    (name) =>
+      category === name ||
+      category.includes(name)
   );
 }
 
-function isOriginal(item: WatchItem) {
+function isOriginal(
+  item: WatchItem
+) {
   return (
+    item?.utv_original === true ||
+    item?.original === true ||
     belongsToCategory(item, [
-      "original",
       "utv original",
-    ]) ||
-    item?.is_original === true ||
-    item?.utv_original === true
+      "original",
+    ])
   );
 }
 
@@ -302,6 +179,7 @@ function isShow(item: WatchItem) {
     "episode",
     "season",
     "television",
+    "tv show",
   ]);
 }
 
@@ -318,34 +196,74 @@ function isPodcast(item: WatchItem) {
   ]);
 }
 
-function isMusicVideo(item: WatchItem) {
+function isMusic(item: WatchItem) {
   return belongsToCategory(item, [
+    "music",
     "music video",
   ]);
 }
 
-function isDocumentary(item: WatchItem) {
+function isDocumentary(
+  item: WatchItem
+) {
   return belongsToCategory(item, [
     "documentary",
     "docuseries",
   ]);
 }
 
-function isLiveContent(item: WatchItem) {
+function isLiveContent(
+  item: WatchItem
+) {
   return belongsToCategory(item, [
+    "live",
     "live event",
     "live replay",
     "concert",
   ]);
 }
 
-function deduplicate(items: WatchItem[]) {
-  const map = new Map<string, WatchItem>();
+function isShortContent(
+  item: WatchItem
+) {
+  return belongsToCategory(item, [
+    "reel",
+    "reels",
+    "short",
+    "shorts",
+    "short video",
+    "clip",
+    "vertical",
+  ]);
+}
+
+function contentSearchText(
+  item: WatchItem
+) {
+  return [
+    contentTitle(item),
+    contentDescription(item),
+    categoryLabel(item),
+    item.creator_name,
+    item.creator_email,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function deduplicate(
+  items: WatchItem[]
+) {
+  const map =
+    new Map<string, WatchItem>();
 
   items.forEach((item) => {
     const key = String(
       item?.id ||
-        `${contentTitle(item)}-${contentVideo(item)}`
+        `${contentTitle(
+          item
+        )}-${contentVideo(item)}`
     );
 
     if (!map.has(key)) {
@@ -353,24 +271,37 @@ function deduplicate(items: WatchItem[]) {
     }
   });
 
-  return Array.from(map.values());
+  return Array.from(
+    map.values()
+  );
 }
 
 function WatchCard({
   item,
   rank,
+  portrait = false,
 }: {
   item: WatchItem;
   rank?: number;
+  portrait?: boolean;
 }) {
-  const image = contentImage(item);
-  const video = contentVideo(item);
-  const title = contentTitle(item);
+  const image =
+    contentImage(item);
+
+  const video =
+    contentVideo(item);
+
+  const title =
+    contentTitle(item);
 
   return (
     <Link
       href={`/watch/${item.id}`}
-      className="watchCard"
+      className={
+        portrait
+          ? "watchCard portraitCard"
+          : "watchCard"
+      }
     >
       <div className="poster">
         {image ? (
@@ -388,9 +319,11 @@ function WatchCard({
           />
         ) : (
           <div className="posterFallback">
-            UTV
+            <span>UTV</span>
           </div>
         )}
+
+        <div className="posterShade" />
 
         {rank ? (
           <span className="rankBadge">
@@ -398,25 +331,40 @@ function WatchCard({
           </span>
         ) : null}
 
-        <span className="playButton">
+        <span className="posterPlay">
           ▶
         </span>
+
+        {isOriginal(item) && (
+          <span className="originalBadge">
+            UTV ORIGINAL
+          </span>
+        )}
       </div>
 
-      <h3>{title}</h3>
-      <p>{categoryLabel(item)}</p>
+      <div className="cardCopy">
+        <h3>{title}</h3>
+
+        <p>
+          {categoryLabel(item)}
+        </p>
+      </div>
     </Link>
   );
 }
 
 function WatchRow({
+  eyebrow,
   title,
   items,
   numbered = false,
+  portrait = false,
 }: {
+  eyebrow?: string;
   title: string;
   items: WatchItem[];
   numbered?: boolean;
+  portrait?: boolean;
 }) {
   if (!items.length) {
     return null;
@@ -424,79 +372,208 @@ function WatchRow({
 
   return (
     <section className="watchRow">
-      <h2>{title}</h2>
+      <header className="rowHeader">
+        <div>
+          {eyebrow && (
+            <p>{eyebrow}</p>
+          )}
+
+          <h2>{title}</h2>
+        </div>
+
+        <span>›</span>
+      </header>
 
       <div className="watchScroller">
-        {items.map((item, index) => (
-          <WatchCard
-            key={String(item.id)}
-            item={item}
-            rank={
-              numbered
-                ? index + 1
-                : undefined
-            }
-          />
-        ))}
+        {items.map(
+          (item, index) => (
+            <WatchCard
+              key={String(
+                item.id ||
+                  `${title}-${index}`
+              )}
+              item={item}
+              rank={
+                numbered
+                  ? index + 1
+                  : undefined
+              }
+              portrait={portrait}
+            />
+          )
+        )}
       </div>
     </section>
   );
 }
 
+function ReelCard({
+  item,
+}: {
+  item: WatchItem;
+}) {
+  const image =
+    contentImage(item);
+
+  const video =
+    contentVideo(item);
+
+  return (
+    <Link
+      href={`/watch/${item.id}`}
+      className="reelCard"
+    >
+      <div className="reelMedia">
+        {image ? (
+          <img
+            src={image}
+            alt={contentTitle(item)}
+          />
+        ) : video ? (
+          <video
+            src={video}
+            muted
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <div className="reelFallback">
+            UTV
+          </div>
+        )}
+
+        <div className="reelShade" />
+
+        <span className="reelPlay">
+          ▶
+        </span>
+
+        <div className="reelInfo">
+          <p>UTV SHORT</p>
+
+          <h3>
+            {contentTitle(item)}
+          </h3>
+
+          <span>
+            {item.creator_name ||
+              categoryLabel(item)}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function WatchPage() {
-  const [uploads, setUploads] =
-    useState<WatchItem[]>([]);
+  const [
+    uploads,
+    setUploads,
+  ] = useState<WatchItem[]>([]);
 
-  const [search, setSearch] =
-    useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
-  const [heroIndex, setHeroIndex] =
-    useState(0);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loadError,
+    setLoadError,
+  ] = useState("");
 
-  const [loadError, setLoadError] =
-    useState("");
+  const [
+    mode,
+    setMode,
+  ] =
+    useState<WatchMode>("home");
 
-useEffect(() => {
-  loadWatchContent();
-}, []);
+  const [
+    category,
+    setCategory,
+  ] =
+    useState<Category>("All");
+
+  const [
+    heroIndex,
+    setHeroIndex,
+  ] = useState(0);
+
+  useEffect(() => {
+    void loadWatchContent();
+  }, []);
+
+  useEffect(() => {
+    if (
+      uploads.length <= 1
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setInterval(() => {
+        setHeroIndex(
+          (current) =>
+            (current + 1) %
+            Math.min(
+              uploads.length,
+              5
+            )
+        );
+      }, 6500);
+
+    return () =>
+      window.clearInterval(
+        timer
+      );
+  }, [uploads.length]);
 
   async function loadWatchContent() {
     setLoading(true);
     setLoadError("");
 
     try {
-      console.log("WATCH: loading uploads");
-
       const request =
         supabase
           .from("uploads")
           .select("*")
-          .eq("approved", true)
-          .order("created_at", {
-            ascending: false,
-          })
+          .eq(
+            "approved",
+            true
+          )
+          .order(
+            "created_at",
+            {
+              ascending: false,
+            }
+          )
           .limit(500);
 
       const timeout =
         new Promise<never>(
           (_, reject) => {
-            window.setTimeout(() => {
-              reject(
-                new Error(
-                  "Watch request timed out."
-                )
-              );
-            }, 12000);
+            window.setTimeout(
+              () => {
+                reject(
+                  new Error(
+                    "Watch request timed out."
+                  )
+                );
+              },
+              12000
+            );
           }
         );
 
-      const result = await Promise.race([
-        request,
-        timeout,
-      ]);
+      const result: any =
+        await Promise.race([
+          request,
+          timeout,
+        ]);
 
       if (result.error) {
         throw result.error;
@@ -505,69 +582,69 @@ useEffect(() => {
       const rows =
         result.data || [];
 
-      console.log(
-        "WATCH UPLOAD ROWS:",
-        rows.length,
-        rows
-      );
-
-      const restoredContent =
+      const restored =
         deduplicate(
-          rows.filter((item: WatchItem) => {
-            const category = String(
-              item?.category || ""
-            )
-              .trim()
-              .toLowerCase()
-              .replace(/[_-]+/g, " ");
+          rows.filter(
+            (
+              item: WatchItem
+            ) => {
+              const c =
+                normalizedCategory(
+                  item
+                );
 
-            const allowedCategories = [
-              "show",
-              "tv show",
-              "series",
-              "episode",
-              "season",
-              "movie",
-              "film",
-              "short film",
-              "podcast",
-              "music",
-              "music video",
-              "documentary",
-              "docuseries",
-              "live",
-              "live event",
-              "live replay",
-              "concert",
-              "original",
-              "utv original",
-              "streaming",
-            ];
+              const allowed = [
+                "show",
+                "tv show",
+                "series",
+                "episode",
+                "season",
+                "movie",
+                "film",
+                "short film",
+                "podcast",
+                "music",
+                "music video",
+                "documentary",
+                "docuseries",
+                "live",
+                "live event",
+                "live replay",
+                "concert",
+                "original",
+                "utv original",
+                "streaming",
+                "reel",
+                "reels",
+                "short",
+                "shorts",
+                "clip",
+                "vertical",
+              ];
 
-            return allowedCategories.some(
-              (allowed) =>
-                category === allowed ||
-                category.includes(allowed)
-            );
-          })
+              return allowed.some(
+                (allowedName) =>
+                  c ===
+                    allowedName ||
+                  c.includes(
+                    allowedName
+                  )
+              );
+            }
+          )
         );
 
-      console.log(
-        "WATCH RESTORED:",
-        restoredContent.length
-      );
+      setUploads(restored);
 
-      setUploads(restoredContent);
-
-      if (rows.length === 0) {
+      if (!rows.length) {
         setLoadError(
-          "Supabase returned zero approved uploads."
+          "No approved UTV uploads found."
         );
       } else if (
-        restoredContent.length === 0
+        !restored.length
       ) {
         setLoadError(
-          "Uploads were found, but none have a Watch category."
+          "Uploads exist, but none are assigned to Watch categories yet."
         );
       }
     } catch (error: any) {
@@ -587,262 +664,777 @@ useEffect(() => {
     }
   }
 
-  const filtered = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+  const searchFiltered =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    if (!query) {
-      return uploads;
-    }
+      if (!query) {
+        return uploads;
+      }
 
-    return uploads.filter((item) =>
-      contentSearchText(item).includes(
-        query
-      )
-    );
-  }, [uploads, search]);
+      return uploads.filter(
+        (item) =>
+          contentSearchText(
+            item
+          ).includes(query)
+      );
+    }, [uploads, search]);
+
+  const categoryFiltered =
+    useMemo(() => {
+      if (
+        category === "All"
+      ) {
+        return searchFiltered;
+      }
+
+      return searchFiltered.filter(
+        (item) => {
+          if (
+            category ===
+            "Shows"
+          ) {
+            return isShow(item);
+          }
+
+          if (
+            category ===
+            "Movies"
+          ) {
+            return isMovie(item);
+          }
+
+          if (
+            category ===
+            "Originals"
+          ) {
+            return isOriginal(
+              item
+            );
+          }
+
+          if (
+            category ===
+            "Live"
+          ) {
+            return isLiveContent(
+              item
+            );
+          }
+
+          if (
+            category ===
+            "Music"
+          ) {
+            return isMusic(item);
+          }
+
+          if (
+            category ===
+            "Podcasts"
+          ) {
+            return isPodcast(
+              item
+            );
+          }
+
+          if (
+            category ===
+            "Docs"
+          ) {
+            return isDocumentary(
+              item
+            );
+          }
+
+          return true;
+        }
+      );
+    }, [
+      searchFiltered,
+      category,
+    ]);
+
+  const heroCandidates =
+    useMemo(() => {
+      const featured =
+        uploads.filter(
+          (item) =>
+            item.featured ||
+            item.is_featured ||
+            isOriginal(item)
+        );
+
+      return deduplicate([
+        ...featured,
+        ...uploads,
+      ]).slice(0, 5);
+    }, [uploads]);
 
   const featured =
-    filtered[0] || uploads[0];
+    heroCandidates[
+      heroIndex %
+        Math.max(
+          heroCandidates.length,
+          1
+        )
+    ] ||
+    uploads[0];
 
-  const top10 = useMemo(
-    () =>
-      [...filtered]
-        .sort(
-          (a, b) =>
-            Number(
-              b?.views ||
-                b?.view_count ||
-                0
-            ) -
-            Number(
-              a?.views ||
-                a?.view_count ||
-                0
+  const top10 =
+    useMemo(
+      () =>
+        [...categoryFiltered]
+          .sort(
+            (a, b) =>
+              Number(
+                b.views ||
+                  b.view_count ||
+                  0
+              ) -
+              Number(
+                a.views ||
+                  a.view_count ||
+                  0
+              )
+          )
+          .slice(0, 10),
+      [categoryFiltered]
+    );
+
+  const originals =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isOriginal
+        ),
+      [categoryFiltered]
+    );
+
+  const shows =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isShow
+        ),
+      [categoryFiltered]
+    );
+
+  const movies =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isMovie
+        ),
+      [categoryFiltered]
+    );
+
+  const podcasts =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isPodcast
+        ),
+      [categoryFiltered]
+    );
+
+  const music =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isMusic
+        ),
+      [categoryFiltered]
+    );
+
+  const documentaries =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isDocumentary
+        ),
+      [categoryFiltered]
+    );
+
+  const liveContent =
+    useMemo(
+      () =>
+        categoryFiltered.filter(
+          isLiveContent
+        ),
+      [categoryFiltered]
+    );
+
+  const shortContent =
+    useMemo(() => {
+      const explicit =
+        uploads.filter(
+          isShortContent
+        );
+
+      if (explicit.length) {
+        return explicit;
+      }
+
+      return uploads
+        .filter(
+          (item) =>
+            Boolean(
+              contentVideo(item)
             )
         )
-        .slice(0, 10),
-    [filtered]
-  );
+        .slice(0, 18);
+    }, [uploads]);
 
-  const originals = useMemo(
-    () => filtered.filter(isOriginal),
-    [filtered]
-  );
+  const recent =
+    useMemo(
+      () =>
+        categoryFiltered.slice(
+          0,
+          24
+        ),
+      [categoryFiltered]
+    );
 
-  const shows = useMemo(
-    () => filtered.filter(isShow),
-    [filtered]
-  );
-
-  const movies = useMemo(
-    () => filtered.filter(isMovie),
-    [filtered]
-  );
-
-  const podcasts = useMemo(
-    () => filtered.filter(isPodcast),
-    [filtered]
-  );
-
-  const musicVideos = useMemo(
-    () =>
-      filtered.filter(isMusicVideo),
-    [filtered]
-  );
-
-  const documentaries = useMemo(
-    () =>
-      filtered.filter(isDocumentary),
-    [filtered]
-  );
-
-  const liveContent = useMemo(
-    () =>
-      filtered.filter(isLiveContent),
-    [filtered]
-  );
-
-  const recentlyAdded = useMemo(
-    () => filtered.slice(0, 20),
-    [filtered]
-  );
+  const categories: Category[] =
+    [
+      "All",
+      "Shows",
+      "Movies",
+      "Originals",
+      "Live",
+      "Music",
+      "Podcasts",
+      "Docs",
+    ];
 
   return (
     <main className="watchPage">
       <UTVNav />
 
-      <style>{styles}</style>
+      <style>
+        {styles}
+      </style>
 
-      <section className="watchHero">
-        <div className="heroBackdrop">
-          <img
-            src={
-              contentImage(featured) ||
-              HERO_IMAGES[heroIndex]
-            }
-            alt="UTV Watch"
-          />
-        </div>
+      <header className="watchTop">
+        <div className="watchBrand">
+          <div>
+            <p>
+              UTV ENTERTAINMENT
+            </p>
 
-        <div className="heroContent">
-          <span className="heroLabel">
-            UTV STREAMING
-          </span>
-
-          <h1>
-            {featured
-              ? contentTitle(featured)
-              : "Watch UTV"}
-          </h1>
-
-          <p>
-            {featured
-              ? contentDescription(featured) ||
-                "Stream shows, movies, podcasts, documentaries, music videos, and UTV originals."
-              : "Stream shows, movies, podcasts, documentaries, music videos, and UTV originals."}
-          </p>
-
-          <div className="heroActions">
-            {featured ? (
-              <Link
-                className="heroPrimary"
-                href={`/watch/${featured.id}`}
-              >
-                ▶ Watch
-              </Link>
-            ) : null}
-
-            <Link
-              className="heroSecondary"
-              href="/studio"
-            >
-              Creator Studio
-            </Link>
+            <h1>Watch</h1>
           </div>
+
+          <Link
+            href="/studio"
+            className="studioShortcut"
+          >
+            ＋
+          </Link>
         </div>
-      </section>
 
-      <section className="watchSearch">
-        <input
-          value={search}
-          onChange={(event) =>
-            setSearch(
-              event.target.value
-            )
-          }
-          placeholder="Search shows, movies, podcasts..."
-        />
-      </section>
+        <div className="modeSwitch">
+          <button
+            className={
+              mode === "home"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setMode("home")
+            }
+          >
+            ▣ Watch
+          </button>
 
-      <p className="watchNotice">
-        Watch contains streaming content only.
-        Feed posts, Stories, photos, and World
-        posts stay out.
-      </p>
+          <button
+            className={
+              mode === "reels"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setMode("reels")
+            }
+          >
+            ▶ Reels
+          </button>
+        </div>
+      </header>
 
-      {loading ? (
-        <section className="watchSkeleton">
-          {[1, 2, 3].map((row) => (
-            <div key={row}>
-              <div className="skeletonTitle" />
+      {mode === "home" ? (
+        <>
+          <section className="watchHero">
+            <div className="heroBackdrop">
+              <img
+                src={
+                  contentImage(
+                    featured
+                  ) ||
+                  HERO_IMAGES[
+                    heroIndex %
+                      HERO_IMAGES.length
+                  ]
+                }
+                alt={
+                  featured
+                    ? contentTitle(
+                        featured
+                      )
+                    : "UTV"
+                }
+              />
 
-              <div className="skeletonRow">
-                {[1, 2, 3].map(
-                  (card) => (
-                    <div
-                      className="skeletonCard"
-                      key={card}
+              <div className="heroShade" />
+            </div>
+
+            <div className="heroContent">
+              <span className="heroLabel">
+                {featured &&
+                isOriginal(
+                  featured
+                )
+                  ? "UTV ORIGINAL"
+                  : "NOW ON UTV"}
+              </span>
+
+              <h2>
+                {featured
+                  ? contentTitle(
+                      featured
+                    )
+                  : "Watch UTV"}
+              </h2>
+
+              <p>
+                {featured
+                  ? contentDescription(
+                      featured
+                    ) ||
+                    "Stream it now on UTV."
+                  : "Shows, movies, creators, originals and more."}
+              </p>
+
+              <div className="heroMeta">
+                <span>
+                  {featured
+                    ? categoryLabel(
+                        featured
+                      )
+                    : "Streaming"}
+                </span>
+
+                <i />
+
+                <span>UTV</span>
+              </div>
+
+              <div className="heroActions">
+                {featured && (
+                  <Link
+                    href={`/watch/${featured.id}`}
+                    className="heroPlay"
+                  >
+                    ▶ Play
+                  </Link>
+                )}
+
+                <button
+                  onClick={() =>
+                    setMode(
+                      "reels"
+                    )
+                  }
+                >
+                  Reels
+                </button>
+              </div>
+            </div>
+
+            {heroCandidates.length >
+              1 && (
+              <div className="heroDots">
+                {heroCandidates.map(
+                  (_, index) => (
+                    <button
+                      key={index}
+                      aria-label={`Featured ${
+                        index + 1
+                      }`}
+                      className={
+                        index ===
+                        heroIndex %
+                          heroCandidates.length
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setHeroIndex(
+                          index
+                        )
+                      }
                     />
                   )
                 )}
               </div>
+            )}
+          </section>
+
+          <section className="discovery">
+            <div className="searchBox">
+              <span>⌕</span>
+
+              <input
+                value={search}
+                onChange={(
+                  event
+                ) =>
+                  setSearch(
+                    event.target
+                      .value
+                  )
+                }
+                placeholder="Search UTV"
+              />
+
+              {search && (
+                <button
+                  onClick={() =>
+                    setSearch("")
+                  }
+                >
+                  ×
+                </button>
+              )}
             </div>
-          ))}
-        </section>
-      ) : loadError ? (
-        <section className="watchEmpty">
-          <h2>Watch unavailable</h2>
-          <p>{loadError}</p>
 
-          <button
-            onClick={
-              loadWatchContent
-            }
-          >
-            Try Again
-          </button>
-        </section>
-      ) : filtered.length === 0 ? (
-        <section className="watchEmpty">
-          <h2>
-            No streaming content found
-          </h2>
+            <div className="categoryScroller">
+              {categories.map(
+                (name) => (
+                  <button
+                    key={name}
+                    className={
+                      category ===
+                      name
+                        ? "active"
+                        : ""
+                    }
+                    onClick={() =>
+                      setCategory(
+                        name
+                      )
+                    }
+                  >
+                    {name}
+                  </button>
+                )
+              )}
+            </div>
+          </section>
 
-          <p>
-            Your restored shows, movies,
-            podcasts, trailers, and approved
-            streaming uploads will appear here.
-          </p>
-        </section>
-      ) : (
-        <>
-          <WatchRow
-            title="🔥 Top 10 on UTV"
-            items={top10}
-            numbered
-          />
+          <section className="reelsPreview">
+            <header>
+              <div>
+                <p>
+                  QUICK WATCH
+                </p>
 
-          <WatchRow
-            title="⭐ UTV Originals"
-            items={originals}
-          />
+                <h2>
+                  Reels & Shorts
+                </h2>
+              </div>
 
-          <WatchRow
-            title="📺 Shows & Series"
-            items={shows}
-          />
+              <button
+                onClick={() =>
+                  setMode("reels")
+                }
+              >
+                Open Reels ›
+              </button>
+            </header>
 
-          <WatchRow
-            title="🎬 Movies & Films"
-            items={movies}
-          />
+            <div className="reelPreviewScroller">
+              {shortContent
+                .slice(0, 6)
+                .map(
+                  (
+                    item,
+                    index
+                  ) => (
+                    <ReelCard
+                      item={item}
+                      key={String(
+                        item.id ||
+                          index
+                      )}
+                    />
+                  )
+                )}
+            </div>
+          </section>
 
-          <WatchRow
-            title="🎙 Podcasts"
-            items={podcasts}
-          />
+          {loading ? (
+            <LoadingRows />
+          ) : loadError ? (
+            <section className="watchEmpty">
+              <span>UTV</span>
 
-          <WatchRow
-            title="🎵 Music Videos"
-            items={musicVideos}
-          />
+              <h2>
+                Watch unavailable
+              </h2>
 
-          <WatchRow
-            title="🎥 Documentaries"
-            items={documentaries}
-          />
+              <p>
+                {loadError}
+              </p>
 
-          <WatchRow
-            title="🔴 Live Events & Replays"
-            items={liveContent}
-          />
+              <button
+                onClick={() =>
+                  void loadWatchContent()
+                }
+              >
+                Try Again
+              </button>
+            </section>
+          ) : categoryFiltered.length ===
+            0 ? (
+            <section className="watchEmpty">
+              <span>⌕</span>
 
-          <WatchRow
-            title="🆕 Recently Added"
-            items={recentlyAdded}
-          />
+              <h2>
+                Nothing found
+              </h2>
 
-          <WatchRow
-            title="🎞 All Streaming"
-            items={filtered}
-          />
+              <p>
+                Try another search
+                or category.
+              </p>
+            </section>
+          ) : (
+            <>
+              <WatchRow
+                eyebrow="TRENDING NOW"
+                title="Top 10 on UTV"
+                items={top10}
+                numbered
+              />
+
+              <WatchRow
+                eyebrow="MADE FOR UTV"
+                title="UTV Originals"
+                items={originals}
+              />
+
+              <WatchRow
+                eyebrow="BINGE"
+                title="Shows & Series"
+                items={shows}
+              />
+
+              <WatchRow
+                eyebrow="FEATURE FILMS"
+                title="Movies"
+                items={movies}
+              />
+
+              <WatchRow
+                eyebrow="HAPPENING NOW"
+                title="Live & Replays"
+                items={liveContent}
+              />
+
+              <WatchRow
+                eyebrow="LISTEN & WATCH"
+                title="Music Videos"
+                items={music}
+              />
+
+              <WatchRow
+                eyebrow="TALK & CULTURE"
+                title="Podcasts"
+                items={podcasts}
+              />
+
+              <WatchRow
+                eyebrow="REAL STORIES"
+                title="Documentaries"
+                items={
+                  documentaries
+                }
+              />
+
+              <WatchRow
+                eyebrow="FRESH ON UTV"
+                title="Recently Added"
+                items={recent}
+              />
+            </>
+          )}
         </>
+      ) : (
+        <section className="reelsMode">
+          <header className="reelsHeader">
+            <div>
+              <p>
+                UTV SHORT FORM
+              </p>
+
+              <h2>
+                Reels
+              </h2>
+
+              <span>
+                Fast entertainment,
+                creators and moments.
+              </span>
+            </div>
+
+            <button
+              onClick={() =>
+                setMode("home")
+              }
+            >
+              Watch
+            </button>
+          </header>
+
+          {!shortContent.length ? (
+            <section className="watchEmpty">
+              <span>▶</span>
+
+              <h2>
+                Reels are coming
+              </h2>
+
+              <p>
+                Upload Reel or Short
+                category videos and
+                they will live here.
+              </p>
+            </section>
+          ) : (
+            <div className="reelsFeed">
+              {shortContent.map(
+                (
+                  item,
+                  index
+                ) => (
+                  <Link
+                    href={`/watch/${item.id}`}
+                    className="fullReel"
+                    key={String(
+                      item.id ||
+                        index
+                    )}
+                  >
+                    <div className="fullReelMedia">
+                      {contentImage(
+                        item
+                      ) ? (
+                        <img
+                          src={contentImage(
+                            item
+                          )}
+                          alt={contentTitle(
+                            item
+                          )}
+                        />
+                      ) : contentVideo(
+                          item
+                        ) ? (
+                        <video
+                          src={contentVideo(
+                            item
+                          )}
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <div className="fullReelFallback">
+                          UTV
+                        </div>
+                      )}
+
+                      <div className="fullReelShade" />
+
+                      <span className="bigPlay">
+                        ▶
+                      </span>
+
+                      <div className="fullReelInfo">
+                        <span>
+                          @
+                          {item.creator_name ||
+                            "utv"}
+                        </span>
+
+                        <h3>
+                          {contentTitle(
+                            item
+                          )}
+                        </h3>
+
+                        <p>
+                          {contentDescription(
+                            item
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="reelActions">
+                        <span>
+                          ♡
+                        </span>
+
+                        <span>
+                          💬
+                        </span>
+
+                        <span>
+                          ↗
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              )}
+            </div>
+          )}
+        </section>
       )}
     </main>
   );
 }
+
+function LoadingRows() {
+  return (
+    <section className="loadingRows">
+      {[1, 2, 3].map(
+        (row) => (
+          <div key={row}>
+            <div className="loadingHeading" />
+
+            <div className="loadingScroller">
+              {[1, 2, 3].map(
+                (card) => (
+                  <div
+                    key={card}
+                    className="loadingCard"
+                  />
+                )
+              )}
+            </div>
+          </div>
+        )
+      )}
+    </section>
+  );
+}
+
 const styles = `
   * {
     box-sizing: border-box;
@@ -851,7 +1443,7 @@ const styles = `
   html,
   body {
     margin: 0;
-    background: #000;
+    background: #020307;
   }
 
   button,
@@ -859,39 +1451,143 @@ const styles = `
     font: inherit;
   }
 
+  button {
+    cursor: pointer;
+  }
+
   .watchPage {
     min-height: 100vh;
-    padding-bottom: 120px;
+    padding-bottom: 145px;
     overflow-x: hidden;
-    color: white;
+    color: #fff;
+
     background:
       radial-gradient(
-        circle at 10% 0%,
-        rgba(82,247,200,.12),
-        transparent 28%
+        circle at 0% 4%,
+        rgba(85,245,200,.08),
+        transparent 27%
       ),
       radial-gradient(
-        circle at 90% 4%,
-        rgba(123,97,255,.17),
-        transparent 34%
+        circle at 100% 12%,
+        rgba(126,88,255,.11),
+        transparent 33%
       ),
+      #020307;
+  }
+
+  .watchTop {
+    width: min(
+      100%,
+      1180px
+    );
+
+    margin: 0 auto;
+    padding:
+      18px 15px
+      9px;
+  }
+
+  .watchBrand {
+    display: flex;
+    align-items: flex-end;
+    justify-content:
+      space-between;
+    gap: 12px;
+  }
+
+  .watchBrand p {
+    margin: 0 0 3px;
+    color: #55f4ca;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .16em;
+  }
+
+  .watchBrand h1 {
+    margin: 0;
+    font-size: 39px;
+    line-height: .95;
+    letter-spacing: -.05em;
+  }
+
+  .studioShortcut {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border:
+      1px solid
+      rgba(255,255,255,.09);
+    color: white;
+    background:
+      rgba(255,255,255,.035);
+    text-decoration: none;
+    font-size: 20px;
+  }
+
+  .modeSwitch {
+    width: 100%;
+    display: grid;
+    grid-template-columns:
+      1fr 1fr;
+    gap: 4px;
+    margin-top: 14px;
+    padding: 4px;
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+    background:
+      rgba(255,255,255,.025);
+  }
+
+  .modeSwitch button {
+    min-height: 41px;
+    border: 0;
+    color:
+      rgba(255,255,255,.43);
+    background: transparent;
+    font-size: 9px;
+    font-weight: 950;
+  }
+
+  .modeSwitch button.active {
+    color: #03110d;
+
+    background:
       linear-gradient(
-        180deg,
-        #06111d,
-        #000
+        135deg,
+        #55f4ca,
+        #9b84ff
       );
   }
 
+
+  /* ===========================
+     HERO
+     =========================== */
+
   .watchHero {
+    width: min(
+      calc(100% - 14px),
+      1180px
+    );
+    height: min(
+      62dvh,
+      610px
+    );
+    min-height: 440px;
     position: relative;
-    min-height: 390px;
     display: flex;
     align-items: flex-end;
+    margin:
+      4px auto 0;
     overflow: hidden;
-    padding: 100px 18px 38px;
+    background: #080b11;
   }
 
-  .heroBackdrop {
+  .heroBackdrop,
+  .heroBackdrop img,
+  .heroShade {
     position: absolute;
     inset: 0;
   }
@@ -899,152 +1595,433 @@ const styles = `
   .heroBackdrop img {
     width: 100%;
     height: 100%;
-    display: block;
     object-fit: cover;
-    filter:
-      brightness(.9)
-      saturate(1.18);
   }
 
-  .heroBackdrop::after {
-    content: "";
-    position: absolute;
-    inset: 0;
+  .heroShade {
     background:
       linear-gradient(
         90deg,
-        rgba(0,0,0,.58),
-        rgba(0,0,0,.12)
+        rgba(0,0,0,.69),
+        rgba(0,0,0,.13)
+        72%
       ),
       linear-gradient(
         180deg,
-        transparent 34%,
-        #06111d 100%
+        rgba(0,0,0,.05),
+        rgba(0,0,0,.05)
+        38%,
+        rgba(2,3,7,.97)
+        100%
       );
   }
 
   .heroContent {
-    position: relative;
-    z-index: 2;
     width: 100%;
-    max-width: 720px;
+    max-width: 590px;
+    position: relative;
+    z-index: 3;
+    padding:
+      30px 18px
+      34px;
   }
 
   .heroLabel {
-    color: #52f7c8;
-    font-size: 12px;
-    font-weight: 950;
-    letter-spacing: 2px;
+    color: #55f4ca;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: .16em;
   }
 
-  .heroContent h1 {
-    max-width: 650px;
-    margin: 10px 0 0;
-    font-size: clamp(
-      40px,
-      9vw,
-      72px
-    );
-    line-height: .98;
-    letter-spacing: -2px;
+  .heroContent h2 {
+    max-width: 560px;
+    margin:
+      8px 0 0;
+    font-size:
+      clamp(
+        38px,
+        10vw,
+        70px
+      );
+    line-height: .91;
+    letter-spacing: -.055em;
+    text-wrap: balance;
   }
 
-  .heroContent p {
-    max-width: 620px;
-    margin: 14px 0 0;
-    color: rgba(255,255,255,.75);
-    font-size: 15px;
+  .heroContent > p {
+    max-width: 510px;
+    margin:
+      11px 0 0;
+    overflow: hidden;
+    display:
+      -webkit-box;
+    color:
+      rgba(255,255,255,.72);
+    font-size: 11px;
     line-height: 1.5;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient:
+      vertical;
+  }
+
+  .heroMeta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 11px;
+    color:
+      rgba(255,255,255,.46);
+    font-size: 8px;
+    font-weight: 850;
+  }
+
+  .heroMeta i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #55f4ca;
   }
 
   .heroActions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 7px;
+    margin-top: 17px;
   }
 
-  .heroActions a {
-    padding: 12px 18px;
-    border-radius: 999px;
+  .heroActions a,
+  .heroActions button {
+    min-width: 105px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border:
+      1px solid
+      rgba(255,255,255,.12);
+    color: white;
+    background:
+      rgba(255,255,255,.08);
     text-decoration: none;
+    font-size: 10px;
     font-weight: 950;
+    backdrop-filter:
+      blur(15px);
   }
 
-  .heroPrimary {
-    color: #06120d;
+  .heroActions .heroPlay {
+    border: 0;
+    color: #03110d;
+    background: white;
+  }
+
+  .heroDots {
+    position: absolute;
+    z-index: 5;
+    right: 14px;
+    bottom: 18px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .heroDots button {
+    width: 16px;
+    height: 3px;
+    border: 0;
+    padding: 0;
+    background:
+      rgba(255,255,255,.25);
+  }
+
+  .heroDots button.active {
+    width: 29px;
+    background: #55f4ca;
+  }
+
+
+  /* ===========================
+     DISCOVERY
+     =========================== */
+
+  .discovery {
+    width: min(
+      calc(100% - 20px),
+      1180px
+    );
+    margin:
+      11px auto 0;
+  }
+
+  .searchBox {
+    min-height: 46px;
+    display: grid;
+    grid-template-columns:
+      auto
+      minmax(0,1fr)
+      auto;
+    align-items: center;
+    gap: 8px;
+    padding:
+      0 12px;
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+    background:
+      rgba(255,255,255,.025);
+  }
+
+  .searchBox > span {
+    color:
+      rgba(255,255,255,.45);
+    font-size: 20px;
+  }
+
+  .searchBox input {
+    min-width: 0;
+    border: 0;
+    outline: none;
+    color: white;
+    background:
+      transparent;
+    font-size: 11px;
+  }
+
+  .searchBox button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    color:
+      rgba(255,255,255,.55);
+    background: transparent;
+  }
+
+  .categoryScroller {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding:
+      8px 0 3px;
+    scrollbar-width: none;
+  }
+
+  .categoryScroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .categoryScroller button {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding:
+      0 12px;
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+    color:
+      rgba(255,255,255,.49);
+    background:
+      rgba(255,255,255,.02);
+    font-size: 8px;
+    font-weight: 900;
+  }
+
+  .categoryScroller button.active {
+    border-color:
+      transparent;
+    color: #03110d;
+    background: #55f4ca;
+  }
+
+
+  /* ===========================
+     REELS PREVIEW
+     =========================== */
+
+  .reelsPreview {
+    width: min(
+      100%,
+      1180px
+    );
+    margin:
+      26px auto 0;
+  }
+
+  .reelsPreview > header,
+  .rowHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content:
+      space-between;
+    gap: 12px;
+    padding:
+      0 14px 11px;
+  }
+
+  .reelsPreview header p,
+  .rowHeader p {
+    margin: 0;
+    color: #55f4ca;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .14em;
+  }
+
+  .reelsPreview header h2,
+  .rowHeader h2 {
+    margin:
+      4px 0 0;
+    font-size: 21px;
+    letter-spacing: -.03em;
+  }
+
+  .reelsPreview header button {
+    min-height: 32px;
+    border: 0;
+    color:
+      rgba(255,255,255,.53);
+    background: transparent;
+    font-size: 8px;
+    font-weight: 900;
+  }
+
+  .reelPreviewScroller {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding:
+      0 14px 6px;
+    scrollbar-width: none;
+  }
+
+  .reelPreviewScroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reelCard {
+    width: 127px;
+    min-width: 127px;
+    color: white;
+    text-decoration: none;
+  }
+
+  .reelMedia {
+    height: 215px;
+    position: relative;
+    overflow: hidden;
+    background: #0b0d13;
+  }
+
+  .reelMedia img,
+  .reelMedia video,
+  .reelFallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    object-fit: cover;
+  }
+
+  .reelFallback {
     background:
       linear-gradient(
-        135deg,
-        #52f7c8,
-        #7b61ff
+        145deg,
+        #7c59ff,
+        #05070b
+      );
+    font-size: 24px;
+    font-weight: 1000;
+  }
+
+  .reelShade {
+    position: absolute;
+    inset: 40% 0 0;
+    background:
+      linear-gradient(
+        transparent,
+        rgba(0,0,0,.9)
       );
   }
 
-  .heroSecondary {
-    color: white;
+  .reelPlay {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
     border:
-      1px solid rgba(255,255,255,.16);
+      1px solid
+      rgba(255,255,255,.14);
+    border-radius: 50%;
     background:
-      rgba(255,255,255,.09);
-    backdrop-filter: blur(14px);
+      rgba(0,0,0,.38);
+    font-size: 8px;
   }
 
-  .watchSearch {
-    padding: 4px 18px 14px;
+  .reelInfo {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
   }
 
-  .watchSearch input {
-    width: 100%;
-    padding: 16px 18px;
-    color: white;
-    border:
-      1px solid rgba(255,255,255,.14);
-    border-radius: 999px;
-    outline: none;
-    background:
-      rgba(255,255,255,.075);
-    font-size: 16px;
+  .reelInfo p {
+    margin: 0;
+    color: #55f4ca;
+    font-size: 5px;
+    font-weight: 1000;
+    letter-spacing: .12em;
   }
 
-  .watchSearch input:focus {
-    border-color:
-      rgba(82,247,200,.55);
-    box-shadow:
-      0 0 0 3px
-      rgba(82,247,200,.08);
+  .reelInfo h3 {
+    margin:
+      4px 0 0;
+    overflow: hidden;
+    font-size: 9px;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
   }
 
-  .watchNotice {
-    margin: 0 18px 8px;
-    padding: 11px 13px;
-    color: #52f7c8;
-    border:
-      1px solid rgba(82,247,200,.15);
-    border-radius: 16px;
-    background:
-      rgba(82,247,200,.065);
-    font-size: 12px;
-    font-weight: 850;
+  .reelInfo span {
+    display: block;
+    margin-top: 3px;
+    overflow: hidden;
+    color:
+      rgba(255,255,255,.42);
+    font-size: 6px;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
   }
+
+
+  /* ===========================
+     CONTENT ROWS
+     =========================== */
 
   .watchRow {
-    margin-top: 31px;
+    width: min(
+      100%,
+      1180px
+    );
+    margin:
+      27px auto 0;
   }
 
-  .watchRow h2 {
-    margin: 0 0 14px;
-    padding: 0 18px;
-    font-size: 28px;
-    letter-spacing: -.7px;
+  .rowHeader > span {
+    color:
+      rgba(255,255,255,.29);
+    font-size: 25px;
   }
 
   .watchScroller {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     overflow-x: auto;
-    padding: 0 18px 12px;
-    scroll-snap-type: x proximity;
+    padding:
+      0 14px 9px;
+    scroll-snap-type:
+      x proximity;
     scrollbar-width: none;
   }
 
@@ -1053,152 +2030,388 @@ const styles = `
   }
 
   .watchCard {
-    width: 238px;
-    min-width: 238px;
+    width: 205px;
+    min-width: 205px;
     color: white;
     text-decoration: none;
-    scroll-snap-align: start;
+    scroll-snap-align:
+      start;
   }
 
   .poster {
+    height: 119px;
     position: relative;
-    height: 145px;
     overflow: hidden;
     border:
-      1px solid rgba(255,255,255,.12);
-    border-radius: 20px;
-    background: #0d1118;
-    box-shadow:
-      0 17px 40px
-      rgba(0,0,0,.34);
-    transition:
-      transform .2s ease,
-      border-color .2s ease;
-  }
-
-  .watchCard:active .poster {
-    transform: scale(.97);
+      1px solid
+      rgba(255,255,255,.07);
+    background: #0b0d14;
   }
 
   .poster img,
-  .poster video {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-  }
-
+  .poster video,
   .posterFallback {
     width: 100%;
     height: 100%;
     display: grid;
     place-items: center;
-    color: white;
+    object-fit: cover;
+  }
+
+  .posterFallback {
     background:
       radial-gradient(
-        circle at 25% 20%,
-        rgba(82,247,200,.3),
-        transparent 40%
+        circle at 30% 20%,
+        rgba(85,245,200,.18),
+        transparent 37%
       ),
       linear-gradient(
         135deg,
-        #111724,
-        #291342
+        #161d2c,
+        #30194b
       );
-    font-size: 35px;
-    font-weight: 950;
+  }
+
+  .posterFallback span {
+    font-size: 25px;
+    font-weight: 1000;
+  }
+
+  .posterShade {
+    position: absolute;
+    inset: 45% 0 0;
+    background:
+      linear-gradient(
+        transparent,
+        rgba(0,0,0,.72)
+      );
+  }
+
+  .posterPlay {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border:
+      1px solid
+      rgba(255,255,255,.14);
+    border-radius: 50%;
+    background:
+      rgba(0,0,0,.48);
+    font-size: 8px;
+  }
+
+  .originalBadge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding:
+      5px 6px;
+    color: #03110d;
+    background: #55f4ca;
+    font-size: 5px;
+    font-weight: 1000;
+    letter-spacing: .08em;
   }
 
   .rankBadge {
     position: absolute;
-    top: 9px;
-    left: 9px;
-    width: 35px;
-    height: 35px;
-    display: grid;
-    place-items: center;
-    color: #52f7c8;
-    border:
-      1px solid rgba(255,255,255,.18);
-    border-radius: 50%;
-    background:
-      rgba(0,0,0,.78);
-    backdrop-filter: blur(10px);
-    font-weight: 950;
+    z-index: 3;
+    left: 7px;
+    bottom: 2px;
+    color:
+      rgba(255,255,255,.92);
+    font-size: 44px;
+    line-height: 1;
+    font-weight: 1000;
+    letter-spacing: -.09em;
+    text-shadow:
+      0 3px 15px
+      rgba(0,0,0,.85);
+    -webkit-text-stroke:
+      1px
+      rgba(85,245,200,.62);
   }
 
-  .playButton {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    width: 39px;
-    height: 39px;
-    display: grid;
-    place-items: center;
-    color: white;
-    border:
-      1px solid rgba(255,255,255,.18);
-    border-radius: 50%;
-    background:
-      rgba(0,0,0,.57);
-    backdrop-filter: blur(12px);
-    font-size: 13px;
+  .cardCopy {
+    padding-top: 7px;
   }
 
-  .watchCard h3 {
-    margin: 10px 0 4px;
+  .cardCopy h3 {
+    margin: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 11px;
+    text-overflow:
+      ellipsis;
     white-space: nowrap;
+  }
+
+  .cardCopy p {
+    margin:
+      3px 0 0;
+    overflow: hidden;
+    color:
+      rgba(255,255,255,.36);
+    font-size: 7px;
+    font-weight: 800;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
+  }
+
+
+  /* ===========================
+     FULL REELS MODE
+     =========================== */
+
+  .reelsMode {
+    width: min(
+      100%,
+      760px
+    );
+    margin: 0 auto;
+  }
+
+  .reelsHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content:
+      space-between;
+    gap: 12px;
+    padding:
+      23px 15px
+      13px;
+  }
+
+  .reelsHeader p {
+    margin: 0;
+    color: #55f4ca;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .16em;
+  }
+
+  .reelsHeader h2 {
+    margin:
+      4px 0 0;
+    font-size: 36px;
+    letter-spacing: -.05em;
+  }
+
+  .reelsHeader span {
+    display: block;
+    margin-top: 5px;
+    color:
+      rgba(255,255,255,.42);
+    font-size: 9px;
+  }
+
+  .reelsHeader button {
+    min-height: 36px;
+    padding:
+      0 12px;
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+    color: white;
+    background:
+      rgba(255,255,255,.03);
+    font-size: 8px;
+    font-weight: 900;
+  }
+
+  .reelsFeed {
+    display: grid;
+    gap: 8px;
+    padding:
+      0 8px;
+    scroll-snap-type:
+      y mandatory;
+  }
+
+  .fullReel {
+    color: white;
+    text-decoration: none;
+    scroll-snap-align:
+      start;
+  }
+
+  .fullReelMedia {
+    height:
+      min(
+        72dvh,
+        720px
+      );
+    min-height: 535px;
+    position: relative;
+    overflow: hidden;
+    background: #07090e;
+  }
+
+  .fullReelMedia img,
+  .fullReelMedia video,
+  .fullReelFallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    object-fit: cover;
+  }
+
+  .fullReelFallback {
+    background:
+      radial-gradient(
+        circle at 50% 20%,
+        rgba(85,245,200,.16),
+        transparent 30%
+      ),
+      linear-gradient(
+        145deg,
+        #211337,
+        #05070b
+      );
+    font-size: 45px;
+    font-weight: 1000;
+  }
+
+  .fullReelShade {
+    position: absolute;
+    inset: 25% 0 0;
+    background:
+      linear-gradient(
+        transparent,
+        rgba(0,0,0,.87)
+      );
+  }
+
+  .bigPlay {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border:
+      1px solid
+      rgba(255,255,255,.2);
+    border-radius: 50%;
+    background:
+      rgba(0,0,0,.35);
+    backdrop-filter:
+      blur(12px);
+    transform:
+      translate(-50%,-50%);
     font-size: 17px;
   }
 
-  .watchCard p {
-    margin: 0;
-    color: #ffd166;
-    font-size: 12px;
-    font-weight: 850;
+  .fullReelInfo {
+    position: absolute;
+    left: 16px;
+    right: 73px;
+    bottom: 22px;
   }
 
-  .watchSkeleton {
+  .fullReelInfo > span {
+    color: #55f4ca;
+    font-size: 10px;
+    font-weight: 950;
+  }
+
+  .fullReelInfo h3 {
+    margin:
+      6px 0 0;
+    font-size: 19px;
+  }
+
+  .fullReelInfo p {
+    margin:
+      6px 0 0;
+    overflow: hidden;
+    display:
+      -webkit-box;
+    color:
+      rgba(255,255,255,.64);
+    font-size: 9px;
+    line-height: 1.45;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient:
+      vertical;
+  }
+
+  .reelActions {
+    position: absolute;
+    right: 14px;
+    bottom: 22px;
     display: grid;
-    gap: 30px;
-    padding: 20px 18px;
+    gap: 13px;
   }
 
-  .skeletonTitle {
-    width: 190px;
-    height: 22px;
-    margin-bottom: 14px;
-    border-radius: 999px;
+  .reelActions span {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border:
+      1px solid
+      rgba(255,255,255,.12);
+    border-radius: 50%;
     background:
-      rgba(255,255,255,.08);
+      rgba(0,0,0,.38);
+    backdrop-filter:
+      blur(12px);
+    font-size: 17px;
   }
 
-  .skeletonRow {
+
+  /* ===========================
+     LOADING / EMPTY
+     =========================== */
+
+  .loadingRows {
+    display: grid;
+    gap: 25px;
+    padding:
+      25px 14px;
+  }
+
+  .loadingHeading {
+    width: 150px;
+    height: 17px;
+    margin-bottom: 10px;
+    background:
+      rgba(255,255,255,.06);
+  }
+
+  .loadingScroller {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     overflow: hidden;
   }
 
-  .skeletonCard {
-    min-width: 238px;
-    height: 145px;
-    border-radius: 20px;
+  .loadingCard {
+    width: 205px;
+    min-width: 205px;
+    height: 119px;
     background:
       linear-gradient(
         90deg,
-        rgba(255,255,255,.04),
-        rgba(255,255,255,.11),
-        rgba(255,255,255,.04)
+        rgba(255,255,255,.025),
+        rgba(255,255,255,.075),
+        rgba(255,255,255,.025)
       );
-    background-size: 220% 100%;
+    background-size:
+      220% 100%;
     animation:
-      watchShimmer 1.1s
-      linear infinite;
+      loadingSweep
+      1.2s linear
+      infinite;
   }
 
-  @keyframes watchShimmer {
+  @keyframes loadingSweep {
     from {
       background-position:
         220% 0;
@@ -1211,92 +2424,125 @@ const styles = `
   }
 
   .watchEmpty {
-    margin: 24px 18px;
-    padding: 34px 20px;
-    text-align: center;
+    width:
+      calc(100% - 28px);
+    max-width: 620px;
+    margin:
+      32px auto;
+    padding:
+      40px 20px;
     border:
-      1px solid rgba(255,255,255,.12);
-    border-radius: 24px;
+      1px solid
+      rgba(255,255,255,.07);
+    color:
+      rgba(255,255,255,.48);
     background:
-      rgba(255,255,255,.05);
+      rgba(255,255,255,.018);
+    text-align: center;
+  }
+
+  .watchEmpty > span {
+    display: block;
+    color: #55f4ca;
+    font-size: 25px;
+    font-weight: 1000;
   }
 
   .watchEmpty h2 {
-    margin: 0 0 8px;
-    font-size: 28px;
+    margin:
+      11px 0 0;
+    color: white;
   }
 
   .watchEmpty p {
-    max-width: 520px;
-    margin: 0 auto;
-    color:
-      rgba(255,255,255,.58);
+    margin:
+      7px auto 0;
+    max-width: 390px;
+    font-size: 10px;
     line-height: 1.5;
   }
 
   .watchEmpty button {
-    margin-top: 16px;
-    padding: 11px 16px;
-    color: #06120d;
+    min-height: 40px;
+    margin-top: 14px;
+    padding:
+      0 14px;
     border: 0;
-    border-radius: 999px;
-    background:
-      linear-gradient(
-        135deg,
-        #52f7c8,
-        #7b61ff
-      );
+    color: #03110d;
+    background: #55f4ca;
+    font-size: 9px;
     font-weight: 950;
   }
 
-  @media (max-width: 430px) {
+
+  @media (max-width:430px) {
     .watchHero {
-      min-height: 330px;
-      padding:
-        88px 16px 28px;
+      height: 55dvh;
+      min-height: 405px;
     }
 
-    .heroContent h1 {
-      font-size: 43px;
+    .heroContent h2 {
+      font-size:
+        clamp(
+          34px,
+          10vw,
+          48px
+        );
     }
 
     .watchCard {
-      width: 226px;
-      min-width: 226px;
+      width: 184px;
+      min-width: 184px;
     }
 
-    .poster,
-    .skeletonCard {
-      height: 140px;
+    .poster {
+      height: 107px;
     }
 
-    .watchRow h2 {
-      font-size: 26px;
+    .reelCard {
+      width: 118px;
+      min-width: 118px;
+    }
+
+    .reelMedia {
+      height: 200px;
     }
   }
 
-  @media (min-width: 900px) {
-    .heroContent,
-    .watchSearch,
-    .watchNotice,
-    .watchRow {
-      max-width: 1180px;
-      margin-right: auto;
-      margin-left: auto;
+  @media (min-width:760px) {
+    .watchTop {
+      padding-top: 25px;
+    }
+
+    .modeSwitch {
+      width: 350px;
+    }
+
+    .watchHero {
+      height: 620px;
     }
 
     .heroContent {
-      width: 100%;
+      padding:
+        45px 40px;
     }
 
-    .watchScroller {
-      padding-right: 0;
-      padding-left: 0;
+    .watchCard {
+      width: 245px;
+      min-width: 245px;
     }
 
-    .watchRow h2 {
-      padding-right: 0;
-      padding-left: 0;
+    .poster {
+      height: 142px;
+    }
+
+    .reelCard {
+      width: 155px;
+      min-width: 155px;
+    }
+
+    .reelMedia {
+      height: 270px;
     }
   }
 `;
