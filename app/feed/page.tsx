@@ -838,86 +838,102 @@ export default function FeedPage() {
   async function createTextPost() {
     const caption = composerText.trim();
 
-    if (!caption || postingText) return;
+    if (!caption || postingText) {
+      return;
+    }
 
-    const { data: auth } =
+    const { data: authData } =
       await supabase.auth.getUser();
 
-    const userEmail =
-      auth.user?.email || "";
+    const user = authData.user;
 
-    if (!userEmail) {
+    if (!user?.email) {
       router.push("/login");
       return;
     }
 
     setPostingText(true);
 
-    const { data, error } =
-      await supabase
-        .from("uploads")
-        .insert({
-          creator_email: userEmail,
-          description: caption,
-          category: "post",
-          visibility: "feed",
-          approved: true,
-        })
-        .select("*")
-        .single();
+    try {
+      const { data: uploadRow, error: uploadError } =
+        await supabase
+          .from("uploads")
+          .insert({
+            title: "UTV Post",
+            description: caption,
+            category: "Feed",
+            creator_email: user.email,
 
-    if (error) {
+            video_url: "",
+            thumbnail_url: "",
+            media_url: "",
+            file_url: "",
+            external_url: "",
+
+            visibility: "feed",
+            content_type: "Feed",
+
+            needs_approval: false,
+            approved: true,
+          })
+          .select("*")
+          .single();
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      setComposerText("");
+      setComposerOpen(false);
+
+      if (uploadRow) {
+        setItems((current) => [
+          uploadRow,
+          ...current.filter(
+            (item) =>
+              String(item.id) !==
+              String(uploadRow.id)
+          ),
+        ]);
+
+        await loadProfiles([
+          user.email,
+        ]);
+
+        await Promise.all([
+          loadLikes(
+            String(uploadRow.id),
+            user.email
+          ),
+          loadComments(
+            String(uploadRow.id)
+          ),
+        ]);
+      }
+
+      setLastUpdatedAt(new Date());
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+
+      showFeedMessage(
+        "Posted to UTV 🔥"
+      );
+    } catch (error: any) {
       console.error(
         "Text post error:",
         error
       );
 
       showFeedMessage(
-        error.message ||
-          "Could not post."
+        error?.message ||
+          "Could not post to UTV."
       );
-
+    } finally {
       setPostingText(false);
-      return;
     }
-
-    setComposerText("");
-    setComposerOpen(false);
-    setPostingText(false);
-
-    if (data) {
-      setItems((current) => [
-        data,
-        ...current.filter(
-          (item) =>
-            String(item.id) !==
-            String(data.id)
-        ),
-      ]);
-
-      await loadProfiles([
-        userEmail,
-      ]);
-
-      await Promise.all([
-        loadLikes(
-          String(data.id),
-          userEmail
-        ),
-        loadComments(
-          String(data.id)
-        ),
-      ]);
-    }
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-
-    showFeedMessage(
-      "Posted to UTV 🔥"
-    );
   }
 
   function beginEditPost(item: any) {

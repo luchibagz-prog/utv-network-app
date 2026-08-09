@@ -3854,6 +3854,22 @@ const styles = `
       1px solid rgba(255, 255, 255, 0.08);
   }
 
+  .cameraHeader {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 40;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.70),
+        rgba(0,0,0,.22),
+        transparent
+      );
+    border-bottom: 0;
+  }
+
   .cameraHeaderButton {
     width: 50px;
     height: 50px;
@@ -3890,8 +3906,10 @@ const styles = `
   }
 
   .cameraViewport {
-    position: relative;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    min-height: 100dvh;
     overflow: hidden;
     background: #000;
   }
@@ -3899,8 +3917,9 @@ const styles = `
   .cameraPreview {
     width: 100%;
     height: 100%;
+    min-height: 100dvh;
     display: block;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
     background: #000;
   }
@@ -3935,20 +3954,30 @@ const styles = `
   }
 
   .cameraControls {
-    position: relative;
-    z-index: 30;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+
     padding:
-      16px
+      26px
       12px
-      max(16px, env(safe-area-inset-bottom));
+      max(
+        18px,
+        env(safe-area-inset-bottom)
+      );
+
     background:
       linear-gradient(
         180deg,
-        #05070b,
-        #000
+        transparent,
+        rgba(0,0,0,.42) 18%,
+        rgba(0,0,0,.88) 58%,
+        rgba(0,0,0,.98)
       );
-    border-top:
-      1px solid rgba(255, 255, 255, 0.08);
+
+    border-top: 0;
   }
 
   .cameraModeRow {
