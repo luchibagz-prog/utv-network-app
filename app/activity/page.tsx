@@ -15,6 +15,7 @@ import { supabase } from "../../lib/supabaseClient";
 
 type ActivityTab =
   | "all"
+  | "unread"
   | "notifications"
   | "messages"
   | "bookings"
@@ -58,9 +59,14 @@ const activityTabs: {
     icon: "✨",
   },
   {
+    id: "unread",
+    label: "Unread",
+    icon: "●",
+  },
+  {
     id: "notifications",
-    label: "Activity",
-    icon: "🔔",
+    label: "Social",
+    icon: "♡",
   },
   {
     id: "messages",
@@ -803,6 +809,12 @@ const messageChannelRef =
         return items;
       }
 
+      if (activeTab === "unread") {
+        return items.filter(
+          (item) => !item.isRead
+        );
+      }
+
       if (
         activeTab ===
         "notifications"
@@ -857,6 +869,12 @@ const messageChannelRef =
     useMemo(
       () => ({
         all: items.length,
+
+        unread:
+          items.filter(
+            (item) =>
+              !item.isRead
+          ).length,
 
         notifications:
           items.filter(
@@ -1149,6 +1167,27 @@ const messageChannelRef =
     );
   }
 
+  function pickActivityPreview(
+    item: ActivityItem
+  ) {
+    const raw =
+      item.raw || {};
+
+    const candidates = [
+      raw.thumbnail_url,
+      raw.image_url,
+      raw.poster_url,
+      raw.cover_url,
+      raw.media_thumbnail,
+      raw.avatar_url,
+    ];
+
+    return String(
+      candidates.find(Boolean) ||
+        ""
+    );
+  }
+
   function renderActivityCard(
     item: ActivityItem
   ) {
@@ -1157,6 +1196,11 @@ const messageChannelRef =
 
     const name =
       actorName(item);
+
+    const preview =
+      pickActivityPreview(
+        item
+      );
 
     const isPendingRequest =
       (
@@ -1240,9 +1284,18 @@ const messageChannelRef =
             </small>
           </div>
 
-          <span className="activityArrow">
-            ›
-          </span>
+          {preview ? (
+            <img
+              className="activityPreview"
+              src={preview}
+              alt=""
+              loading="lazy"
+            />
+          ) : (
+            <span className="activityArrow">
+              ›
+            </span>
+          )}
         </button>
 
         {isPendingRequest && (
@@ -1349,21 +1402,32 @@ const messageChannelRef =
       <style>{styles}</style>
 
       <section className="activityHero">
-        <div>
-          <p className="activityEyebrow">
-            UTV ACTIVITY CENTER
-          </p>
+        <div className="activityHeroTitle">
+          <div>
+            <p className="activityEyebrow">
+              UTV
+            </p>
 
-          <h1>Activity</h1>
+            <h1>Activity</h1>
+          </div>
 
-          <span>
-            Likes, follows, comments,
-            messages, bookings, and live
-            requests in one place.
-          </span>
+          {unreadCount > 0 && (
+            <span className="heroUnread">
+              {unreadCount}
+            </span>
+          )}
         </div>
 
         <div className="activityHeroActions">
+          <button
+            className="settingsActivityButton"
+            onClick={() =>
+              router.push("/settings")
+            }
+          >
+            🔔 Alerts
+          </button>
+
           <button
             className="refreshActivityButton"
             onClick={() =>
@@ -1372,8 +1436,8 @@ const messageChannelRef =
             disabled={refreshing}
           >
             {refreshing
-              ? "Refreshing..."
-              : "↻ Refresh"}
+              ? "..."
+              : "↻"}
           </button>
 
           {unreadCount > 0 && (
@@ -1381,46 +1445,10 @@ const messageChannelRef =
               className="markReadButton"
               onClick={markAllRead}
             >
-              Mark all read
+              Read all
             </button>
           )}
         </div>
-      </section>
-
-      <section className="activitySummary">
-        <article>
-          <strong>
-            {unreadCount}
-          </strong>
-
-          <span>Unread</span>
-        </article>
-
-        <article>
-          <strong>
-            {
-              tabCounts.notifications
-            }
-          </strong>
-
-          <span>Notifications</span>
-        </article>
-
-        <article>
-          <strong>
-            {tabCounts.messages}
-          </strong>
-
-          <span>Messages</span>
-        </article>
-
-        <article>
-          <strong>
-            {tabCounts.bookings}
-          </strong>
-
-          <span>Bookings</span>
-        </article>
       </section>
 
       <section className="activityTabs">
@@ -1489,6 +1517,9 @@ const messageChannelRef =
         <section className="activityEmpty">
           <span>
             {activeTab ===
+            "unread"
+              ? "✓"
+              : activeTab ===
             "messages"
               ? "💬"
               : activeTab ===
@@ -1501,14 +1532,15 @@ const messageChannelRef =
           </span>
 
           <h2>
-            No activity yet
+            {activeTab === "unread"
+              ? "You're caught up"
+              : "No activity yet"}
           </h2>
 
           <p>
-            New likes, followers,
-            comments, messages,
-            bookings, and live
-            requests will appear here.
+            {activeTab === "unread"
+              ? "No unread UTV activity right now."
+              : "Likes, follows, comments, messages, bookings and live requests will appear here."}
           </p>
         </section>
       ) : (
@@ -2134,4 +2166,366 @@ const styles = `
       width: calc(100% - 32px);
     }
   }
+
+  /* =====================================================
+     UTV ACTIVITY V2 — CLEAN SOCIAL CENTER
+     ===================================================== */
+
+  .activityPage {
+    background:
+      radial-gradient(
+        circle at 20% -5%,
+        rgba(82,247,200,.08),
+        transparent 24%
+      ),
+      radial-gradient(
+        circle at 95% 8%,
+        rgba(123,97,255,.09),
+        transparent 28%
+      ),
+      #020408;
+  }
+
+  .utvSocialSwitch {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .activityHero {
+    width:
+      calc(100% - 28px);
+    max-width: 760px;
+    min-height: 73px;
+    align-items: center;
+    margin:
+      12px auto 6px;
+    padding: 8px 2px;
+  }
+
+  .activityHeroTitle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .activityEyebrow {
+    margin-bottom: 3px;
+    font-size: 7px;
+    letter-spacing: .15em;
+  }
+
+  .activityHero h1 {
+    font-size: 33px;
+    letter-spacing: -.045em;
+  }
+
+  .activityHero > div > span:not(.heroUnread) {
+    display: none;
+  }
+
+  .heroUnread {
+    min-width: 24px;
+    height: 24px;
+    display: grid !important;
+    place-items: center;
+    margin: 0 !important;
+    padding: 0 6px;
+    border-radius: 999px;
+    color: #04110d !important;
+    background: #55f4ca;
+    font-size: 9px !important;
+    font-weight: 1000;
+  }
+
+  .activityHeroActions {
+    flex-wrap: nowrap;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .refreshActivityButton,
+  .settingsActivityButton,
+  .markReadButton {
+    min-height: 36px;
+    padding: 0 11px;
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 950;
+  }
+
+  .refreshActivityButton {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+  }
+
+  .settingsActivityButton {
+    color:
+      rgba(255,255,255,.72);
+    border:
+      1px solid
+      rgba(255,255,255,.08);
+    background:
+      rgba(255,255,255,.025);
+  }
+
+  .markReadButton {
+    color: #04110d;
+    background: #55f4ca;
+  }
+
+  .activitySummary {
+    display: none;
+  }
+
+  .activityTabs {
+    width:
+      calc(100% - 20px);
+    max-width: 760px;
+    margin:
+      0 auto 5px;
+    padding:
+      4px 0 9px;
+    gap: 5px;
+  }
+
+  .activityTab {
+    min-height: 36px;
+    grid-template-columns:
+      auto auto;
+    gap: 5px;
+    padding: 0 11px;
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+    border-radius: 999px;
+    color:
+      rgba(255,255,255,.48);
+    background:
+      rgba(255,255,255,.018);
+  }
+
+  .activityTab > span {
+    font-size: 9px;
+  }
+
+  .activityTab b {
+    font-size: 8px;
+  }
+
+  .activityTab small {
+    min-width: auto;
+    height: auto;
+    padding: 0;
+    color:
+      rgba(255,255,255,.35);
+    background: transparent;
+    font-size: 7px;
+  }
+
+  .activityTab.activeTab {
+    color: #04110d;
+    background: #55f4ca;
+  }
+
+  .activityTab.activeTab small {
+    color:
+      rgba(4,17,13,.55);
+    background: transparent;
+  }
+
+  .activityMessage {
+    width:
+      calc(100% - 28px);
+    max-width: 760px;
+    margin:
+      0 auto 10px;
+    border-radius: 10px;
+  }
+
+  .activityList {
+    width: 100%;
+    max-width: 760px;
+    gap: 23px;
+    margin: 0 auto;
+    padding:
+      3px 14px 30px;
+  }
+
+  .activityGroup {
+    gap: 5px;
+  }
+
+  .activityGroupHeader {
+    padding:
+      8px 2px 6px;
+  }
+
+  .activityGroupHeader h2 {
+    font-size: 13px;
+  }
+
+  .activityGroupHeader span {
+    display: none;
+  }
+
+  .activityGroupList {
+    gap: 0;
+    border-top:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+  .activityCard {
+    overflow: visible;
+    border: 0;
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.055);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .activityCard:hover {
+    transform: none;
+    border-color:
+      rgba(255,255,255,.055);
+    box-shadow: none;
+  }
+
+  .unreadCard {
+    border-color:
+      rgba(255,255,255,.055);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(82,247,200,.055),
+        transparent 72%
+      );
+    box-shadow:
+      inset 3px 0 0
+      rgba(82,247,200,.7);
+  }
+
+  .activityMain {
+    min-height: 76px;
+    grid-template-columns:
+      49px
+      minmax(0,1fr)
+      42px;
+    gap: 10px;
+    padding:
+      11px 3px 11px 8px;
+  }
+
+  .activityAvatarWrap {
+    width: 47px;
+    height: 47px;
+  }
+
+  .activityAvatar {
+    width: 47px;
+    height: 47px;
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+  }
+
+  .activityTypeIcon {
+    right: -2px;
+    bottom: -2px;
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+    font-size: 9px;
+  }
+
+  .activityTitleRow strong {
+    font-size: 10px;
+  }
+
+  .activityText p {
+    margin: 4px 0 3px;
+    color:
+      rgba(255,255,255,.65);
+    font-size: 9px;
+    line-height: 1.4;
+  }
+
+  .activityText small {
+    color:
+      rgba(255,255,255,.31);
+    font-size: 7px;
+  }
+
+  .actorNameButton {
+    color: white;
+    font-size: inherit;
+  }
+
+  .unreadDot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .activityArrow {
+    justify-self: center;
+    font-size: 20px;
+  }
+
+  .activityPreview {
+    width: 40px;
+    height: 48px;
+    justify-self: end;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #0a0d13;
+  }
+
+  .requestActions {
+    padding:
+      0 4px 11px 67px;
+    gap: 6px;
+  }
+
+  .requestActions button {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 8px;
+  }
+
+  .statusBadge {
+    top: auto;
+    right: 5px;
+    bottom: 7px;
+    border-radius: 6px;
+    font-size: 6px;
+  }
+
+  .activityEmpty {
+    width:
+      calc(100% - 28px);
+    max-width: 760px;
+    margin: 20px auto;
+  }
+
+  @media (max-width:620px) {
+    .activityHero {
+      flex-direction: row;
+    }
+
+    .activityHeroActions {
+      width: auto;
+      justify-content: flex-end;
+    }
+
+    .settingsActivityButton {
+      display: none;
+    }
+  }
+
+
 `;
