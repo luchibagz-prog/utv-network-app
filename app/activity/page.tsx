@@ -182,6 +182,91 @@ function activityIcon(
   return "🔔";
 }
 
+
+function notificationFamily(
+  typeValue: string
+) {
+  const type =
+    String(
+      typeValue || ""
+    ).toLowerCase();
+
+  if (
+    type.includes("story") &&
+    !type.includes("reaction") &&
+    !type.includes("reply") &&
+    !type.includes("comment") &&
+    !type.includes("like")
+  ) {
+    return "story";
+  }
+
+  if (
+    type.includes("reel") &&
+    !type.includes("like") &&
+    !type.includes("comment") &&
+    !type.includes("reply")
+  ) {
+    return "reel";
+  }
+
+  if (
+    (
+      type.includes("post") ||
+      type.includes("upload")
+    ) &&
+    !type.includes("like") &&
+    !type.includes("comment") &&
+    !type.includes("reply")
+  ) {
+    return "post";
+  }
+
+  if (
+    (
+      type.includes("live") ||
+      type.includes("went_live")
+    ) &&
+    !type.includes("request") &&
+    !type.includes("reaction") &&
+    !type.includes("comment")
+  ) {
+    return "live";
+  }
+
+  return "";
+}
+
+function isDirectActivity(
+  typeValue: string
+) {
+  const type =
+    String(
+      typeValue || ""
+    ).toLowerCase();
+
+  return [
+    "like",
+    "comment",
+    "reply",
+    "mention",
+    "follow",
+    "message",
+    "booking",
+    "call",
+    "gift",
+    "support",
+    "reaction",
+    "collab",
+    "request",
+    "accepted",
+    "declined",
+  ].some(
+    (keyword) =>
+      type.includes(keyword)
+  );
+}
+
 function defaultTitle(
   type: string
 ) {
@@ -208,6 +293,25 @@ function defaultTitle(
     value.includes("message")
   ) {
     return "New Message";
+  }
+
+  if (
+    value.includes("story")
+  ) {
+    return "New Story";
+  }
+
+  if (
+    value.includes("reel")
+  ) {
+    return "New Reel";
+  }
+
+  if (
+    value.includes("post") ||
+    value.includes("upload")
+  ) {
+    return "New Post";
   }
 
   if (
@@ -444,6 +548,48 @@ const messageChannelRef =
 
     setViewerEmail(email);
 
+    /*
+     * Personalized notification audience.
+     *
+     * Direct activity always belongs to the
+     * recipient. Creator broadcast activity
+     * (new story/post/reel/live) only belongs
+     * here when the viewer follows the actor.
+     */
+    const {
+      data: followRows,
+      error: followError,
+    } =
+      await supabase
+        .from("follows")
+        .select(
+          "following_email"
+        )
+        .eq(
+          "follower_email",
+          email
+        );
+
+    if (followError) {
+      console.info(
+        "Activity follow filter skipped:",
+        followError.message
+      );
+    }
+
+    const followedCreators =
+      new Set(
+        (followRows || [])
+          .map(
+            (row: any) =>
+              String(
+                row.following_email ||
+                ""
+              ).toLowerCase()
+          )
+          .filter(Boolean)
+      );
+
     const [
       notificationRows,
       messageRows,
@@ -516,15 +662,167 @@ const messageChannelRef =
             .limit(100)
       ),
     ]);
-       const notifications: ActivityItem[] =
-  notificationRows
-    .filter(
-      (row: any) =>
-        String(
-          row.type || ""
-        ).toLowerCase() !==
-        "message"
-    )
+       /*
+     * PERSONALIZED UTV ACTIVITY
+     *
+     * Rule 1:
+     * the database row must belong to THIS user.
+     *
+     * Rule 2:
+     * likes/comments/replies/follows/etc are
+     * direct activity and stay visible.
+     *
+     * Rule 3:
+     * general creator broadcasts like
+     * "New Story", "New Reel", "New Post" and
+     * "Went Live" only show from creators the
+     * viewer follows.
+     *
+     * Rule 4:
+     * repeated creator broadcast notifications
+     * collapse into the newest one.
+     */
+    const personalizedNotificationRows =
+      notificationRows.filter(
+        (row: any) => {
+          const recipient =
+            String(
+              row.user_email ||
+              row.receiver_email ||
+              row.recipient_email ||
+              ""
+            ).toLowerCase();
+
+          /*
+           * Never allow another user's
+           * notification into this feed.
+           */
+          if (
+            recipient &&
+            recipient !==
+              email.toLowerCase()
+          ) {
+            return false;
+          }
+
+          const type =
+            String(
+              row.type || ""
+            ).toLowerCase();
+
+          if (
+            type ===
+            "message"
+          ) {
+            return false;
+          }
+
+          if (
+            isDirectActivity(
+              type
+            )
+          ) {
+            return true;
+          }
+
+          const family =
+            notificationFamily(
+              type
+            );
+
+          if (!family) {
+            /*
+             * Unknown notification type:
+             * keep it only because Supabase
+             * already targeted user_email
+             * directly to this account.
+             */
+            return true;
+          }
+
+          const actor =
+            String(
+              row.actor_email ||
+              row.sender_email ||
+              row.from_email ||
+              ""
+            ).toLowerCase();
+
+          if (!actor) {
+            return false;
+          }
+
+          if (
+            actor ===
+            email.toLowerCase()
+          ) {
+            return false;
+          }
+
+          return (
+            followedCreators
+              .has(actor)
+          );
+        }
+      );
+
+    /*
+     * Collapse repeated broadcast alerts from
+     * one creator into the newest alert.
+     *
+     * Direct likes/comments/replies remain
+     * separate because each one matters.
+     */
+    const seenBroadcasts =
+      new Set<string>();
+
+    const groupedNotificationRows =
+      personalizedNotificationRows
+        .filter(
+          (row: any) => {
+            const family =
+              notificationFamily(
+                row.type ||
+                ""
+              );
+
+            if (
+              !family ||
+              isDirectActivity(
+                row.type ||
+                ""
+              )
+            ) {
+              return true;
+            }
+
+            const actor =
+              String(
+                row.actor_email ||
+                row.sender_email ||
+                row.from_email ||
+                ""
+              ).toLowerCase();
+
+            const key =
+              `${actor}:${family}`;
+
+            if (
+              seenBroadcasts
+                .has(key)
+            ) {
+              return false;
+            }
+
+            seenBroadcasts
+              .add(key);
+
+            return true;
+          }
+        );
+
+    const notifications: ActivityItem[] =
+      groupedNotificationRows
     .map(
       (row: any) => {
           const type =
@@ -2525,6 +2823,93 @@ const styles = `
     .settingsActivityButton {
       display: none;
     }
+  }
+
+
+
+  /* ===================================================
+     UTV ACTIVITY V3 — PERSONALIZED SOCIAL FEED
+     =================================================== */
+
+  .activityPage {
+    background:
+      radial-gradient(
+        circle at 50% -10%,
+        rgba(86,244,202,.055),
+        transparent 24%
+      ),
+      #030509;
+  }
+
+  .activityList {
+    max-width: 690px;
+  }
+
+  .activityGroupHeader {
+    padding:
+      12px 4px 8px;
+  }
+
+  .activityGroupHeader h2 {
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .activityCard {
+    min-height: 70px;
+  }
+
+  .activityMain {
+    min-height: 70px;
+    padding:
+      10px 4px 10px 8px;
+  }
+
+  .activityAvatarWrap {
+    width: 46px;
+    height: 46px;
+  }
+
+  .activityAvatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .activityTitleRow strong {
+    font-size: 10px;
+    font-weight: 950;
+  }
+
+  .activityText p {
+    margin-top: 3px;
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  .activityText small {
+    font-size: 7px;
+  }
+
+  .activityPreview {
+    width: 39px;
+    height: 47px;
+    border-radius: 5px;
+  }
+
+  .unreadCard {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(82,247,200,.075),
+        rgba(82,247,200,.018) 45%,
+        transparent
+      );
+  }
+
+  .activityTabs {
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.045);
   }
 
 
