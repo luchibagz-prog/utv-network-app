@@ -345,6 +345,16 @@ export default function PublicProfile() {
               className="primary"
               onClick={() =>
                 router.push(
+                  `/book/${encodeURIComponent(email)}`
+                )
+              }
+            >
+              📅 Book Me
+            </button>
+
+            <button
+              onClick={() =>
+                router.push(
                   `/messages?to=${encodeURIComponent(email)}`
                 )
               }
@@ -352,12 +362,14 @@ export default function PublicProfile() {
               💬 Message
             </button>
 
-            <button onClick={() => router.push("/walkie")}>
+            <button
+              onClick={() =>
+                router.push(
+                  `/walkie?to=${encodeURIComponent(email)}`
+                )
+              }
+            >
               🎙 Walkie
-            </button>
-
-            <button onClick={toggleMusic}>
-              {playing ? "⏸ Music" : "▶ Music"}
             </button>
           </div>
         ) : null}
