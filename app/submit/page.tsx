@@ -200,6 +200,12 @@ export default function SubmitPage() {
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const lastCameraTapRef =
+    useRef<number>(0);
+
+  const cameraTapTimerRef =
+    useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -528,6 +534,39 @@ const selectedSticker = stickers.find(
     recorderRef.current = null;
     setCameraStream(null);
     setRecording(false);
+  }
+
+  function handleCameraDoubleTap() {
+    const now =
+      Date.now();
+
+    const elapsed =
+      now -
+      lastCameraTapRef.current;
+
+    lastCameraTapRef.current =
+      now;
+
+    if (
+      elapsed > 0 &&
+      elapsed < 320
+    ) {
+      if (
+        cameraTapTimerRef.current
+      ) {
+        window.clearTimeout(
+          cameraTapTimerRef.current
+        );
+
+        cameraTapTimerRef.current =
+          null;
+      }
+
+      lastCameraTapRef.current =
+        0;
+
+      void flipCamera();
+    }
   }
 
   async function flipCamera() {
@@ -2382,7 +2421,10 @@ if (mode === "camera") {
         </button>
       </header>
 
-      <section className="cameraViewport">
+      <section
+        className="cameraViewport"
+        onClick={handleCameraDoubleTap}
+      >
         <video
           ref={videoRef}
           autoPlay
