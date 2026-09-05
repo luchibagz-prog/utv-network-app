@@ -810,16 +810,6 @@ export default function ProfileProV12Page() {
 
             <button
               onClick={() =>
-                router.push(
-                  "/bookings"
-                )
-              }
-            >
-              📅 Bookings
-            </button>
-
-            <button
-              onClick={() =>
                 router.push("/walkie")
               }
             >
@@ -850,43 +840,7 @@ export default function ProfileProV12Page() {
             </button>
           </section>
         ) : (
-          <>
-            <section className="publicActions">
-              <button
-                className="bookMeButton"
-                onClick={() =>
-                  router.push(
-                    `/book/${encodeURIComponent(
-                      email
-                    )}`
-                  )
-                }
-              >
-                📅 Book Me
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push(
-                    "/messages"
-                  )
-                }
-              >
-                💬 Message
-              </button>
-
-              <button
-                onClick={() =>
-                  router.push(
-                    "/walkie"
-                  )
-                }
-              >
-                🎙 Call
-              </button>
-            </section>
-
-            <section className="publicStats">
+          <section className="publicStats">
             <Stat
               value={posts.length}
               label="Posts"
@@ -912,7 +866,6 @@ export default function ProfileProV12Page() {
               label="Top Crew"
             />
           </section>
-          </>
         )}
       </section>
 
@@ -1025,31 +978,6 @@ export default function ProfileProV12Page() {
                 <small>
                   Manage uploads &
                   content
-                </small>
-              </div>
-
-              <i>›</i>
-            </button>
-
-            <button
-              onClick={() =>
-                router.push(
-                  "/bookings"
-                )
-              }
-            >
-              <span className="manageIcon">
-                📅
-              </span>
-
-              <div>
-                <b>
-                  Bookings
-                </b>
-
-                <small>
-                  Requests, clients &
-                  opportunities
                 </small>
               </div>
 
@@ -3212,63 +3140,6 @@ function MediaGrid({
               );
           }
         }
-
-        .publicActions {
-          width: 100%;
-          display: grid;
-          grid-template-columns:
-            1.35fr 1fr 1fr;
-          gap: 7px;
-          margin-top: 17px;
-        }
-
-        .publicActions button {
-          min-height: 46px;
-          border:
-            1px solid
-            rgba(
-              255,
-              255,
-              255,
-              .11
-            );
-          color: white;
-          background:
-            rgba(
-              0,
-              0,
-              0,
-              .42
-            );
-          backdrop-filter:
-            blur(12px);
-          font-size: 9px;
-          font-weight: 950;
-        }
-
-        .publicActions .bookMeButton {
-          border: 0;
-          color: #04110d;
-          background:
-            linear-gradient(
-              135deg,
-              #55f4ca,
-              #a6ff79
-            );
-        }
-
-        @media (max-width: 480px) {
-          .publicActions {
-            grid-template-columns:
-              1.25fr 1fr 1fr;
-          }
-
-          .publicActions button {
-            min-height: 44px;
-            font-size: 8px;
-          }
-        }
-
       `}</style>
     </div>
   );
