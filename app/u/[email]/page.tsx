@@ -371,6 +371,27 @@ export default function PublicProfile() {
             >
               🎙 Walkie
             </button>
+
+            <button
+              onClick={() =>
+                router.push(
+                  `/calls?to=${encodeURIComponent(email)}`
+                )
+              }
+            >
+              📞 Call
+            </button>
+
+            <button
+              onClick={() =>
+                router.push(
+                  `/calls?to=${encodeURIComponent(email)}&type=video`
+                )
+              }
+            >
+              📹 Video
+            </button>
+
           </div>
         ) : null}
       </section>

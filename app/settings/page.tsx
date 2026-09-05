@@ -334,7 +334,8 @@ export default function SettingsPage() {
           <button onClick={() => router.push("/notifications")}>🔔 Activity and notifications <span>›</span></button>
           <button onClick={() => router.push("/messages")}>💬 Messages <span>›</span></button>
           <button onClick={() => router.push("/profile-edit")}>👤 Edit profile <span>›</span></button>
-          <button onClick={() => router.push("/walkie")}>🎙 Walkie and calls <span>›</span></button>
+          <button onClick={() => router.push("/walkie")}>🎙 Walkie <span>›</span></button>
+          <button onClick={() => router.push("/calls")}>📞 Audio & Video Calls <span>›</span></button>
         </article>
       </section>
 
