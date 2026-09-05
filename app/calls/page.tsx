@@ -156,7 +156,9 @@ export default function CallsPage() {
     );
   }
 
-  async function startCall() {
+  async function startCall(
+    callType: "audio" | "video"
+  ) {
     const cleanTarget =
       target.trim();
 
@@ -197,7 +199,7 @@ export default function CallsPage() {
           caller_email: email,
           callee_email:
             cleanTarget,
-          call_type: "audio",
+          call_type: callType,
           room_name: roomName,
           status: "ringing",
         });
@@ -331,7 +333,9 @@ export default function CallsPage() {
                     </strong>
 
                     <span>
-                      Audio call
+                      {call.call_type === "video"
+                        ? "Video call"
+                        : "Audio call"}
                     </span>
                   </div>
 
@@ -377,18 +381,27 @@ export default function CallsPage() {
             autoCorrect="off"
           />
 
-          <button
-            className="callButton"
-            onClick={startCall}
-            disabled={
-              !target.trim() ||
-              calling
-            }
-          >
-            {calling
-              ? "CALLING…"
-              : "📞 AUDIO CALL"}
-          </button>
+          <div className="callChoices">
+            <button
+              className="callButton audio"
+              onClick={() => startCall("audio")}
+              disabled={!target.trim() || calling}
+            >
+              {calling
+                ? "CALLING…"
+                : "📞 AUDIO CALL"}
+            </button>
+
+            <button
+              className="callButton video"
+              onClick={() => startCall("video")}
+              disabled={!target.trim() || calling}
+            >
+              {calling
+                ? "CALLING…"
+                : "📹 VIDEO CALL"}
+            </button>
+          </div>
 
           {message && (
             <span className="message">
@@ -429,6 +442,7 @@ export default function CallsPage() {
                     </strong>
 
                     <span>
+                      {call.call_type === "video" ? "📹" : "📞"}{" "}
                       {call.status}
                     </span>
                   </div>
@@ -670,24 +684,49 @@ export default function CallsPage() {
             rgba(85,244,202,.6);
         }
 
+        .callChoices {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: 11px;
+        }
+
         .callButton {
           width: 100%;
-          margin-top: 11px;
           border: 0;
           border-radius: 17px;
-          padding: 15px;
+          padding: 15px 10px;
           font-weight: 1000;
+          color: #06080d;
+        }
+
+        .callButton.audio {
           background:
             linear-gradient(
               135deg,
               #55f4ca,
-              #8a63ff
+              #77ffd9
             );
-          color: #06080d;
+        }
+
+        .callButton.video {
+          background:
+            linear-gradient(
+              135deg,
+              #8a63ff,
+              #bc8cff
+            );
+          color: white;
         }
 
         .callButton:disabled {
           opacity: .45;
+        }
+
+        @media (max-width: 480px) {
+          .callChoices {
+            grid-template-columns: 1fr;
+          }
         }
 
         .message {

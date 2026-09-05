@@ -24,14 +24,14 @@ type CallRow = {
   id: string;
   caller_email: string;
   callee_email: string;
-  call_type: string;
+  call_type: "audio" | "video";
   room_name: string;
   status: string;
   created_at?: string;
   answered_at?: string;
 };
 
-export default function AudioCallRoom() {
+export default function UTVCallRoom() {
   const params = useParams();
   const router = useRouter();
 
@@ -42,12 +42,19 @@ export default function AudioCallRoom() {
     useRef<Room | null>(null);
 
   const audioContainerRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
+    useRef<HTMLDivElement | null>(null);
+
+  const remoteVideoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const localVideoRef =
+    useRef<HTMLVideoElement | null>(null);
 
   const timerRef =
     useRef<number | null>(null);
+
+  const leavingRef =
+    useRef(false);
 
   const [email, setEmail] =
     useState("");
@@ -61,10 +68,17 @@ export default function AudioCallRoom() {
   const [micMuted, setMicMuted] =
     useState(false);
 
-  const [
-    speakerMuted,
-    setSpeakerMuted,
-  ] = useState(false);
+  const [speakerMuted, setSpeakerMuted] =
+    useState(false);
+
+  const [cameraOn, setCameraOn] =
+    useState(false);
+
+  const [facing, setFacing] =
+    useState<"user" | "environment">("user");
+
+  const [remoteVideo, setRemoteVideo] =
+    useState(false);
 
   const [seconds, setSeconds] =
     useState(0);
@@ -75,10 +89,14 @@ export default function AudioCallRoom() {
   const [quality, setQuality] =
     useState("Connecting");
 
+  const isVideo =
+    call?.call_type === "video";
+
   useEffect(() => {
     void openCall();
 
     return () => {
+      leavingRef.current = true;
       void cleanup();
     };
   }, [callId]);
@@ -87,17 +105,14 @@ export default function AudioCallRoom() {
     if (!call || !email) return;
 
     const channel = supabase
-      .channel(
-        `utv-call-room-${callId}`
-      )
+      .channel(`utv-call-room-${callId}`)
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "call_sessions",
-          filter:
-            `id=eq.${callId}`,
+          filter: `id=eq.${callId}`,
         },
         (payload: any) => {
           const row =
@@ -105,44 +120,36 @@ export default function AudioCallRoom() {
 
           setCall(row);
 
-          if (
-            row.status === "ended" ||
-            row.status ===
-              "declined" ||
-            row.status ===
-              "missed"
-          ) {
-            setMessage(
-              "Call ended"
-            );
-
-            window.setTimeout(
-              () =>
-                router.replace(
-                  "/calls"
-                ),
-              850
-            );
+          if (row.status === "accepted") {
+            setMessage("Connected");
+            startTimer(row);
           }
 
           if (
-            row.status ===
-            "accepted"
+            row.status === "ended" ||
+            row.status === "declined" ||
+            row.status === "missed"
           ) {
             setMessage(
-              "Connected"
+              row.status === "declined"
+                ? "Call declined"
+                : "Call ended"
             );
+
+            void cleanup();
+
+            window.setTimeout(() => {
+              router.replace("/calls");
+            }, 800);
           }
         }
       )
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(
-        channel
-      );
+      void supabase.removeChannel(channel);
     };
-  }, [callId, call, email, router]);
+  }, [callId, call?.id, email, router]);
 
   async function getToken() {
     const {
@@ -159,22 +166,18 @@ export default function AudioCallRoom() {
     }
 
     const response =
-      await fetch(
-        "/api/call-token",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
-            callId,
-          }),
-        }
-      );
+      await fetch("/api/call-token", {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+          Authorization:
+            `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          callId,
+        }),
+      });
 
     const result =
       await response.json();
@@ -186,7 +189,82 @@ export default function AudioCallRoom() {
       );
     }
 
-    return result;
+    return result as {
+      token: string;
+      roomName: string;
+      callType: "audio" | "video";
+    };
+  }
+
+  function attachLocalCamera() {
+    const room = roomRef.current;
+    const video = localVideoRef.current;
+
+    if (!room || !video) return;
+
+    const publication =
+      room.localParticipant
+        .getTrackPublication(
+          Track.Source.Camera
+        );
+
+    const track =
+      publication?.track;
+
+    if (
+      track &&
+      track.kind === Track.Kind.Video
+    ) {
+      track.attach(video);
+
+      video.muted = true;
+      video.playsInline = true;
+
+      void video.play().catch(() => {});
+    }
+  }
+
+  async function enableCamera(
+    nextFacing:
+      | "user"
+      | "environment" = facing
+  ) {
+    const room = roomRef.current;
+
+    if (!room) return;
+
+    try {
+      await room.localParticipant
+        .setCameraEnabled(
+          true,
+          {
+            facingMode: nextFacing,
+            resolution: {
+              width: 1280,
+              height: 720,
+              frameRate: 30,
+            },
+          }
+        );
+
+      setFacing(nextFacing);
+      setCameraOn(true);
+
+      window.setTimeout(
+        attachLocalCamera,
+        150
+      );
+    } catch (error) {
+      console.error(
+        "UTV camera:",
+        error
+      );
+
+      setCameraOn(false);
+      setMessage(
+        "Allow camera access to use video."
+      );
+    }
   }
 
   async function openCall() {
@@ -222,13 +300,16 @@ export default function AudioCallRoom() {
         );
       }
 
-      setCall(row as CallRow);
+      const current =
+        row as CallRow;
+
+      setCall(current);
 
       const participant =
-        row.caller_email
+        current.caller_email
           .toLowerCase() ===
           user.email.toLowerCase() ||
-        row.callee_email
+        current.callee_email
           .toLowerCase() ===
           user.email.toLowerCase();
 
@@ -262,47 +343,84 @@ export default function AudioCallRoom() {
         RoomEvent.TrackSubscribed,
         (track: RemoteTrack) => {
           if (
-            track.kind ===
-              Track.Kind.Audio &&
+            track.kind === Track.Kind.Audio &&
             audioContainerRef.current
           ) {
             const element =
               track.attach();
 
-            element.autoplay =
-              true;
-
+            element.autoplay = true;
+            element.volume = 1;
             element.muted =
               speakerMuted;
+            element.setAttribute(
+              "playsinline",
+              "true"
+            );
 
-            element.volume = 1;
+            audioContainerRef.current
+              .appendChild(element);
 
-            audioContainerRef
-              .current
-              .appendChild(
-                element
+            void element.play().catch(() => {
+              setMessage(
+                "Tap Speaker once to enable audio."
+              );
+            });
+          }
+
+          if (
+            track.kind === Track.Kind.Video &&
+            remoteVideoRef.current
+          ) {
+            track.attach(
+              remoteVideoRef.current
+            );
+
+            remoteVideoRef.current
+              .setAttribute(
+                "playsinline",
+                "true"
               );
 
-            void element
+            void remoteVideoRef.current
               .play()
-              .catch(() => {
-                setMessage(
-                  "Tap Speaker once to enable audio."
-                );
-              });
+              .catch(() => {});
+
+            setRemoteVideo(true);
           }
         }
       );
 
       room.on(
         RoomEvent.TrackUnsubscribed,
-        (
-          track: RemoteTrack
-        ) => {
-          track.detach().forEach(
-            (element) =>
-              element.remove()
-          );
+        (track: RemoteTrack) => {
+          track
+            .detach()
+            .forEach(
+              (element) =>
+                element.remove()
+            );
+
+          if (
+            track.kind === Track.Kind.Video
+          ) {
+            setRemoteVideo(false);
+          }
+        }
+      );
+
+      room.on(
+        RoomEvent.LocalTrackPublished,
+        (publication) => {
+          if (
+            publication.source ===
+            Track.Source.Camera
+          ) {
+            window.setTimeout(
+              attachLocalCamera,
+              80
+            );
+          }
         }
       );
 
@@ -314,13 +432,14 @@ export default function AudioCallRoom() {
 
           setQuality(value);
 
-          if (
-            value.toLowerCase() ===
-            "connected"
-          ) {
+          const lower =
+            value.toLowerCase();
+
+          if (lower === "connected") {
             setConnected(true);
+
             setMessage(
-              row.status ===
+              current.status ===
                 "ringing"
                 ? "Ringing…"
                 : "Connected"
@@ -328,16 +447,59 @@ export default function AudioCallRoom() {
           }
 
           if (
-            value
-              .toLowerCase()
-              .includes(
-                "reconnecting"
-              )
+            lower.includes(
+              "reconnecting"
+            )
           ) {
             setMessage(
-              "Reconnecting…"
+              "Weak signal • reconnecting…"
             );
           }
+        }
+      );
+
+      room.on(
+        RoomEvent.ConnectionQualityChanged,
+        (connectionQuality) => {
+          const value =
+            String(
+              connectionQuality
+            ).toLowerCase();
+
+          if (
+            value.includes("poor") ||
+            value.includes("lost")
+          ) {
+            setQuality(
+              "Weak connection"
+            );
+          } else if (
+            value.includes("excellent")
+          ) {
+            setQuality(
+              "Excellent"
+            );
+          } else {
+            setQuality("Good");
+          }
+        }
+      );
+
+      room.on(
+        RoomEvent.Reconnecting,
+        () => {
+          setConnected(false);
+          setMessage(
+            "Weak signal • reconnecting…"
+          );
+        }
+      );
+
+      room.on(
+        RoomEvent.Reconnected,
+        () => {
+          setConnected(true);
+          setMessage("Connected");
         }
       );
 
@@ -345,6 +507,12 @@ export default function AudioCallRoom() {
         RoomEvent.Disconnected,
         () => {
           setConnected(false);
+
+          if (!leavingRef.current) {
+            setMessage(
+              "Call disconnected"
+            );
+          }
         }
       );
 
@@ -357,27 +525,28 @@ export default function AudioCallRoom() {
         .setMicrophoneEnabled(
           true,
           {
-            echoCancellation:
-              true,
-
-            noiseSuppression:
-              true,
-
-            autoGainControl:
-              true,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
           }
         );
 
       setConnected(true);
 
       if (
-        row.status === "accepted"
+        current.call_type === "video"
       ) {
-        startTimer(row);
+        await enableCamera("user");
+      }
+
+      if (
+        current.status === "accepted"
+      ) {
+        startTimer(current);
       }
     } catch (error: any) {
       console.error(
-        "UTV audio call:",
+        "UTV call:",
         error
       );
 
@@ -405,8 +574,7 @@ export default function AudioCallRoom() {
         Math.max(
           0,
           Math.floor(
-            (Date.now() -
-              start) /
+            (Date.now() - start) /
               1000
           )
         )
@@ -435,14 +603,9 @@ export default function AudioCallRoom() {
       .setMicrophoneEnabled(
         !next,
         {
-          echoCancellation:
-            true,
-
-          noiseSuppression:
-            true,
-
-          autoGainControl:
-            true,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
         }
       );
 
@@ -455,26 +618,68 @@ export default function AudioCallRoom() {
 
     setSpeakerMuted(next);
 
-    const container =
-      audioContainerRef.current;
+    audioContainerRef.current
+      ?.querySelectorAll("audio")
+      .forEach((element) => {
+        (
+          element as HTMLAudioElement
+        ).muted = next;
+      });
+  }
 
-    if (!container) return;
+  async function toggleCamera() {
+    const room =
+      roomRef.current;
 
-    container
-      .querySelectorAll(
-        "audio"
-      )
-      .forEach(
-        (element) => {
-          (
-            element as
-              HTMLAudioElement
-          ).muted = next;
-        }
+    if (!room || !isVideo) return;
+
+    if (cameraOn) {
+      await room.localParticipant
+        .setCameraEnabled(false);
+
+      localVideoRef.current &&
+        (localVideoRef.current.srcObject =
+          null);
+
+      setCameraOn(false);
+    } else {
+      await enableCamera(facing);
+    }
+  }
+
+  async function flipCamera() {
+    if (!isVideo) return;
+
+    const next =
+      facing === "user"
+        ? "environment"
+        : "user";
+
+    const room =
+      roomRef.current;
+
+    if (!room) return;
+
+    try {
+      await room.localParticipant
+        .setCameraEnabled(false);
+
+      await enableCamera(next);
+
+      try {
+        navigator.vibrate?.(25);
+      } catch {}
+    } catch (error) {
+      console.error(
+        "UTV flip camera:",
+        error
       );
+    }
   }
 
   async function endCall() {
+    leavingRef.current = true;
+
     try {
       await supabase
         .from("call_sessions")
@@ -486,10 +691,7 @@ export default function AudioCallRoom() {
         .eq("id", callId);
     } finally {
       await cleanup();
-
-      router.replace(
-        "/calls"
-      );
+      router.replace("/calls");
     }
   }
 
@@ -499,32 +701,41 @@ export default function AudioCallRoom() {
         timerRef.current
       );
 
-      timerRef.current =
-        null;
+      timerRef.current = null;
     }
 
     try {
       await roomRef.current
         ?.localParticipant
-        .setMicrophoneEnabled(
-          false
-        );
+        .setMicrophoneEnabled(false);
+    } catch {}
+
+    try {
+      await roomRef.current
+        ?.localParticipant
+        .setCameraEnabled(false);
     } catch {}
 
     await roomRef.current
       ?.disconnect();
 
-    roomRef.current =
-      null;
+    roomRef.current = null;
 
     audioContainerRef.current
-      ?.querySelectorAll(
-        "audio"
-      )
-      .forEach(
-        (element) =>
-          element.remove()
+      ?.querySelectorAll("audio")
+      .forEach((element) =>
+        element.remove()
       );
+
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject =
+        null;
+    }
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject =
+        null;
+    }
   }
 
   function otherPerson() {
@@ -547,9 +758,7 @@ export default function AudioCallRoom() {
 
   const timer =
     `${String(
-      Math.floor(
-        seconds / 60
-      )
+      Math.floor(seconds / 60)
     ).padStart(
       2,
       "0"
@@ -561,16 +770,83 @@ export default function AudioCallRoom() {
     )}`;
 
   return (
-    <main className="callPage">
+    <main
+      className={
+        isVideo
+          ? "callPage videoCall"
+          : "callPage audioCall"
+      }
+    >
       <div
         ref={audioContainerRef}
         className="audioContainer"
       />
 
-      <section className="stage">
+      {isVideo && (
+        <div className="videoStage">
+          <video
+            ref={remoteVideoRef}
+            className={
+              remoteVideo
+                ? "remoteVideo visible"
+                : "remoteVideo"
+            }
+            autoPlay
+            playsInline
+          />
+
+          {!remoteVideo && (
+            <div className="remotePlaceholder">
+              <div className="bigAvatar">
+                {otherPerson()
+                  .slice(0, 1)
+                  .toUpperCase()}
+              </div>
+
+              <strong>
+                {otherPerson()}
+              </strong>
+
+              <span>
+                {message}
+              </span>
+            </div>
+          )}
+
+          <div className="localVideoShell">
+            {cameraOn ? (
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className={
+                  facing === "user"
+                    ? "localVideo mirror"
+                    : "localVideo"
+                }
+              />
+            ) : (
+              <div className="cameraOff">
+                📷
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <section
+        className={
+          isVideo
+            ? "stage videoControls"
+            : "stage"
+        }
+      >
         <div className="top">
           <span>
-            📞 UTV AUDIO CALL
+            {isVideo
+              ? "📹 UTV VIDEO CALL"
+              : "📞 UTV AUDIO CALL"}
           </span>
 
           <small>
@@ -580,17 +856,33 @@ export default function AudioCallRoom() {
           </small>
         </div>
 
-        <div className="avatar">
-          {otherPerson()
-            .slice(0, 1)
-            .toUpperCase()}
-        </div>
+        {!isVideo && (
+          <>
+            <div className="avatar">
+              {otherPerson()
+                .slice(0, 1)
+                .toUpperCase()}
+            </div>
 
-        <h1>
-          {otherPerson()}
-        </h1>
+            <h1>
+              {otherPerson()}
+            </h1>
 
-        <p>{message}</p>
+            <p>{message}</p>
+          </>
+        )}
+
+        {isVideo && (
+          <div className="videoStatus">
+            <strong>
+              {otherPerson()}
+            </strong>
+
+            <span>
+              {message}
+            </span>
+          </div>
+        )}
 
         {call?.status ===
           "accepted" && (
@@ -602,6 +894,11 @@ export default function AudioCallRoom() {
         <div className="controls">
           <button
             onClick={toggleMic}
+            className={
+              micMuted
+                ? "control active"
+                : "control"
+            }
           >
             <span>
               {micMuted
@@ -617,8 +914,11 @@ export default function AudioCallRoom() {
           </button>
 
           <button
-            onClick={
-              toggleSpeaker
+            onClick={toggleSpeaker}
+            className={
+              speakerMuted
+                ? "control active"
+                : "control"
             }
           >
             <span>
@@ -631,6 +931,40 @@ export default function AudioCallRoom() {
               Speaker
             </small>
           </button>
+
+          {isVideo && (
+            <>
+              <button
+                onClick={toggleCamera}
+                className={
+                  !cameraOn
+                    ? "control active"
+                    : "control"
+                }
+              >
+                <span>
+                  {cameraOn
+                    ? "📹"
+                    : "🚫"}
+                </span>
+
+                <small>
+                  {cameraOn
+                    ? "Camera"
+                    : "Camera off"}
+                </small>
+              </button>
+
+              <button
+                onClick={flipCamera}
+                className="control"
+                disabled={!cameraOn}
+              >
+                <span>🔄</span>
+                <small>Flip</small>
+              </button>
+            </>
+          )}
         </div>
 
         <button
@@ -649,8 +983,6 @@ export default function AudioCallRoom() {
         .callPage {
           min-height: 100dvh;
           color: white;
-          display: grid;
-          place-items: center;
           background:
             radial-gradient(
               circle at 50% 25%,
@@ -665,6 +997,11 @@ export default function AudioCallRoom() {
             #05070c;
         }
 
+        .audioCall {
+          display: grid;
+          place-items: center;
+        }
+
         .audioContainer {
           position: fixed;
           width: 1px;
@@ -676,10 +1013,11 @@ export default function AudioCallRoom() {
         .stage {
           width: min(
             calc(100% - 28px),
-            520px
+            540px
           );
           text-align: center;
           padding: 26px 18px;
+          margin: auto;
         }
 
         .top {
@@ -702,8 +1040,7 @@ export default function AudioCallRoom() {
         .avatar {
           width: 126px;
           height: 126px;
-          margin:
-            0 auto 20px;
+          margin: 0 auto 20px;
           border-radius: 42px;
           display: grid;
           place-items: center;
@@ -730,8 +1067,7 @@ export default function AudioCallRoom() {
 
         p {
           color: #a1aaba;
-          margin:
-            8px 0;
+          margin: 8px 0;
         }
 
         .timer {
@@ -743,38 +1079,48 @@ export default function AudioCallRoom() {
 
         .controls {
           display: flex;
-          justify-content:
-            center;
-          gap: 22px;
-          margin:
-            54px 0 30px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 14px;
+          margin: 45px 0 28px;
         }
 
-        .controls button {
-          width: 82px;
-          height: 82px;
-          border-radius: 28px;
+        .control {
+          width: 78px;
+          height: 78px;
+          border-radius: 27px;
           border:
             1px solid
             rgba(255,255,255,.12);
           color: white;
           background:
-            rgba(255,255,255,.08);
+            rgba(255,255,255,.09);
           display: flex;
           flex-direction: column;
-          justify-content:
-            center;
+          justify-content: center;
           gap: 4px;
           align-items: center;
           font: inherit;
         }
 
-        .controls span {
-          font-size: 24px;
+        .control.active {
+          background:
+            rgba(223,56,87,.28);
+          border-color:
+            rgba(255,102,125,.45);
         }
 
-        .controls small {
+        .control:disabled {
+          opacity: .4;
+        }
+
+        .control span {
+          font-size: 23px;
+        }
+
+        .control small {
           font-weight: 800;
+          font-size: 11px;
         }
 
         .end {
@@ -782,8 +1128,8 @@ export default function AudioCallRoom() {
           height: 74px;
           border-radius: 50%;
           border: 0;
-          background:
-            #df3857;
+          background: #df3857;
+          color: white;
           font-size: 27px;
           box-shadow:
             0 15px 50px
@@ -795,6 +1141,186 @@ export default function AudioCallRoom() {
           margin-top: 9px;
           color: #9ba4b4;
           font-size: 12px;
+        }
+
+        .videoCall {
+          position: relative;
+          overflow: hidden;
+          background: #020305;
+        }
+
+        .videoStage {
+          position: fixed;
+          inset: 0;
+          background:
+            radial-gradient(
+              circle at center,
+              #151b2a,
+              #030406 72%
+            );
+        }
+
+        .remoteVideo {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0;
+          transition:
+            opacity .2s ease;
+        }
+
+        .remoteVideo.visible {
+          opacity: 1;
+        }
+
+        .remotePlaceholder {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .remotePlaceholder strong {
+          font-size: 28px;
+        }
+
+        .remotePlaceholder span {
+          color: #9ca7b8;
+        }
+
+        .bigAvatar {
+          width: 120px;
+          height: 120px;
+          border-radius: 42px;
+          display: grid;
+          place-items: center;
+          font-size: 46px;
+          font-weight: 1000;
+          margin-bottom: 10px;
+          background:
+            linear-gradient(
+              145deg,
+              #6040d6,
+              #172130
+            );
+          border:
+            1px solid
+            rgba(255,255,255,.16);
+        }
+
+        .localVideoShell {
+          position: absolute;
+          right: 14px;
+          top:
+            max(
+              18px,
+              env(safe-area-inset-top)
+            );
+          width: 110px;
+          height: 160px;
+          border-radius: 23px;
+          overflow: hidden;
+          z-index: 10;
+          background: #111722;
+          border:
+            1px solid
+            rgba(255,255,255,.22);
+          box-shadow:
+            0 16px 50px
+            rgba(0,0,0,.5);
+        }
+
+        .localVideo {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .localVideo.mirror {
+          transform: scaleX(-1);
+        }
+
+        .cameraOff {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          font-size: 27px;
+        }
+
+        .videoControls {
+          position: fixed;
+          left: 50%;
+          bottom:
+            max(
+              12px,
+              env(safe-area-inset-bottom)
+            );
+          transform:
+            translateX(-50%);
+          z-index: 20;
+          width: min(
+            calc(100% - 20px),
+            620px
+          );
+          box-sizing: border-box;
+          padding: 14px 14px 20px;
+          border-radius: 28px;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(7,10,16,.5),
+              rgba(7,10,16,.94)
+            );
+          backdrop-filter:
+            blur(18px);
+          border:
+            1px solid
+            rgba(255,255,255,.1);
+        }
+
+        .videoControls .top {
+          margin-bottom: 8px;
+        }
+
+        .videoControls .controls {
+          margin:
+            13px 0 14px;
+        }
+
+        .videoStatus {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .videoStatus span {
+          color: #a1aaba;
+          font-size: 12px;
+        }
+
+        @media (
+          max-height: 700px
+        ) {
+          .localVideoShell {
+            width: 90px;
+            height: 128px;
+          }
+
+          .control {
+            width: 64px;
+            height: 64px;
+            border-radius: 22px;
+          }
+
+          .end {
+            width: 62px;
+            height: 62px;
+          }
         }
       `}</style>
     </main>
