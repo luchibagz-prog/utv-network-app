@@ -73,6 +73,9 @@ export default function WalkieProRoomPage() {
   const audioRootRef = useRef<HTMLDivElement | null>(null);
   const holdingRef = useRef(false);
   const reconnectTimerRef = useRef<number | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const intentionallyLeavingRef = useRef(false);
+  const micStartingRef = useRef(false);
 
   const [email, setEmail] = useState("");
   const [roomRow, setRoomRow] = useState<WalkieRoomRow | null>(null);
@@ -142,6 +145,53 @@ export default function WalkieProRoomPage() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    function utvWalkieOnline() {
+      if (
+        !connected &&
+        !connecting &&
+        !intentionallyLeavingRef.current
+      ) {
+        reconnectAttemptsRef.current = 0;
+        setMessage("Network is back. Reconnecting…");
+        void openRoom();
+      }
+    }
+
+    function utvWalkieOffline() {
+      setQuality("weak");
+      setMessage(
+        "Weak signal • waiting for connection…"
+      );
+
+      if (holdingRef.current) {
+        void stopTalking();
+      }
+    }
+
+    window.addEventListener(
+      "online",
+      utvWalkieOnline
+    );
+
+    window.addEventListener(
+      "offline",
+      utvWalkieOffline
+    );
+
+    return () => {
+      window.removeEventListener(
+        "online",
+        utvWalkieOnline
+      );
+
+      window.removeEventListener(
+        "offline",
+        utvWalkieOffline
+      );
+    };
+  }, [connected, connecting]);
 
   async function getToken() {
     const { data } =
@@ -293,6 +343,8 @@ export default function WalkieProRoomPage() {
             track.attach();
 
           element.autoplay = true;
+          element.volume = 1;
+          element.muted = false;
           element.setAttribute(
             "playsinline",
             "true"
@@ -300,6 +352,12 @@ export default function WalkieProRoomPage() {
 
           audioRootRef.current
             ?.appendChild(element);
+
+          void element.play().catch(() => {
+            setMessage(
+              "Tap the screen once to enable Walkie audio."
+            );
+          });
 
           const metadata =
             participant.metadata
@@ -366,6 +424,29 @@ export default function WalkieProRoomPage() {
       );
 
       liveKitRoom.on(
+        RoomEvent.ConnectionQualityChanged,
+        (connectionQuality) => {
+          const value =
+            String(connectionQuality || "")
+              .toLowerCase();
+
+          if (
+            value.includes("excellent") ||
+            value.includes("good")
+          ) {
+            setQuality("great");
+          } else if (
+            value.includes("poor") ||
+            value.includes("lost")
+          ) {
+            setQuality("weak");
+          } else {
+            setQuality("good");
+          }
+        }
+      );
+
+      liveKitRoom.on(
         RoomEvent.ConnectionStateChanged,
         (state) => {
           setConnected(
@@ -388,7 +469,11 @@ export default function WalkieProRoomPage() {
           setConnected(false);
           setTransmitting(false);
           holdingRef.current = false;
-          scheduleReconnect();
+          micStartingRef.current = false;
+
+          if (!intentionallyLeavingRef.current) {
+            scheduleReconnect();
+          }
         }
       );
 
@@ -403,9 +488,13 @@ export default function WalkieProRoomPage() {
       await liveKitRoom.localParticipant
         .setMicrophoneEnabled(false);
 
+      reconnectAttemptsRef.current = 0;
+      intentionallyLeavingRef.current = false;
+
       setConnected(true);
       setConnecting(false);
       setReconnecting(false);
+      setQuality("great");
       setMessage(
         "Hold the button to talk."
       );
@@ -517,37 +606,62 @@ export default function WalkieProRoomPage() {
 
   function scheduleReconnect() {
     if (
+      intentionallyLeavingRef.current ||
       reconnectTimerRef.current
     ) {
       return;
     }
 
+    reconnectAttemptsRef.current += 1;
+
+    const attempt =
+      reconnectAttemptsRef.current;
+
+    const delay =
+      attempt <= 1
+        ? 650
+        : attempt === 2
+        ? 1100
+        : attempt === 3
+        ? 1800
+        : 2800;
+
     setReconnecting(true);
+    setQuality("weak");
+
     setMessage(
-      "Signal dropped. Reconnecting…"
+      attempt <= 1
+        ? "Signal dropped. Reconnecting…"
+        : `Reconnecting signal • attempt ${attempt}`
     );
 
     reconnectTimerRef.current =
       window.setTimeout(() => {
-        reconnectTimerRef.current =
-          null;
+        reconnectTimerRef.current = null;
 
-        void openRoom();
-      }, 1600);
+        if (!intentionallyLeavingRef.current) {
+          void openRoom();
+        }
+      }, delay);
   }
 
   async function startTalking(
     event?: PointerEvent<HTMLButtonElement>
   ) {
-    event?.currentTarget
-      .setPointerCapture?.(
-        event.pointerId
-      );
+    event?.preventDefault();
+
+    try {
+      event?.currentTarget
+        .setPointerCapture?.(
+          event.pointerId
+        );
+    } catch {}
 
     if (
       !connected ||
+      reconnecting ||
       transmitting ||
-      incomingMuted
+      micStartingRef.current
     ) {
       return;
     }
@@ -555,19 +669,47 @@ export default function WalkieProRoomPage() {
     const liveKitRoom =
       liveKitRef.current;
 
-    if (!liveKitRoom) return;
+    if (!liveKitRoom) {
+      setMessage("Walkie signal is not ready.");
+      return;
+    }
 
     try {
+      micStartingRef.current = true;
       holdingRef.current = true;
 
-      await liveKitRoom.localParticipant
-        .setMicrophoneEnabled(true);
-
+      // Make the button feel instant.
       setTransmitting(true);
       setSpeakerEmail(email);
       setMessage("TRANSMITTING");
 
-      await supabase
+      vibrate(35);
+
+      await liveKitRoom.localParticipant
+        .setMicrophoneEnabled(
+          true,
+          {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        );
+
+      // User may have released while mic permission was opening.
+      if (!holdingRef.current) {
+        await liveKitRoom.localParticipant
+          .setMicrophoneEnabled(false);
+
+        setTransmitting(false);
+        setSpeakerEmail("");
+        micStartingRef.current = false;
+        return;
+      }
+
+      micStartingRef.current = false;
+
+      // Do not make audio transmission wait on Supabase.
+      void supabase
         .from("walkie_rooms")
         .update({
           current_speaker_email:
@@ -575,23 +717,46 @@ export default function WalkieProRoomPage() {
         })
         .eq("id", roomId);
 
-      vibrate(45);
       beep(960);
-    } catch {
+    } catch (error) {
+      micStartingRef.current = false;
       holdingRef.current = false;
       setTransmitting(false);
+      setSpeakerEmail("");
+
       setMessage(
-        "Microphone permission is required."
+        "Microphone access is needed for Walkie."
+      );
+
+      console.error(
+        "UTV Walkie microphone:",
+        error
       );
     }
   }
 
   async function stopTalking() {
-    if (!holdingRef.current) {
+    const wasHolding =
+      holdingRef.current ||
+      transmitting ||
+      micStartingRef.current;
+
+    holdingRef.current = false;
+    micStartingRef.current = false;
+
+    if (!wasHolding) {
       return;
     }
 
-    holdingRef.current = false;
+    // Update UI immediately.
+    setTransmitting(false);
+    setSpeakerEmail("");
+
+    setMessage(
+      connected
+        ? "Hold the button to talk."
+        : "Reconnecting…"
+    );
 
     const liveKitRoom =
       liveKitRef.current;
@@ -600,17 +765,15 @@ export default function WalkieProRoomPage() {
       await liveKitRoom
         ?.localParticipant
         .setMicrophoneEnabled(false);
-    } catch {}
+    } catch (error) {
+      console.warn(
+        "UTV Walkie mic release:",
+        error
+      );
+    }
 
-    setTransmitting(false);
-    setSpeakerEmail("");
-    setMessage(
-      connected
-        ? "Hold the button to talk."
-        : "Reconnecting…"
-    );
-
-    await supabase
+    // Presence update should never delay mic release.
+    void supabase
       .from("walkie_rooms")
       .update({
         current_speaker_email:
@@ -622,12 +785,14 @@ export default function WalkieProRoomPage() {
         email
       );
 
-    vibrate(22);
+    vibrate(18);
     beep(520);
   }
 
   async function endRoom() {
     if (!roomRow) return;
+
+    intentionallyLeavingRef.current = true;
 
     await stopTalking();
 
@@ -662,6 +827,8 @@ export default function WalkieProRoomPage() {
   }
 
   async function cleanup() {
+    intentionallyLeavingRef.current = true;
+
     if (
       reconnectTimerRef.current
     ) {
@@ -685,10 +852,18 @@ export default function WalkieProRoomPage() {
       realtimeRef.current = null;
     }
 
+    try {
+      await liveKitRef.current
+        ?.localParticipant
+        .setMicrophoneEnabled(false);
+    } catch {}
+
     await liveKitRef.current
       ?.disconnect();
 
     liveKitRef.current = null;
+    micStartingRef.current = false;
+    setTransmitting(false);
   }
 
   function toggleIncomingMute() {
