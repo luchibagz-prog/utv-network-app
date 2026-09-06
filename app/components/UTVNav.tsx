@@ -71,6 +71,36 @@ export default function UTVNav() {
   const [walkieBusy, setWalkieBusy] =
     useState(false);
 
+  const [profileHref, setProfileHref] =
+    useState("/profile-pro-v12");
+
+  useEffect(() => {
+    let active = true;
+
+    async function resolveProfileHref() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (
+          active &&
+          user?.email
+        ) {
+          setProfileHref(
+            `/u/${encodeURIComponent(user.email)}`
+          );
+        }
+      } catch {}
+    }
+
+    void resolveProfileHref();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // UTV FAST MODE: warm the main routes after nav mounts.
   useEffect(() => {
     const routes = [
@@ -84,6 +114,7 @@ export default function UTVNav() {
       "/settings",
       "/profile-v10",
       "/profile",
+      profileHref,
     ];
 
     const timer = window.setTimeout(() => {
@@ -95,7 +126,7 @@ export default function UTVNav() {
     }, 250);
 
     return () => window.clearTimeout(timer);
-  }, [router]);
+  }, [router, profileHref]);
 
   const walkieFeedback = useCallback(() => {
     try {
@@ -826,15 +857,24 @@ export default function UTVNav() {
       <nav className="utvBottomNav">
         {navItems.map((item) => {
           const isActive =
-            pathname === item.href ||
-            pathname.startsWith(
-              `${item.href}/`
+            (
+              item.label === "Profile"
+                ? pathname === profileHref ||
+                  pathname.startsWith("/u/")
+                : pathname === item.href ||
+                  pathname.startsWith(
+                    `${item.href}/`
+                  )
             );
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={
+                item.label === "Profile"
+                  ? profileHref
+                  : item.href
+              }
               onPointerDown={() => {
                 try {
                   router.prefetch(item.href);

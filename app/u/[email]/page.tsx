@@ -29,6 +29,8 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<any>({});
   const [posts, setPosts] = useState<any[]>([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [creatorDashboardOpen, setCreatorDashboardOpen] =
+    useState(false);
   const [tabTouchStart, setTabTouchStart] = useState<number | null>(null);
   const [tabTouchEnd, setTabTouchEnd] = useState<number | null>(null);
   const [crew, setCrew] = useState<any[]>([]);
@@ -55,14 +57,6 @@ export default function PublicProfile() {
         auth.user.email.toLowerCase() === email.toLowerCase();
 
       setIsOwner(owner);
-
-      // Normal Profile nav should go to owner dashboard.
-      // ?preview=1 intentionally allows the owner to preview
-      // exactly what visitors see.
-      if (owner && !preview) {
-        router.replace("/profile-pro-v12");
-        return;
-      }
 
       const [
         profileResult,
@@ -226,6 +220,16 @@ export default function PublicProfile() {
     song ? "Profile Soundtrack" : ""
   );
 
+  const songArtist = pick(
+    profile,
+    [
+      "profile_song_artist",
+      "music_artist",
+      "song_artist",
+    ],
+    name
+  );
+
   const featured = useMemo(
     () => posts.slice(0, 3),
     [posts]
@@ -354,22 +358,7 @@ export default function PublicProfile() {
         />
       )}
 
-      {isOwner && preview && (
-        <div className="previewBar">
-          <div>
-            <b>👁 Public profile preview</b>
-            <span>This is exactly how visitors see your UTV profile.</span>
-          </div>
-
-          <button
-            onClick={() => router.push("/profile-pro-v12")}
-          >
-            Back to my controls
-          </button>
-        </div>
-      )}
-
-      <section
+<section
         className="hero"
         style={{
           backgroundImage:
@@ -425,8 +414,153 @@ export default function PublicProfile() {
               ⚡ Contact
             </button>
           </div>
-        ) : null}
+        ) : (
+          <button
+            className={
+              creatorDashboardOpen
+                ? "creatorDashboardButton open"
+                : "creatorDashboardButton"
+            }
+            onClick={() =>
+              setCreatorDashboardOpen(
+                (current) => !current
+              )
+            }
+          >
+            <span>⚡</span>
+
+            <div>
+              <strong>Creator Dashboard</strong>
+              <small>
+                {creatorDashboardOpen
+                  ? "Close creator tools"
+                  : "Open your creator tools"}
+              </small>
+            </div>
+
+            <b>
+              {creatorDashboardOpen ? "⌃" : "⌄"}
+            </b>
+          </button>
+        )}
       </section>
+
+
+      {isOwner && (
+        <section
+          className={
+            creatorDashboardOpen
+              ? "creatorDashboard open"
+              : "creatorDashboard"
+          }
+        >
+          <div className="dashboardHeader">
+            <div>
+              <p>YOUR UTV</p>
+              <h2>Creator Dashboard</h2>
+              <span>
+                Create, manage and grow without leaving your profile.
+              </span>
+            </div>
+
+            <button
+              onClick={() =>
+                setCreatorDashboardOpen(false)
+              }
+              aria-label="Close creator dashboard"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="creatorQuickActions">
+            <button
+              className="creatorPrimary"
+              onClick={() =>
+                router.push("/submit")
+              }
+            >
+              <span>＋</span>
+              <div>
+                <strong>Create</strong>
+                <small>Post, reel or story</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/profile-edit")
+              }
+            >
+              <span>✎</span>
+              <div>
+                <strong>Edit Profile</strong>
+                <small>Photo, bio & music</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/studio")
+              }
+            >
+              <span>🎬</span>
+              <div>
+                <strong>Creator Studio</strong>
+                <small>Manage your content</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/bookings")
+              }
+            >
+              <span>📅</span>
+              <div>
+                <strong>Bookings</strong>
+                <small>Requests & opportunities</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/calls")
+              }
+            >
+              <span>📞</span>
+              <div>
+                <strong>Calls</strong>
+                <small>Audio & video</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/top-crew")
+              }
+            >
+              <span>8</span>
+              <div>
+                <strong>Top 8</strong>
+                <small>Build your inner circle</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/settings")
+              }
+            >
+              <span>⚙</span>
+              <div>
+                <strong>Settings</strong>
+                <small>Account & notifications</small>
+              </div>
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="stats">
         <article>
@@ -522,7 +656,8 @@ export default function PublicProfile() {
 
                 <span>
                   {song
-                    ? `Sound of @${username}`
+                    ? songArtist ||
+                      `Sound of @${username}`
                     : `${name} hasn't added a profile song yet.`}
                 </span>
               </div>
@@ -713,6 +848,243 @@ export default function PublicProfile() {
       )}
 
       <style jsx>{`
+
+
+        .creatorDashboardButton {
+          width: 100%;
+          min-height: 58px;
+          display: grid;
+          grid-template-columns: 35px 1fr auto;
+          align-items: center;
+          gap: 10px;
+          margin-top: 18px;
+          padding: 9px 13px;
+          border: 1px solid rgba(82,247,200,.25);
+          border-radius: 18px;
+          color: #fff;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.14),
+              rgba(123,97,255,.15)
+            );
+          text-align: left;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .creatorDashboardButton:active {
+          transform: scale(.985);
+        }
+
+        .creatorDashboardButton.open {
+          border-color: rgba(82,247,200,.55);
+          box-shadow:
+            0 12px 38px rgba(82,247,200,.10);
+        }
+
+        .creatorDashboardButton > span {
+          width: 35px;
+          height: 35px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          color: #06140f;
+          background:
+            linear-gradient(135deg,#52f7c8,#9eff78);
+          font-size: 16px;
+        }
+
+        .creatorDashboardButton div {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .creatorDashboardButton strong {
+          font-size: 12px;
+        }
+
+        .creatorDashboardButton small {
+          color: rgba(255,255,255,.45);
+          font-size: 8px;
+        }
+
+        .creatorDashboardButton > b {
+          color: rgba(255,255,255,.55);
+          font-size: 17px;
+        }
+
+        .creatorDashboard {
+          overflow: hidden;
+          max-height: 0;
+          margin: 0 12px;
+          opacity: 0;
+          transform: translateY(-12px);
+          pointer-events: none;
+          transition:
+            max-height .42s cubic-bezier(.2,.75,.25,1),
+            opacity .25s ease,
+            transform .35s ease,
+            margin .35s ease;
+        }
+
+        .creatorDashboard.open {
+          max-height: 760px;
+          margin-top: 13px;
+          margin-bottom: 4px;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        .creatorDashboard.open {
+          padding: 16px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 24px;
+          background:
+            radial-gradient(
+              circle at 0% 0%,
+              rgba(82,247,200,.10),
+              transparent 36%
+            ),
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(123,97,255,.15),
+              transparent 40%
+            ),
+            rgba(8,12,20,.94);
+          box-shadow:
+            0 25px 70px rgba(0,0,0,.28);
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+        }
+
+        .dashboardHeader {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .dashboardHeader p {
+          margin: 0;
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .15em;
+        }
+
+        .dashboardHeader h2 {
+          margin: 4px 0 3px;
+          font-size: 22px;
+          letter-spacing: -.035em;
+        }
+
+        .dashboardHeader span {
+          color: rgba(255,255,255,.42);
+          font-size: 9px;
+        }
+
+        .dashboardHeader button {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 50%;
+          color: #fff;
+          background: rgba(255,255,255,.07);
+          font-size: 20px;
+        }
+
+        .creatorQuickActions {
+          display: grid;
+          grid-template-columns:
+            repeat(2,minmax(0,1fr));
+          gap: 8px;
+        }
+
+        .creatorQuickActions button {
+          min-height: 77px;
+          display: grid;
+          grid-template-columns: 40px 1fr;
+          align-items: center;
+          gap: 10px;
+          padding: 11px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 18px;
+          color: #fff;
+          background: rgba(255,255,255,.035);
+          text-align: left;
+          transition:
+            transform .15s ease,
+            background .15s ease;
+        }
+
+        .creatorQuickActions button:active {
+          transform: scale(.975);
+          background: rgba(255,255,255,.075);
+        }
+
+        .creatorQuickActions button > span {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.18),
+              rgba(123,97,255,.22)
+            );
+          font-size: 16px;
+          font-weight: 1000;
+        }
+
+        .creatorQuickActions button > div {
+          min-width: 0;
+          display: grid;
+          gap: 3px;
+        }
+
+        .creatorQuickActions strong {
+          font-size: 10px;
+        }
+
+        .creatorQuickActions small {
+          overflow: hidden;
+          color: rgba(255,255,255,.38);
+          font-size: 7px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .creatorQuickActions .creatorPrimary {
+          grid-column: 1 / -1;
+          color: #06140f;
+          border: 0;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9dff78,
+              #9585ff
+            );
+        }
+
+        .creatorQuickActions .creatorPrimary > span {
+          color: #06140f;
+          background: rgba(255,255,255,.35);
+        }
+
+        .creatorQuickActions .creatorPrimary small {
+          color: rgba(6,20,15,.55);
+        }
 
         .socialActions {
           display:grid;
