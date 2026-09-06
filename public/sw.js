@@ -59,6 +59,7 @@ self.addEventListener(
       data: {
         url:
           data.url ||
+          data.link ||
           "/activity",
       },
     };

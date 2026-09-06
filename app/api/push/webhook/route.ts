@@ -100,6 +100,60 @@ async function copyFromWebhook(
       : null;
   }
 
+  if (table === "walkie_members") {
+    const recipientEmail =
+      record.user_email ||
+      record.member_email ||
+      record.email ||
+      "";
+
+    if (!recipientEmail || record.status !== "invited") {
+      return null;
+    }
+
+    const actor =
+      record.invited_by?.split("@")[0] ||
+      "Someone";
+
+    return {
+      recipientEmail,
+      title: "📡 Incoming UTV Walkie",
+      body: `${actor} wants to Walkie.`,
+      link: record.room_id
+        ? `/walkie/${encodeURIComponent(record.room_id)}`
+        : "/walkie",
+      tag: `walkie-${record.room_id || record.id || Date.now()}`,
+    };
+  }
+
+  if (table === "call_sessions") {
+    const recipientEmail =
+      record.callee_email ||
+      "";
+
+    if (!recipientEmail || record.status !== "ringing") {
+      return null;
+    }
+
+    const actor =
+      record.caller_email?.split("@")[0] ||
+      "Someone";
+
+    const isVideo = record.call_type === "video";
+
+    return {
+      recipientEmail,
+      title: isVideo
+        ? "📹 Incoming UTV Video Call"
+        : "📞 Incoming UTV Call",
+      body: `${actor} is calling you.`,
+      link: record.id
+        ? `/call/${encodeURIComponent(record.id)}`
+        : "/calls",
+      tag: `call-${record.id || Date.now()}`,
+    };
+  }
+
   if (table === "feed_comment_reactions") {
     const commentId = String(record.comment_id || "");
 
@@ -193,6 +247,7 @@ async function deliverPush(copy: PushCopy) {
     title: copy.title,
     body: copy.body,
     link: copy.link,
+    url: copy.link,
     tag: copy.tag,
     icon: "/utv-logo.png",
     badge: "/utv-logo.png",
@@ -208,7 +263,7 @@ async function deliverPush(copy: PushCopy) {
         endpoint: row.endpoint,
         keys: {
           p256dh: row.p256dh,
-          auth: row.auth,
+          auth: row.auth || row.auth_key,
         },
       };
 
