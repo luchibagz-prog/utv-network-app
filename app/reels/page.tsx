@@ -122,8 +122,23 @@ export default function ReelsPage() {
   const [progress, setProgress] =
     useState<Record<string, number>>({});
 
-  const [liked, setLiked] =
-    useState<Set<string>>(new Set());
+  const [likes, setLikes] =
+    useState<Record<string, number>>({});
+
+  const [likedPosts, setLikedPosts] =
+    useState<Record<string, boolean>>({});
+
+  const [comments, setComments] =
+    useState<Record<string, any[]>>({});
+
+  const [commentText, setCommentText] =
+    useState<Record<string, string>>({});
+
+  const [commentSheet, setCommentSheet] =
+    useState<Reel | null>(null);
+
+  const [commentSending, setCommentSending] =
+    useState(false);
 
   const [notice, setNotice] =
     useState("");
@@ -252,6 +267,22 @@ export default function ReelsPage() {
           )
         );
       }
+
+      await Promise.all(
+        reelContent.slice(0, 60).map(
+          async (reel) => {
+            const id = String(reel.id);
+
+            await Promise.all([
+              loadLikes(
+                id,
+                currentEmail
+              ),
+              loadComments(id),
+            ]);
+          }
+        )
+      );
     } catch (error) {
       console.error(
         "Could not load reels:",
@@ -522,6 +553,407 @@ export default function ReelsPage() {
     );
   }
 
+  async function loadLikes(
+    id: string,
+    email = viewerEmail
+  ) {
+    const { count } =
+      await supabase
+        .from("feed_likes")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("upload_id", id);
+
+    setLikes((current) => ({
+      ...current,
+      [id]: count || 0,
+    }));
+
+    if (!email) {
+      setLikedPosts(
+        (current) => ({
+          ...current,
+          [id]: false,
+        })
+      );
+
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("feed_likes")
+        .select("id")
+        .eq("upload_id", id)
+        .eq(
+          "user_email",
+          email
+        )
+        .maybeSingle();
+
+    setLikedPosts(
+      (current) => ({
+        ...current,
+        [id]: Boolean(data),
+      })
+    );
+  }
+
+  async function loadComments(
+    id: string
+  ) {
+    const { data } =
+      await supabase
+        .from("feed_comments")
+        .select("*")
+        .eq("upload_id", id)
+        .order("created_at", {
+          ascending: true,
+        });
+
+    const rows = data || [];
+
+    setComments((current) => ({
+      ...current,
+      [id]: rows,
+    }));
+
+    const emails =
+      Array.from(
+        new Set(
+          rows
+            .map((row: any) =>
+              String(
+                row.user_email || ""
+              ).toLowerCase()
+            )
+            .filter(Boolean)
+        )
+      );
+
+    if (!emails.length) return;
+
+    const { data: profileRows } =
+      await supabase
+        .from("creator_profiles")
+        .select("*")
+        .in("email", emails);
+
+    if (!profileRows?.length) {
+      return;
+    }
+
+    setProfiles((current) => {
+      const next = {
+        ...current,
+      };
+
+      profileRows.forEach(
+        (profile: any) => {
+          const email =
+            String(
+              profile.email || ""
+            ).toLowerCase();
+
+          if (email) {
+            next[email] = profile;
+          }
+        }
+      );
+
+      return next;
+    });
+  }
+
+  function profileNameForEmail(
+    email?: string
+  ) {
+    if (!email) {
+      return "UTV Creator";
+    }
+
+    const profile =
+      profiles[
+        email.toLowerCase()
+      ];
+
+    return (
+      profile?.display_name ||
+      profile?.creator_name ||
+      profile?.username ||
+      email.split("@")[0] ||
+      "UTV Creator"
+    );
+  }
+
+  function profileAvatarForEmail(
+    email?: string
+  ) {
+    if (!email) return "";
+
+    const profile =
+      profiles[
+        email.toLowerCase()
+      ];
+
+    return (
+      profile?.avatar_url ||
+      profile?.creator_avatar ||
+      profile?.profile_image ||
+      ""
+    );
+  }
+
+  async function createNotification({
+    recipientEmail,
+    actorEmail,
+    type,
+    title,
+    message,
+    link,
+  }: {
+    recipientEmail?: string;
+    actorEmail?: string;
+    type: string;
+    title: string;
+    message: string;
+    link: string;
+  }) {
+    if (
+      !recipientEmail ||
+      !actorEmail ||
+      recipientEmail === actorEmail
+    ) {
+      return;
+    }
+
+    const { data: existing } =
+      await supabase
+        .from("notifications")
+        .select("id")
+        .eq(
+          "user_email",
+          recipientEmail
+        )
+        .eq(
+          "actor_email",
+          actorEmail
+        )
+        .eq("type", type)
+        .eq("link", link)
+        .maybeSingle();
+
+    if (existing) return;
+
+    const { error } =
+      await supabase
+        .from("notifications")
+        .insert({
+          user_email:
+            recipientEmail,
+          actor_email:
+            actorEmail,
+          type,
+          title,
+          message,
+          link,
+          is_read: false,
+        });
+
+    if (error) {
+      console.error(
+        "Reel notification error:",
+        error.message
+      );
+    }
+  }
+
+  async function likePost(
+    reel: Reel
+  ) {
+    const id =
+      String(reel.id);
+
+    const { data: auth } =
+      await supabase.auth.getUser();
+
+    const userEmail =
+      auth.user?.email;
+
+    if (!userEmail) {
+      router.push("/login");
+      return;
+    }
+
+    const currentlyLiked =
+      likedPosts[id];
+
+    setLikedPosts(
+      (current) => ({
+        ...current,
+        [id]: !currentlyLiked,
+      })
+    );
+
+    setLikes((current) => ({
+      ...current,
+      [id]: Math.max(
+        0,
+        (current[id] || 0) +
+          (
+            currentlyLiked
+              ? -1
+              : 1
+          )
+      ),
+    }));
+
+    if (currentlyLiked) {
+      const { error } =
+        await supabase
+          .from("feed_likes")
+          .delete()
+          .eq(
+            "upload_id",
+            id
+          )
+          .eq(
+            "user_email",
+            userEmail
+          );
+
+      if (error) {
+        await loadLikes(
+          id,
+          userEmail
+        );
+      }
+
+      return;
+    }
+
+    const { error } =
+      await supabase
+        .from("feed_likes")
+        .insert({
+          upload_id: id,
+          user_email:
+            userEmail,
+        });
+
+    if (error) {
+      await loadLikes(
+        id,
+        userEmail
+      );
+
+      return;
+    }
+
+    await createNotification({
+      recipientEmail:
+        reel.creator_email,
+      actorEmail: userEmail,
+      type: "like",
+      title: "New Like",
+      message:
+        `${profileNameForEmail(
+          userEmail
+        )} liked your reel.`,
+      link:
+        `/reels#reel-${id}`,
+    });
+  }
+
+  function openComments(
+    reel: Reel
+  ) {
+    const id =
+      String(reel.id);
+
+    setCommentSheet(reel);
+
+    void loadComments(id);
+  }
+
+  function closeComments() {
+    setCommentSheet(null);
+  }
+
+  async function addComment(
+    reel: Reel
+  ) {
+    const id =
+      String(reel.id);
+
+    const value =
+      commentText[id]?.trim();
+
+    if (!value) return;
+
+    const { data: auth } =
+      await supabase.auth.getUser();
+
+    const userEmail =
+      auth.user?.email;
+
+    if (!userEmail) {
+      router.push("/login");
+      return;
+    }
+
+    setCommentSending(true);
+
+    const { error } =
+      await supabase
+        .from("feed_comments")
+        .insert({
+          upload_id: id,
+          user_email:
+            userEmail,
+          comment: value,
+          parent_comment_id:
+            null,
+        });
+
+    if (error) {
+      setCommentSending(false);
+
+      showNotice(
+        error.message
+      );
+
+      return;
+    }
+
+    setCommentText(
+      (current) => ({
+        ...current,
+        [id]: "",
+      })
+    );
+
+    await loadComments(id);
+
+    setCommentSending(false);
+
+    await createNotification({
+      recipientEmail:
+        reel.creator_email,
+      actorEmail: userEmail,
+      type: "comment",
+      title: "New Comment",
+      message:
+        `${profileNameForEmail(
+          userEmail
+        )} commented: "${value}"`,
+      link:
+        `/reels#reel-${id}`,
+    });
+  }
+
   async function toggleFollow(
     creatorEmail?: string
   ) {
@@ -610,26 +1042,11 @@ export default function ReelsPage() {
     }
   }
 
-  function toggleLike(id: string) {
-    setLiked((current) => {
-      const next =
-        new Set(current);
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      return next;
-    });
-  }
-
   async function shareReel(
     reel: Reel
   ) {
     const shareUrl =
-      `${window.location.origin}/reels`;
+      `${window.location.origin}/reels#reel-${reel.id}`;
 
     const text =
       reelCaption(reel) ||
@@ -820,10 +1237,16 @@ export default function ReelsPage() {
               activeId === id;
 
             const isLiked =
-              liked.has(id);
+              Boolean(
+                likedPosts[id]
+              );
+
+            const reelComments =
+              comments[id] || [];
 
             return (
               <section
+                id={`reel-${id}`}
                 key={id}
                 className="reelSlide"
               >
@@ -970,7 +1393,9 @@ export default function ReelsPage() {
                         : "railButton"
                     }
                     onClick={() =>
-                      toggleLike(id)
+                      void likePost(
+                        reel
+                      )
                     }
                   >
                     <span>
@@ -980,22 +1405,22 @@ export default function ReelsPage() {
                     </span>
 
                     <small>
-                      Like
+                      {likes[id] || 0}
                     </small>
                   </button>
 
                   <button
                     className="railButton"
                     onClick={() =>
-                      showNotice(
-                        "Comments are next."
+                      openComments(
+                        reel
                       )
                     }
                   >
                     <span>💬</span>
 
                     <small>
-                      Comment
+                      {reelComments.length}
                     </small>
                   </button>
 
@@ -1066,6 +1491,216 @@ export default function ReelsPage() {
       >
         +
       </button>
+
+      {commentSheet && (
+        <div
+          className="commentBackdrop"
+          onClick={
+            closeComments
+          }
+        >
+          <section
+            className="commentSheet"
+            onClick={(
+              event
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="commentHandle" />
+
+            <header className="commentHeader">
+              <strong>
+                Comments
+              </strong>
+
+              <span>
+                {
+                  comments[
+                    String(
+                      commentSheet.id
+                    )
+                  ]?.length || 0
+                }
+              </span>
+
+              <button
+                onClick={
+                  closeComments
+                }
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="commentList">
+              {(
+                comments[
+                  String(
+                    commentSheet.id
+                  )
+                ] || []
+              ).length === 0 ? (
+                <div className="noComments">
+                  <span>💬</span>
+
+                  <strong>
+                    No comments yet
+                  </strong>
+
+                  <p>
+                    Start the
+                    conversation.
+                  </p>
+                </div>
+              ) : (
+                (
+                  comments[
+                    String(
+                      commentSheet.id
+                    )
+                  ] || []
+                ).map(
+                  (comment: any) => {
+                    const email =
+                      String(
+                        comment.user_email ||
+                          ""
+                      );
+
+                    const avatar =
+                      profileAvatarForEmail(
+                        email
+                      );
+
+                    const name =
+                      profileNameForEmail(
+                        email
+                      );
+
+                    return (
+                      <article
+                        className="commentRow"
+                        key={
+                          comment.id
+                        }
+                      >
+                        <button
+                          className="commentAvatar"
+                          onClick={() =>
+                            openProfile(
+                              email
+                            )
+                          }
+                        >
+                          {avatar ? (
+                            <img
+                              src={
+                                avatar
+                              }
+                              alt={
+                                name
+                              }
+                            />
+                          ) : (
+                            <span>
+                              {name
+                                .slice(
+                                  0,
+                                  1
+                                )
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </button>
+
+                        <div className="commentBody">
+                          <button
+                            className="commentName"
+                            onClick={() =>
+                              openProfile(
+                                email
+                              )
+                            }
+                          >
+                            {name}
+                          </button>
+
+                          <p>
+                            {
+                              comment.comment
+                            }
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  }
+                )
+              )}
+            </div>
+
+            <div className="commentComposer">
+              <input
+                value={
+                  commentText[
+                    String(
+                      commentSheet.id
+                    )
+                  ] || ""
+                }
+                onChange={(
+                  event
+                ) =>
+                  setCommentText(
+                    (current) => ({
+                      ...current,
+                      [String(
+                        commentSheet.id
+                      )]:
+                        event.target
+                          .value,
+                    })
+                  )
+                }
+                onKeyDown={(
+                  event
+                ) => {
+                  if (
+                    event.key ===
+                      "Enter" &&
+                    !commentSending
+                  ) {
+                    void addComment(
+                      commentSheet
+                    );
+                  }
+                }}
+                placeholder="Add a comment…"
+              />
+
+              <button
+                disabled={
+                  commentSending ||
+                  !commentText[
+                    String(
+                      commentSheet.id
+                    )
+                  ]?.trim()
+                }
+                onClick={() =>
+                  void addComment(
+                    commentSheet
+                  )
+                }
+              >
+                {commentSending
+                  ? "..."
+                  : "Post"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {notice && (
         <div className="notice">
@@ -1712,6 +2347,384 @@ export default function ReelsPage() {
 
           font-size: 28px;
           font-weight: 500;
+        }
+
+        .commentBackdrop {
+          position: fixed;
+          z-index: 180;
+          inset: 0;
+
+          display: flex;
+          align-items:
+            flex-end;
+          justify-content:
+            center;
+
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              .46
+            );
+
+          backdrop-filter:
+            blur(3px);
+        }
+
+        .commentSheet {
+          width: 100%;
+          max-width: 520px;
+          height: min(
+            72dvh,
+            670px
+          );
+
+          display: grid;
+          grid-template-rows:
+            auto auto
+            1fr auto;
+
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .10
+            );
+          border-bottom: 0;
+
+          border-radius:
+            24px 24px
+            0 0;
+
+          background:
+            rgba(
+              7,
+              10,
+              17,
+              .98
+            );
+
+          box-shadow:
+            0 -25px 80px
+            rgba(
+              0,
+              0,
+              0,
+              .55
+            );
+        }
+
+        .commentHandle {
+          width: 42px;
+          height: 4px;
+
+          margin:
+            8px auto 2px;
+
+          border-radius:
+            999px;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .24
+            );
+        }
+
+        .commentHeader {
+          display: grid;
+          grid-template-columns:
+            1fr auto 38px;
+          align-items: center;
+          gap: 8px;
+
+          padding:
+            10px 14px 12px;
+
+          border-bottom:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .08
+            );
+        }
+
+        .commentHeader strong {
+          font-size: 15px;
+          font-weight: 950;
+        }
+
+        .commentHeader span {
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .45
+            );
+
+          font-size: 10px;
+          font-weight: 850;
+        }
+
+        .commentHeader button {
+          width: 34px;
+          height: 34px;
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .10
+            );
+
+          border-radius: 50%;
+
+          color: white;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .06
+            );
+
+          font-size: 21px;
+        }
+
+        .commentList {
+          overflow-y: auto;
+
+          padding:
+            8px 14px 18px;
+        }
+
+        .commentRow {
+          display: flex;
+          align-items:
+            flex-start;
+          gap: 10px;
+
+          padding:
+            10px 0;
+        }
+
+        .commentAvatar {
+          width: 36px;
+          height: 36px;
+
+          flex: 0 0 auto;
+
+          padding: 0;
+
+          border: 0;
+          border-radius: 50%;
+
+          overflow: hidden;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #8c7cff
+            );
+        }
+
+        .commentAvatar img,
+        .commentAvatar span {
+          width: 100%;
+          height: 100%;
+
+          display: grid;
+          place-items: center;
+
+          object-fit: cover;
+
+          color: #07120f;
+          font-weight: 950;
+        }
+
+        .commentBody {
+          min-width: 0;
+
+          display: grid;
+          gap: 4px;
+        }
+
+        .commentName {
+          width: fit-content;
+
+          padding: 0;
+          border: 0;
+
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .76
+            );
+          background:
+            transparent;
+
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .commentBody p {
+          margin: 0;
+
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .94
+            );
+
+          font-size: 12px;
+          line-height: 1.45;
+        }
+
+        .noComments {
+          min-height: 260px;
+
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 5px;
+
+          text-align: center;
+        }
+
+        .noComments span {
+          font-size: 35px;
+        }
+
+        .noComments strong {
+          margin-top: 4px;
+
+          font-size: 14px;
+        }
+
+        .noComments p {
+          margin: 0;
+
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .42
+            );
+
+          font-size: 10px;
+        }
+
+        .commentComposer {
+          display: grid;
+          grid-template-columns:
+            1fr auto;
+          gap: 8px;
+
+          padding:
+            10px 12px
+            calc(
+              10px +
+              env(
+                safe-area-inset-bottom
+              )
+            );
+
+          border-top:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .08
+            );
+
+          background:
+            rgba(
+              5,
+              8,
+              14,
+              .98
+            );
+        }
+
+        .commentComposer input {
+          min-width: 0;
+          min-height: 44px;
+
+          padding:
+            0 15px;
+
+          outline: none;
+
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .10
+            );
+
+          border-radius:
+            999px;
+
+          color: white;
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              .06
+            );
+
+          font-size: 12px;
+        }
+
+        .commentComposer input:focus {
+          border-color:
+            rgba(
+              82,
+              247,
+              200,
+              .52
+            );
+        }
+
+        .commentComposer button {
+          min-width: 62px;
+
+          border: 0;
+          border-radius:
+            999px;
+
+          color: #06140f;
+          background: #52f7c8;
+
+          font-size: 10px;
+          font-weight: 1000;
+        }
+
+        .commentComposer button:disabled {
+          opacity: .35;
         }
 
         .notice {
