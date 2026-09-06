@@ -38,6 +38,8 @@ export default function PublicProfile() {
   const [following, setFollowing] = useState(0);
   const [tab, setTab] = useState<Tab>("posts");
   const [playing, setPlaying] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] =
+    useState(false);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [notice, setNotice] = useState("");
@@ -286,6 +288,33 @@ export default function PublicProfile() {
     setTabTouchEnd(null);
   }
 
+  useEffect(() => {
+    if (!song || !audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    async function attemptProfileAutoplay() {
+      try {
+        audio.volume = 0.75;
+        await audio.play();
+        setPlaying(true);
+        setAutoplayBlocked(false);
+      } catch {
+        // Most phones block sound-on autoplay until interaction.
+        setPlaying(false);
+        setAutoplayBlocked(true);
+      }
+    }
+
+    const timer = window.setTimeout(() => {
+      void attemptProfileAutoplay();
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [song]);
+
   async function toggleMusic() {
     if (!song || !audioRef.current) {
       setNotice("This creator has not added a profile song yet.");
@@ -297,6 +326,7 @@ export default function PublicProfile() {
       if (audioRef.current.paused) {
         await audioRef.current.play();
         setPlaying(true);
+        setAutoplayBlocked(false);
       } else {
         audioRef.current.pause();
         setPlaying(false);
@@ -757,6 +787,20 @@ export default function PublicProfile() {
       </section>
 
 
+      {song && autoplayBlocked && (
+        <button
+          className="tapForSound"
+          onClick={() => void toggleMusic()}
+        >
+          <span>♫</span>
+          <div>
+            <strong>{songTitle || "Profile soundtrack"}</strong>
+            <small>Tap for sound</small>
+          </div>
+          <b>▶</b>
+        </button>
+      )}
+
       {contactOpen && !isOwner && (
         <div
           className="contactBackdrop"
@@ -1187,6 +1231,83 @@ export default function PublicProfile() {
           background:rgba(255,255,255,.07);
           font-size:9px;
           font-weight:900;
+        }
+
+        .tapForSound {
+          position: fixed;
+          z-index: 7000;
+          left: 50%;
+          bottom: 102px;
+          width: min(420px,calc(100% - 28px));
+          min-height: 54px;
+          display: grid;
+          grid-template-columns: 38px 1fr auto;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          border: 1px solid rgba(82,247,200,.24);
+          border-radius: 18px;
+          color: #fff;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(5,10,16,.96),
+              rgba(18,17,36,.96)
+            );
+          box-shadow: 0 18px 55px rgba(0,0,0,.46);
+          transform: translateX(-50%);
+          text-align: left;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          animation: soundUp .25s ease both;
+        }
+
+        .tapForSound > span {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          color: #07120e;
+          background:
+            linear-gradient(135deg,#52f7c8,#8c7cff);
+          font-size: 18px;
+          font-weight: 1000;
+        }
+
+        .tapForSound div {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .tapForSound strong {
+          overflow: hidden;
+          font-size: 10px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .tapForSound small {
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 900;
+        }
+
+        .tapForSound > b {
+          font-size: 16px;
+        }
+
+        @keyframes soundUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%,10px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translate(-50%,0);
+          }
         }
 
         .contactBackdrop {

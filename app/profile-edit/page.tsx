@@ -240,7 +240,7 @@ export default function ProfileEditPage() {
 
     if (!file) return;
 
-    const audioExtensions = [
+    const supportedExtensions = [
       ".mp3",
       ".m4a",
       ".aac",
@@ -249,19 +249,21 @@ export default function ProfileEditPage() {
       ".opus",
       ".flac",
       ".webm",
+      ".mp4",
     ];
 
     const lowerName = file.name.toLowerCase();
 
     const looksLikeAudio =
       file.type.startsWith("audio/") ||
-      audioExtensions.some((extension) =>
+      file.type === "application/octet-stream" ||
+      supportedExtensions.some((extension) =>
         lowerName.endsWith(extension)
       );
 
     if (!looksLikeAudio) {
       setNotice(
-        "Choose an MP3, M4A, WAV or other audio file."
+        "That file does not look like playable audio."
       );
       return;
     }
@@ -276,7 +278,17 @@ export default function ProfileEditPage() {
     }
 
     setSongFile(file);
-    setSongPreview(URL.createObjectURL(file));
+
+    const nextPreview =
+      URL.createObjectURL(file);
+
+    setSongPreview(nextPreview);
+
+    // The newly selected file now replaces the previous URL.
+    setForm((current) => ({
+      ...current,
+      profile_song_url: "",
+    }));
 
     const titleFromFile = file.name
       .replace(/\.[^/.]+$/, "")
@@ -329,6 +341,24 @@ export default function ProfileEditPage() {
       .data.publicUrl;
   }
 
+  function removeSoundtrack() {
+    if (songPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(songPreview);
+    }
+
+    setSongFile(null);
+    setSongPreview("");
+
+    setForm((current) => ({
+      ...current,
+      profile_song_url: "",
+      profile_song_title: "",
+      profile_song_artist: "",
+    }));
+
+    setNotice("Soundtrack removed. Tap Done to save.");
+  }
+
   async function saveProfile() {
     if (!email || saving) return;
 
@@ -338,7 +368,12 @@ export default function ProfileEditPage() {
     try {
       let avatarUrl = form.avatar_url;
       let coverUrl = form.profile_background_url;
-      let songUrl = form.profile_song_url;
+      let songUrl =
+        songFile
+          ? form.profile_song_url
+          : songPreview
+            ? form.profile_song_url
+            : "";
 
       if (avatarFile) {
         setUploadStage("Uploading profile photo…");
@@ -395,24 +430,32 @@ export default function ProfileEditPage() {
           coverUrl,
 
         profile_song_url:
-          songUrl,
+          songUrl || null,
 
-        // Keep older UTV pages compatible too.
+        // Keep older UTV pages synchronized.
         profile_song:
-          songUrl,
+          songUrl || null,
 
         profile_song_title:
-          form.profile_song_title.trim() ||
-          (songFile
-            ? songFile.name
-                .replace(/\.[^/.]+$/, "")
-                .replaceAll("-", " ")
-                .replaceAll("_", " ")
-            : "Profile Soundtrack"),
+          songUrl
+            ? (
+                form.profile_song_title.trim() ||
+                (songFile
+                  ? songFile.name
+                      .replace(/\.[^/.]+$/, "")
+                      .replaceAll("-", " ")
+                      .replaceAll("_", " ")
+                  : "Profile Soundtrack")
+              )
+            : null,
 
         profile_song_artist:
-          form.profile_song_artist.trim() ||
-          form.display_name.trim(),
+          songUrl
+            ? (
+                form.profile_song_artist.trim() ||
+                form.display_name.trim()
+              )
+            : null,
 
         theme_color:
           form.theme_color,
@@ -641,7 +684,7 @@ export default function ProfileEditPage() {
       <input
         ref={songInput}
         type="file"
-        accept="audio/*"
+        accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.webm,.mp4"
         hidden
         onChange={chooseSong}
       />
@@ -804,6 +847,14 @@ export default function ProfileEditPage() {
 
           {songPreview && (
             <>
+              <button
+                type="button"
+                className="removeSong"
+                onClick={removeSoundtrack}
+              >
+                Remove soundtrack
+              </button>
+
               <div className="songMetaGrid">
                 <label>
                   <span>Song title</span>
@@ -1421,6 +1472,17 @@ export default function ProfileEditPage() {
           color:
             rgba(255,255,255,.48);
           font-size: 23px;
+        }
+
+        .removeSong {
+          justify-self: start;
+          border: 0;
+          padding: 8px 11px;
+          border-radius: 999px;
+          color: #ff8b9b;
+          background: rgba(255,80,110,.09);
+          font-size: 8px;
+          font-weight: 950;
         }
 
         .songMetaGrid {
