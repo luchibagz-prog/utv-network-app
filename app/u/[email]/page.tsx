@@ -43,6 +43,14 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
   const [notice, setNotice] = useState("");
+  const [socialSheet, setSocialSheet] =
+    useState<"followers" | "following" | null>(null);
+
+  const [socialUsers, setSocialUsers] =
+    useState<any[]>([]);
+
+  const [socialLoading, setSocialLoading] =
+    useState(false);
 
   useEffect(() => {
     void load();
@@ -315,6 +323,139 @@ export default function PublicProfile() {
     };
   }, [song]);
 
+
+  async function openSocialList(
+    kind: "followers" | "following"
+  ) {
+    setSocialSheet(kind);
+    setSocialLoading(true);
+    setSocialUsers([]);
+
+    try {
+      const query =
+        kind === "followers"
+          ? supabase
+              .from("follows")
+              .select("follower_email")
+              .eq("following_email", email)
+          : supabase
+              .from("follows")
+              .select("following_email")
+              .eq("follower_email", email);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const emails = Array.from(
+        new Set(
+          (data || [])
+            .map((row: any) =>
+              String(
+                kind === "followers"
+                  ? row.follower_email
+                  : row.following_email
+              )
+            )
+            .filter(Boolean)
+        )
+      );
+
+      if (!emails.length) {
+        setSocialUsers([]);
+        return;
+      }
+
+      const { data: profiles, error: profileError } =
+        await supabase
+          .from("creator_profiles")
+          .select("*")
+          .in("email", emails);
+
+      if (profileError) throw profileError;
+
+      const profileMap = new Map(
+        (profiles || []).map((person: any) => [
+          String(person.email || "").toLowerCase(),
+          person,
+        ])
+      );
+
+      const ordered = emails.map((personEmail) => {
+        const person =
+          profileMap.get(personEmail.toLowerCase()) || {};
+
+        return {
+          email: personEmail,
+
+          name: pick(
+            person,
+            [
+              "display_name",
+              "creator_name",
+              "username",
+            ],
+            "UTV Creator"
+          ),
+
+          username: pick(
+            person,
+            ["username"],
+            "creator"
+          ),
+
+          avatar: pick(
+            person,
+            [
+              "avatar_url",
+              "creator_avatar",
+              "profile_image",
+            ]
+          ),
+
+          category: pick(
+            person,
+            ["category", "creator_type"],
+            "Creator"
+          ),
+        };
+      });
+
+      setSocialUsers(ordered);
+    } catch (error) {
+      console.error(
+        "Could not load social list:",
+        error
+      );
+
+      setNotice(
+        "Could not load this list right now."
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        1800
+      );
+    } finally {
+      setSocialLoading(false);
+    }
+  }
+
+  function jumpToProfileTab(
+    nextTab: Tab
+  ) {
+    setTab(nextTab);
+
+    window.setTimeout(() => {
+      document
+        .querySelector(".tabs")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 60);
+  }
+
   async function toggleMusic() {
     if (!song || !audioRef.current) {
       setNotice("This creator has not added a profile song yet.");
@@ -445,33 +586,26 @@ export default function PublicProfile() {
             </button>
           </div>
         ) : (
-          <button
-            className={
-              creatorDashboardOpen
-                ? "creatorDashboardButton open"
-                : "creatorDashboardButton"
-            }
-            onClick={() =>
-              setCreatorDashboardOpen(
-                (current) => !current
-              )
-            }
-          >
-            <span>⚡</span>
-
-            <div>
-              <strong>Creator Dashboard</strong>
-              <small>
-                {creatorDashboardOpen
-                  ? "Close creator tools"
-                  : "Open your creator tools"}
-              </small>
-            </div>
-
-            <b>
-              {creatorDashboardOpen ? "⌃" : "⌄"}
-            </b>
-          </button>
+          <div className="ownerProfileTools">
+            <button
+              className={
+                creatorDashboardOpen
+                  ? "ownerCreatorButton open"
+                  : "ownerCreatorButton"
+              }
+              onClick={() =>
+                setCreatorDashboardOpen(
+                  (current) => !current
+                )
+              }
+            >
+              <span>⚡</span>
+              <strong>Creator</strong>
+              <b>
+                {creatorDashboardOpen ? "⌃" : "⌄"}
+              </b>
+            </button>
+          </div>
         )}
       </section>
 
@@ -592,26 +726,42 @@ export default function PublicProfile() {
         </section>
       )}
 
-      <section className="stats">
-        <article>
+      <section className="stats socialStats">
+        <button
+          onClick={() =>
+            jumpToProfileTab("posts")
+          }
+        >
           <strong>{posts.length}</strong>
           <span>Posts</span>
-        </article>
+        </button>
 
-        <article>
+        <button
+          onClick={() =>
+            void openSocialList("followers")
+          }
+        >
           <strong>{followers}</strong>
           <span>Followers</span>
-        </article>
+        </button>
 
-        <article>
+        <button
+          onClick={() =>
+            void openSocialList("following")
+          }
+        >
           <strong>{following}</strong>
           <span>Following</span>
-        </article>
+        </button>
 
-        <article>
+        <button
+          onClick={() =>
+            jumpToProfileTab("crew")
+          }
+        >
           <strong>{crew.length}/8</strong>
           <span>Top 8</span>
-        </article>
+        </button>
       </section>
 
 
@@ -799,6 +949,119 @@ export default function PublicProfile() {
           </div>
           <b>▶</b>
         </button>
+      )}
+
+
+      {socialSheet && (
+        <div
+          className="socialSheetBackdrop"
+          onClick={() =>
+            setSocialSheet(null)
+          }
+        >
+          <section
+            className="socialPeopleSheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="socialSheetHandle" />
+
+            <header>
+              <div>
+                <p>UTV SOCIAL</p>
+
+                <h2>
+                  {socialSheet === "followers"
+                    ? "Followers"
+                    : "Following"}
+                </h2>
+
+                <span>
+                  @{username}
+                </span>
+              </div>
+
+              <button
+                onClick={() =>
+                  setSocialSheet(null)
+                }
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="peopleList">
+              {socialLoading ? (
+                <div className="peopleEmpty">
+                  <div className="miniSpinner" />
+                  <b>Loading people…</b>
+                </div>
+              ) : socialUsers.length ? (
+                socialUsers.map(
+                  (person: any) => (
+                    <button
+                      key={person.email}
+                      className="personRow"
+                      onClick={() => {
+                        setSocialSheet(null);
+
+                        router.push(
+                          `/u/${encodeURIComponent(
+                            person.email
+                          )}`
+                        );
+                      }}
+                    >
+                      <div className="personAvatar">
+                        {person.avatar ? (
+                          <img
+                            src={person.avatar}
+                            alt={person.name}
+                          />
+                        ) : (
+                          <span>
+                            {person.name
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <strong>
+                          {person.name}
+                        </strong>
+
+                        <small>
+                          @{person.username}
+                        </small>
+
+                        <em>
+                          {person.category}
+                        </em>
+                      </div>
+
+                      <b>›</b>
+                    </button>
+                  )
+                )
+              ) : (
+                <div className="peopleEmpty">
+                  <span>👥</span>
+
+                  <b>
+                    No people here yet
+                  </b>
+
+                  <small>
+                    Build your UTV circle.
+                  </small>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
       )}
 
       {contactOpen && !isOwner && (
@@ -1128,6 +1391,329 @@ export default function PublicProfile() {
 
         .creatorQuickActions .creatorPrimary small {
           color: rgba(6,20,15,.55);
+        }
+
+
+        .ownerProfileTools {
+          position: absolute;
+          z-index: 25;
+          top: 17px;
+          right: 16px;
+        }
+
+        .ownerCreatorButton {
+          min-height: 39px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border:
+            1px solid rgba(82,247,200,.25);
+          border-radius: 999px;
+          color: white;
+          background:
+            rgba(4,8,14,.72);
+          box-shadow:
+            0 10px 30px rgba(0,0,0,.22);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 25px;
+          height: 25px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: #06140f;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9eff78
+            );
+          font-size: 12px;
+        }
+
+        .ownerCreatorButton strong {
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .ownerCreatorButton > b {
+          color:
+            rgba(255,255,255,.55);
+          font-size: 11px;
+        }
+
+        .ownerCreatorButton.open {
+          border-color:
+            rgba(82,247,200,.65);
+          box-shadow:
+            0 10px 35px
+            rgba(82,247,200,.14);
+        }
+
+        .socialStats button {
+          border: 0;
+          color: inherit;
+          background: transparent;
+          font: inherit;
+          cursor: pointer;
+        }
+
+        .socialStats button:active {
+          transform: scale(.96);
+        }
+
+        .socialStats button {
+          transition:
+            transform .15s ease,
+            background .15s ease;
+        }
+
+        .socialSheetBackdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9200;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          padding: 12px;
+          background:
+            rgba(0,0,0,.72);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter:
+            blur(14px);
+        }
+
+        .socialPeopleSheet {
+          width: min(100%,520px);
+          max-height: 76vh;
+          overflow: hidden;
+          padding: 8px 14px 16px;
+          border:
+            1px solid rgba(255,255,255,.11);
+          border-radius: 28px;
+          color: white;
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(123,97,255,.16),
+              transparent 34%
+            ),
+            linear-gradient(
+              180deg,
+              #111722,
+              #06090f
+            );
+          box-shadow:
+            0 -30px 90px rgba(0,0,0,.55);
+          animation:
+            peopleSheetUp .25s ease both;
+        }
+
+        @keyframes peopleSheetUp {
+          from {
+            opacity: 0;
+            transform:
+              translateY(35px);
+          }
+
+          to {
+            opacity: 1;
+            transform:
+              translateY(0);
+          }
+        }
+
+        .socialSheetHandle {
+          width: 42px;
+          height: 4px;
+          margin: 1px auto 14px;
+          border-radius: 999px;
+          background:
+            rgba(255,255,255,.19);
+        }
+
+        .socialPeopleSheet header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 2px 3px 12px;
+        }
+
+        .socialPeopleSheet header p {
+          margin: 0;
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .15em;
+        }
+
+        .socialPeopleSheet header h2 {
+          margin: 3px 0 1px;
+          font-size: 25px;
+          letter-spacing: -.04em;
+        }
+
+        .socialPeopleSheet header span {
+          color:
+            rgba(255,255,255,.45);
+          font-size: 9px;
+        }
+
+        .socialPeopleSheet header button {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 50%;
+          color: white;
+          background:
+            rgba(255,255,255,.07);
+          font-size: 21px;
+        }
+
+        .peopleList {
+          max-height: 58vh;
+          overflow-y: auto;
+          display: grid;
+          gap: 5px;
+          padding-bottom: 5px;
+        }
+
+        .personRow {
+          width: 100%;
+          min-height: 67px;
+          display: grid;
+          grid-template-columns:
+            48px 1fr auto;
+          align-items: center;
+          gap: 11px;
+          padding: 8px 9px;
+          border: 0;
+          border-bottom:
+            1px solid rgba(255,255,255,.055);
+          color: white;
+          background: transparent;
+          text-align: left;
+        }
+
+        .personRow:active {
+          background:
+            rgba(255,255,255,.05);
+        }
+
+        .personAvatar {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          padding: 2px;
+          border-radius: 16px;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #7865ff,
+              #ff62b6
+            );
+        }
+
+        .personAvatar img,
+        .personAvatar span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          border:
+            3px solid #080c13;
+          border-radius: 14px;
+          object-fit: cover;
+          color: #07120e;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #fff
+            );
+          font-size: 17px;
+          font-weight: 1000;
+        }
+
+        .personRow > div:nth-child(2) {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .personRow strong {
+          overflow: hidden;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .personRow small {
+          color: #52f7c8;
+          font-size: 8px;
+        }
+
+        .personRow em {
+          color:
+            rgba(255,255,255,.35);
+          font-size: 7px;
+          font-style: normal;
+        }
+
+        .personRow > b {
+          color:
+            rgba(255,255,255,.25);
+          font-size: 20px;
+        }
+
+        .peopleEmpty {
+          min-height: 180px;
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 6px;
+          color:
+            rgba(255,255,255,.55);
+          text-align: center;
+        }
+
+        .peopleEmpty > span {
+          font-size: 31px;
+        }
+
+        .peopleEmpty b {
+          color: white;
+          font-size: 11px;
+        }
+
+        .peopleEmpty small {
+          font-size: 8px;
+        }
+
+        .miniSpinner {
+          width: 28px;
+          height: 28px;
+          border:
+            3px solid
+            rgba(255,255,255,.11);
+          border-top-color:
+            #52f7c8;
+          border-radius: 50%;
+          animation:
+            socialSpin .7s linear infinite;
+        }
+
+        @keyframes socialSpin {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .socialActions {
