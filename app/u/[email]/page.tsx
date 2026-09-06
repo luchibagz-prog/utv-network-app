@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 
-type Tab = "featured" | "posts" | "crew" | "about";
+type Tab = "posts" | "featured" | "crew" | "about";
 
 function pick(row: any, keys: string[], fallback = "") {
   for (const key of keys) {
@@ -28,10 +28,11 @@ export default function PublicProfile() {
 
   const [profile, setProfile] = useState<any>({});
   const [posts, setPosts] = useState<any[]>([]);
+  const [contactOpen, setContactOpen] = useState(false);
   const [crew, setCrew] = useState<any[]>([]);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
-  const [tab, setTab] = useState<Tab>("featured");
+  const [tab, setTab] = useState<Tab>("posts");
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
@@ -340,19 +341,9 @@ export default function PublicProfile() {
         </div>
 
         {!isOwner ? (
-          <div className="actions">
+          <div className="socialActions">
             <button
-              className="primary"
-              onClick={() =>
-                router.push(
-                  `/book/${encodeURIComponent(email)}`
-                )
-              }
-            >
-              📅 Book Me
-            </button>
-
-            <button
+              className="messageAction"
               onClick={() =>
                 router.push(
                   `/messages?to=${encodeURIComponent(email)}`
@@ -363,35 +354,23 @@ export default function PublicProfile() {
             </button>
 
             <button
+              className="walkieAction"
               onClick={() =>
                 router.push(
                   `/walkie?to=${encodeURIComponent(email)}`
                 )
               }
             >
+              <span className="walkiePulse" />
               🎙 Walkie
             </button>
 
             <button
-              onClick={() =>
-                router.push(
-                  `/calls?to=${encodeURIComponent(email)}`
-                )
-              }
+              className="contactAction"
+              onClick={() => setContactOpen(true)}
             >
-              📞 Call
+              ⚡ Contact
             </button>
-
-            <button
-              onClick={() =>
-                router.push(
-                  `/calls?to=${encodeURIComponent(email)}&type=video`
-                )
-              }
-            >
-              📹 Video
-            </button>
-
           </div>
         ) : null}
       </section>
@@ -404,7 +383,7 @@ export default function PublicProfile() {
 
         <article>
           <strong>{followers}</strong>
-          <span>Crew</span>
+          <span>Followers</span>
         </article>
 
         <article>
@@ -414,17 +393,33 @@ export default function PublicProfile() {
 
         <article>
           <strong>{crew.length}/8</strong>
-          <span>Top Crew</span>
+          <span>Top 8</span>
         </article>
+      </section>
+
+
+      <section className="top8Spotlight">
+        <div className="top8Heading">
+          <div>
+            <p>UTV INNER CIRCLE</p>
+            <h2>Top 8</h2>
+          </div>
+
+          <button onClick={() => setTab("crew")}>
+            View all
+          </button>
+        </div>
+
+        <CrewGrid crew={crew.slice(0, 8)} router={router} />
       </section>
 
       <nav className="tabs">
         {(
           [
-            ["featured", "✨ Featured"],
-            ["posts", "🎬 Posts"],
-            ["crew", "👥 Top 8"],
-            ["about", "⚡ About"],
+            ["posts", "Posts"],
+            ["featured", "Featured"],
+            ["crew", "Top 8"],
+            ["about", "About"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
           <button
@@ -502,7 +497,7 @@ export default function PublicProfile() {
           <>
             <div className="heading">
               <div>
-                <p>CREATOR CONTENT</p>
+                <p>LATEST FROM @{username}</p>
                 <h2>Posts</h2>
               </div>
             </div>
@@ -553,6 +548,91 @@ export default function PublicProfile() {
         )}
       </section>
 
+
+      {contactOpen && !isOwner && (
+        <div
+          className="contactBackdrop"
+          onClick={() => setContactOpen(false)}
+        >
+          <section
+            className="contactSheet"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="contactHandle" />
+
+            <div className="contactTitle">
+              <div>
+                <p>CONNECT WITH</p>
+                <h2>{name}</h2>
+                <span>@{username}</span>
+              </div>
+
+              <button
+                className="contactClose"
+                onClick={() => setContactOpen(false)}
+                aria-label="Close contact menu"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="contactOptions">
+              <button
+                onClick={() =>
+                  router.push(
+                    `/calls?to=${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                <span>📞</span>
+                <div>
+                  <strong>Audio Call</strong>
+                  <small>Start a UTV voice call</small>
+                </div>
+                <b>›</b>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    `/calls?to=${encodeURIComponent(email)}&type=video`
+                  )
+                }
+              >
+                <span>📹</span>
+                <div>
+                  <strong>Video Call</strong>
+                  <small>Face-to-face on UTV</small>
+                </div>
+                <b>›</b>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    `/book/${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                <span>📅</span>
+                <div>
+                  <strong>Book Me</strong>
+                  <small>Business, appearances & creator work</small>
+                </div>
+                <b>›</b>
+              </button>
+            </div>
+
+            <button
+              className="contactCancel"
+              onClick={() => setContactOpen(false)}
+            >
+              Cancel
+            </button>
+          </section>
+        </div>
+      )}
+
       {notice && (
         <div className="notice">
           {notice}
@@ -560,6 +640,256 @@ export default function PublicProfile() {
       )}
 
       <style jsx>{`
+
+        .socialActions {
+          display:grid;
+          grid-template-columns:1fr 1fr 1fr;
+          gap:8px;
+          width:100%;
+          margin-top:18px;
+        }
+
+        .socialActions button {
+          min-height:46px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:7px;
+          padding:0 12px;
+          border:1px solid rgba(255,255,255,.13);
+          border-radius:14px;
+          color:#fff;
+          background:rgba(255,255,255,.075);
+          font-size:11px;
+          font-weight:950;
+          backdrop-filter:blur(16px);
+          -webkit-backdrop-filter:blur(16px);
+        }
+
+        .socialActions .messageAction {
+          background:rgba(255,255,255,.09);
+        }
+
+        .socialActions .walkieAction {
+          position:relative;
+          overflow:hidden;
+          color:#04120d;
+          border-color:rgba(82,247,200,.6);
+          background:linear-gradient(135deg,#52f7c8,#8effdc);
+          box-shadow:0 10px 35px rgba(82,247,200,.19);
+        }
+
+        .walkiePulse {
+          width:7px;
+          height:7px;
+          border-radius:999px;
+          background:#06120d;
+          box-shadow:0 0 0 0 rgba(6,18,13,.35);
+          animation:walkieProfilePulse 1.4s infinite;
+        }
+
+        @keyframes walkieProfilePulse {
+          70% { box-shadow:0 0 0 8px rgba(6,18,13,0); }
+          100% { box-shadow:0 0 0 0 rgba(6,18,13,0); }
+        }
+
+        .socialActions .contactAction {
+          border-color:rgba(142,116,255,.35);
+          background:linear-gradient(
+            135deg,
+            rgba(123,97,255,.23),
+            rgba(82,247,200,.09)
+          );
+        }
+
+        .top8Spotlight {
+          margin:14px 12px 8px;
+          padding:15px;
+          border:1px solid rgba(255,255,255,.09);
+          border-radius:20px;
+          background:
+            radial-gradient(circle at 0% 0%,rgba(82,247,200,.08),transparent 38%),
+            rgba(255,255,255,.035);
+        }
+
+        .top8Heading {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          margin-bottom:12px;
+        }
+
+        .top8Heading p {
+          margin:0 0 3px;
+          color:#52f7c8;
+          font-size:8px;
+          font-weight:1000;
+          letter-spacing:.15em;
+        }
+
+        .top8Heading h2 {
+          margin:0;
+          font-size:21px;
+          letter-spacing:-.03em;
+        }
+
+        .top8Heading button {
+          border:0;
+          padding:7px 10px;
+          border-radius:999px;
+          color:rgba(255,255,255,.72);
+          background:rgba(255,255,255,.07);
+          font-size:9px;
+          font-weight:900;
+        }
+
+        .contactBackdrop {
+          position:fixed;
+          inset:0;
+          z-index:9000;
+          display:flex;
+          align-items:flex-end;
+          justify-content:center;
+          padding:18px 12px 12px;
+          background:rgba(0,0,0,.72);
+          backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);
+        }
+
+        .contactSheet {
+          width:min(100%,520px);
+          padding:9px 14px 14px;
+          border:1px solid rgba(255,255,255,.13);
+          border-radius:28px;
+          background:
+            radial-gradient(circle at 90% 0%,rgba(123,97,255,.18),transparent 35%),
+            linear-gradient(180deg,#111725,#070a11);
+          box-shadow:0 -30px 90px rgba(0,0,0,.65);
+        }
+
+        .contactHandle {
+          width:42px;
+          height:4px;
+          margin:0 auto 13px;
+          border-radius:999px;
+          background:rgba(255,255,255,.2);
+        }
+
+        .contactTitle {
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:12px;
+          padding:4px 5px 13px;
+        }
+
+        .contactTitle p {
+          margin:0;
+          color:#52f7c8;
+          font-size:8px;
+          font-weight:1000;
+          letter-spacing:.15em;
+        }
+
+        .contactTitle h2 {
+          margin:3px 0 1px;
+          font-size:25px;
+          letter-spacing:-.04em;
+        }
+
+        .contactTitle span {
+          color:rgba(255,255,255,.5);
+          font-size:11px;
+        }
+
+        .contactClose {
+          width:34px;
+          height:34px;
+          border:0;
+          border-radius:50%;
+          color:#fff;
+          background:rgba(255,255,255,.08);
+          font-size:22px;
+        }
+
+        .contactOptions {
+          display:grid;
+          gap:7px;
+        }
+
+        .contactOptions > button {
+          width:100%;
+          min-height:64px;
+          display:grid;
+          grid-template-columns:38px 1fr auto;
+          align-items:center;
+          gap:10px;
+          padding:9px 12px;
+          border:1px solid rgba(255,255,255,.08);
+          border-radius:16px;
+          color:#fff;
+          background:rgba(255,255,255,.045);
+          text-align:left;
+        }
+
+        .contactOptions > button > span {
+          width:38px;
+          height:38px;
+          display:grid;
+          place-items:center;
+          border-radius:12px;
+          background:rgba(255,255,255,.07);
+          font-size:18px;
+        }
+
+        .contactOptions > button div {
+          display:grid;
+          gap:2px;
+        }
+
+        .contactOptions strong {
+          font-size:11px;
+        }
+
+        .contactOptions small {
+          color:rgba(255,255,255,.45);
+          font-size:8px;
+        }
+
+        .contactOptions b {
+          color:rgba(255,255,255,.3);
+          font-size:20px;
+        }
+
+        .contactCancel {
+          width:100%;
+          min-height:43px;
+          margin-top:9px;
+          border:0;
+          border-radius:14px;
+          color:rgba(255,255,255,.72);
+          background:rgba(255,255,255,.055);
+          font-size:10px;
+          font-weight:900;
+        }
+
+        @media(max-width:390px) {
+          .socialActions {
+            gap:6px;
+          }
+
+          .socialActions button {
+            padding:0 7px;
+            font-size:9px;
+          }
+
+          .top8Spotlight {
+            margin-left:9px;
+            margin-right:9px;
+          }
+        }
+
         .page {
           min-height: 100vh;
           padding-bottom: 150px;
