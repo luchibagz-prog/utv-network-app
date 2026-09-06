@@ -29,6 +29,8 @@ export default function PublicProfile() {
   const [profile, setProfile] = useState<any>({});
   const [posts, setPosts] = useState<any[]>([]);
   const [contactOpen, setContactOpen] = useState(false);
+  const [tabTouchStart, setTabTouchStart] = useState<number | null>(null);
+  const [tabTouchEnd, setTabTouchEnd] = useState<number | null>(null);
   const [crew, setCrew] = useState<any[]>([]);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
@@ -228,6 +230,57 @@ export default function PublicProfile() {
     () => posts.slice(0, 3),
     [posts]
   );
+
+  const profileTabs: Tab[] = [
+    "posts",
+    "featured",
+    "crew",
+    "about",
+  ];
+
+  function moveProfileTab(direction: "next" | "prev") {
+    const currentIndex = profileTabs.indexOf(tab);
+
+    if (currentIndex < 0) return;
+
+    const nextIndex =
+      direction === "next"
+        ? Math.min(currentIndex + 1, profileTabs.length - 1)
+        : Math.max(currentIndex - 1, 0);
+
+    if (nextIndex !== currentIndex) {
+      setTab(profileTabs[nextIndex]);
+
+      try {
+        navigator.vibrate?.(12);
+      } catch {}
+    }
+  }
+
+  function finishProfileSwipe() {
+    if (
+      tabTouchStart === null ||
+      tabTouchEnd === null
+    ) {
+      setTabTouchStart(null);
+      setTabTouchEnd(null);
+      return;
+    }
+
+    const distance =
+      tabTouchStart - tabTouchEnd;
+
+    const minimumSwipe = 48;
+
+    if (distance > minimumSwipe) {
+      moveProfileTab("next");
+    } else if (distance < -minimumSwipe) {
+      moveProfileTab("prev");
+    }
+
+    setTabTouchStart(null);
+    setTabTouchEnd(null);
+  }
 
   async function toggleMusic() {
     if (!song || !audioRef.current) {
@@ -432,7 +485,27 @@ export default function PublicProfile() {
         ))}
       </nav>
 
-      <section className="content">
+      <div className="swipeHint">
+        <span>‹</span>
+        Swipe to explore
+        <span>›</span>
+      </div>
+
+      <section
+        className="content swipeContent"
+        onTouchStart={(event) => {
+          setTabTouchEnd(null);
+          setTabTouchStart(
+            event.targetTouches[0]?.clientX ?? null
+          );
+        }}
+        onTouchMove={(event) => {
+          setTabTouchEnd(
+            event.targetTouches[0]?.clientX ?? null
+          );
+        }}
+        onTouchEnd={finishProfileSwipe}
+      >
         {tab === "featured" && (
           <>
             <section className="soundtrack">
@@ -1094,8 +1167,44 @@ export default function PublicProfile() {
             linear-gradient(135deg,#53f4cd,#8e83ff);
         }
 
+        .swipeHint {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: -5px 0 7px;
+          color: rgba(255,255,255,.28);
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          user-select: none;
+        }
+
+        .swipeHint span {
+          color: #52f7c8;
+          font-size: 15px;
+        }
+
         .content {
           padding: 3px 14px 40px;
+        }
+
+        .swipeContent {
+          touch-action: pan-y;
+          animation: tabContentIn .24s ease both;
+        }
+
+        @keyframes tabContentIn {
+          from {
+            opacity: .55;
+            transform: translateX(8px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
 
         .soundtrack {

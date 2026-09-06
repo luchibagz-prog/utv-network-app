@@ -959,7 +959,9 @@ export default function ProfileProV12Page() {
           <div className="manageList">
             <button
               onClick={() => {
-                setViewMode("public");
+                router.push(
+                  `/u/${encodeURIComponent(email)}?preview=1`
+                );
                 window.scrollTo({
                   top: 0,
                   behavior: "smooth",

@@ -20,6 +20,8 @@ type ProfileForm = {
   avatar_url: string;
   profile_background_url: string;
   profile_song_url: string;
+  profile_song_title: string;
+  profile_song_artist: string;
   theme_color: string;
   accent_color: string;
 };
@@ -33,6 +35,8 @@ const DEFAULT_FORM: ProfileForm = {
   avatar_url: "",
   profile_background_url: "",
   profile_song_url: "",
+  profile_song_title: "",
+  profile_song_artist: "",
   theme_color: "#7b61ff",
   accent_color: "#52f7c8",
 };
@@ -132,6 +136,15 @@ export default function ProfileEditPage() {
       profile_song_url:
         profile?.profile_song_url ||
         profile?.profile_song ||
+        "",
+      profile_song_title:
+        profile?.profile_song_title ||
+        profile?.music_title ||
+        "",
+      profile_song_artist:
+        profile?.profile_song_artist ||
+        profile?.music_artist ||
+        profile?.display_name ||
         "",
       theme_color:
         profile?.theme_color ||
@@ -243,6 +256,24 @@ export default function ProfileEditPage() {
 
     setSongFile(file);
     setSongPreview(URL.createObjectURL(file));
+
+    const titleFromFile = file.name
+      .replace(/\.[^/.]+$/, "")
+      .replaceAll("-", " ")
+      .replaceAll("_", " ")
+      .trim();
+
+    setForm((current) => ({
+      ...current,
+      profile_song_title:
+        current.profile_song_title ||
+        titleFromFile,
+      profile_song_artist:
+        current.profile_song_artist ||
+        current.display_name ||
+        current.username,
+    }));
+
     setNotice("Profile soundtrack ready 🎵");
   }
 
@@ -339,6 +370,21 @@ export default function ProfileEditPage() {
           coverUrl,
         profile_song_url:
           songUrl,
+
+        // Keep the legacy field synchronized too.
+        profile_song:
+          songUrl,
+
+        profile_song_title:
+          form.profile_song_title.trim() ||
+          (songFile
+            ? songFile.name.replace(/\.[^/.]+$/, "")
+            : "Profile Soundtrack"),
+
+        profile_song_artist:
+          form.profile_song_artist.trim() ||
+          form.display_name.trim(),
+
         theme_color:
           form.theme_color,
         accent_color:
@@ -361,6 +407,14 @@ export default function ProfileEditPage() {
         avatar_url: avatarUrl,
         profile_background_url: coverUrl,
         profile_song_url: songUrl,
+        profile_song_title:
+          current.profile_song_title ||
+          (songFile
+            ? songFile.name.replace(/\.[^/.]+$/, "")
+            : "Profile Soundtrack"),
+        profile_song_artist:
+          current.profile_song_artist ||
+          current.display_name,
       }));
 
       setAvatarFile(null);
@@ -720,12 +774,46 @@ export default function ProfileEditPage() {
           </button>
 
           {songPreview && (
-            <audio
-              className="audioPreview"
-              src={songPreview}
-              controls
-              preload="metadata"
-            />
+            <>
+              <div className="songMetaGrid">
+                <label>
+                  <span>Song title</span>
+
+                  <input
+                    value={form.profile_song_title}
+                    onChange={(event) =>
+                      setField(
+                        "profile_song_title",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Song title"
+                  />
+                </label>
+
+                <label>
+                  <span>Artist</span>
+
+                  <input
+                    value={form.profile_song_artist}
+                    onChange={(event) =>
+                      setField(
+                        "profile_song_artist",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Artist name"
+                  />
+                </label>
+              </div>
+
+              <audio
+                className="audioPreview"
+                src={songPreview}
+                controls
+                preload="metadata"
+              />
+            </>
           )}
         </section>
 
@@ -1306,6 +1394,12 @@ export default function ProfileEditPage() {
           font-size: 23px;
         }
 
+        .songMetaGrid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 9px;
+        }
+
         .audioPreview {
           width: 100%;
           height: 42px;
@@ -1477,7 +1571,8 @@ export default function ProfileEditPage() {
             left: 137px;
           }
 
-          .twoCol {
+          .twoCol,
+          .songMetaGrid {
             grid-template-columns: 1fr;
           }
         }
