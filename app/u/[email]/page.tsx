@@ -726,6 +726,56 @@ export default function PublicProfile() {
         </section>
       )}
 
+      {song && (
+        <section className="profileMusicBar">
+          <button
+            className={playing ? "musicPlayButton playing" : "musicPlayButton"}
+            onClick={() => void toggleMusic()}
+            aria-label={playing ? "Pause soundtrack" : "Play soundtrack"}
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+
+          <div className="profileMusicInfo">
+            <span>NOW PLAYING</span>
+            <strong>{songTitle || "Profile Soundtrack"}</strong>
+            <small>{songArtist || `@${username}`}</small>
+          </div>
+
+          <div className={playing ? "musicBars active" : "musicBars"}>
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </section>
+      )}
+
+      {song && (
+        <section className="profileMusicBar">
+          <button
+            className={playing ? "musicPlayButton playing" : "musicPlayButton"}
+            onClick={() => void toggleMusic()}
+            aria-label={playing ? "Pause soundtrack" : "Play soundtrack"}
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+
+          <div className="profileMusicInfo">
+            <span>NOW PLAYING</span>
+            <strong>{songTitle || "Profile Soundtrack"}</strong>
+            <small>{songArtist || `@${username}`}</small>
+          </div>
+
+          <div className={playing ? "musicBars active" : "musicBars"}>
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </section>
+      )}
+
       <section className="stats socialStats">
         <button
           onClick={() =>
@@ -2439,6 +2489,682 @@ export default function PublicProfile() {
             border-radius: 36px;
           }
         }
+
+
+        /* ===== UTV PROFILE POLISH ===== */
+
+        .page {
+          position: relative;
+          min-height: 100vh;
+          overflow-x: hidden;
+          background:
+            radial-gradient(
+              circle at 50% 600px,
+              rgba(100,70,190,.10),
+              transparent 48%
+            ),
+            #03060d;
+        }
+
+        .hero {
+          position: relative;
+          isolation: isolate;
+          min-height: 620px;
+          padding-bottom: 60px;
+          background-position: center top !important;
+          background-size: cover !important;
+        }
+
+        .hero::after {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          left: 0;
+          right: 0;
+          bottom: -90px;
+          height: 165px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(3,6,13,.96),
+              rgba(3,6,13,.68) 52%,
+              transparent
+            );
+        }
+
+        .identity {
+          position: relative;
+          z-index: 5;
+        }
+
+        .bio {
+          text-shadow: 0 2px 14px rgba(0,0,0,.8);
+        }
+
+        /* Creator control */
+
+        .ownerProfileTools {
+          position: absolute !important;
+          z-index: 80 !important;
+          top: 18px !important;
+          right: 16px !important;
+          width: auto !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        .ownerCreatorButton {
+          width: auto !important;
+          min-width: 96px !important;
+          min-height: 42px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 7px !important;
+          padding: 6px 11px 6px 7px !important;
+
+          border:
+            1px solid rgba(82,247,200,.46) !important;
+
+          border-radius: 999px !important;
+          color: white !important;
+          background: rgba(3,8,14,.84) !important;
+
+          box-shadow:
+            0 10px 32px rgba(0,0,0,.38),
+            0 0 18px rgba(82,247,200,.10) !important;
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 28px !important;
+          height: 28px !important;
+          display: grid !important;
+          place-items: center !important;
+          border-radius: 50% !important;
+          color: #04130e !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #a0ff7a
+            ) !important;
+        }
+
+        .ownerCreatorButton strong {
+          display: block !important;
+          color: white !important;
+          font-size: 10px !important;
+          font-weight: 950 !important;
+        }
+
+        .ownerCreatorButton > b {
+          display: block !important;
+          color: rgba(255,255,255,.60) !important;
+          font-size: 10px !important;
+        }
+
+        /* Profile music */
+
+        .profileMusicBar {
+          position: relative;
+          z-index: 25;
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr) auto;
+          align-items: center;
+          gap: 11px;
+
+          margin: -22px 12px 12px;
+          padding: 10px 12px;
+
+          border: 1px solid rgba(82,247,200,.20);
+          border-radius: 17px;
+
+          background:
+            linear-gradient(
+              110deg,
+              rgba(7,13,21,.86),
+              rgba(92,63,170,.18)
+            );
+
+          box-shadow: 0 12px 34px rgba(0,0,0,.22);
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .musicPlayButton {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 13px;
+          color: #06130f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9187ff
+            );
+
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .profileMusicInfo {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .profileMusicInfo span {
+          color: #52f7c8;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .16em;
+        }
+
+        .profileMusicInfo strong {
+          overflow: hidden;
+          color: white;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .profileMusicInfo small {
+          overflow: hidden;
+          color: rgba(255,255,255,.46);
+          font-size: 8px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .musicBars {
+          height: 26px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .musicBars i {
+          width: 2px;
+          height: 7px;
+          display: block;
+          border-radius: 99px;
+          background: rgba(82,247,200,.5);
+        }
+
+        .musicBars.active i {
+          animation:
+            utvProfileMusic .65s
+            ease-in-out infinite alternate;
+        }
+
+        .musicBars.active i:nth-child(2) {
+          animation-delay: -.3s;
+        }
+
+        .musicBars.active i:nth-child(3) {
+          animation-delay: -.12s;
+        }
+
+        .musicBars.active i:nth-child(4) {
+          animation-delay: -.45s;
+        }
+
+        @keyframes utvProfileMusic {
+          from {
+            height: 6px;
+            opacity: .45;
+          }
+
+          to {
+            height: 24px;
+            opacity: 1;
+          }
+        }
+
+        /* Cleaner social stats */
+
+        .stats.socialStats {
+          position: relative;
+          z-index: 20;
+          display: grid !important;
+          grid-template-columns:
+            repeat(4,minmax(0,1fr)) !important;
+
+          gap: 0 !important;
+          margin: 0 8px 12px !important;
+          padding: 7px 0 9px !important;
+
+          border: 0 !important;
+          border-top:
+            1px solid rgba(255,255,255,.065) !important;
+          border-bottom:
+            1px solid rgba(255,255,255,.065) !important;
+
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button {
+          position: relative;
+          min-width: 0 !important;
+          min-height: 57px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 2px !important;
+          margin: 0 !important;
+          padding: 4px 2px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button:not(:last-child)::after {
+          content: "";
+          position: absolute;
+          top: 13px;
+          right: 0;
+          width: 1px;
+          height: 31px;
+          background: rgba(255,255,255,.07);
+        }
+
+        .stats.socialStats strong {
+          color: white !important;
+          font-size: 25px !important;
+          line-height: 1 !important;
+        }
+
+        .stats.socialStats span {
+          margin-top: 4px !important;
+          color: rgba(255,255,255,.47) !important;
+          font-size: 10px !important;
+          font-weight: 900 !important;
+        }
+
+        /* Lower profile */
+
+        .top8Spotlight {
+          margin-left: 12px !important;
+          margin-right: 12px !important;
+
+          border-color:
+            rgba(255,255,255,.07) !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(9,16,27,.58),
+              rgba(37,31,72,.32)
+            ) !important;
+
+          box-shadow:
+            0 15px 40px rgba(0,0,0,.12) !important;
+
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .tabs {
+          background:
+            rgba(3,6,13,.74) !important;
+
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+
+
+
+        /* ===== UTV PROFILE POLISH ===== */
+
+        .page {
+          position: relative;
+          min-height: 100vh;
+          overflow-x: hidden;
+          background:
+            radial-gradient(
+              circle at 50% 600px,
+              rgba(100,70,190,.10),
+              transparent 48%
+            ),
+            #03060d;
+        }
+
+        .hero {
+          position: relative;
+          isolation: isolate;
+          min-height: 620px;
+          padding-bottom: 60px;
+          background-position: center top !important;
+          background-size: cover !important;
+        }
+
+        .hero::after {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          left: 0;
+          right: 0;
+          bottom: -90px;
+          height: 165px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(3,6,13,.96),
+              rgba(3,6,13,.68) 52%,
+              transparent
+            );
+        }
+
+        .identity {
+          position: relative;
+          z-index: 5;
+        }
+
+        .bio {
+          text-shadow: 0 2px 14px rgba(0,0,0,.8);
+        }
+
+        /* Creator control */
+
+        .ownerProfileTools {
+          position: absolute !important;
+          z-index: 80 !important;
+          top: 18px !important;
+          right: 16px !important;
+          width: auto !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        .ownerCreatorButton {
+          width: auto !important;
+          min-width: 96px !important;
+          min-height: 42px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 7px !important;
+          padding: 6px 11px 6px 7px !important;
+
+          border:
+            1px solid rgba(82,247,200,.46) !important;
+
+          border-radius: 999px !important;
+          color: white !important;
+          background: rgba(3,8,14,.84) !important;
+
+          box-shadow:
+            0 10px 32px rgba(0,0,0,.38),
+            0 0 18px rgba(82,247,200,.10) !important;
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 28px !important;
+          height: 28px !important;
+          display: grid !important;
+          place-items: center !important;
+          border-radius: 50% !important;
+          color: #04130e !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #a0ff7a
+            ) !important;
+        }
+
+        .ownerCreatorButton strong {
+          display: block !important;
+          color: white !important;
+          font-size: 10px !important;
+          font-weight: 950 !important;
+        }
+
+        .ownerCreatorButton > b {
+          display: block !important;
+          color: rgba(255,255,255,.60) !important;
+          font-size: 10px !important;
+        }
+
+        /* Profile music */
+
+        .profileMusicBar {
+          position: relative;
+          z-index: 25;
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr) auto;
+          align-items: center;
+          gap: 11px;
+
+          margin: -22px 12px 12px;
+          padding: 10px 12px;
+
+          border: 1px solid rgba(82,247,200,.20);
+          border-radius: 17px;
+
+          background:
+            linear-gradient(
+              110deg,
+              rgba(7,13,21,.86),
+              rgba(92,63,170,.18)
+            );
+
+          box-shadow: 0 12px 34px rgba(0,0,0,.22);
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .musicPlayButton {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 13px;
+          color: #06130f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9187ff
+            );
+
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .profileMusicInfo {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .profileMusicInfo span {
+          color: #52f7c8;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .16em;
+        }
+
+        .profileMusicInfo strong {
+          overflow: hidden;
+          color: white;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .profileMusicInfo small {
+          overflow: hidden;
+          color: rgba(255,255,255,.46);
+          font-size: 8px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .musicBars {
+          height: 26px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .musicBars i {
+          width: 2px;
+          height: 7px;
+          display: block;
+          border-radius: 99px;
+          background: rgba(82,247,200,.5);
+        }
+
+        .musicBars.active i {
+          animation:
+            utvProfileMusic .65s
+            ease-in-out infinite alternate;
+        }
+
+        .musicBars.active i:nth-child(2) {
+          animation-delay: -.3s;
+        }
+
+        .musicBars.active i:nth-child(3) {
+          animation-delay: -.12s;
+        }
+
+        .musicBars.active i:nth-child(4) {
+          animation-delay: -.45s;
+        }
+
+        @keyframes utvProfileMusic {
+          from {
+            height: 6px;
+            opacity: .45;
+          }
+
+          to {
+            height: 24px;
+            opacity: 1;
+          }
+        }
+
+        /* Cleaner social stats */
+
+        .stats.socialStats {
+          position: relative;
+          z-index: 20;
+          display: grid !important;
+          grid-template-columns:
+            repeat(4,minmax(0,1fr)) !important;
+
+          gap: 0 !important;
+          margin: 0 8px 12px !important;
+          padding: 7px 0 9px !important;
+
+          border: 0 !important;
+          border-top:
+            1px solid rgba(255,255,255,.065) !important;
+          border-bottom:
+            1px solid rgba(255,255,255,.065) !important;
+
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button {
+          position: relative;
+          min-width: 0 !important;
+          min-height: 57px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 2px !important;
+          margin: 0 !important;
+          padding: 4px 2px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button:not(:last-child)::after {
+          content: "";
+          position: absolute;
+          top: 13px;
+          right: 0;
+          width: 1px;
+          height: 31px;
+          background: rgba(255,255,255,.07);
+        }
+
+        .stats.socialStats strong {
+          color: white !important;
+          font-size: 25px !important;
+          line-height: 1 !important;
+        }
+
+        .stats.socialStats span {
+          margin-top: 4px !important;
+          color: rgba(255,255,255,.47) !important;
+          font-size: 10px !important;
+          font-weight: 900 !important;
+        }
+
+        /* Lower profile */
+
+        .top8Spotlight {
+          margin-left: 12px !important;
+          margin-right: 12px !important;
+
+          border-color:
+            rgba(255,255,255,.07) !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(9,16,27,.58),
+              rgba(37,31,72,.32)
+            ) !important;
+
+          box-shadow:
+            0 15px 40px rgba(0,0,0,.12) !important;
+
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .tabs {
+          background:
+            rgba(3,6,13,.74) !important;
+
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+
       `}</style>
     </main>
   );
