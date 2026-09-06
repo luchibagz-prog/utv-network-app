@@ -240,8 +240,29 @@ export default function ProfileEditPage() {
 
     if (!file) return;
 
-    if (!file.type.startsWith("audio/")) {
-      setNotice("Choose an audio file for your profile song.");
+    const audioExtensions = [
+      ".mp3",
+      ".m4a",
+      ".aac",
+      ".wav",
+      ".ogg",
+      ".opus",
+      ".flac",
+      ".webm",
+    ];
+
+    const lowerName = file.name.toLowerCase();
+
+    const looksLikeAudio =
+      file.type.startsWith("audio/") ||
+      audioExtensions.some((extension) =>
+        lowerName.endsWith(extension)
+      );
+
+    if (!looksLikeAudio) {
+      setNotice(
+        "Choose an MP3, M4A, WAV or other audio file."
+      );
       return;
     }
 
@@ -368,17 +389,25 @@ export default function ProfileEditPage() {
           avatarUrl,
         profile_background_url:
           coverUrl,
+
+        // Older profile code uses this field.
+        profile_background:
+          coverUrl,
+
         profile_song_url:
           songUrl,
 
-        // Keep the legacy field synchronized too.
+        // Keep older UTV pages compatible too.
         profile_song:
           songUrl,
 
         profile_song_title:
           form.profile_song_title.trim() ||
           (songFile
-            ? songFile.name.replace(/\.[^/.]+$/, "")
+            ? songFile.name
+                .replace(/\.[^/.]+$/, "")
+                .replaceAll("-", " ")
+                .replaceAll("_", " ")
             : "Profile Soundtrack"),
 
         profile_song_artist:
