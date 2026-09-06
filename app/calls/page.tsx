@@ -12,6 +12,7 @@ import {
 
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import { sendUTVPush } from "../../lib/sendUTVPush";
 
 type CallRow = {
   id: string;
@@ -205,6 +206,16 @@ export default function CallsPage() {
         });
 
       if (error) throw error;
+
+      void sendUTVPush({
+        recipientEmail: cleanTarget,
+        event:
+          callType === "video"
+            ? "video_call"
+            : "audio_call",
+        url: `/call/${id}`,
+        callId: id,
+      });
 
       try {
         navigator.vibrate?.(

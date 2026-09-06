@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import { sendUTVPush } from "../../lib/sendUTVPush";
 
 type Person = {
   email: string;
@@ -340,6 +341,13 @@ setInvites(
             `Invite could not be sent: ${inviteError.message}`
           );
         }
+
+        void sendUTVPush({
+          recipientEmail: personEmail,
+          event: "walkie",
+          url: `/walkie/${roomId}`,
+          roomId,
+        });
       }
 
       setCallingRoomId(roomId);

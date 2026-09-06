@@ -15,6 +15,7 @@ import {
 
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
+import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 type MessageRow = {
   id: string;
@@ -549,6 +550,12 @@ const refreshTimerRef =
               : message
         )
     );
+
+    void sendUTVPush({
+      recipientEmail: otherEmail,
+      event: "message",
+      url: `/messages/${encodeURIComponent(viewerEmail)}`,
+    });
 
     const notificationLink =
       `/messages/${encodeURIComponent(

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
+import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 function NewMessageForm() {
   const router = useRouter();
@@ -93,6 +94,12 @@ function NewMessageForm() {
       type: "message",
       title: "New Message",
       message: `${senderEmail} sent you a message.`,
+    });
+
+    void sendUTVPush({
+      recipientEmail: receiverEmail.trim().toLowerCase(),
+      event: "message",
+      url: `/messages/${encodeURIComponent(senderEmail)}`,
     });
 
     setStatus("Message sent.");
