@@ -1521,7 +1521,61 @@ const selectedSticker = stickers.find(
     setDrawVersion((current) => current + 1);
   }
 
-  // TODO: Composite drawing canvas into exported Story media in a future feature pack.
+  function getStoryDrawingData() {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return null;
+
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    const pixels = context.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    ).data;
+
+    let hasDrawing = false;
+
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] > 0) {
+        hasDrawing = true;
+        break;
+      }
+    }
+
+    if (!hasDrawing) return null;
+
+    try {
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      console.warn("Could not export Story drawing.", error);
+      return null;
+    }
+  }
+
+  function getStoryDurationSeconds() {
+    if (!previewIsVideo) {
+      return 7;
+    }
+
+    const video =
+      document.querySelector<HTMLVideoElement>(
+        ".storyMediaGesture video"
+      );
+
+    const duration = video?.duration;
+
+    if (
+      duration &&
+      Number.isFinite(duration) &&
+      duration > 0
+    ) {
+      return duration;
+    }
+
+    return 30;
+  }
 
   async function uploadFileToBucket(
     bucket: string,
@@ -1632,6 +1686,9 @@ const selectedSticker = stickers.find(
 
       const media = await uploadMedia();
       const finalMusicUrl = await uploadMusic();
+      const drawingData = getStoryDrawingData();
+      const storyDurationSeconds =
+        getStoryDurationSeconds();
 
       const { data: storyRow, error: storyError } =
         await supabase
@@ -1648,15 +1705,26 @@ const selectedSticker = stickers.find(
             music_title: musicTitle.trim() || null,
             text_overlay: textLayers,
             stickers,
+            drawing_data: drawingData,
+            duration_seconds: storyDurationSeconds,
             expires_at: new Date(
               Date.now() + 24 * 60 * 60 * 1000
             ).toISOString(),
           })
-          .select("id")
+          .select("id, music_url, music_title, duration_seconds")
           .single();
 
       if (storyError) {
         throw storyError;
+      }
+
+      // Launch reliability check:
+      // if music was selected, make sure the saved Story row
+      // actually came back with its permanent music URL.
+      if (finalMusicUrl && !storyRow?.music_url) {
+        throw new Error(
+          "Your Story uploaded, but the music did not save correctly. Please try again."
+        );
       }
 
       if (storyRow?.id) {

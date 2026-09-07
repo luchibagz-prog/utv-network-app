@@ -480,34 +480,213 @@ export default function PublicProfile() {
 
   if (loading) {
     return (
-      <main className="loading">
+      <main className="utvLoadingPage">
         <UTVNav />
-        <div className="spinner" />
-        <h2>Loading profile…</h2>
+
+        <div className="loaderAtmosphere loaderAtmosphereOne" />
+        <div className="loaderAtmosphere loaderAtmosphereTwo" />
+
+        <section className="utvLoader" aria-label="Loading profile">
+          <div className="utvMark">
+            <div className="utvMarkGlow" />
+            <span className="utvLetters">UTV</span>
+          </div>
+
+          <div className="utvLoaderLine">
+            <span />
+          </div>
+
+          <div className="utvLoadingCopy">
+            <strong>Loading profile</strong>
+            <span>Opening UTV</span>
+          </div>
+        </section>
 
         <style jsx>{`
-          .loading {
-            min-height: 100vh;
+          .utvLoadingPage {
+            position: relative;
+            min-height: 100svh;
+            overflow: hidden;
             display: grid;
             place-items: center;
-            align-content: center;
-            gap: 15px;
-            color: white;
-            background: #03060d;
+            color: #fff;
+            background:
+              radial-gradient(
+                circle at 50% 38%,
+                rgba(82, 247, 200, 0.075),
+                transparent 24%
+              ),
+              radial-gradient(
+                circle at 70% 58%,
+                rgba(123, 97, 255, 0.08),
+                transparent 30%
+              ),
+              linear-gradient(
+                180deg,
+                #020408 0%,
+                #050812 48%,
+                #020409 100%
+              );
           }
 
-          .spinner {
-            width: 48px;
-            height: 48px;
-            border: 5px solid rgba(255,255,255,.12);
-            border-top-color: #53f4cd;
+          .loaderAtmosphere {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 999px;
+            filter: blur(70px);
+            opacity: 0.22;
+            animation: loaderFloat 5s ease-in-out infinite alternate;
+          }
+
+          .loaderAtmosphereOne {
+            width: 210px;
+            height: 210px;
+            background: rgba(82, 247, 200, 0.32);
+            top: 24%;
+            left: calc(50% - 150px);
+          }
+
+          .loaderAtmosphereTwo {
+            width: 230px;
+            height: 230px;
+            background: rgba(123, 97, 255, 0.26);
+            bottom: 24%;
+            right: calc(50% - 160px);
+            animation-delay: -2.2s;
+          }
+
+          .utvLoader {
+            position: relative;
+            z-index: 2;
+            width: min(78vw, 270px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
+          .utvMark {
+            position: relative;
+            height: 88px;
+            min-width: 150px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 25px;
+            background: transparent;
+          }
+
+          .utvMarkGlow {
+            position: absolute;
+            width: 112px;
+            height: 112px;
             border-radius: 50%;
-            animation: spin .8s linear infinite;
+            background:
+              radial-gradient(
+                circle,
+                rgba(82, 247, 200, 0.19),
+                rgba(123, 97, 255, 0.08) 46%,
+                transparent 70%
+              );
+            filter: blur(3px);
+            animation: logoGlow 1.8s ease-in-out infinite alternate;
           }
 
-          @keyframes spin {
+          .utvLetters {
+            position: relative;
+            z-index: 1;
+            font-size: 44px;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -3px;
+            color: #fff;
+            text-shadow:
+              0 0 24px rgba(82, 247, 200, 0.20),
+              0 0 42px rgba(123, 97, 255, 0.12);
+          }
+
+          .utvLoaderLine {
+            width: 128px;
+            height: 3px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.09);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+          }
+
+          .utvLoaderLine span {
+            display: block;
+            width: 42%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+              linear-gradient(
+                90deg,
+                #52f7c8,
+                #a985ff
+              );
+            box-shadow: 0 0 14px rgba(82, 247, 200, 0.45);
+            animation: loadingSweep 1.15s ease-in-out infinite;
+          }
+
+          .utvLoadingCopy {
+            margin-top: 17px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .utvLoadingCopy strong {
+            font-size: 15px;
+            font-weight: 760;
+            letter-spacing: -0.15px;
+          }
+
+          .utvLoadingCopy span {
+            color: rgba(255,255,255,.43);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 1.25px;
+            text-transform: uppercase;
+          }
+
+          @keyframes loadingSweep {
+            0% {
+              transform: translateX(-120%);
+            }
+
+            55%,
+            100% {
+              transform: translateX(245%);
+            }
+          }
+
+          @keyframes logoGlow {
+            from {
+              opacity: .52;
+              transform: scale(.92);
+            }
+
             to {
-              transform: rotate(360deg);
+              opacity: 1;
+              transform: scale(1.08);
+            }
+          }
+
+          @keyframes loaderFloat {
+            from {
+              transform: translate3d(-8px, -5px, 0) scale(.96);
+            }
+
+            to {
+              transform: translate3d(8px, 8px, 0) scale(1.05);
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .utvLoaderLine span,
+            .utvMarkGlow,
+            .loaderAtmosphere {
+              animation: none;
             }
           }
         `}</style>
