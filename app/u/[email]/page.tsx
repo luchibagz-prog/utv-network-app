@@ -3778,6 +3778,157 @@ function MediaGrid({
             }
           }
 
+
+          /* ==========================================
+             UTV OG FIRST 100 — ANIMATED COLLECTIBLE
+             ========================================== */
+
+          .ogBadge {
+            isolation: isolate;
+            transform: translateZ(0);
+            animation:
+              ogBadgeFloat 3.2s ease-in-out infinite,
+              ogBadgeGlow 2.4s ease-in-out infinite alternate;
+          }
+
+          .ogBadge::before {
+            content: "";
+            position: absolute;
+            top: -40%;
+            bottom: -40%;
+            left: -55%;
+            width: 32%;
+            z-index: 0;
+            pointer-events: none;
+            transform: rotate(18deg);
+            background:
+              linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,.06),
+                rgba(255,255,255,.58),
+                rgba(111,246,207,.28),
+                transparent
+              );
+            filter: blur(.3px);
+            animation:
+              ogBadgeShine 3.6s cubic-bezier(.4,0,.2,1) infinite;
+          }
+
+          .ogBadge > * {
+            position: relative;
+            z-index: 2;
+          }
+
+          .ogBadge .ogStar {
+            display: inline-block;
+            transform-origin: center;
+            animation:
+              ogStarPulse 1.8s ease-in-out infinite;
+          }
+
+          .ogBadge b {
+            position: relative;
+            z-index: 2;
+            text-shadow:
+              0 0 7px rgba(82,247,200,.42),
+              0 0 14px rgba(123,97,255,.18);
+            animation:
+              ogNumberGlow 2.2s ease-in-out infinite alternate;
+          }
+
+          @keyframes ogBadgeShine {
+            0% {
+              transform:
+                translateX(-180%)
+                rotate(18deg);
+              opacity: 0;
+            }
+
+            12% {
+              opacity: 1;
+            }
+
+            42% {
+              opacity: .9;
+            }
+
+            60%,
+            100% {
+              transform:
+                translateX(520%)
+                rotate(18deg);
+              opacity: 0;
+            }
+          }
+
+          @keyframes ogBadgeFloat {
+            0%,
+            100% {
+              transform:
+                translateY(0)
+                scale(1);
+            }
+
+            50% {
+              transform:
+                translateY(-1.5px)
+                scale(1.015);
+            }
+          }
+
+          @keyframes ogBadgeGlow {
+            from {
+              box-shadow:
+                0 5px 18px rgba(82,247,200,.07),
+                0 0 0 rgba(123,97,255,0),
+                inset 0 0 18px rgba(123,97,255,.05);
+            }
+
+            to {
+              box-shadow:
+                0 6px 24px rgba(82,247,200,.18),
+                0 0 18px rgba(123,97,255,.10),
+                inset 0 0 22px rgba(82,247,200,.08);
+            }
+          }
+
+          @keyframes ogStarPulse {
+            0%,
+            100% {
+              transform:
+                scale(1)
+                rotate(0deg);
+              filter: brightness(1);
+            }
+
+            50% {
+              transform:
+                scale(1.22)
+                rotate(8deg);
+              filter: brightness(1.35);
+            }
+          }
+
+          @keyframes ogNumberGlow {
+            from {
+              color: #77f8d3;
+            }
+
+            to {
+              color: #b7ffea;
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .ogBadge,
+            .ogBadge::before,
+            .ogBadge .ogStar,
+            .ogBadge b {
+              animation: none !important;
+            }
+          }
+
         `}</style>
       </div>
     );
