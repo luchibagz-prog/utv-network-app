@@ -240,7 +240,7 @@ export default function CreatorUploadV16Page() {
       )}`;
 
     const endpoint =
-      `https://${projectRef}.storage.supabase.co` +
+      `${supabaseUrl}` +
       `/storage/v1/upload/resumable`;
 
     await new Promise<void>(
