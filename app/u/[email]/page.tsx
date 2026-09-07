@@ -773,12 +773,50 @@ export default function PublicProfile() {
             <p className="category">{category}</p>
             <h1>{name}</h1>
             <b className="username">@{username}</b>
-
             {utvBadge && (
-              <div className="utvBadgeRow">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                  marginTop: "10px",
+                  marginBottom: "4px",
+                }}
+              >
                 {utvBadge.is_ceo && (
-                  <span className="utvBadge ceoBadge">
-                    <span className="badgeIcon">♛</span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      minHeight: "28px",
+                      padding: "6px 11px",
+                      borderRadius: "999px",
+                      border: "1px solid rgba(255,211,92,.58)",
+                      color: "#fff4bc",
+                      background:
+                        "linear-gradient(135deg, rgba(157,101,16,.96), rgba(48,29,5,.97))",
+                      boxShadow:
+                        "0 6px 20px rgba(255,177,30,.18), inset 0 1px 0 rgba(255,255,255,.18)",
+                      fontSize: "10px",
+                      fontWeight: 900,
+                      letterSpacing: ".7px",
+                      lineHeight: 1,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: "#ffd76a",
+                        fontSize: "13px",
+                        textShadow:
+                          "0 0 10px rgba(255,207,78,.65)",
+                      }}
+                    >
+                      ♛
+                    </span>
+
                     CEO
                   </span>
                 )}
@@ -786,10 +824,51 @@ export default function PublicProfile() {
                 {utvBadge.og_number &&
                   utvBadge.og_number >= 1 &&
                   utvBadge.og_number <= 100 && (
-                    <span className="utvBadge ogBadge">
-                      <span className="ogStar">✦</span>
-                      UTV OG
-                      <b>
+                    <span
+                      style={{
+                        position: "relative",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        minHeight: "28px",
+                        padding: "6px 11px",
+                        borderRadius: "999px",
+                        border:
+                          "1px solid rgba(82,247,200,.52)",
+                        color: "#effffb",
+                        background:
+                          "linear-gradient(135deg, rgba(16,79,68,.97), rgba(51,31,98,.96))",
+                        boxShadow:
+                          "0 6px 22px rgba(82,247,200,.17), 0 0 18px rgba(123,97,255,.12), inset 0 1px 0 rgba(255,255,255,.15)",
+                        fontSize: "10px",
+                        fontWeight: 900,
+                        letterSpacing: ".7px",
+                        lineHeight: 1,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#76f7d2",
+                          fontSize: "13px",
+                          textShadow:
+                            "0 0 11px rgba(82,247,200,.75)",
+                        }}
+                      >
+                        ✦
+                      </span>
+
+                      <span>UTV OG</span>
+
+                      <b
+                        style={{
+                          color: "#8cffe0",
+                          fontWeight: 950,
+                          textShadow:
+                            "0 0 8px rgba(82,247,200,.45)",
+                        }}
+                      >
                         #{String(utvBadge.og_number).padStart(
                           3,
                           "0"
@@ -800,7 +879,7 @@ export default function PublicProfile() {
               </div>
             )}
 
-            <p className="bio">{bio}</p>
+<p className="bio">{bio}</p>
           </div>
         </div>
 
