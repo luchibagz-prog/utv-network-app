@@ -278,11 +278,50 @@ export default function CreatorUploadV16Page() {
 
         setProgress(25);
 
-        mediaUrl =
-          await upload(
-            "creator-content",
-            file
+        // Keep the UI alive while the browser transfers the file.
+        const progressTimer =
+          window.setInterval(() => {
+            setProgress((current) => {
+              if (current >= 64) {
+                return current;
+              }
+
+              return current + 2;
+            });
+          }, 1200);
+
+        try {
+          const uploadPromise =
+            upload(
+              "creator-content",
+              file
+            );
+
+          const timeoutPromise =
+            new Promise<never>(
+              (_, reject) => {
+                window.setTimeout(
+                  () =>
+                    reject(
+                      new Error(
+                        "Upload timed out. Check your connection and try again."
+                      )
+                    ),
+                  180000
+                );
+              }
+            );
+
+          mediaUrl =
+            await Promise.race([
+              uploadPromise,
+              timeoutPromise,
+            ]);
+        } finally {
+          window.clearInterval(
+            progressTimer
           );
+        }
 
         setProgress(70);
       }
