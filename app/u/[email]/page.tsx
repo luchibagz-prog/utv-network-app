@@ -42,6 +42,14 @@ export default function PublicProfile() {
     useState(false);
   const [loading, setLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+
+  const [utvBadge, setUtvBadge] = useState<{
+    og_number: number | null;
+    is_ceo: boolean;
+  } | null>(null);
+
+  const [ogSpotsRemaining, setOgSpotsRemaining] =
+    useState<number | null>(null);
   const [notice, setNotice] = useState("");
   const [socialSheet, setSocialSheet] =
     useState<"followers" | "following" | null>(null);
@@ -74,6 +82,8 @@ export default function PublicProfile() {
         topCrewResult,
         followerResult,
         followingResult,
+        badgeResult,
+        ogRemainingResult,
       ] = await Promise.all([
         supabase
           .from("creator_profiles")
@@ -104,12 +114,47 @@ export default function PublicProfile() {
           .from("follows")
           .select("*", { count: "exact", head: true })
           .eq("follower_email", email),
+
+        supabase.rpc("get_utv_badge", {
+          target_email: email,
+        }),
+
+        supabase.rpc("get_utv_og_spots_remaining"),
       ]);
 
       setProfile(profileResult.data || {});
       setPosts(postsResult.data || []);
       setFollowers(followerResult.count || 0);
       setFollowing(followingResult.count || 0);
+
+      const badgeRows = Array.isArray(badgeResult.data)
+        ? badgeResult.data
+        : [];
+
+      const badgeRow = badgeRows[0] || null;
+
+      setUtvBadge(
+        badgeRow
+          ? {
+              og_number:
+                badgeRow.og_number == null
+                  ? null
+                  : Number(badgeRow.og_number),
+              is_ceo: Boolean(badgeRow.is_ceo),
+            }
+          : null
+      );
+
+      const remainingValue =
+        typeof ogRemainingResult.data === "number"
+          ? ogRemainingResult.data
+          : Number(ogRemainingResult.data);
+
+      setOgSpotsRemaining(
+        Number.isFinite(remainingValue)
+          ? Math.max(0, remainingValue)
+          : null
+      );
 
       const topRows = topCrewResult.data || [];
 
@@ -728,6 +773,33 @@ export default function PublicProfile() {
             <p className="category">{category}</p>
             <h1>{name}</h1>
             <b className="username">@{username}</b>
+
+            {utvBadge && (
+              <div className="utvBadgeRow">
+                {utvBadge.is_ceo && (
+                  <span className="utvBadge ceoBadge">
+                    <span className="badgeIcon">♛</span>
+                    CEO
+                  </span>
+                )}
+
+                {utvBadge.og_number &&
+                  utvBadge.og_number >= 1 &&
+                  utvBadge.og_number <= 100 && (
+                    <span className="utvBadge ogBadge">
+                      <span className="ogStar">✦</span>
+                      UTV OG
+                      <b>
+                        #{String(utvBadge.og_number).padStart(
+                          3,
+                          "0"
+                        )}
+                      </b>
+                    </span>
+                  )}
+              </div>
+            )}
+
             <p className="bio">{bio}</p>
           </div>
         </div>
@@ -3509,6 +3581,203 @@ function MediaGrid({
           .emptyMedia h3 {
             color: white;
           }
+
+          .utvBadgeRow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 9px;
+            margin-bottom: 2px;
+          }
+
+          .utvBadge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 25px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: .65px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+          }
+
+          .utvBadge::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,.16),
+              inset 0 -1px 0 rgba(0,0,0,.28);
+          }
+
+          .ceoBadge {
+            color: #fff4bc;
+            border: 1px solid rgba(255,211,92,.48);
+            background:
+              linear-gradient(
+                135deg,
+                rgba(145,92,15,.72),
+                rgba(43,27,5,.92)
+              );
+            box-shadow:
+              0 5px 18px rgba(255,177,30,.12),
+              inset 0 0 18px rgba(255,208,78,.08);
+          }
+
+          .ceoBadge .badgeIcon {
+            color: #ffd76a;
+            font-size: 12px;
+            text-shadow:
+              0 0 10px rgba(255,207,78,.45);
+          }
+
+          .ogBadge {
+            color: #eafff9;
+            border: 1px solid rgba(82,247,200,.38);
+            background:
+              linear-gradient(
+                135deg,
+                rgba(20,68,62,.9),
+                rgba(45,29,89,.88)
+              );
+            box-shadow:
+              0 5px 20px rgba(82,247,200,.08),
+              inset 0 0 18px rgba(123,97,255,.06);
+          }
+
+          .ogBadge b {
+            color: #77f8d3;
+            font-weight: 950;
+          }
+
+          .ogStar {
+            color: #76f7d2;
+            font-size: 12px;
+            text-shadow:
+              0 0 10px rgba(82,247,200,.48);
+          }
+
+          .ogFoundersDrop {
+            position: relative;
+            overflow: hidden;
+            display: grid;
+            grid-template-columns:
+              42px minmax(0,1fr) auto;
+            align-items: center;
+            gap: 12px;
+            margin: 14px 14px 2px;
+            padding: 14px;
+            border: 1px solid rgba(82,247,200,.16);
+            border-radius: 20px;
+            background:
+              linear-gradient(
+                135deg,
+                rgba(11,20,27,.96),
+                rgba(15,11,31,.96)
+              );
+            box-shadow:
+              0 15px 45px rgba(0,0,0,.24),
+              inset 0 1px 0 rgba(255,255,255,.04);
+          }
+
+          .ogFoundersGlow {
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            left: -55px;
+            top: -60px;
+            border-radius: 50%;
+            background: rgba(82,247,200,.1);
+            filter: blur(30px);
+            pointer-events: none;
+          }
+
+          .ogFoundersIcon {
+            position: relative;
+            z-index: 1;
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            color: #6ff6cf;
+            font-size: 20px;
+            border: 1px solid rgba(82,247,200,.18);
+            background:
+              linear-gradient(
+                145deg,
+                rgba(82,247,200,.14),
+                rgba(123,97,255,.09)
+              );
+          }
+
+          .ogFoundersCopy {
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+          }
+
+          .ogFoundersCopy small {
+            color: #65f5ce;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 1.25px;
+          }
+
+          .ogFoundersCopy strong {
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.25;
+          }
+
+          .ogFoundersCopy span {
+            color: rgba(255,255,255,.48);
+            font-size: 10px;
+            line-height: 1.35;
+          }
+
+          .ogCounter {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+            color: #fff;
+            font-size: 20px;
+            font-weight: 950;
+            letter-spacing: -1px;
+          }
+
+          .ogCounter small {
+            color: rgba(255,255,255,.38);
+            font-size: 9px;
+            letter-spacing: 0;
+          }
+
+          @media (max-width: 520px) {
+            .ogFoundersDrop {
+              margin-left: 10px;
+              margin-right: 10px;
+            }
+
+            .ogFoundersCopy span {
+              display: none;
+            }
+          }
+
         `}</style>
       </div>
     );
