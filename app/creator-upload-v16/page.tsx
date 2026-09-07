@@ -33,7 +33,6 @@ export default function CreatorUploadV16Page(){
   async function publish(){
     if(!file)return setMessage("Choose a file first.");
     if(!title.trim())return setMessage("Add a title.");
-    if(file.size>500*1024*1024)return setMessage("File must be under 500 MB.");
 
     setPosting(true);setMessage("");setProgress(10);
     try{
