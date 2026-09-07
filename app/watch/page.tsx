@@ -1343,8 +1343,10 @@ export default function WatchPage() {
           </div>
 
           <Link
-            href="/studio"
+            href="/creator-upload-v16"
             className="studioShortcut"
+            aria-label="Add to Watch"
+            title="Add to Watch"
           >
             ＋
           </Link>
