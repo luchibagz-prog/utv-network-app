@@ -23,6 +23,8 @@ type CallRow = {
   room_name: string;
   status: string;
   created_at?: string;
+  answered_at?: string;
+  ended_at?: string;
 };
 
 type UTVPerson = {
@@ -439,8 +441,11 @@ export default function CallsPage() {
           type === "video"
             ? "video_call"
             : "audio_call",
+        // Incoming calls must open the Calls hub first so
+        // the receiver gets a real Accept / Decline choice.
+        // Do not drop a ringing callee directly into LiveKit.
         url:
-          `/call/${id}`,
+          `/calls?incoming=${encodeURIComponent(id)}`,
         callId: id,
       });
 
@@ -468,33 +473,39 @@ export default function CallsPage() {
   async function acceptCall(
     call: CallRow
   ) {
-    const { error } =
+    setMessage("Connecting call…");
+
+    const {
+      data: acceptedRow,
+      error,
+    } =
       await supabase
         .from("call_sessions")
         .update({
-          status:
-            "accepted",
+          status: "accepted",
           answered_at:
-            new Date()
-              .toISOString(),
+            call.answered_at ||
+            new Date().toISOString(),
         })
-        .eq(
-          "id",
-          call.id
-        )
-        .eq(
-          "callee_email",
-          email
-        );
+        .eq("id", call.id)
+        .eq("callee_email", email)
+        .in("status", ["ringing", "accepted"])
+        .select("*")
+        .maybeSingle();
 
     if (error) {
-      setMessage(
-        error.message
-      );
-
+      setMessage(error.message);
       return;
     }
 
+    if (!acceptedRow) {
+      setMessage(
+        "This call is no longer available."
+      );
+      return;
+    }
+
+    // Route only after Supabase confirms the call is accepted.
     router.push(
       `/call/${call.id}`
     );

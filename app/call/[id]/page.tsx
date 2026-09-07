@@ -121,7 +121,16 @@ export default function UTVCallRoom() {
           setCall(row);
 
           if (row.status === "accepted") {
-            setMessage("Connected");
+            const hasOtherPerson =
+              roomRef.current?.remoteParticipants
+                .size;
+
+            setMessage(
+              hasOtherPerson
+                ? "Connected"
+                : "Connecting…"
+            );
+
             startTimer(row);
           }
 
@@ -150,6 +159,71 @@ export default function UTVCallRoom() {
       void supabase.removeChannel(channel);
     };
   }, [callId, call?.id, email, router]);
+
+  useEffect(() => {
+    if (!callId || !email) return;
+
+    let stopped = false;
+
+    async function refreshCallStatus() {
+      const { data: fresh } =
+        await supabase
+          .from("call_sessions")
+          .select("*")
+          .eq("id", callId)
+          .maybeSingle();
+
+      if (stopped || !fresh) return;
+
+      const row = fresh as CallRow;
+
+      setCall((current) => {
+        if (
+          current?.status !== row.status ||
+          current?.answered_at !== row.answered_at
+        ) {
+          return row;
+        }
+
+        return current;
+      });
+
+      if (row.status === "accepted") {
+        setMessage(
+          roomRef.current?.remoteParticipants.size
+            ? "Connected"
+            : "Connecting…"
+        );
+
+        startTimer(row);
+      }
+
+      if (
+        row.status === "declined" ||
+        row.status === "ended" ||
+        row.status === "missed"
+      ) {
+        setMessage(
+          row.status === "declined"
+            ? "Call declined"
+            : "Call ended"
+        );
+      }
+    }
+
+    void refreshCallStatus();
+
+    const timer =
+      window.setInterval(
+        refreshCallStatus,
+        1500
+      );
+
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [callId, email]);
 
   async function getToken() {
     const {
@@ -340,6 +414,40 @@ export default function UTVCallRoom() {
       roomRef.current = room;
 
       room.on(
+        RoomEvent.ParticipantConnected,
+        () => {
+          setConnected(true);
+          setMessage("Connected");
+
+          // Refresh the authoritative call state immediately.
+          void supabase
+            .from("call_sessions")
+            .select("*")
+            .eq("id", callId)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) {
+                const row = data as CallRow;
+                setCall(row);
+
+                if (row.status === "accepted") {
+                  startTimer(row);
+                }
+              }
+            });
+        }
+      );
+
+      room.on(
+        RoomEvent.ParticipantDisconnected,
+        () => {
+          if (!leavingRef.current) {
+            setMessage("Reconnecting…");
+          }
+        }
+      );
+
+      room.on(
         RoomEvent.TrackSubscribed,
         (track: RemoteTrack) => {
           if (
@@ -438,11 +546,15 @@ export default function UTVCallRoom() {
           if (lower === "connected") {
             setConnected(true);
 
+            const hasOtherPerson =
+              room.remoteParticipants.size > 0;
+
             setMessage(
-              current.status ===
-                "ringing"
-                ? "Ringing…"
-                : "Connected"
+              hasOtherPerson
+                ? "Connected"
+                : current.status === "ringing"
+                  ? "Ringing…"
+                  : "Connecting…"
             );
           }
 
