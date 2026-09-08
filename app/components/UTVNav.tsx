@@ -1016,26 +1016,6 @@ export default function UTVNav() {
           />
         </Link>
 
-        <Link
-          href="/activity"
-          className="topActivityButton"
-          aria-label={
-            unreadCount > 0
-              ? `Open Activity. ${unreadCount} unread`
-              : "Open Activity"
-          }
-          onClick={openActivity}
-        >
-          🔔
-
-          {unreadCount > 0 && (
-            <span className="topUnreadBadge">
-              {unreadCount > 99
-                ? "99+"
-                : unreadCount}
-            </span>
-          )}
-        </Link>
       </nav>
 
       <nav className="utvBottomNav">
