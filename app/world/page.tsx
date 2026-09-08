@@ -727,7 +727,7 @@ export default function WorldPage() {
     if (!map) return;
 
     map.once("idle", () => {
-      startGlobeSpin();
+      stopGlobeSpin();
     });
 
     map.on(
@@ -762,7 +762,7 @@ export default function WorldPage() {
       const canvas = map.getCanvas();
 
       if (canvas) {
-        canvas.style.touchAction = "none";
+        canvas.style.touchAction = "pan-y pinch-zoom";
         canvas.style.cursor = "grab";
       }
 
@@ -853,8 +853,8 @@ export default function WorldPage() {
         nextLocation.latitude,
       ],
       zoom,
-      pitch: 52,
-      bearing: -12,
+      pitch: 0,
+      bearing: 0,
       duration: 1400,
       essential: true,
     });
@@ -891,7 +891,7 @@ export default function WorldPage() {
         SACRAMENTO.longitude,
         SACRAMENTO.latitude,
       ],
-      zoom: 1.65,
+      zoom: 7.4,
       pitch: 0,
       bearing: 0,
       duration: 1300,
@@ -1575,9 +1575,12 @@ export default function WorldPage() {
         item.is_live
       );
 
+    const avatar =
+      creatorAvatar(item);
+
     return (
       <button
-        className={`utvPin ${pinClass}`}
+        className={`utvPin neonMapPin ${pinClass}`}
         onClick={(event) => {
           event.stopPropagation();
           flyToItem(item);
@@ -1587,72 +1590,37 @@ export default function WorldPage() {
           type
         }
         style={{
-          color,
-          background: `radial-gradient(
-            circle at 30% 25%,
-            rgba(255,255,255,.98),
-            ${color} 30%,
-            rgba(10,18,33,.98) 78%
-          )`,
-
-          boxShadow: `
-            0 0 0 9px ${color}25,
-            0 0 34px ${color},
-            0 18px 30px rgba(0,0,0,.36)
-          `,
-        }}
+          "--pin-color": color,
+        } as React.CSSProperties}
       >
-        <span className="pinIcon">
-          {icon}
+        <span className="neonPinAura" />
+
+        <span className="neonPinBody">
+          <span className="neonPinCore">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt=""
+              />
+            ) : (
+              <span className="pinIcon">
+                {icon}
+              </span>
+            )}
+          </span>
         </span>
 
-        {pinClass ===
-          "pinMusic" && (
-          <>
-            <span className="musicNote noteOne">
-              ♪
-            </span>
+        <span className="neonPinPoint" />
 
-            <span className="musicNote noteTwo">
-              ♫
-            </span>
-          </>
-        )}
-
-        {pinClass ===
-          "pinEvent" && (
-          <>
-            <span className="confetti confettiOne">
-              ✦
-            </span>
-
-            <span className="confetti confettiTwo">
-              ✧
-            </span>
-          </>
-        )}
-
-        {pinClass ===
-          "pinCasting" && (
-          <span className="spotlight" />
-        )}
-
-        {pinClass ===
-          "pinComedy" && (
-          <span className="laughPop">
-            😂
-          </span>
-        )}
-
-        {pinClass ===
-          "pinSports" && (
-          <span className="sportsBounce">
-            •
+        {item.is_live && (
+          <span className="neonLiveBadge">
+            LIVE
           </span>
         )}
       </button>
     );
   }
+
     return (
     <main className="worldPage">
       <UTVNav />
@@ -1714,7 +1682,7 @@ export default function WorldPage() {
           onClick={() => {
             setWorldView("world");
             resetMap();
-            window.setTimeout(() => startGlobeSpin(), 900);
+            stopGlobeSpin();
           }}
         >
           🌎
@@ -2068,25 +2036,6 @@ export default function WorldPage() {
                 ? "🛰️"
                 : "🌙"}
             </button>
-
-            <button
-              type="button"
-              aria-label="Spin globe"
-              className={
-                globeSpinning
-                  ? "mapSpinActive"
-                  : ""
-              }
-              onClick={() => {
-                if (globeSpinning) {
-                  stopGlobeSpin();
-                } else {
-                  startGlobeSpin();
-                }
-              }}
-            >
-              🌍
-            </button>
           </div>
 
           {!MAPBOX_TOKEN ? (
@@ -2111,12 +2060,12 @@ export default function WorldPage() {
               }
               initialViewState={{
                 longitude:
-                  -98,
+                  SACRAMENTO.longitude,
                 latitude:
-                  28,
-                zoom: 1.72,
-                pitch: 12,
-                bearing: -6,
+                  SACRAMENTO.latitude,
+                zoom: 7.4,
+                pitch: 0,
+                bearing: 0,
               }}
               mapStyle={
                 mapMode === "night"
@@ -2124,7 +2073,7 @@ export default function WorldPage() {
                   : "mapbox://styles/mapbox/satellite-streets-v12"
               }
               projection={{
-                name: "globe",
+                name: "mercator",
               }}
               terrain={{
                 source: "utv-world-terrain",
@@ -2136,13 +2085,13 @@ export default function WorldPage() {
               }}
               attributionControl
               dragPan
-              dragRotate
+              dragRotate={false}
               scrollZoom
               touchZoomRotate
               touchPitch={false}
               doubleClickZoom
               keyboard
-              cooperativeGestures={false}
+              cooperativeGestures
               maxPitch={62}
               minZoom={1.2}
               maxZoom={18}
@@ -8021,5 +7970,647 @@ const styles = `
   }
 
   /* UTV WORLD 5.0 — SIGNAL MAP */
+
+
+
+  /* =========================================================
+     UTV WORLD 6.0 — NEON CITY MAP
+     FLAT MAP • NEON SIGNALS • MOBILE TOUCH FIX
+     ========================================================= */
+
+  .worldPage {
+    background:#000 !important;
+    overflow-x:hidden !important;
+  }
+
+  .worldMapShell {
+    height:calc(100dvh - 68px) !important;
+    min-height:650px !important;
+    background:#050608 !important;
+  }
+
+  /*
+     Keep the map cinematic but flatter and clearer.
+  */
+
+  .worldMapShell .mapboxgl-map {
+    background:#050608 !important;
+  }
+
+  .worldMapShell .mapboxgl-canvas-container,
+  .worldMapShell canvas {
+    touch-action:pan-y pinch-zoom !important;
+  }
+
+  /*
+     Stronger dark-map treatment like the UTV reference.
+  */
+
+  .worldMapShell::before {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.72) 0%,
+        rgba(0,0,0,.16) 19%,
+        transparent 31%,
+        transparent 73%,
+        rgba(0,0,0,.33) 100%
+      ) !important;
+  }
+
+  .worldMapShell::after {
+    background:
+      radial-gradient(
+        circle at 50% 52%,
+        transparent 46%,
+        rgba(0,0,0,.08) 70%,
+        rgba(0,0,0,.35) 100%
+      ) !important;
+  }
+
+  /*
+     MAP / NEARBY UI — tighter, closer to native app.
+  */
+
+  .world5TopHud {
+    top:10px !important;
+  }
+
+  .world5Brand {
+    border-color:rgba(161,120,255,.25) !important;
+    background:
+      linear-gradient(
+        145deg,
+        rgba(5,8,15,.91),
+        rgba(15,6,29,.88)
+      ) !important;
+
+    box-shadow:
+      0 15px 35px rgba(0,0,0,.40),
+      0 0 20px rgba(139,86,255,.10) !important;
+  }
+
+  .world5BrandMark {
+    min-width:44px !important;
+    height:37px !important;
+    font-size:19px !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(82,247,200,.22),
+        rgba(138,80,255,.32)
+      ) !important;
+
+    text-shadow:
+      0 1px 0 #fff,
+      0 3px 2px #000,
+      -5px 0 13px rgba(82,247,200,.7),
+      6px 0 16px rgba(150,78,255,.8) !important;
+  }
+
+  .world5ModeDock {
+    background:rgba(3,5,10,.88) !important;
+    border-color:rgba(255,255,255,.10) !important;
+  }
+
+  .world5Mode.active {
+    background:
+      linear-gradient(
+        135deg,
+        #743cff,
+        #a445ff 48%,
+        #53f5ca
+      ) !important;
+
+    color:#fff !important;
+
+    box-shadow:
+      0 0 18px rgba(140,67,255,.35),
+      inset 0 1px rgba(255,255,255,.55) !important;
+  }
+
+  .world5Search {
+    background:rgba(3,5,10,.88) !important;
+  }
+
+  .world5Filters {
+    scroll-snap-type:x proximity;
+  }
+
+  .world5Filter {
+    min-height:31px !important;
+    background:rgba(4,7,12,.88) !important;
+    scroll-snap-align:start;
+  }
+
+  .world5Filter.active {
+    color:#fff !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        #702fff,
+        #ae46ff
+      ) !important;
+
+    border-color:rgba(195,127,255,.65) !important;
+
+    box-shadow:
+      0 0 19px rgba(151,65,255,.38) !important;
+  }
+
+  /*
+     NEON SIGNAL PINS
+     ----------------
+     These intentionally look like glowing map markers instead
+     of square game buttons.
+  */
+
+  .neonMapPin {
+    --pin-color:#9b5cff;
+
+    position:relative !important;
+
+    width:54px !important;
+    height:67px !important;
+
+    padding:0 !important;
+    margin:0 !important;
+
+    overflow:visible !important;
+
+    border:0 !important;
+    border-radius:0 !important;
+
+    background:transparent !important;
+
+    transform:none !important;
+
+    box-shadow:none !important;
+
+    filter:
+      drop-shadow(
+        0 0 9px var(--pin-color)
+      )
+      drop-shadow(
+        0 0 20px var(--pin-color)
+      ) !important;
+
+    animation:
+      utvNeonPinFloat 2.65s
+      ease-in-out infinite !important;
+
+    cursor:pointer;
+  }
+
+  .neonPinAura {
+    position:absolute;
+
+    left:50%;
+    top:45%;
+
+    width:55px;
+    height:55px;
+
+    transform:
+      translate(-50%,-50%);
+
+    border-radius:999px;
+
+    border:
+      1px solid
+      color-mix(
+        in srgb,
+        var(--pin-color) 65%,
+        transparent
+      );
+
+    background:
+      radial-gradient(
+        circle,
+        color-mix(
+          in srgb,
+          var(--pin-color) 24%,
+          transparent
+        ) 0%,
+        transparent 67%
+      );
+
+    box-shadow:
+      0 0 16px var(--pin-color),
+      inset 0 0 14px
+      color-mix(
+        in srgb,
+        var(--pin-color) 34%,
+        transparent
+      );
+
+    animation:
+      utvNeonAura 1.8s
+      ease-out infinite;
+  }
+
+  .neonPinBody {
+    position:absolute;
+
+    left:50%;
+    top:4px;
+
+    width:43px;
+    height:43px;
+
+    transform:
+      translateX(-50%);
+
+    display:grid;
+    place-items:center;
+
+    z-index:3;
+
+    border-radius:
+      50% 50% 50% 10px;
+
+    rotate:45deg;
+
+    border:
+      2px solid
+      rgba(255,255,255,.86);
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.95),
+        var(--pin-color) 27%,
+        #100923 74%
+      );
+
+    box-shadow:
+      0 0 0 3px
+        color-mix(
+          in srgb,
+          var(--pin-color) 23%,
+          transparent
+        ),
+      0 0 15px var(--pin-color),
+      0 0 31px
+        color-mix(
+          in srgb,
+          var(--pin-color) 74%,
+          transparent
+        ),
+      inset 0 0 10px
+        rgba(255,255,255,.18);
+  }
+
+  .neonPinCore {
+    width:31px;
+    height:31px;
+
+    display:grid;
+    place-items:center;
+
+    overflow:hidden;
+
+    rotate:-45deg;
+
+    border-radius:999px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.74);
+
+    background:#080a0f;
+
+    box-shadow:
+      inset 0 0 8px
+      rgba(0,0,0,.7);
+  }
+
+  .neonPinCore img {
+    width:100%;
+    height:100%;
+
+    display:block;
+
+    object-fit:cover;
+  }
+
+  .neonPinCore .pinIcon {
+    font-size:16px !important;
+    line-height:1 !important;
+
+    transform:none !important;
+  }
+
+  .neonPinPoint {
+    position:absolute;
+
+    left:50%;
+    top:43px;
+
+    width:7px;
+    height:7px;
+
+    z-index:1;
+
+    transform:
+      translateX(-50%)
+      rotate(45deg);
+
+    background:var(--pin-color);
+
+    box-shadow:
+      0 0 10px var(--pin-color),
+      0 0 20px var(--pin-color);
+  }
+
+  .neonLiveBadge {
+    position:absolute;
+
+    top:-6px;
+    right:-15px;
+
+    z-index:10;
+
+    padding:3px 5px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.55);
+
+    border-radius:999px;
+
+    color:#fff;
+    background:#ff2555;
+
+    font-size:6px;
+    font-weight:1000;
+    letter-spacing:.12em;
+
+    box-shadow:
+      0 0 14px rgba(255,37,85,.9);
+  }
+
+  /*
+     CATEGORY SIGNAL COLORS
+  */
+
+  .pinLive {
+    --pin-color:#ff315f !important;
+  }
+
+  .pinEvent {
+    --pin-color:#a34cff !important;
+  }
+
+  .pinCasting {
+    --pin-color:#c45cff !important;
+  }
+
+  .pinBuild {
+    --pin-color:#52f7c8 !important;
+  }
+
+  .pinBooking {
+    --pin-color:#ff76d5 !important;
+  }
+
+  .pinMusic {
+    --pin-color:#8d46ff !important;
+  }
+
+  .pinBusiness {
+    --pin-color:#52f7c8 !important;
+  }
+
+  .pinPodcast {
+    --pin-color:#9850ff !important;
+  }
+
+  .pinSports {
+    --pin-color:#52f7c8 !important;
+  }
+
+  .pinComedy {
+    --pin-color:#c14dff !important;
+  }
+
+  .pinWorld {
+    --pin-color:#8c4dff !important;
+  }
+
+  /*
+     USER LOCATION = MINT PULSE
+  */
+
+  .userDot {
+    width:20px !important;
+    height:20px !important;
+
+    border:
+      4px solid
+      rgba(255,255,255,.92) !important;
+
+    background:#52f7c8 !important;
+
+    box-shadow:
+      0 0 0 10px
+        rgba(82,247,200,.15),
+      0 0 0 21px
+        rgba(82,247,200,.06),
+      0 0 30px
+        rgba(82,247,200,1) !important;
+
+    animation:
+      utvUserPulse 2s
+      ease-out infinite;
+  }
+
+  /*
+     CITY CLUSTERS
+  */
+
+  .cityHub {
+    border:
+      1px solid
+      rgba(165,78,255,.58) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(15,6,30,.94),
+        rgba(4,8,14,.94)
+      ) !important;
+
+    box-shadow:
+      0 0 18px
+        rgba(160,72,255,.45),
+      0 0 37px
+        rgba(89,247,202,.10),
+      0 15px 30px
+        rgba(0,0,0,.48) !important;
+  }
+
+  /*
+     RIGHT SIDE CONTROLS
+     no globe button anymore
+  */
+
+  .worldMapControls {
+    right:10px !important;
+    bottom:108px !important;
+  }
+
+  .worldMapControls button {
+    width:42px !important;
+    height:42px !important;
+
+    border-radius:14px !important;
+
+    background:
+      rgba(3,6,12,.91) !important;
+  }
+
+  /*
+     POST BUTTON
+  */
+
+  .postWorldBtn {
+    position:fixed !important;
+
+    right:17px !important;
+    bottom:88px !important;
+
+    z-index:90 !important;
+
+    min-height:48px !important;
+
+    padding:0 18px !important;
+
+    border-radius:999px !important;
+
+    color:#08100e !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #78e6dc 52%,
+        #9b78ff
+      ) !important;
+
+    box-shadow:
+      0 13px 35px
+      rgba(0,0,0,.45),
+      0 0 18px
+      rgba(82,247,200,.13) !important;
+  }
+
+  /*
+     Allow the discovery sections BELOW the map to be reached.
+     Combined with cooperativeGestures, a normal vertical swipe
+     does not get trapped inside Mapbox.
+  */
+
+  .worldPulseStrip,
+  .nearPanel,
+  .todayPanel,
+  .worldStatsPanel,
+  .worldResultsHeader,
+  .worldList {
+    position:relative;
+    z-index:5;
+  }
+
+  @keyframes utvNeonPinFloat {
+    0%,
+    100% {
+      translate:0 0;
+    }
+
+    50% {
+      translate:0 -5px;
+    }
+  }
+
+  @keyframes utvNeonAura {
+    0% {
+      opacity:.75;
+      scale:.68;
+    }
+
+    72%,
+    100% {
+      opacity:0;
+      scale:1.42;
+    }
+  }
+
+  @keyframes utvUserPulse {
+    0% {
+      box-shadow:
+        0 0 0 3px
+        rgba(82,247,200,.30),
+        0 0 18px
+        rgba(82,247,200,.9);
+    }
+
+    100% {
+      box-shadow:
+        0 0 0 23px
+        rgba(82,247,200,0),
+        0 0 32px
+        rgba(82,247,200,.8);
+    }
+  }
+
+  @media(max-width:700px) {
+
+    .worldMapShell {
+      height:
+        calc(100dvh - 68px)
+        !important;
+
+      min-height:610px !important;
+    }
+
+    .world5TopHud {
+      top:8px !important;
+    }
+
+    .world5ModeDock {
+      top:55px !important;
+    }
+
+    .world5Search {
+      top:102px !important;
+    }
+
+    .world5Filters {
+      top:146px !important;
+    }
+
+    .neonMapPin {
+      width:49px !important;
+      height:61px !important;
+    }
+
+    .neonPinBody {
+      width:39px;
+      height:39px;
+    }
+
+    .neonPinCore {
+      width:28px;
+      height:28px;
+    }
+
+    .worldMapControls {
+      bottom:104px !important;
+    }
+  }
+
+  /* UTV WORLD 6.0 — NEON CITY MAP */
 
 `;
