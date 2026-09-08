@@ -4897,4 +4897,601 @@ const styles = `
     transition: none;
   }
 }
+
+/* =========================================================
+   UTV PREMIUM FEED REBUILD 1.0
+   TARGET: CINEMATIC NATIVE SOCIAL EXPERIENCE
+   ========================================================= */
+
+.feedPage {
+  --utv-mint: #52f7c8;
+  --utv-purple: #8b5cff;
+  --utv-gold: #ffd166;
+  --utv-bg: #020305;
+
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  overflow-x: hidden;
+
+  background:
+    radial-gradient(circle at 15% 0%,
+      rgba(82,247,200,.055),
+      transparent 24%),
+    radial-gradient(circle at 88% 6%,
+      rgba(139,92,255,.075),
+      transparent 25%),
+    #020305;
+
+  padding-bottom: 104px;
+}
+
+/* ---------------------------------------------------------
+   REMOVE OLD LARGE FEED HERO
+   --------------------------------------------------------- */
+
+.feedHero {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   COMPACT STATUS
+   --------------------------------------------------------- */
+
+.feedTopRow {
+  padding: 9px 15px 2px !important;
+  background: transparent !important;
+}
+
+.freshnessStatus {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .08em !important;
+  color: rgba(255,255,255,.42) !important;
+}
+
+.liveDot {
+  width: 6px !important;
+  height: 6px !important;
+  box-shadow: 0 0 10px rgba(82,247,200,.55);
+}
+
+/* ---------------------------------------------------------
+   PREMIUM FEED TABS
+   --------------------------------------------------------- */
+
+.feedTabs {
+  display: flex !important;
+  gap: 5px !important;
+  padding: 7px 12px 8px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+  background: transparent !important;
+}
+
+.feedTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.feedTabs button {
+  flex: 0 0 auto !important;
+  min-height: 36px !important;
+  padding: 8px 13px !important;
+
+  border: 1px solid rgba(255,255,255,.07) !important;
+  border-radius: 11px !important;
+
+  color: rgba(255,255,255,.64) !important;
+  background: rgba(255,255,255,.025) !important;
+
+  font-size: 11px !important;
+  font-weight: 800 !important;
+
+  box-shadow: none !important;
+}
+
+.feedTabs button.active {
+  color: #fff !important;
+
+  border-color: rgba(82,247,200,.30) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(82,247,200,.20),
+      rgba(139,92,255,.17)
+    ) !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 0 18px rgba(82,247,200,.08) !important;
+}
+
+/* ---------------------------------------------------------
+   WHAT'S THE MOTION - COMPACT CREATOR STRIP
+   --------------------------------------------------------- */
+
+.motionComposer {
+  margin: 5px 12px 8px !important;
+
+  border: 1px solid rgba(255,255,255,.075) !important;
+  border-radius: 17px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.042),
+      rgba(255,255,255,.015)
+    ) !important;
+
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.035),
+    0 10px 30px rgba(0,0,0,.18) !important;
+}
+
+.motionMain {
+  min-height: 58px !important;
+  padding: 8px 11px !important;
+}
+
+.motionAvatar {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.motionPrompt span {
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.motionPrompt small {
+  margin-top: 1px !important;
+  font-size: 10px !important;
+  color: rgba(255,255,255,.34) !important;
+}
+
+.motionPlus {
+  width: 38px !important;
+  height: 38px !important;
+  font-size: 22px !important;
+
+  color: #04100c !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #74efd7
+    ) !important;
+
+  box-shadow:
+    0 0 18px rgba(82,247,200,.16) !important;
+}
+
+.motionActions {
+  min-height: 46px !important;
+  border-top: 1px solid rgba(255,255,255,.045) !important;
+}
+
+.motionActions button {
+  min-height: 46px !important;
+  padding: 5px 2px !important;
+
+  font-size: 9px !important;
+  font-weight: 750 !important;
+
+  color: rgba(255,255,255,.51) !important;
+}
+
+.motionActions button span {
+  font-size: 15px !important;
+}
+
+/* ---------------------------------------------------------
+   LIVE STRIP
+   --------------------------------------------------------- */
+
+.liveNowSection {
+  margin-top: 6px !important;
+  padding-top: 2px !important;
+
+  border-top: 0 !important;
+  border-bottom:
+    1px solid rgba(255,255,255,.045) !important;
+
+  background: transparent !important;
+}
+
+.liveNowCard {
+  border-radius: 15px !important;
+  border-color: rgba(255,255,255,.065) !important;
+  background: rgba(255,255,255,.025) !important;
+}
+
+/* ---------------------------------------------------------
+   STORIES - TIGHTER / PREMIUM
+   --------------------------------------------------------- */
+
+.stories {
+  gap: 10px !important;
+  padding: 10px 12px 13px !important;
+}
+
+.storyWrap {
+  min-width: 62px !important;
+}
+
+.storyButton {
+  width: 60px !important;
+  height: 60px !important;
+  padding: 2px !important;
+
+  border-width: 2px !important;
+
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.025),
+    0 5px 16px rgba(0,0,0,.22) !important;
+}
+
+.storyButton.addStory {
+  font-size: 24px !important;
+}
+
+.storyName {
+  max-width: 62px !important;
+  margin-top: 5px !important;
+
+  font-size: 9px !important;
+  font-weight: 700 !important;
+
+  color: rgba(255,255,255,.55) !important;
+}
+
+/* ---------------------------------------------------------
+   CREATOR DISCOVERY
+   --------------------------------------------------------- */
+
+.suggested {
+  gap: 8px !important;
+  padding: 2px 12px 12px !important;
+}
+
+.suggestedCard {
+  min-width: 128px !important;
+  padding: 11px !important;
+
+  border-radius: 15px !important;
+  border-color: rgba(255,255,255,.06) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.035),
+      rgba(255,255,255,.012)
+    ) !important;
+
+  box-shadow: none !important;
+}
+
+.suggestedAvatar {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+/* ---------------------------------------------------------
+   SEARCH - LESS DOMINANT
+   --------------------------------------------------------- */
+
+.searchWrap {
+  padding: 0 12px 10px !important;
+}
+
+.feedSearch {
+  min-height: 41px !important;
+  padding: 10px 13px !important;
+
+  border-radius: 12px !important;
+  border-color: rgba(255,255,255,.06) !important;
+
+  background: rgba(255,255,255,.025) !important;
+
+  font-size: 12px !important;
+}
+
+/* ---------------------------------------------------------
+   FEED STREAM
+   --------------------------------------------------------- */
+
+.feedList {
+  display: grid !important;
+  gap: 10px !important;
+  padding: 0 0 12px !important;
+}
+
+.feedPost {
+  position: relative !important;
+
+  margin: 0 !important;
+
+  overflow: hidden !important;
+
+  border-top:
+    1px solid rgba(255,255,255,.055) !important;
+  border-bottom:
+    1px solid rgba(255,255,255,.055) !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(6,8,12,.98),
+      #020305
+    ) !important;
+
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------
+   CREATOR HEADER
+   --------------------------------------------------------- */
+
+.postHeader {
+  min-height: 56px !important;
+  gap: 9px !important;
+
+  padding: 8px 12px !important;
+
+  background: transparent !important;
+}
+
+.postAvatar {
+  width: 38px !important;
+  height: 38px !important;
+
+  border:
+    1.5px solid rgba(82,247,200,.68) !important;
+
+  box-shadow:
+    0 0 0 2px rgba(82,247,200,.035) !important;
+}
+
+.postCreator h3 {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.01em !important;
+}
+
+.postCreator p {
+  margin-top: 1px !important;
+
+  color: rgba(255,255,255,.35) !important;
+
+  font-size: 9px !important;
+  font-weight: 700 !important;
+
+  letter-spacing: .07em !important;
+}
+
+.profileArrow {
+  font-size: 22px !important;
+  color: rgba(255,255,255,.18) !important;
+}
+
+/* ---------------------------------------------------------
+   POST MEDIA - CINEMATIC
+   --------------------------------------------------------- */
+
+.mediaWrap {
+  min-height: 220px !important;
+  max-height: 78vh !important;
+
+  overflow: hidden !important;
+
+  background: #000 !important;
+}
+
+.postMedia {
+  width: 100% !important;
+  min-height: 220px !important;
+  max-height: 78vh !important;
+
+  object-fit: cover;
+
+  background: #000 !important;
+}
+
+.mediaProfileButton {
+  top: 9px !important;
+  left: 9px !important;
+
+  padding: 5px 8px !important;
+
+  border-radius: 999px !important;
+
+  border:
+    1px solid rgba(255,255,255,.12) !important;
+
+  background: rgba(0,0,0,.46) !important;
+
+  font-size: 10px !important;
+
+  backdrop-filter: blur(10px);
+}
+
+.mediaViewButton,
+.soundButton {
+  width: 38px !important;
+  height: 38px !important;
+
+  border-radius: 50% !important;
+
+  border-color: rgba(255,255,255,.12) !important;
+
+  background: rgba(0,0,0,.45) !important;
+
+  backdrop-filter: blur(10px);
+}
+
+/* ---------------------------------------------------------
+   ACTIONS
+   --------------------------------------------------------- */
+
+.postBody {
+  padding: 0 !important;
+}
+
+.actionRow {
+  min-height: 47px !important;
+
+  padding: 4px 10px 0 !important;
+  gap: 2px !important;
+}
+
+.actionButton {
+  width: 39px !important;
+  height: 39px !important;
+
+  font-size: 20px !important;
+
+  background: transparent !important;
+}
+
+.actionMeta {
+  margin: 0 12px 6px !important;
+
+  color: rgba(255,255,255,.43) !important;
+
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+.postTitle {
+  margin: 3px 12px 3px !important;
+
+  font-size: 14px !important;
+  font-weight: 850 !important;
+}
+
+.caption {
+  margin: 3px 12px 7px !important;
+
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+
+  color: rgba(255,255,255,.78) !important;
+}
+
+/* ---------------------------------------------------------
+   COMMENTS - KEEP FEATURE, REDUCE WEIGHT
+   --------------------------------------------------------- */
+
+.commentSection {
+  padding: 0 12px 10px !important;
+}
+
+.viewComments {
+  font-size: 11px !important;
+  color: rgba(255,255,255,.37) !important;
+}
+
+.commentComposer {
+  min-height: 38px !important;
+  margin-top: 7px !important;
+
+  border-radius: 12px !important;
+  border-color: rgba(255,255,255,.055) !important;
+
+  background: rgba(255,255,255,.02) !important;
+}
+
+.commentComposer input {
+  font-size: 12px !important;
+}
+
+/* ---------------------------------------------------------
+   TEXT POSTS
+   --------------------------------------------------------- */
+
+.textOnlyPost {
+  min-height: 240px !important;
+  padding: 34px 22px !important;
+
+  background:
+    radial-gradient(
+      circle at 18% 12%,
+      rgba(82,247,200,.10),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 85% 85%,
+      rgba(139,92,255,.15),
+      transparent 40%
+    ),
+    #05070b !important;
+}
+
+.textOnlyPost p {
+  max-width: 580px !important;
+
+  font-size:
+    clamp(21px, 5.8vw, 34px) !important;
+
+  line-height: 1.16 !important;
+}
+
+/* ---------------------------------------------------------
+   OWNER MENU
+   --------------------------------------------------------- */
+
+.postMenuButton {
+  background: rgba(0,0,0,.42) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 520px) {
+  .feedPage {
+    max-width: none !important;
+  }
+
+  .feedPost {
+    border-radius: 0 !important;
+  }
+
+  .mediaWrap,
+  .postMedia {
+    max-height: 72vh !important;
+  }
+
+  .suggestedCard {
+    min-width: 124px !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   TABLET / DESKTOP
+   --------------------------------------------------------- */
+
+@media (min-width: 760px) {
+  .feedPost {
+    margin: 0 10px !important;
+
+    border:
+      1px solid rgba(255,255,255,.065) !important;
+
+    border-radius: 18px !important;
+  }
+
+  .feedPage {
+    border-left:
+      1px solid rgba(255,255,255,.04);
+    border-right:
+      1px solid rgba(255,255,255,.04);
+  }
+}
+
+
 `;
