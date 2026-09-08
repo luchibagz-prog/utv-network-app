@@ -456,9 +456,9 @@ const selectedSticker = stickers.find(
 
     setMode("camera");
 
-    window.setTimeout(() => {
-      startCamera();
-    }, 150);
+    // Start immediately. Mobile browsers already handle the permission
+    // prompt asynchronously, so delaying this only makes Story feel slower.
+    void startCamera();
   }
 
   async function startCamera(
@@ -477,16 +477,17 @@ const selectedSticker = stickers.find(
             ideal: facing,
           },
 
-          // Keep constraints broadly compatible with mobile browsers.
+          // Fast mobile-first Story preview.
+          // 1080p is plenty for capture while avoiding expensive 4K startup.
           width: {
-            ideal: 3840,
+            ideal: 1920,
           },
           height: {
-            ideal: 2160,
+            ideal: 1080,
           },
           frameRate: {
             ideal: 30,
-            max: 60,
+            max: 30,
           },
         },
         audio: {
@@ -498,14 +499,6 @@ const selectedSticker = stickers.find(
 
       streamRef.current = stream;
       setCameraStream(stream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.muted = true;
-        videoRef.current.playsInline = true;
-
-        await videoRef.current.play();
-      }
 
       setCameraFacing(facing);
       setMessage("");
