@@ -2374,6 +2374,350 @@ export default function UTVNav() {
           }
         }
 
+        /* =========================================
+           UTV PREMIUM NAV 1.0
+           ========================================= */
+
+        .utvTopNav {
+          position: fixed;
+          top: max(8px, env(safe-area-inset-top));
+          left: 50%;
+          z-index: 1100;
+          width: min(100% - 24px, 720px);
+          min-height: 48px;
+          padding: 5px 7px 5px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transform: translateX(-50%);
+          border: 1px solid rgba(255,255,255,.075);
+          border-radius: 18px;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(12,20,26,.88),
+              rgba(5,10,15,.80)
+            );
+          box-shadow:
+            0 12px 38px rgba(0,0,0,.30),
+            inset 0 1px 0 rgba(255,255,255,.045);
+          backdrop-filter: blur(20px) saturate(145%);
+          -webkit-backdrop-filter: blur(20px) saturate(145%);
+        }
+
+        .utvNavLogo {
+          width: auto;
+          height: 29px;
+          display: block;
+          object-fit: contain;
+          filter:
+            drop-shadow(0 3px 8px rgba(0,0,0,.45));
+        }
+
+        .topActivityButton {
+          position: relative;
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255,255,255,.075);
+          border-radius: 13px;
+          color: rgba(255,255,255,.92);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.07),
+              rgba(255,255,255,.025)
+            );
+          font-size: 17px;
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.06);
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .utvBottomNav {
+          position: fixed;
+          right: 10px;
+          bottom:
+            max(
+              8px,
+              env(safe-area-inset-bottom)
+            );
+          left: 10px;
+          z-index: 1200;
+
+          min-height: 64px;
+          padding: 5px 6px;
+
+          display: grid;
+          grid-template-columns:
+            repeat(6,minmax(0,1fr));
+          align-items: center;
+
+          overflow: visible;
+
+          border:
+            1px solid
+            rgba(255,255,255,.085);
+          border-radius: 22px;
+
+          background:
+            radial-gradient(
+              circle at 50% 120%,
+              rgba(82,247,200,.075),
+              transparent 38%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(13,20,27,.94),
+              rgba(5,9,14,.96)
+            );
+
+          box-shadow:
+            0 18px 45px
+              rgba(0,0,0,.44),
+            0 2px 12px
+              rgba(0,0,0,.24),
+            inset 0 1px 0
+              rgba(255,255,255,.055);
+
+          backdrop-filter:
+            blur(22px)
+            saturate(150%);
+          -webkit-backdrop-filter:
+            blur(22px)
+            saturate(150%);
+        }
+
+        .utvBottomNav::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 18px;
+          left: 18px;
+          height: 1px;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(82,247,200,.22),
+              rgba(123,97,255,.18),
+              transparent
+            );
+          pointer-events: none;
+        }
+
+        .utvNavItem {
+          position: relative;
+          min-width: 0;
+          min-height: 52px;
+          padding: 4px 1px 3px;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+
+          color:
+            rgba(222,230,237,.52);
+
+          border-radius: 15px;
+          background: transparent;
+
+          text-decoration: none;
+
+          transition:
+            color .18s ease,
+            background .18s ease,
+            transform .16s ease;
+
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .utvNavItem:active {
+          transform: scale(.92);
+        }
+
+        .navIconWrap {
+          position: relative;
+          width: 34px;
+          min-width: 34px;
+          height: 29px;
+          display: grid;
+          place-items: center;
+        }
+
+        .navIcon {
+          width: 25px;
+          height: 25px;
+          display: grid;
+          place-items: center;
+          transition:
+            transform .18s ease,
+            filter .18s ease;
+        }
+
+        .navSvg {
+          width: 23px;
+          height: 23px;
+        }
+
+        .utvNavItem small {
+          display: block;
+          margin: 0;
+          color: inherit;
+          font-size: 8px;
+          line-height: 1;
+          font-weight: 800;
+          letter-spacing: .05px;
+        }
+
+        .utvNavItem::after {
+          bottom: -1px;
+          width: 15px;
+          height: 2px;
+          border-radius: 999px;
+          background:
+            linear-gradient(
+              90deg,
+              #52f7c8,
+              #8d78ff
+            );
+          box-shadow:
+            0 0 10px
+              rgba(82,247,200,.52);
+        }
+
+        .activeNavItem {
+          color: #69f8d0;
+          background:
+            radial-gradient(
+              circle at 50% 35%,
+              rgba(82,247,200,.11),
+              transparent 66%
+            );
+        }
+
+        .activeNavItem .navIcon {
+          transform: translateY(-1px);
+          filter:
+            drop-shadow(
+              0 0 7px
+              rgba(82,247,200,.38)
+            );
+        }
+
+        .createNavItem {
+          overflow: visible;
+          color: white;
+          background: transparent;
+        }
+
+        .createNavItem .navIconWrap {
+          width: 43px;
+          min-width: 43px;
+          height: 39px;
+          margin-top: -11px;
+
+          border:
+            1px solid
+            rgba(255,255,255,.20);
+          border-radius: 14px;
+
+          background:
+            linear-gradient(
+              135deg,
+              #59f6ca 0%,
+              #63dfcf 42%,
+              #806cff 100%
+            );
+
+          box-shadow:
+            0 8px 22px
+              rgba(82,247,200,.17),
+            0 7px 20px
+              rgba(123,97,255,.15),
+            inset 0 1px 0
+              rgba(255,255,255,.38);
+        }
+
+        .createNavItem .navIcon {
+          width: 27px;
+          height: 27px;
+          color: #07110f;
+          transform: none;
+          filter: none;
+        }
+
+        .createNavItem .navSvg {
+          width: 25px;
+          height: 25px;
+        }
+
+        .createNavItem small {
+          margin-top: 0;
+          color:
+            rgba(255,255,255,.82);
+          font-size: 7.8px;
+        }
+
+        .createNavItem.activeNavItem
+        .navIconWrap {
+          box-shadow:
+            0 9px 25px
+              rgba(82,247,200,.28),
+            0 8px 25px
+              rgba(123,97,255,.23),
+            0 0 0 3px
+              rgba(82,247,200,.055),
+            inset 0 1px 0
+              rgba(255,255,255,.42);
+        }
+
+        @media (max-width: 390px) {
+          .utvBottomNav {
+            right: 6px;
+            left: 6px;
+            min-height: 62px;
+            padding-right: 3px;
+            padding-left: 3px;
+            border-radius: 20px;
+          }
+
+          .utvNavItem {
+            min-height: 50px;
+          }
+
+          .navSvg {
+            width: 21px;
+            height: 21px;
+          }
+
+          .utvNavItem small {
+            font-size: 7.5px;
+          }
+
+          .createNavItem .navIconWrap {
+            width: 40px;
+            min-width: 40px;
+            height: 37px;
+          }
+        }
+
+        @media (min-width: 850px) {
+          .utvBottomNav {
+            right: 50%;
+            left: auto;
+            bottom: 10px;
+            width:
+              min(620px,calc(100% - 24px));
+            transform: translateX(50%);
+            border-radius: 22px;
+          }
+        }
+
       `}</style>
     </>
   );
