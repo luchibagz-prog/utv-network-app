@@ -4352,5 +4352,549 @@ const styles = `
     font-size: 20px;
   }
 
+/* =========================================================
+   UTV PREMIUM FEED 3.0
+   ========================================================= */
 
+.feedPage {
+  --utv-mint: #52f7c8;
+  --utv-purple: #7b61ff;
+  --utv-gold: #ffd166;
+  --utv-panel: rgba(10, 14, 24, .82);
+  --utv-line: rgba(255,255,255,.09);
+
+  background:
+    radial-gradient(circle at 15% -5%, rgba(82,247,200,.10), transparent 27%),
+    radial-gradient(circle at 90% 3%, rgba(123,97,255,.13), transparent 30%),
+    #030509;
+
+  padding-bottom: 108px;
+}
+
+/* CINEMATIC FEED HEADER */
+
+.feedHero {
+  height: clamp(155px, 28vw, 205px);
+  margin: 0;
+  border-bottom: 1px solid rgba(82,247,200,.10);
+  background: #020305;
+}
+
+.feedHero img {
+  transform: scale(1.015);
+  filter:
+    brightness(.92)
+    contrast(1.12)
+    saturate(1.08);
+}
+
+.feedHero::after {
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.18), transparent 45%, rgba(0,0,0,.12)),
+    linear-gradient(180deg, transparent 25%, rgba(3,5,9,.30) 64%, #030509 100%);
+}
+
+/* LIVE STATUS */
+
+.feedTopRow {
+  padding: 9px 15px 2px;
+}
+
+.freshnessStatus {
+  letter-spacing: .02em;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+}
+
+/* PREMIUM CATEGORY NAV */
+
+.feedTabs {
+  gap: 7px;
+  padding: 10px 14px 8px;
+}
+
+.feedTabs button {
+  position: relative;
+  padding: 9px 13px;
+  color: rgba(255,255,255,.66);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 850;
+  transition:
+    color .18s ease,
+    background .18s ease,
+    transform .15s ease;
+}
+
+.feedTabs button:active {
+  transform: scale(.95);
+}
+
+.feedTabs button.active {
+  color: white;
+  border-color: rgba(82,247,200,.18);
+  background:
+    linear-gradient(135deg,
+      rgba(82,247,200,.14),
+      rgba(123,97,255,.14));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.025),
+    0 8px 28px rgba(0,0,0,.20);
+}
+
+/* WHAT'S THE MOTION */
+
+.motionComposer {
+  margin: 7px 13px 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 20px;
+  background:
+    linear-gradient(145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.018));
+  box-shadow:
+    0 16px 40px rgba(0,0,0,.22),
+    inset 0 1px rgba(255,255,255,.04);
+  backdrop-filter: blur(20px);
+}
+
+.motionMain {
+  min-height: 72px;
+}
+
+.motionPrompt span {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.motionPrompt small {
+  color: rgba(255,255,255,.42);
+}
+
+.motionPlus {
+  box-shadow:
+    0 0 22px rgba(82,247,200,.14);
+}
+
+.motionActions {
+  border-top-color: rgba(255,255,255,.06);
+}
+
+.motionActions button {
+  color: rgba(255,255,255,.62);
+  font-size: 11px;
+}
+
+.motionActions button span {
+  font-size: 17px;
+}
+
+/* LIVE NOW */
+
+.liveNowSection {
+  margin-top: 13px;
+  border-top: 1px solid rgba(255,255,255,.055);
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  background:
+    linear-gradient(90deg,
+      rgba(255,40,80,.025),
+      rgba(123,97,255,.025));
+}
+
+.liveNowHeading b {
+  letter-spacing: .12em;
+}
+
+.liveNowCard {
+  border-color: rgba(255,255,255,.08);
+  background: rgba(255,255,255,.025);
+  box-shadow: none;
+}
+
+.liveNowCard.followingLive {
+  border-color: rgba(82,247,200,.24);
+}
+
+/* STORIES */
+
+.stories {
+  gap: 12px;
+  padding: 16px 14px 18px;
+}
+
+.storyWrap {
+  min-width: 70px;
+}
+
+.storyButton {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  padding: 3px;
+  border: 0;
+  background:
+    linear-gradient(#080b10,#080b10) padding-box,
+    linear-gradient(145deg,
+      var(--utv-mint),
+      #9a7dff 52%,
+      var(--utv-purple)) border-box;
+  border: 2px solid transparent;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.035),
+    0 6px 22px rgba(82,247,200,.09);
+}
+
+.storyButton.noStory {
+  border: 2px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.025);
+}
+
+.storyButton.addStory {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(#0b1017,#0b1017) padding-box,
+    linear-gradient(145deg,
+      var(--utv-mint),
+      var(--utv-purple)) border-box;
+  font-size: 27px;
+}
+
+.storyName {
+  max-width: 70px;
+  color: rgba(255,255,255,.67);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* CREATOR DISCOVERY */
+
+.suggested {
+  gap: 10px;
+  padding: 1px 14px 17px;
+}
+
+.suggestedCard {
+  min-width: 145px;
+  padding: 13px;
+  border-color: rgba(255,255,255,.075);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg,
+      rgba(255,255,255,.045),
+      rgba(255,255,255,.018));
+  box-shadow: 0 14px 35px rgba(0,0,0,.16);
+}
+
+.suggestedAvatar {
+  width: 56px;
+  height: 56px;
+  border-color: rgba(82,247,200,.72);
+}
+
+.followButton {
+  padding: 9px;
+  color: white;
+  border: 1px solid rgba(82,247,200,.28);
+  border-radius: 11px;
+  background: rgba(82,247,200,.09);
+}
+
+/* SEARCH */
+
+.searchWrap {
+  padding: 1px 14px 16px;
+}
+
+.feedSearch {
+  padding: 13px 15px;
+  border-color: rgba(255,255,255,.075);
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+  font-size: 14px;
+  transition:
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.feedSearch:focus {
+  border-color: rgba(82,247,200,.35);
+  background: rgba(255,255,255,.055);
+}
+
+/* TRUE SOCIAL FEED */
+
+.feedList {
+  gap: 12px;
+}
+
+.feedPost {
+  position: relative;
+  overflow: visible;
+  border-top: 1px solid var(--utv-line);
+  border-bottom: 1px solid var(--utv-line);
+  background: #030509;
+}
+
+/* CREATOR HEADER */
+
+.postHeader {
+  min-height: 66px;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.postAvatar {
+  width: 43px;
+  height: 43px;
+  border: 1.5px solid rgba(82,247,200,.75);
+  box-shadow:
+    0 0 0 2px rgba(82,247,200,.06);
+}
+
+.postCreator h3 {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.postCreator p {
+  margin-top: 2px;
+  color: rgba(255,255,255,.42);
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.profileArrow {
+  color: rgba(255,255,255,.28);
+}
+
+/* MEDIA */
+
+.mediaWrap {
+  min-height: 240px;
+  background: #000;
+}
+
+.postMedia {
+  max-height: 78vh;
+  min-height: 260px;
+}
+
+.mediaProfileButton {
+  top: 10px;
+  left: 10px;
+  padding: 6px 9px;
+  border-color: rgba(255,255,255,.13);
+  background: rgba(0,0,0,.46);
+  font-size: 11px;
+}
+
+.mediaViewButton,
+.soundButton {
+  border-color: rgba(255,255,255,.13);
+  background: rgba(0,0,0,.48);
+}
+
+.tapHint {
+  opacity: .68;
+}
+
+/* POST BODY + ACTIONS */
+
+.postBody {
+  padding-top: 1px;
+}
+
+.actionRow {
+  min-height: 52px;
+  padding: 5px 12px 0;
+  gap: 4px;
+}
+
+.actionButton {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  font-size: 22px;
+  transition:
+    transform .12s ease,
+    background .15s ease;
+}
+
+.actionButton:hover {
+  background: rgba(255,255,255,.05);
+}
+
+.actionButton:active {
+  transform: scale(.84);
+}
+
+.actionButton.liked {
+  filter: drop-shadow(0 0 10px rgba(255,70,110,.28));
+}
+
+.saveButton {
+  margin-left: auto;
+}
+
+.actionMeta {
+  margin: 2px 14px 8px;
+  color: rgba(255,255,255,.52);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.postTitle {
+  margin: 4px 14px 5px;
+  font-size: 15px;
+}
+
+.caption {
+  margin: 4px 14px 10px;
+  color: rgba(255,255,255,.84);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.creatorCaptionButton {
+  font-weight: 900;
+}
+
+/* COMMENTS */
+
+.commentSection {
+  padding: 0 14px 13px;
+}
+
+.viewComments {
+  color: rgba(255,255,255,.43);
+  font-size: 12px;
+}
+
+.commentComposer {
+  margin-top: 8px;
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+
+.commentComposer input {
+  font-size: 13px;
+}
+
+.sendComment {
+  color: var(--utv-mint);
+}
+
+/* TEXT POSTS */
+
+.textOnlyPost {
+  min-height: 310px;
+  padding: 40px 26px;
+  background:
+    radial-gradient(circle at 20% 15%,
+      rgba(82,247,200,.13),
+      transparent 32%),
+    radial-gradient(circle at 80% 85%,
+      rgba(123,97,255,.18),
+      transparent 38%),
+    linear-gradient(145deg,#070b12,#020304);
+}
+
+.textOnlyPost p {
+  max-width: 620px;
+  margin: auto;
+  font-size: clamp(23px,6vw,38px);
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+
+.textOnlyBrand {
+  color: rgba(82,247,200,.72);
+  letter-spacing: .18em;
+}
+
+/* CREATE SHEET */
+
+.composerBackdrop {
+  backdrop-filter: blur(14px);
+  background: rgba(0,0,0,.68);
+}
+
+.composerSheet {
+  border-top: 1px solid rgba(82,247,200,.15);
+  background:
+    radial-gradient(circle at 80% 0%,
+      rgba(123,97,255,.12),
+      transparent 35%),
+    #070a10;
+  box-shadow:
+    0 -30px 80px rgba(0,0,0,.55);
+}
+
+.composerHandle {
+  background: rgba(255,255,255,.20);
+}
+
+.composerPost {
+  color: #04100c;
+  background:
+    linear-gradient(135deg,
+      var(--utv-mint),
+      #84ffe0);
+}
+
+/* FULLSCREEN */
+
+.fullscreenMediaViewer {
+  background: rgba(0,0,0,.96);
+  backdrop-filter: blur(20px);
+}
+
+.fullscreenMediaStage {
+  box-shadow:
+    0 30px 100px rgba(0,0,0,.75);
+}
+
+/* DESKTOP / TABLET */
+
+@media (min-width: 760px) {
+  .feedPage {
+    max-width: 760px;
+    margin: 0 auto;
+    border-left: 1px solid rgba(255,255,255,.055);
+    border-right: 1px solid rgba(255,255,255,.055);
+  }
+
+  .feedHero {
+    height: 210px;
+  }
+
+  .feedPost {
+    margin: 0 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 20px;
+  }
+}
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+  .feedTabs button,
+  .actionButton,
+  .postMedia {
+    transition: none;
+  }
+}
 `;
