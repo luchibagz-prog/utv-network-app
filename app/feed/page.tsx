@@ -1635,6 +1635,37 @@ export default function FeedPage() {
       );
     }
 
+    if (feedTab === "live") {
+      base = items.filter((item) => {
+        const text = `${item.category || ""} ${item.content_type || ""}`.toLowerCase();
+        return text.includes("live") || text.includes("replay");
+      });
+    }
+
+    if (feedTab === "music") {
+      base = items.filter((item) => {
+        const text = `${item.category || ""} ${item.title || ""} ${item.description || ""}`.toLowerCase();
+        return (
+          text.includes("music") ||
+          text.includes("artist") ||
+          text.includes("song") ||
+          text.includes("cypher")
+        );
+      });
+    }
+
+    if (feedTab === "events") {
+      base = items.filter((item) => {
+        const text = `${item.category || ""} ${item.title || ""} ${item.description || ""}`.toLowerCase();
+        return (
+          text.includes("event") ||
+          text.includes("party") ||
+          text.includes("showcase") ||
+          text.includes("casting")
+        );
+      });
+    }
+
     if (feedTab === "utv") {
       base = items.filter((item) => {
         const text = `${item.category || ""} ${item.title || ""}`.toLowerCase();
@@ -1748,33 +1779,40 @@ export default function FeedPage() {
         </div>
       </section>
 
-      <section className="feedTabs">
+      <section className="feedTabs" aria-label="Feed categories">
         <button
           className={feedTab === "forYou" ? "active" : ""}
           onClick={() => setFeedTab("forYou")}
         >
-          🔥 For You
+          For You
         </button>
 
         <button
           className={feedTab === "following" ? "active" : ""}
           onClick={() => setFeedTab("following")}
         >
-          ⭐ Following
+          Following
         </button>
 
         <button
-          className={feedTab === "near" ? "active" : ""}
-          onClick={() => setFeedTab("near")}
+          className={feedTab === "live" ? "active" : ""}
+          onClick={() => setFeedTab("live")}
         >
-          📍 Near You
+          Live
         </button>
 
         <button
-          className={feedTab === "utv" ? "active" : ""}
-          onClick={() => setFeedTab("utv")}
+          className={feedTab === "music" ? "active" : ""}
+          onClick={() => setFeedTab("music")}
         >
-          📺 UTV
+          Music
+        </button>
+
+        <button
+          className={feedTab === "events" ? "active" : ""}
+          onClick={() => setFeedTab("events")}
+        >
+          Events
         </button>
       </section>
 
@@ -5492,6 +5530,768 @@ const styles = `
       1px solid rgba(255,255,255,.04);
   }
 }
+
+
+
+  /* =========================================================
+     UTV FEED 4.0 — REFERENCE MODE
+     ========================================================= */
+
+  :root {
+    --utv-black: #020304;
+    --utv-panel: #090c10;
+    --utv-panel-2: #0d1117;
+    --utv-mint: #55f6ca;
+    --utv-purple: #8d64ff;
+    --utv-gold: #f4cf70;
+  }
+
+  html,
+  body {
+    background: #020304 !important;
+  }
+
+  .feedPage {
+    width: 100% !important;
+    max-width: 720px !important;
+    min-height: 100dvh !important;
+    margin: 0 auto !important;
+    padding-bottom: 96px !important;
+
+    color: #fff !important;
+
+    background:
+      radial-gradient(
+        circle at 0% 0%,
+        rgba(85,246,202,.035),
+        transparent 20%
+      ),
+      radial-gradient(
+        circle at 100% 7%,
+        rgba(141,100,255,.05),
+        transparent 22%
+      ),
+      #020304 !important;
+  }
+
+  /* OLD ROTATING BANNER IS OUT */
+  .feedHero {
+    display: none !important;
+  }
+
+  /* LIVE UPDATED TEXT DOESN'T NEED A WHOLE ROW */
+  .feedTopRow {
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  /* =========================================================
+     CATEGORY NAV — MATCH REFERENCE
+     ========================================================= */
+
+  .feedTabs {
+    position: sticky !important;
+    top: 54px !important;
+    z-index: 90 !important;
+
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+
+    overflow-x: auto !important;
+
+    padding: 0 10px !important;
+
+    border-bottom:
+      1px solid rgba(255,255,255,.055) !important;
+
+    background:
+      rgba(2,3,4,.96) !important;
+
+    backdrop-filter:
+      blur(18px) saturate(140%) !important;
+    -webkit-backdrop-filter:
+      blur(18px) saturate(140%) !important;
+
+    scrollbar-width: none !important;
+  }
+
+  .feedTabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .feedTabs button {
+    position: relative !important;
+    flex: 1 0 auto !important;
+
+    min-width: 72px !important;
+    min-height: 43px !important;
+
+    padding: 0 11px !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    color:
+      rgba(255,255,255,.48) !important;
+
+    background:
+      transparent !important;
+
+    box-shadow:
+      none !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: -.01em !important;
+  }
+
+  .feedTabs button.active {
+    color: #fff !important;
+    background: transparent !important;
+  }
+
+  .feedTabs button.active::after {
+    content: "" !important;
+
+    position: absolute !important;
+    right: 16px !important;
+    bottom: 0 !important;
+    left: 16px !important;
+
+    height: 2px !important;
+
+    border-radius: 999px !important;
+
+    background:
+      linear-gradient(
+        90deg,
+        var(--utv-mint),
+        var(--utv-purple)
+      ) !important;
+
+    box-shadow:
+      0 0 12px rgba(85,246,202,.35) !important;
+  }
+
+  /* =========================================================
+     STORIES — SMALLER, CLEANER, PREMIUM
+     ========================================================= */
+
+  .stories {
+    order: initial !important;
+
+    display: flex !important;
+    gap: 10px !important;
+
+    overflow-x: auto !important;
+
+    padding: 11px 11px 9px !important;
+
+    border-bottom:
+      1px solid rgba(255,255,255,.045) !important;
+
+    background: #020304 !important;
+
+    scrollbar-width: none !important;
+  }
+
+  .storyWrap {
+    min-width: 58px !important;
+    gap: 4px !important;
+  }
+
+  .storyButton {
+    width: 56px !important;
+    height: 56px !important;
+    padding: 2px !important;
+
+    border: 2px solid var(--utv-mint) !important;
+
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.03),
+      0 0 14px rgba(85,246,202,.11) !important;
+  }
+
+  .storyButton.noStory {
+    border-color:
+      rgba(255,255,255,.13) !important;
+
+    opacity: .72 !important;
+  }
+
+  .storyButton.addStory {
+    color: #fff !important;
+
+    border-color:
+      rgba(141,100,255,.75) !important;
+
+    background:
+      radial-gradient(
+        circle,
+        rgba(141,100,255,.21),
+        rgba(85,246,202,.05)
+      ) !important;
+
+    font-size: 23px !important;
+  }
+
+  .storyName {
+    max-width: 58px !important;
+
+    color:
+      rgba(255,255,255,.56) !important;
+
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+  }
+
+  /* =========================================================
+     WHAT'S THE MOTION — ONE CLEAN CREATOR BAR
+     ========================================================= */
+
+  .motionComposer {
+    margin: 8px 10px !important;
+
+    overflow: hidden !important;
+
+    border:
+      1px solid rgba(255,255,255,.065) !important;
+
+    border-radius: 13px !important;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255,255,255,.028),
+        rgba(255,255,255,.012)
+      ) !important;
+
+    box-shadow: none !important;
+  }
+
+  .motionMain {
+    min-height: 52px !important;
+
+    grid-template-columns:
+      34px minmax(0,1fr) 31px !important;
+
+    gap: 9px !important;
+
+    padding: 7px 9px !important;
+  }
+
+  .motionAvatar {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .motionAvatar img,
+  .motionAvatar > span {
+    border-width: 2px !important;
+  }
+
+  .motionPrompt span {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+  }
+
+  .motionPrompt small {
+    margin-top: 1px !important;
+    font-size: 8px !important;
+  }
+
+  .motionPlus {
+    width: 30px !important;
+    height: 30px !important;
+
+    color: #04100c !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        var(--utv-mint),
+        #90ffe1
+      ) !important;
+
+    font-size: 18px !important;
+  }
+
+  /* Reference doesn't need four giant composer buttons */
+  .motionActions {
+    display: none !important;
+  }
+
+  /* =========================================================
+     LIVE NOW — COMPACT HORIZONTAL RAIL
+     ========================================================= */
+
+  .liveNowSection {
+    margin: 4px 0 7px !important;
+    padding: 0 10px 5px !important;
+
+    border-bottom:
+      1px solid rgba(255,255,255,.04) !important;
+  }
+
+  .liveNowHeading {
+    margin-bottom: 7px !important;
+  }
+
+  .liveNowHeading small {
+    display: none !important;
+  }
+
+  .liveNowHeading b {
+    font-size: 9px !important;
+  }
+
+  .liveNowCard {
+    width: min(72vw, 275px) !important;
+
+    grid-template-columns:
+      48px 1fr !important;
+
+    gap: 9px !important;
+
+    padding: 7px !important;
+
+    border-radius: 13px !important;
+
+    background:
+      rgba(255,255,255,.025) !important;
+
+    box-shadow: none !important;
+  }
+
+  .liveNowAvatar {
+    width: 46px !important;
+    height: 46px !important;
+
+    border-radius: 12px !important;
+    border-width: 2px !important;
+  }
+
+  .liveNowAvatar img {
+    border-radius: 10px !important;
+  }
+
+  /* =========================================================
+     DON'T FLOOD HOME WITH DISCOVERY CARDS
+     ========================================================= */
+
+  .suggested {
+    display: none !important;
+  }
+
+  .searchWrap {
+    display: none !important;
+  }
+
+  /* =========================================================
+     FEED STREAM — CONTENT FIRST
+     ========================================================= */
+
+  .feedList {
+    display: grid !important;
+    gap: 7px !important;
+
+    padding: 0 !important;
+  }
+
+  .feedPost {
+    position: relative !important;
+
+    overflow: hidden !important;
+
+    margin: 0 !important;
+
+    border: 0 !important;
+    border-top:
+      1px solid rgba(255,255,255,.045) !important;
+    border-bottom:
+      1px solid rgba(255,255,255,.055) !important;
+
+    border-radius: 0 !important;
+
+    background: #020304 !important;
+
+    box-shadow: none !important;
+  }
+
+  /* =========================================================
+     POST CREATOR ROW
+     ========================================================= */
+
+  .postHeader {
+    min-height: 52px !important;
+
+    gap: 8px !important;
+
+    padding:
+      7px 49px 7px 10px !important;
+
+    background:
+      #020304 !important;
+  }
+
+  .postAvatar {
+    width: 36px !important;
+    height: 36px !important;
+
+    border:
+      1.5px solid rgba(85,246,202,.72) !important;
+
+    box-shadow:
+      0 0 11px rgba(85,246,202,.07) !important;
+  }
+
+  .postCreator h3 {
+    font-size: 12.5px !important;
+    font-weight: 850 !important;
+  }
+
+  .postCreator p {
+    margin-top: 1px !important;
+
+    color:
+      rgba(255,255,255,.36) !important;
+
+    font-size: 8.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em !important;
+  }
+
+  .profileArrow {
+    display: none !important;
+  }
+
+  .postOwnerMenu {
+    top: 7px !important;
+    right: 8px !important;
+  }
+
+  .postMenuButton {
+    width: 34px !important;
+    height: 34px !important;
+
+    border: 0 !important;
+
+    background:
+      transparent !important;
+
+    color:
+      rgba(255,255,255,.62) !important;
+  }
+
+  /* =========================================================
+     MEDIA — THE STAR OF THE SCREEN
+     ========================================================= */
+
+  .mediaWrap {
+    min-height: 260px !important;
+    max-height: 76dvh !important;
+
+    border: 0 !important;
+
+    background: #000 !important;
+  }
+
+  .postMedia {
+    width: 100% !important;
+
+    min-height: 260px !important;
+    max-height: 76dvh !important;
+
+    object-fit: cover;
+
+    background: #000 !important;
+  }
+
+  /* Creator name already lives above media */
+  .mediaProfileButton {
+    display: none !important;
+  }
+
+  .tapHint {
+    display: none !important;
+  }
+
+  .mediaViewControls {
+    left: 8px !important;
+    bottom: 8px !important;
+
+    gap: 5px !important;
+
+    opacity: .78 !important;
+  }
+
+  .mediaViewButton {
+    min-width: 34px !important;
+    height: 31px !important;
+
+    padding: 0 8px !important;
+
+    border:
+      1px solid rgba(255,255,255,.10) !important;
+
+    background:
+      rgba(0,0,0,.50) !important;
+
+    font-size: 8px !important;
+  }
+
+  .soundButton {
+    right: 9px !important;
+    bottom: 9px !important;
+
+    width: 34px !important;
+    height: 34px !important;
+
+    border-color:
+      rgba(255,255,255,.11) !important;
+
+    background:
+      rgba(0,0,0,.52) !important;
+
+    font-size: 13px !important;
+  }
+
+  /* =========================================================
+     SOCIAL ACTIONS
+     ========================================================= */
+
+  .postBody {
+    padding: 0 0 9px !important;
+  }
+
+  .actionRow {
+    min-height: 45px !important;
+
+    gap: 1px !important;
+
+    padding: 2px 7px 0 !important;
+  }
+
+  .actionButton {
+    width: 38px !important;
+    height: 38px !important;
+
+    font-size: 20px !important;
+
+    background:
+      transparent !important;
+  }
+
+  .saveButton {
+    margin-left: auto !important;
+  }
+
+  .actionMeta {
+    margin: 0 11px 5px !important;
+
+    color:
+      rgba(255,255,255,.58) !important;
+
+    font-size: 9.5px !important;
+    font-weight: 750 !important;
+  }
+
+  .postTitle {
+    margin: 3px 11px 2px !important;
+
+    font-size: 13px !important;
+    font-weight: 850 !important;
+  }
+
+  .caption {
+    margin: 2px 11px 6px !important;
+
+    color:
+      rgba(255,255,255,.74) !important;
+
+    font-size: 11.5px !important;
+    line-height: 1.4 !important;
+  }
+
+  .creatorCaptionButton {
+    color: #fff !important;
+    font-weight: 900 !important;
+  }
+
+  /* =========================================================
+     COMMENTS — LOW PROFILE UNTIL USER WANTS THEM
+     ========================================================= */
+
+  .commentSection {
+    margin-top: 4px !important;
+    padding: 0 11px !important;
+  }
+
+  .viewComments {
+    margin-bottom: 5px !important;
+
+    color:
+      rgba(255,255,255,.36) !important;
+
+    font-size: 10px !important;
+  }
+
+  .commentPreview {
+    gap: 4px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .commentThread {
+    margin-top: 5px !important;
+  }
+
+  .commentBubble {
+    font-size: 11px !important;
+  }
+
+  .commentActions {
+    gap: 3px !important;
+  }
+
+  .commentActions button {
+    min-height: 21px !important;
+
+    padding: 2px 5px !important;
+
+    background:
+      transparent !important;
+
+    font-size: 8px !important;
+  }
+
+  .commentComposer {
+    min-height: 34px !important;
+
+    padding:
+      3px 4px 3px 9px !important;
+
+    border:
+      1px solid rgba(255,255,255,.055) !important;
+
+    border-radius: 10px !important;
+
+    background:
+      rgba(255,255,255,.018) !important;
+  }
+
+  .commentComposer input {
+    padding: 4px 0 !important;
+
+    font-size: 10px !important;
+  }
+
+  .sendComment {
+    width: 30px !important;
+    height: 30px !important;
+
+    background:
+      var(--utv-mint) !important;
+
+    font-size: 10px !important;
+  }
+
+  /* =========================================================
+     TEXT POSTS
+     ========================================================= */
+
+  .textOnlyPost {
+    min-height: 250px !important;
+
+    padding: 38px 25px !important;
+
+    background:
+      radial-gradient(
+        circle at 18% 15%,
+        rgba(85,246,202,.11),
+        transparent 33%
+      ),
+      radial-gradient(
+        circle at 88% 85%,
+        rgba(141,100,255,.16),
+        transparent 38%
+      ),
+      #080b0f !important;
+  }
+
+  .textOnlyBrand {
+    color:
+      rgba(255,255,255,.26) !important;
+  }
+
+  .textOnlyPost p {
+    font-size:
+      clamp(20px,5vw,31px) !important;
+
+    line-height: 1.15 !important;
+  }
+
+  /* =========================================================
+     LOADING
+     ========================================================= */
+
+  .skeletonHeader {
+    height: 52px !important;
+  }
+
+  .skeletonMedia {
+    height: 370px !important;
+  }
+
+  .skeletonBody {
+    height: 90px !important;
+  }
+
+  /* =========================================================
+     MOBILE REFERENCE TARGET
+     ========================================================= */
+
+  @media (max-width: 520px) {
+    .feedPage {
+      max-width: none !important;
+    }
+
+    .feedTabs {
+      top: 52px !important;
+    }
+
+    .mediaWrap,
+    .postMedia {
+      max-height: 70dvh !important;
+    }
+  }
+
+  @media (min-width: 760px) {
+    .feedPage {
+      border-right:
+        1px solid rgba(255,255,255,.04) !important;
+
+      border-left:
+        1px solid rgba(255,255,255,.04) !important;
+
+      box-shadow:
+        0 0 65px rgba(0,0,0,.48) !important;
+    }
+
+    .feedPost {
+      margin: 0 8px !important;
+
+      border:
+        1px solid rgba(255,255,255,.055) !important;
+
+      border-radius: 14px !important;
+    }
+  }
 
 
 `;
