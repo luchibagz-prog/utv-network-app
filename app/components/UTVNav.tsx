@@ -2899,3 +2899,87 @@ export default function UTVNav() {
     </>
   );
 }
+
+/* =========================================================
+   UTV LAUNCH — PREMIUM HEADER POLISH
+   ========================================================= */
+
+<style jsx global>{`
+  .utvTopNav {
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 14px !important;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(8, 10, 12, 0.90) 0%,
+        rgba(5, 7, 9, 0.78) 70%,
+        rgba(5, 7, 9, 0.58) 100%
+      ) !important;
+
+    border: 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,.045) !important;
+
+    box-shadow: none !important;
+
+    backdrop-filter: blur(18px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
+  }
+
+  .utvLogoLink {
+    top: 50% !important;
+    left: 50% !important;
+
+    width: 82px !important;
+    height: 42px !important;
+
+    transform: translate(-50%, -50%) !important;
+
+    overflow: visible !important;
+  }
+
+  .utvLogoLink img {
+    width: 108px !important;
+    height: auto !important;
+
+    max-width: none !important;
+    max-height: 52px !important;
+
+    object-fit: contain !important;
+  }
+
+  .topActivityButton {
+    top: 7px !important;
+    right: 13px !important;
+
+    width: 38px !important;
+    height: 38px !important;
+
+    background: rgba(255,255,255,.035) !important;
+    border: 1px solid rgba(255,255,255,.075) !important;
+
+    box-shadow: none !important;
+  }
+
+  @media (max-width: 600px) {
+    .utvTopNav {
+      height: 50px !important;
+      min-height: 50px !important;
+    }
+
+    .utvLogoLink {
+      width: 78px !important;
+      height: 40px !important;
+    }
+
+    .utvLogoLink img {
+      width: 102px !important;
+      max-height: 48px !important;
+    }
+
+    .topActivityButton {
+      top: 6px !important;
+    }
+  }
+`}</style>
