@@ -18,45 +18,228 @@ type IncomingWalkie = {
   callerAvatar: string;
 };
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon:
+    | "feed"
+    | "watch"
+    | "world"
+    | "create"
+    | "live"
+    | "profile";
+  primary?: boolean;
+  activity?: boolean;
+};
+
+const navItems: NavItem[] = [
   {
     href: "/feed",
     label: "Feed",
-    icon: "🏠",
+    icon: "feed",
   },
   {
     href: "/watch",
     label: "Watch",
-    icon: "▶️",
+    icon: "watch",
   },
   {
     href: "/world",
     label: "World",
-    icon: "🌍",
+    icon: "world",
   },
   {
     href: "/submit",
     label: "Create",
-    icon: "＋",
+    icon: "create",
     primary: true,
   },
   {
     href: "/live-room",
     label: "Live",
-    icon: "🔴",
-  },
-  {
-    href: "/social-v11",
-    label: "Activity",
-    icon: "🔔",
-    activity: true,
+    icon: "live",
   },
   {
     href: "/profile-pro-v12",
     label: "Profile",
-    icon: "👤",
+    icon: "profile",
   },
 ];
+
+function NavIcon({
+  name,
+}: {
+  name:
+    | NavItem["icon"]
+    | "activity";
+}) {
+  if (name === "feed") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg"
+        aria-hidden="true"
+      >
+        <path
+          d="M3.8 10.4 12 3.7l8.2 6.7v9a1.6 1.6 0 0 1-1.6 1.6H5.4a1.6 1.6 0 0 1-1.6-1.6v-9Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 21v-6.3h6V21"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "watch") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg"
+        aria-hidden="true"
+      >
+        <rect
+          x="3"
+          y="4.5"
+          width="18"
+          height="15"
+          rx="4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+        />
+        <path
+          d="m10 9 5 3-5 3V9Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "world") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="8.7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M3.7 12h16.6M12 3.3c2.3 2.4 3.5 5.3 3.5 8.7S14.3 18.3 12 20.7M12 3.3C9.7 5.7 8.5 8.6 8.5 12s1.2 6.3 3.5 8.7"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "create") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg createSvg"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 5v14M5 12h14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "live") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+          fill="currentColor"
+        />
+        <path
+          d="M7.4 7.4a6.5 6.5 0 0 0 0 9.2M16.6 7.4a6.5 6.5 0 0 1 0 9.2M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.55"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "activity") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg activitySvg"
+        aria-hidden="true"
+      >
+        <path
+          d="M18 9.5c0-3.5-2.1-5.8-6-5.8s-6 2.3-6 5.8v3.2c0 1.5-.6 2.8-1.6 3.9h15.2c-1-1.1-1.6-2.4-1.6-3.9V9.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9.6 19.1c.5.8 1.3 1.2 2.4 1.2s1.9-.4 2.4-1.2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="navSvg"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="8"
+        r="3.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.8 20c.8-4 3.2-6 7.2-6s6.4 2 7.2 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export default function UTVNav() {
   const pathname = usePathname();
@@ -904,7 +1087,7 @@ export default function UTVNav() {
             >
               <span className="navIconWrap">
                 <span className="navIcon">
-                  {item.icon}
+                  <NavIcon name={item.icon} />
                 </span>
 
                 {item.activity &&
@@ -1200,7 +1383,7 @@ export default function UTVNav() {
           position: sticky;
           top: 0;
           z-index: 100;
-          min-height: 78px;
+          min-height: 72px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -1209,79 +1392,168 @@ export default function UTVNav() {
               8px,
               env(safe-area-inset-top)
             )
-            16px
-            8px;
+            18px
+            7px;
           background:
-            rgba(0,0,0,.84);
+            linear-gradient(
+              180deg,
+              rgba(2,4,7,.97) 0%,
+              rgba(2,4,7,.88) 72%,
+              rgba(2,4,7,.72) 100%
+            );
           border-bottom:
             1px solid
-            rgba(255,255,255,.08);
+            rgba(255,255,255,.055);
+          box-shadow:
+            0 10px 35px
+            rgba(0,0,0,.22);
           backdrop-filter:
-            blur(20px);
+            blur(26px)
+            saturate(145%);
           -webkit-backdrop-filter:
-            blur(20px);
+            blur(26px)
+            saturate(145%);
+        }
+
+        .utvTopNav::after {
+          content: "";
+          position: absolute;
+          right: 12%;
+          bottom: -1px;
+          left: 12%;
+          height: 1px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(82,247,200,.18),
+              rgba(123,97,255,.17),
+              transparent
+            );
         }
 
         .utvLogoLink {
+          position: relative;
           display: flex;
           align-items: center;
           text-decoration: none;
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .utvLogoLink::after {
+          content: "";
+          position: absolute;
+          inset:
+            auto 14% -2px 14%;
+          height: 8px;
+          border-radius: 999px;
+          background:
+            rgba(82,247,200,.19);
+          filter: blur(10px);
+          pointer-events: none;
         }
 
         .utvNavLogo {
+          position: relative;
+          z-index: 1;
           width: auto;
-          height: 58px;
+          height: 52px;
           display: block;
           object-fit: contain;
+          filter:
+            drop-shadow(
+              0 3px 9px
+              rgba(0,0,0,.55)
+            );
         }
 
         .topActivityButton {
           position: relative;
-          width: 46px;
-          height: 46px;
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
+          overflow: visible;
           color: white;
           text-decoration: none;
           border:
             1px solid
-            rgba(255,255,255,.14);
-          border-radius: 50%;
+            rgba(255,255,255,.11);
+          border-radius: 16px;
           background:
-            rgba(255,255,255,.07);
-          font-size: 21px;
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.09),
+              rgba(255,255,255,.035)
+            );
+          box-shadow:
+            inset 0 1px 0
+              rgba(255,255,255,.09),
+            0 8px 24px
+              rgba(0,0,0,.28);
+          font-size: 0;
           transition:
-            transform .15s ease,
-            background .15s ease;
+            transform .16s ease,
+            border-color .16s ease,
+            background .16s ease,
+            box-shadow .16s ease;
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .topActivityButton::before {
+          content: "";
+          width: 21px;
+          height: 21px;
+          background: currentColor;
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 0 1-3.46 0'/%3E%3C/svg%3E")
+            center / contain no-repeat;
         }
 
         .topActivityButton:active {
-          transform: scale(.92);
+          transform:
+            scale(.91);
+          border-color:
+            rgba(82,247,200,.32);
           background:
-            rgba(255,255,255,.13);
+            rgba(82,247,200,.09);
         }
 
         .topUnreadBadge,
         .navUnreadBadge {
           position: absolute;
+          z-index: 5;
           display: grid;
           place-items: center;
-          min-width: 19px;
-          height: 19px;
+          min-width: 18px;
+          height: 18px;
           padding: 0 4px;
           color: white;
-          border: 2px solid #000;
+          border:
+            2px solid #030507;
           border-radius: 999px;
-          background: #ff315f;
+          background:
+            linear-gradient(
+              135deg,
+              #ff2858,
+              #ff506f
+            );
           box-shadow:
-            0 0 12px
-            rgba(255,49,95,.72);
+            0 0 14px
+              rgba(255,40,88,.56);
           font-size: 9px;
           font-weight: 950;
           line-height: 1;
           animation:
-            unreadPulse 1.8s
-            ease-in-out infinite;
+            unreadPulse
+            1.8s ease-in-out
+            infinite;
         }
 
         .topUnreadBadge {
@@ -1291,9 +1563,13 @@ export default function UTVNav() {
 
         .utvBottomNav {
           position: fixed;
-          right: 0;
-          bottom: 0;
-          left: 0;
+          right: 8px;
+          bottom:
+            max(
+              7px,
+              env(safe-area-inset-bottom)
+            );
+          left: 8px;
           z-index: 1000;
           display: grid;
           grid-template-columns:
@@ -1301,110 +1577,398 @@ export default function UTVNav() {
               7,
               minmax(0,1fr)
             );
-          gap: 2px;
+          align-items: end;
+          gap: 1px;
           padding:
-            8px
-            4px
-            max(
-              10px,
-              env(
-                safe-area-inset-bottom
-              )
-            );
-          background:
-            rgba(0,0,0,.97);
-          border-top:
+            7px
+            5px
+            6px;
+          border:
             1px solid
-            rgba(255,255,255,.1);
+            rgba(255,255,255,.09);
+          border-radius:
+            23px;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(13,16,22,.94),
+              rgba(3,5,8,.965)
+            );
+          box-shadow:
+            0 14px 50px
+              rgba(0,0,0,.68),
+            0 0 0 1px
+              rgba(0,0,0,.35),
+            inset 0 1px 0
+              rgba(255,255,255,.06);
           backdrop-filter:
-            blur(20px);
+            blur(28px)
+            saturate(155%);
           -webkit-backdrop-filter:
-            blur(20px);
+            blur(28px)
+            saturate(155%);
+        }
+
+        .utvBottomNav::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 18px;
+          left: 18px;
+          height: 1px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(82,247,200,.22),
+              rgba(123,97,255,.22),
+              transparent
+            );
         }
 
         .utvNavItem {
+          position: relative;
           min-width: 0;
+          min-height: 51px;
           display: grid;
+          align-content: center;
           justify-items: center;
           gap: 3px;
-          padding: 5px 1px;
+          padding: 4px 1px;
           color:
-            rgba(255,255,255,.57);
+            rgba(235,239,245,.50);
           text-decoration: none;
-          border-radius: 14px;
-          font-weight: 850;
+          border-radius: 16px;
+          font-weight: 820;
           transition:
-            transform .15s ease,
-            background .15s ease,
-            color .15s ease;
+            transform .16s ease,
+            background .18s ease,
+            color .18s ease,
+            filter .18s ease;
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .utvNavItem::after {
+          content: "";
+          position: absolute;
+          right: 31%;
+          bottom: 1px;
+          left: 31%;
+          height: 2px;
+          border-radius: 99px;
+          background: transparent;
+          transition:
+            background .18s ease,
+            box-shadow .18s ease;
         }
 
         .utvNavItem:active {
-          transform: scale(.92);
+          transform:
+            scale(.89);
         }
 
         .navIconWrap {
           position: relative;
-          min-width: 30px;
-          height: 28px;
+          min-width: 31px;
+          height: 27px;
           display: grid;
           place-items: center;
         }
 
+        /*
+          Hide the emoji supplied by the old nav.
+          Premium vector icons are drawn below.
+        */
         .navIcon {
-          font-size: 20px;
-          line-height: 1;
+          width: 22px;
+          height: 22px;
+          display: block;
+          overflow: hidden;
+          color: inherit;
+          font-size: 0 !important;
+          line-height: 0;
+        }
+
+        .navIcon::before {
+          content: "";
+          width: 22px;
+          height: 22px;
+          display: block;
+          background:
+            currentColor;
+          transition:
+            transform .18s ease,
+            filter .18s ease;
+        }
+
+        /* FEED */
+        .utvNavItem:nth-child(1)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3V10.5Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3V10.5Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+        }
+
+        /* WATCH */
+        .utvNavItem:nth-child(2)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2.5' y='4.5' width='19' height='15' rx='4'/%3E%3Cpath fill='white' d='m10 9 6 3-6 3V9Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2.5' y='4.5' width='19' height='15' rx='4'/%3E%3Cpath fill='white' d='m10 9 6 3-6 3V9Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+        }
+
+        /* WORLD */
+        .utvNavItem:nth-child(3)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2c1.5 1.8 2.5 4.1 2.8 7H9.2c.3-2.9 1.3-5.2 2.8-7ZM4.3 11a8 8 0 0 1 4.6-6.3A16 16 0 0 0 7.2 11H4.3Zm0 2h2.9a16 16 0 0 0 1.7 6.3A8 8 0 0 1 4.3 13Zm7.7 7c-1.5-1.8-2.5-4.1-2.8-7h5.6c-.3 2.9-1.3 5.2-2.8 7Zm3.1-.7a16 16 0 0 0 1.7-6.3h2.9a8 8 0 0 1-4.6 6.3ZM16.8 11a16 16 0 0 0-1.7-6.3A8 8 0 0 1 19.7 11h-2.9Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 2c1.5 1.8 2.5 4.1 2.8 7H9.2c.3-2.9 1.3-5.2 2.8-7ZM4.3 11a8 8 0 0 1 4.6-6.3A16 16 0 0 0 7.2 11H4.3Zm0 2h2.9a16 16 0 0 0 1.7 6.3A8 8 0 0 1 4.3 13Zm7.7 7c-1.5-1.8-2.5-4.1-2.8-7h5.6c-.3 2.9-1.3 5.2-2.8 7Zm3.1-.7a16 16 0 0 0 1.7-6.3h2.9a8 8 0 0 1-4.6 6.3ZM16.8 11a16 16 0 0 0-1.7-6.3A8 8 0 0 1 19.7 11h-2.9Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+        }
+
+        /* CREATE */
+        .utvNavItem:nth-child(4)
+        .navIcon::before {
+          -webkit-mask: none;
+          mask: none;
+          width: 18px;
+          height: 18px;
+          background:
+            linear-gradient(
+              #07120e,
+              #07120e
+            );
+          clip-path:
+            polygon(
+              42% 0,
+              58% 0,
+              58% 42%,
+              100% 42%,
+              100% 58%,
+              58% 58%,
+              58% 100%,
+              42% 100%,
+              42% 58%,
+              0 58%,
+              0 42%,
+              42% 42%
+            );
+        }
+
+        /* LIVE */
+        .utvNavItem:nth-child(5)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='3.25'/%3E%3Cpath d='M7.05 7.05a7 7 0 0 0 0 9.9l1.4-1.4a5 5 0 0 1 0-7.1l-1.4-1.4Zm9.9 0-1.4 1.4a5 5 0 0 1 0 7.1l1.4 1.4a7 7 0 0 0 0-9.9ZM4.2 4.2a11 11 0 0 0 0 15.6l1.42-1.42a9 9 0 0 1 0-12.76L4.2 4.2Zm15.6 0-1.42 1.42a9 9 0 0 1 0 12.76l1.42 1.42a11 11 0 0 0 0-15.6Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='3.25'/%3E%3Cpath d='M7.05 7.05a7 7 0 0 0 0 9.9l1.4-1.4a5 5 0 0 1 0-7.1l-1.4-1.4Zm9.9 0-1.4 1.4a5 5 0 0 1 0 7.1l1.4 1.4a7 7 0 0 0 0-9.9ZM4.2 4.2a11 11 0 0 0 0 15.6l1.42-1.42a9 9 0 0 1 0-12.76L4.2 4.2Zm15.6 0-1.42 1.42a9 9 0 0 1 0 12.76l1.42 1.42a11 11 0 0 0 0-15.6Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+        }
+
+        /* ACTIVITY */
+        .utvNavItem:nth-child(6)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-4.27 13h-3.46a2 2 0 0 0 3.46 0Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Zm-4.27 13h-3.46a2 2 0 0 0 3.46 0Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+        }
+
+        /* PROFILE */
+        .utvNavItem:nth-child(7)
+        .navIcon::before {
+          -webkit-mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21a8 8 0 0 1 16 0H4Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
+          mask:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21a8 8 0 0 1 16 0H4Z'/%3E%3C/svg%3E")
+            center / contain no-repeat;
         }
 
         .utvNavItem small {
           max-width: 100%;
           overflow: hidden;
-          font-size: 9px;
+          color: inherit;
+          font-size: 8px;
+          font-weight: 800;
+          letter-spacing:
+            -.08px;
+          line-height: 1;
           text-overflow: ellipsis;
           white-space: nowrap;
+          transition:
+            color .18s ease,
+            opacity .18s ease;
         }
 
         .activeNavItem {
-          color: #52f7c8;
+          color:
+            #63f7cf;
           background:
-            rgba(82,247,200,.08);
+            linear-gradient(
+              180deg,
+              rgba(82,247,200,.095),
+              rgba(82,247,200,.025)
+            );
         }
 
-        .activeNavItem .navIcon {
+        .activeNavItem::after {
+          background:
+            linear-gradient(
+              90deg,
+              #52f7c8,
+              #8167ff
+            );
+          box-shadow:
+            0 0 11px
+              rgba(82,247,200,.65);
+        }
+
+        .activeNavItem
+        .navIcon::before {
+          transform:
+            translateY(-1px)
+            scale(1.06);
           filter:
             drop-shadow(
-              0 0 8px
-              rgba(82,247,200,.65)
+              0 0 7px
+              rgba(82,247,200,.48)
             );
         }
 
         .createNavItem {
-          color: #06120d;
+          color:
+            rgba(255,255,255,.74);
+          transform:
+            translateY(-5px);
         }
 
-        .createNavItem .navIconWrap {
-          width: 46px;
-          height: 36px;
+        .createNavItem:active {
+          transform:
+            translateY(-5px)
+            scale(.9);
+        }
+
+        .createNavItem
+        .navIconWrap {
+          width: 49px;
+          height: 39px;
+          overflow: hidden;
+          border:
+            1px solid
+            rgba(255,255,255,.24);
           border-radius: 15px;
           background:
             linear-gradient(
               135deg,
-              #52f7c8,
-              #7b61ff
+              #52f7c8 0%,
+              #77edda 35%,
+              #8067ff 100%
             );
           box-shadow:
-            0 0 18px
-            rgba(82,247,200,.25);
+            inset 0 1px 0
+              rgba(255,255,255,.5),
+            inset 0 -8px 15px
+              rgba(42,25,120,.18),
+            0 7px 20px
+              rgba(82,247,200,.18),
+            0 6px 22px
+              rgba(123,97,255,.19);
         }
 
-        .createNavItem .navIcon {
-          font-size: 27px;
-          font-weight: 950;
+        .createNavItem
+        .navIconWrap::after {
+          content: "";
+          position: absolute;
+          top: 2px;
+          right: 6px;
+          left: 6px;
+          height: 8px;
+          border-radius:
+            99px;
+          background:
+            rgba(255,255,255,.25);
+          filter: blur(4px);
+        }
+
+        .createNavItem
+        small {
+          margin-top: -1px;
+          color:
+            rgba(255,255,255,.8);
+          font-weight: 900;
+        }
+
+        .createNavItem.activeNavItem {
+          background:
+            transparent;
+        }
+
+        .createNavItem.activeNavItem::after {
+          bottom: -3px;
         }
 
         .navUnreadBadge {
-          top: -5px;
+          top: -6px;
           right: -9px;
+        }
+
+        @media (max-width: 390px) {
+          .utvBottomNav {
+            right: 5px;
+            left: 5px;
+            gap: 0;
+            padding-right: 3px;
+            padding-left: 3px;
+          }
+
+          .utvNavItem {
+            min-height: 49px;
+          }
+
+          .navIcon {
+            width: 20px;
+            height: 20px;
+          }
+
+          .navIcon::before {
+            width: 20px;
+            height: 20px;
+          }
+
+          .utvNavItem small {
+            font-size: 7.5px;
+          }
+
+          .createNavItem
+          .navIconWrap {
+            width: 43px;
+            height: 37px;
+          }
+        }
+
+        @media (min-width: 850px) {
+          .utvBottomNav {
+            right: 50%;
+            left: auto;
+            width:
+              min(700px,calc(100% - 28px));
+            transform:
+              translateX(50%);
+          }
         }
 
         @keyframes unreadPulse {
@@ -1468,6 +2032,348 @@ export default function UTVNav() {
               22px 22px 0 0;
           }
         }
+
+        /* ==========================================
+           UTV PREMIUM SHELL 1A
+           ========================================== */
+
+        .utvTopNav {
+          min-height: 64px;
+          padding:
+            max(
+              6px,
+              env(safe-area-inset-top)
+            )
+            16px
+            6px;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(5,7,8,.96),
+              rgba(5,7,8,.84)
+            );
+          border-bottom:
+            1px solid
+            rgba(255,255,255,.055);
+          box-shadow:
+            0 10px 32px
+            rgba(0,0,0,.18);
+          backdrop-filter:
+            blur(24px)
+            saturate(145%);
+          -webkit-backdrop-filter:
+            blur(24px)
+            saturate(145%);
+        }
+
+        .utvNavLogo {
+          height: 47px;
+          filter:
+            drop-shadow(
+              0 3px 12px
+              rgba(82,247,200,.08)
+            );
+        }
+
+        .topActivityButton {
+          width: 42px;
+          height: 42px;
+          border:
+            1px solid
+            rgba(255,255,255,.10);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.085),
+              rgba(255,255,255,.025)
+            );
+          box-shadow:
+            inset 0 1px 0
+              rgba(255,255,255,.08),
+            0 8px 24px
+              rgba(0,0,0,.24);
+        }
+
+        .topActivityButton .navSvg {
+          width: 21px;
+          height: 21px;
+        }
+
+        .utvBottomNav {
+          right:
+            max(
+              8px,
+              env(safe-area-inset-right)
+            );
+          bottom:
+            max(
+              7px,
+              env(safe-area-inset-bottom)
+            );
+          left:
+            max(
+              8px,
+              env(safe-area-inset-left)
+            );
+          grid-template-columns:
+            repeat(
+              6,
+              minmax(0,1fr)
+            );
+          gap: 2px;
+          padding: 7px 5px 6px;
+          border:
+            1px solid
+            rgba(255,255,255,.095);
+          border-radius: 24px;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(16,19,20,.94),
+              rgba(5,7,8,.97)
+            );
+          box-shadow:
+            0 18px 50px
+              rgba(0,0,0,.62),
+            inset 0 1px 0
+              rgba(255,255,255,.065);
+          backdrop-filter:
+            blur(28px)
+            saturate(150%);
+          -webkit-backdrop-filter:
+            blur(28px)
+            saturate(150%);
+        }
+
+        .utvBottomNav::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 12%;
+          left: 12%;
+          height: 1px;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(82,247,200,.20),
+              rgba(123,97,255,.18),
+              transparent
+            );
+          pointer-events: none;
+        }
+
+        .utvNavItem {
+          position: relative;
+          min-height: 55px;
+          align-content: center;
+          gap: 4px;
+          padding: 5px 2px 4px;
+          color:
+            rgba(255,255,255,.49);
+          border-radius: 17px;
+          transform:
+            translateZ(0);
+          transition:
+            color .18s ease,
+            transform .18s ease,
+            background .18s ease;
+          -webkit-tap-highlight-color:
+            transparent;
+        }
+
+        .utvNavItem::after {
+          content: "";
+          position: absolute;
+          bottom: 1px;
+          left: 50%;
+          width: 4px;
+          height: 4px;
+          border-radius: 999px;
+          background: #52f7c8;
+          box-shadow:
+            0 0 12px
+            rgba(82,247,200,.78);
+          opacity: 0;
+          transform:
+            translateX(-50%)
+            scale(.4);
+          transition:
+            opacity .18s ease,
+            transform .18s ease;
+        }
+
+        .utvNavItem:active {
+          transform:
+            scale(.90);
+        }
+
+        .navIconWrap {
+          min-width: 34px;
+          height: 30px;
+        }
+
+        .navIcon {
+          width: 26px;
+          height: 26px;
+          display: grid;
+          place-items: center;
+          font-size: 0;
+        }
+
+        .navSvg {
+          width: 24px;
+          height: 24px;
+          display: block;
+          overflow: visible;
+        }
+
+        .utvNavItem small {
+          color: inherit;
+          font-size: 8.5px;
+          font-weight: 800;
+          letter-spacing: .1px;
+        }
+
+        .activeNavItem {
+          color: #52f7c8;
+          background:
+            radial-gradient(
+              circle at 50% 45%,
+              rgba(82,247,200,.12),
+              transparent 68%
+            );
+        }
+
+        .activeNavItem::after {
+          opacity: 1;
+          transform:
+            translateX(-50%)
+            scale(1);
+        }
+
+        .activeNavItem .navIcon {
+          filter:
+            drop-shadow(
+              0 0 9px
+              rgba(82,247,200,.45)
+            );
+          transform:
+            translateY(-1px);
+        }
+
+        .createNavItem {
+          color: white;
+          overflow: visible;
+        }
+
+        .createNavItem::after {
+          display: none;
+        }
+
+        .createNavItem .navIconWrap {
+          width: 52px;
+          height: 43px;
+          margin-top: -17px;
+          border:
+            1px solid
+            rgba(255,255,255,.16);
+          border-radius: 17px;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8 0%,
+              #63e8d1 38%,
+              #7967ff 100%
+            );
+          box-shadow:
+            0 9px 27px
+              rgba(82,247,200,.20),
+            0 6px 26px
+              rgba(123,97,255,.20),
+            inset 0 1px 0
+              rgba(255,255,255,.38);
+          transform:
+            translateZ(0);
+          transition:
+            transform .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .createNavItem .navIcon {
+          color: #07110e;
+          width: 31px;
+          height: 31px;
+          filter: none;
+        }
+
+        .createNavItem .navSvg {
+          width: 29px;
+          height: 29px;
+        }
+
+        .createNavItem small {
+          margin-top: 1px;
+          color:
+            rgba(255,255,255,.84);
+          font-weight: 900;
+        }
+
+        .createNavItem.activeNavItem
+        .navIconWrap {
+          box-shadow:
+            0 10px 32px
+              rgba(82,247,200,.30),
+            0 7px 32px
+              rgba(123,97,255,.28),
+            0 0 0 3px
+              rgba(82,247,200,.07),
+            inset 0 1px 0
+              rgba(255,255,255,.42);
+        }
+
+        .topUnreadBadge {
+          top: -3px;
+          right: -4px;
+        }
+
+        @media (max-width: 390px) {
+          .utvBottomNav {
+            right: 6px;
+            left: 6px;
+            padding-right: 3px;
+            padding-left: 3px;
+          }
+
+          .navSvg {
+            width: 22px;
+            height: 22px;
+          }
+
+          .utvNavItem small {
+            font-size: 8px;
+          }
+
+          .createNavItem
+          .navIconWrap {
+            width: 47px;
+            height: 41px;
+          }
+        }
+
+        @media (min-width: 850px) {
+          .utvBottomNav {
+            right: 50%;
+            left: auto;
+            bottom: 10px;
+            width:
+              min(650px,calc(100% - 24px));
+            transform:
+              translateX(50%);
+            border-radius: 24px;
+          }
+        }
+
       `}</style>
     </>
   );
