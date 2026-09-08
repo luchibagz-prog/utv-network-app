@@ -27,6 +27,7 @@ type NavItem = {
     | "world"
     | "create"
     | "live"
+    | "activity"
     | "profile";
   primary?: boolean;
   activity?: boolean;
@@ -58,6 +59,12 @@ const navItems: NavItem[] = [
     href: "/live-room",
     label: "Live",
     icon: "live",
+  },
+  {
+    href: "/activity",
+    label: "Activity",
+    icon: "activity",
+    activity: true,
   },
   {
     href: "/profile-pro-v12",
