@@ -255,35 +255,7 @@ export default function UTVNav() {
   const [walkieBusy, setWalkieBusy] =
     useState(false);
 
-  const [profileHref, setProfileHref] =
-    useState("/profile-pro-v12");
-
-  useEffect(() => {
-    let active = true;
-
-    async function resolveProfileHref() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (
-          active &&
-          user?.email
-        ) {
-          setProfileHref(
-            `/u/${encodeURIComponent(user.email)}`
-          );
-        }
-      } catch {}
-    }
-
-    void resolveProfileHref();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+  const profileHref = "/profile-pro-v12";
 
   // UTV FAST MODE: warm the main routes after nav mounts.
   useEffect(() => {
