@@ -1366,12 +1366,17 @@ export default function WatchPage() {
 
       <header className="watchTop">
         <div className="watchBrand">
-          <div>
-            <p>
-              UTV ENTERTAINMENT
-            </p>
+          <div className="watchIdentity">
+            <img
+              src="/utv-logo.png"
+              alt="UTV"
+              className="watchLogo"
+            />
 
-            <h1>Watch</h1>
+            <div className="watchIdentityCopy">
+              <strong>UTV</strong>
+              <span>STREAM</span>
+            </div>
           </div>
 
           <div className="watchTopActions">
@@ -1393,6 +1398,53 @@ export default function WatchPage() {
               ⚙
             </Link>
           </div>
+        </div>
+
+        <div className="streamTabs">
+          {(
+            [
+              "All",
+              "Shows",
+              "Movies",
+              "Originals",
+              "Live",
+            ] as Category[]
+          ).map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={
+                mode === "home" &&
+                category === name
+                  ? "active"
+                  : ""
+              }
+              onClick={() => {
+                setMode("home");
+                setCategory(name);
+              }}
+            >
+              {name === "All"
+                ? "For You"
+                : name === "Live"
+                ? "Live TV"
+                : name}
+            </button>
+          ))}
+
+          <button
+            type="button"
+            className={
+              mode === "reels"
+                ? "active reelStreamTab"
+                : "reelStreamTab"
+            }
+            onClick={() =>
+              setMode("reels")
+            }
+          >
+            Reels
+          </button>
         </div>
 
         <div className="modeSwitch">
@@ -1499,7 +1551,7 @@ export default function WatchPage() {
                     href={`/watch/${featured.id}`}
                     className="heroPlay"
                   >
-                    ▶ Play
+                    ▶ Watch Now
                   </Link>
                 )}
 
@@ -3165,4 +3217,658 @@ const styles = `
       height: 270px;
     }
   }
+
+
+  /* UTV WATCH PREMIUM STREAM 4.0 */
+
+  .watchPage {
+    background:
+      radial-gradient(
+        circle at 75% 5%,
+        rgba(125,76,255,.10),
+        transparent 27%
+      ),
+      radial-gradient(
+        circle at 10% 22%,
+        rgba(82,247,200,.055),
+        transparent 25%
+      ),
+      #000;
+    padding-bottom: 118px;
+  }
+
+  /* ---------- PREMIUM STREAM HEADER ---------- */
+
+  .watchTop {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 10px 14px 4px;
+    position: relative;
+    z-index: 20;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.98),
+        rgba(0,0,0,.80),
+        transparent
+      );
+  }
+
+  .watchBrand {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .watchIdentity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .watchLogo {
+    width: 92px;
+    height: 52px;
+    object-fit: contain;
+    filter:
+      drop-shadow(0 0 7px rgba(82,247,200,.24))
+      drop-shadow(0 0 14px rgba(146,79,255,.18));
+    transform: scale(1.14);
+    transform-origin: left center;
+  }
+
+  .watchIdentityCopy {
+    display: grid;
+    line-height: .88;
+  }
+
+  .watchIdentityCopy strong {
+    font-size: 11px;
+    font-weight: 1000;
+    letter-spacing: .16em;
+  }
+
+  .watchIdentityCopy span {
+    margin-top: 4px;
+    color: #52f7c8;
+    font-size: 6px;
+    font-weight: 1000;
+    letter-spacing: .26em;
+  }
+
+  .watchTopActions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .studioShortcut {
+    width: 36px;
+    height: 36px;
+    border:
+      1px solid
+      rgba(255,255,255,.11);
+    border-radius: 50%;
+    background:
+      rgba(13,17,23,.78);
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.06);
+    backdrop-filter: blur(16px);
+    font-size: 16px;
+  }
+
+  .streamTabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding: 2px 0 5px;
+    scrollbar-width: none;
+    border-bottom:
+      1px solid
+      rgba(255,255,255,.055);
+  }
+
+  .streamTabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .streamTabs button {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 41px;
+    padding: 0 15px;
+    border: 0;
+    color:
+      rgba(255,255,255,.47);
+    background: transparent;
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .streamTabs button.active {
+    color: white;
+  }
+
+  .streamTabs button.active::after {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: 0;
+    height: 3px;
+    border-radius: 999px;
+    background:
+      linear-gradient(
+        90deg,
+        #52f7c8,
+        #8c63ff
+      );
+    box-shadow:
+      0 0 13px
+      rgba(82,247,200,.32);
+  }
+
+  .streamTabs .reelStreamTab {
+    color: #9a82ff;
+  }
+
+  /* old Watch/Reels switch replaced by native stream tabs */
+  .modeSwitch {
+    display: none !important;
+  }
+
+  /* ---------- CINEMATIC HERO ---------- */
+
+  .watchHero {
+    width: min(100%, 1180px);
+    height: min(61dvh, 640px);
+    min-height: 430px;
+    margin: -1px auto 0;
+    border: 0;
+    border-radius: 0;
+    background: #050608;
+    box-shadow: none;
+  }
+
+  .heroBackdrop img {
+    transform: scale(1.015);
+  }
+
+  .heroShade {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(0,0,0,.80) 0%,
+        rgba(0,0,0,.39) 48%,
+        rgba(0,0,0,.07) 78%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.05) 0%,
+        rgba(0,0,0,.04) 40%,
+        rgba(0,0,0,.96) 92%,
+        #000 100%
+      );
+  }
+
+  .heroContent {
+    max-width: 620px;
+    padding: 35px 18px 38px;
+  }
+
+  .heroLabel {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border:
+      1px solid
+      rgba(82,247,200,.32);
+    border-radius: 999px;
+    color: #52f7c8;
+    background:
+      rgba(0,0,0,.36);
+    box-shadow:
+      0 0 18px
+      rgba(82,247,200,.09);
+    backdrop-filter: blur(10px);
+    font-size: 7px;
+    letter-spacing: .15em;
+  }
+
+  .heroContent h2 {
+    max-width: 570px;
+    margin: 10px 0 0;
+    font-size:
+      clamp(
+        39px,
+        10.5vw,
+        72px
+      );
+    line-height: .90;
+    letter-spacing: -.055em;
+    text-shadow:
+      0 4px 30px
+      rgba(0,0,0,.55);
+  }
+
+  .heroContent > p {
+    max-width: 480px;
+    margin-top: 10px;
+    color:
+      rgba(255,255,255,.72);
+    font-size: 11px;
+    line-height: 1.48;
+  }
+
+  .heroMeta {
+    margin-top: 10px;
+    color:
+      rgba(255,255,255,.53);
+  }
+
+  .heroActions {
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .heroActions a,
+  .heroActions button {
+    min-width: 118px;
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 7px;
+    font-size: 9px;
+  }
+
+  .heroActions .heroPlay {
+    color: #050505;
+    background: #fff;
+    box-shadow:
+      0 6px 25px
+      rgba(255,255,255,.12);
+  }
+
+  .heroActions button {
+    background:
+      rgba(24,27,33,.74);
+    backdrop-filter: blur(16px);
+  }
+
+  .heroDots {
+    right: 15px;
+    bottom: 17px;
+  }
+
+  .heroDots button {
+    border-radius: 999px;
+  }
+
+  /* ---------- DISCOVERY ---------- */
+
+  .discovery {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+    padding: 5px 14px 0;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .categoryScroller {
+    display: none;
+  }
+
+  .searchBox {
+    width: min(100%, 310px);
+    min-height: 39px;
+    border:
+      1px solid
+      rgba(255,255,255,.07);
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.035);
+    backdrop-filter: blur(14px);
+  }
+
+  .searchBox input {
+    font-size: 9px;
+  }
+
+  .searchBox > span {
+    font-size: 17px;
+  }
+
+  /* Reels now has its own top STREAM tab */
+  .reelsPreview {
+    display: none;
+  }
+
+  /* ---------- CONTENT RAILS ---------- */
+
+  .watchRow {
+    margin: 23px auto 0;
+  }
+
+  .reelsPreview > header,
+  .rowHeader {
+    align-items: center;
+    padding: 0 14px 10px;
+  }
+
+  .rowHeader p {
+    margin-bottom: 3px;
+    color: #52f7c8;
+    font-size: 6px;
+    letter-spacing: .14em;
+  }
+
+  .rowHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -.025em;
+  }
+
+  .rowHeader > span {
+    width: 27px;
+    height: 27px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color:
+      rgba(255,255,255,.45);
+    background:
+      rgba(255,255,255,.035);
+    font-size: 18px;
+  }
+
+  .watchScroller {
+    gap: 10px;
+    padding: 0 14px 8px;
+  }
+
+  .watchCard {
+    width: 202px;
+    min-width: 202px;
+    transition:
+      transform .18s ease,
+      opacity .18s ease;
+  }
+
+  .watchCard:active {
+    transform: scale(.975);
+  }
+
+  .poster {
+    height: 118px;
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+    border-radius: 10px;
+    box-shadow:
+      0 10px 30px
+      rgba(0,0,0,.25);
+  }
+
+  .poster img,
+  .poster video {
+    transition:
+      transform .28s ease;
+  }
+
+  .watchCard:hover
+  .poster img,
+  .watchCard:hover
+  .poster video {
+    transform: scale(1.035);
+  }
+
+  .posterShade {
+    inset: 35% 0 0;
+    background:
+      linear-gradient(
+        transparent,
+        rgba(0,0,0,.80)
+      );
+  }
+
+  .posterPlay {
+    width: 29px;
+    height: 29px;
+    right: 7px;
+    bottom: 7px;
+    border-color:
+      rgba(255,255,255,.19);
+    background:
+      rgba(5,7,10,.68);
+    backdrop-filter: blur(10px);
+  }
+
+  .originalBadge {
+    top: 7px;
+    right: 7px;
+    padding: 5px 7px;
+    border-radius: 999px;
+    color: #04100c;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #81ffd9
+      );
+    box-shadow:
+      0 3px 15px
+      rgba(82,247,200,.14);
+  }
+
+  .rankBadge {
+    left: 6px;
+    bottom: -1px;
+    font-size: 51px;
+    color: #050608;
+    -webkit-text-stroke:
+      1.5px
+      rgba(255,255,255,.88);
+    text-shadow:
+      0 4px 15px
+      rgba(0,0,0,.9);
+  }
+
+  .cardCopy {
+    padding: 7px 2px 0;
+  }
+
+  .cardCopy h3 {
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .cardCopy p {
+    color:
+      rgba(255,255,255,.39);
+    font-size: 7px;
+  }
+
+  /* ---------- REELS MODE ---------- */
+
+  .reelsMode {
+    width: min(100%, 760px);
+    margin: 0 auto;
+  }
+
+  .reelsHeader {
+    padding:
+      10px 15px
+      12px;
+  }
+
+  .reelsHeader h2 {
+    font-size: 27px;
+  }
+
+  .reelsHeader button {
+    border-radius: 999px;
+  }
+
+  .fullReelMedia {
+    border-radius: 16px;
+  }
+
+  /* ---------- MOBILE ---------- */
+
+  @media (max-width: 600px) {
+
+    .watchPage {
+      padding-bottom: 105px;
+    }
+
+    .watchTop {
+      padding:
+        6px 10px 2px;
+    }
+
+    .watchBrand {
+      min-height: 54px;
+    }
+
+    .watchLogo {
+      width: 82px;
+      height: 47px;
+      transform: scale(1.14);
+    }
+
+    .watchIdentityCopy {
+      display: none;
+    }
+
+    .studioShortcut {
+      width: 34px;
+      height: 34px;
+      font-size: 15px;
+    }
+
+    .streamTabs {
+      margin:
+        0 -10px;
+      padding:
+        0 7px 3px;
+    }
+
+    .streamTabs button {
+      min-height: 42px;
+      padding: 0 13px;
+      font-size: 9px;
+    }
+
+    .watchHero {
+      height: 55dvh;
+      min-height: 400px;
+    }
+
+    .heroContent {
+      padding:
+        25px 15px
+        31px;
+    }
+
+    .heroContent h2 {
+      max-width: 92%;
+      font-size:
+        clamp(
+          36px,
+          11vw,
+          51px
+        );
+    }
+
+    .heroContent > p {
+      max-width: 90%;
+      -webkit-line-clamp: 2;
+    }
+
+    .heroActions a,
+    .heroActions button {
+      min-width: 111px;
+      min-height: 41px;
+    }
+
+    .discovery {
+      padding:
+        7px 12px 0;
+    }
+
+    .searchBox {
+      width: 100%;
+    }
+
+    .watchRow {
+      margin-top: 21px;
+    }
+
+    .rowHeader {
+      padding:
+        0 12px 9px;
+    }
+
+    .watchScroller {
+      gap: 8px;
+      padding:
+        0 12px 7px;
+    }
+
+    .watchCard {
+      width: 170px;
+      min-width: 170px;
+    }
+
+    .poster {
+      height: 101px;
+      border-radius: 9px;
+    }
+
+    .rowHeader h2 {
+      font-size: 17px;
+    }
+
+    .rankBadge {
+      font-size: 46px;
+    }
+  }
+
+  @media (min-width: 760px) {
+
+    .watchTop {
+      padding-top: 12px;
+    }
+
+    .watchLogo {
+      width: 112px;
+      height: 60px;
+    }
+
+    .watchHero {
+      height: 625px;
+    }
+
+    .heroContent {
+      padding:
+        45px 40px;
+    }
+
+    .watchCard {
+      width: 235px;
+      min-width: 235px;
+    }
+
+    .poster {
+      height: 137px;
+    }
+  }
+
+
 `;
