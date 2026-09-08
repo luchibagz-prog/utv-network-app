@@ -2327,13 +2327,24 @@ export default function FeedPage() {
                     </button>
 
                     <button
-                      className="actionButton"
+                      className={
+                        expandedComments[item.id]
+                          ? "actionButton commentActive"
+                          : "actionButton"
+                      }
                       onClick={() => {
-                        const input = document.getElementById(
-                          `comment-${item.id}`,
-                        ) as HTMLInputElement | null;
+                        setExpandedComments((current) => ({
+                          ...current,
+                          [item.id]: true,
+                        }));
 
-                        input?.focus();
+                        window.setTimeout(() => {
+                          const input = document.getElementById(
+                            `comment-${item.id}`,
+                          ) as HTMLInputElement | null;
+
+                          input?.focus();
+                        }, 80);
                       }}
                     >
                       💬
@@ -2395,73 +2406,114 @@ export default function FeedPage() {
                     </p>
                   ) : null}
 
-                  <section className="commentSection">
-                    {postComments.length > 0 && (
-                      <button
-                        type="button"
-                        className="viewComments"
-                        onClick={() =>
-                          setExpandedComments((current) => ({
-                            ...current,
-                            [item.id]: !current[item.id],
-                          }))
-                        }
-                      >
-                        {expandedComments[item.id]
-                          ? "Hide comments"
-                          : `View all ${postComments.length} comments`}
-                      </button>
-                    )}
+                  <section
+                    className={
+                      expandedComments[item.id]
+                        ? "commentSection commentsOpen"
+                        : "commentSection"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="viewComments"
+                      onClick={() =>
+                        setExpandedComments((current) => ({
+                          ...current,
+                          [item.id]: !current[item.id],
+                        }))
+                      }
+                    >
+                      {expandedComments[item.id]
+                        ? "Close comments"
+                        : postComments.length > 0
+                          ? `View all ${postComments.length} comment${
+                              postComments.length === 1 ? "" : "s"
+                            }`
+                          : "Add a comment"}
+                    </button>
 
-                    <div className="commentPreview">
-                      {(expandedComments[item.id]
-                        ? postComments.filter((comment) => !comment.parent_comment_id)
-                        : postComments.filter((comment) => !comment.parent_comment_id).slice(-2)
-                      ).map((comment) =>
-                        renderFeedComment(item.id, comment, postComments)
-                      )}
-                    </div>
+                    {expandedComments[item.id] && (
+                      <div className="commentsDrawer">
+                        {postComments.length > 0 ? (
+                          <div className="commentPreview">
+                            {postComments
+                              .filter((comment) => !comment.parent_comment_id)
+                              .map((comment) =>
+                                renderFeedComment(
+                                  item.id,
+                                  comment,
+                                  postComments,
+                                )
+                              )}
+                          </div>
+                        ) : (
+                          <div className="noCommentsYet">
+                            Be the first to comment.
+                          </div>
+                        )}
 
-                    {replyTargets[item.id] && (
-                      <div className="replyingToBanner">
-                        <span>
-                          Replying to <b>{profileName(replyTargets[item.id]?.user_email)}</b>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setReplyTargets((current) => ({ ...current, [item.id]: null }))
-                          }
-                        >
-                          ✕
-                        </button>
+                        {replyTargets[item.id] && (
+                          <div className="replyingToBanner">
+                            <span>
+                              Replying to{" "}
+                              <b>
+                                {profileName(
+                                  replyTargets[item.id]?.user_email
+                                )}
+                              </b>
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReplyTargets((current) => ({
+                                  ...current,
+                                  [item.id]: null,
+                                }))
+                              }
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="commentComposer">
+                          <span>😊</span>
+
+                          <input
+                            id={`comment-${item.id}`}
+                            placeholder={
+                              replyTargets[item.id]
+                                ? `Reply to ${profileName(
+                                    replyTargets[item.id]?.user_email
+                                  )}...`
+                                : "Add a comment..."
+                            }
+                            value={commentText[item.id] || ""}
+                            onChange={(event) =>
+                              setCommentText((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                addComment(item.id, creatorEmail);
+                              }
+                            }}
+                          />
+
+                          <button
+                            className="sendComment"
+                            onClick={() =>
+                              addComment(item.id, creatorEmail)
+                            }
+                          >
+                            ➤
+                          </button>
+                        </div>
                       </div>
                     )}
-
-                    <div className="commentComposer">
-                      <span>😊</span>
-                      <input
-                        id={`comment-${item.id}`}
-                        placeholder={
-                          replyTargets[item.id]
-                            ? `Reply to ${profileName(replyTargets[item.id]?.user_email)}...`
-                            : "Add a comment..."
-                        }
-                        value={commentText[item.id] || ""}
-                        onChange={(event) =>
-                          setCommentText((current) => ({
-                            ...current,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") addComment(item.id, creatorEmail);
-                        }}
-                      />
-                      <button className="sendComment" onClick={() => addComment(item.id, creatorEmail)}>
-                        ➤
-                      </button>
-                    </div>
                   </section>
                 </div>
               </article>
@@ -6911,5 +6963,270 @@ const styles = `
   }
 
 }
+
+
+/* UTV PREMIUM POLISH 2.0 */
+
+/* =========================================================
+   TOP UTV HEADER — BIGGER LOGO + SINGLE RIGHT BELL
+   ========================================================= */
+
+.feedPage .utvTopNav {
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 5px 16px !important;
+
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+
+  border: 0 !important;
+  border-bottom:
+    1px solid rgba(255,255,255,.045) !important;
+
+  border-radius: 0 !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(4,7,10,.98),
+      rgba(1,3,5,.96)
+    ) !important;
+
+  box-shadow:
+    0 8px 28px rgba(0,0,0,.32) !important;
+}
+
+.feedPage .utvLogoLink {
+  grid-column: 2 !important;
+  justify-self: center !important;
+
+  width: 112px !important;
+  height: 48px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  overflow: visible !important;
+}
+
+.feedPage .utvLogoLink img {
+  width: 100% !important;
+  height: 100% !important;
+
+  object-fit: contain !important;
+
+  transform:
+    scale(1.22) translateZ(0) !important;
+
+  filter:
+    drop-shadow(0 2px 1px rgba(255,255,255,.2))
+    drop-shadow(0 5px 4px rgba(0,0,0,.95))
+    drop-shadow(0 0 8px rgba(82,247,200,.20))
+    drop-shadow(0 0 11px rgba(135,91,255,.20)) !important;
+}
+
+.feedPage .topActivityButton {
+  grid-column: 3 !important;
+  justify-self: end !important;
+
+  width: 40px !important;
+  height: 40px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border:
+    1px solid rgba(255,255,255,.09) !important;
+
+  border-radius: 50% !important;
+
+  background:
+    rgba(255,255,255,.035) !important;
+
+  color: #fff !important;
+
+  /*
+    Kill inherited emoji text while leaving
+    the actual SVG bell visible.
+  */
+  font-size: 0 !important;
+}
+
+.feedPage .topActivityButton::before,
+.feedPage .topActivityButton::after {
+  content: none !important;
+}
+
+.feedPage .topActivityButton svg {
+  display: block !important;
+
+  width: 24px !important;
+  height: 24px !important;
+
+  color: #fff !important;
+
+  filter:
+    drop-shadow(0 0 7px rgba(82,247,200,.13)) !important;
+}
+
+.feedPage .feedTabs {
+  top: 58px !important;
+}
+
+
+/* =========================================================
+   COMMENTS — CLEAN SOCIAL APP BEHAVIOR
+   ========================================================= */
+
+.feedPage .commentSection {
+  margin-top: 2px !important;
+  padding: 0 12px 10px !important;
+}
+
+.feedPage .viewComments {
+  display: inline-flex !important;
+  align-items: center !important;
+
+  min-height: 28px !important;
+
+  margin: 0 !important;
+  padding: 2px 0 !important;
+
+  border: 0 !important;
+
+  background: transparent !important;
+
+  color:
+    rgba(255,255,255,.48) !important;
+
+  font-size: 11px !important;
+  font-weight: 750 !important;
+
+  cursor: pointer !important;
+}
+
+.feedPage .viewComments:active {
+  opacity: .62 !important;
+}
+
+.feedPage .commentsDrawer {
+  margin-top: 6px !important;
+  padding-top: 10px !important;
+
+  border-top:
+    1px solid rgba(255,255,255,.055) !important;
+
+  animation:
+    utvCommentsOpen .18s ease-out both;
+}
+
+@keyframes utvCommentsOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feedPage .commentPreview {
+  display: grid !important;
+
+  gap: 8px !important;
+
+  margin:
+    0 0 10px !important;
+}
+
+.feedPage .commentThread {
+  margin-top: 0 !important;
+}
+
+.feedPage .commentBubble {
+  font-size: 12px !important;
+  line-height: 1.38 !important;
+}
+
+.feedPage .commentActions {
+  margin-top: 3px !important;
+}
+
+.feedPage .commentActions button {
+  min-height: 22px !important;
+
+  padding: 2px 5px !important;
+
+  color:
+    rgba(255,255,255,.43) !important;
+
+  font-size: 8px !important;
+}
+
+.feedPage .noCommentsYet {
+  padding:
+    4px 0 13px !important;
+
+  color:
+    rgba(255,255,255,.42) !important;
+
+  font-size: 11px !important;
+}
+
+.feedPage .commentComposer {
+  min-height: 42px !important;
+
+  margin-top: 8px !important;
+
+  padding:
+    4px 5px 4px 11px !important;
+
+  border:
+    1px solid rgba(255,255,255,.08) !important;
+
+  border-radius: 999px !important;
+
+  background:
+    rgba(255,255,255,.035) !important;
+}
+
+.feedPage .commentComposer input {
+  font-size: 12px !important;
+}
+
+.feedPage .sendComment {
+  width: 34px !important;
+  height: 34px !important;
+
+  border-radius: 50% !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #56f6cf,
+      #43e6bc
+    ) !important;
+
+  color: #06100d !important;
+
+  font-size: 12px !important;
+  font-weight: 950 !important;
+
+  box-shadow:
+    0 0 14px rgba(82,247,200,.16) !important;
+}
+
+.feedPage .commentActive {
+  color: #52f7c8 !important;
+}
+
 
 `;
