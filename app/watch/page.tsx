@@ -36,6 +36,9 @@ type WatchItem = {
   is_featured?: boolean;
   utv_original?: boolean;
   original?: boolean;
+  watch_hero?: boolean;
+  watch_rank?: number | null;
+  edit_requested?: boolean;
   creator_name?: string;
   creator_email?: string;
 };
@@ -1185,16 +1188,46 @@ export default function WatchPage() {
 
   const heroCandidates =
     useMemo(() => {
-      const featured =
-        uploads.filter(
+      const ownerHeroes = uploads
+        .filter(
           (item) =>
-            item.featured ||
-            item.is_featured ||
+            item.watch_hero === true
+        )
+        .sort(
+          (a, b) =>
+            Number(
+              a.watch_rank ?? 999999
+            ) -
+            Number(
+              b.watch_rank ?? 999999
+            )
+        );
+
+      if (ownerHeroes.length > 0) {
+        return deduplicate(
+          ownerHeroes
+        ).slice(0, 5);
+      }
+
+      const promoted = uploads
+        .filter(
+          (item) =>
+            item.featured === true ||
+            item.is_featured === true ||
             isOriginal(item)
+        )
+        .sort(
+          (a, b) =>
+            Number(
+              a.watch_rank ?? 999999
+            ) -
+            Number(
+              b.watch_rank ?? 999999
+            )
         );
 
       return deduplicate([
-        ...featured,
+        ...promoted,
         ...uploads,
       ]).slice(0, 5);
     }, [uploads]);
@@ -1206,8 +1239,7 @@ export default function WatchPage() {
           heroCandidates.length,
           1
         )
-    ] ||
-    uploads[0];
+    ] || uploads[0];
 
   const top10 =
     useMemo(
@@ -1342,14 +1374,25 @@ export default function WatchPage() {
             <h1>Watch</h1>
           </div>
 
-          <Link
-            href="/creator-upload-v16"
-            className="studioShortcut"
-            aria-label="Add to Watch"
-            title="Add to Watch"
-          >
-            ＋
-          </Link>
+          <div className="watchTopActions">
+            <Link
+              href="/creator-upload-v16"
+              className="studioShortcut"
+              aria-label="Add to Watch"
+              title="Add to Watch"
+            >
+              ＋
+            </Link>
+
+            <Link
+              href="/watch/manage"
+              className="studioShortcut"
+              aria-label="Manage Watch"
+              title="Manage Watch"
+            >
+              ⚙
+            </Link>
+          </div>
         </div>
 
         <div className="modeSwitch">
@@ -1409,10 +1452,12 @@ export default function WatchPage() {
 
             <div className="heroContent">
               <span className="heroLabel">
-                {featured &&
-                isOriginal(
-                  featured
-                )
+                {featured?.watch_hero
+                  ? "UTV FEATURED PRESENTATION"
+                  : featured &&
+                    isOriginal(
+                      featured
+                    )
                   ? "UTV ORIGINAL"
                   : "NOW ON UTV"}
               </span>
@@ -1882,6 +1927,12 @@ const styles = `
     font-size: 39px;
     line-height: .95;
     letter-spacing: -.05em;
+  }
+
+  .watchTopActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .studioShortcut {
