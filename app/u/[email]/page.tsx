@@ -293,7 +293,7 @@ export default function PublicProfile() {
   const profileTabs: Tab[] = [
     "posts",
     "featured",
-    "crew",
+    
     "about",
   ];
 
@@ -1175,7 +1175,7 @@ export default function PublicProfile() {
           [
             ["posts", "Posts"],
             ["featured", "Featured"],
-            ["crew", "Top 8"],
+
             ["about", "About"],
           ] as [Tab, string][]
         ).map(([id, label]) => (

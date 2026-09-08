@@ -2729,13 +2729,12 @@ export default function UTVNav() {
 }
 
 .utvLogoLink img {
-  width: 88px !important;
-  max-width: 88px !important;
-  height: 38px !important;
-
-  object-fit: contain !important;
-
-  transform: none !important;
+  width: 145px !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: 78px !important;
+  object-fit: contain;
+  display: block;
 }
 
 /* Notification stays top right */
