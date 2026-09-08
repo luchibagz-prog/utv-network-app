@@ -435,7 +435,7 @@ export default function WorldPage() {
     useState<"world" | "near" | "today">("world");
 
   const [radarOpen, setRadarOpen] =
-    useState(true);
+    useState(false);
 
   const [mapZoom, setMapZoom] =
     useState(1.65);
@@ -1796,6 +1796,112 @@ export default function WorldPage() {
 
       <section className="worldMapStage">
         <div className="worldMapShell">
+
+          <div className="world5TopHud">
+            <div className="world5Brand">
+              <div className="world5BrandMark">UTV</div>
+
+              <div>
+                <span>WORLD</span>
+                <strong>Explore what&apos;s happening</strong>
+              </div>
+            </div>
+
+            <div className="world5Status">
+              <span className={mapReady ? "world5StatusDot live" : "world5StatusDot"} />
+              {filteredItems.length} SIGNALS
+            </div>
+          </div>
+
+          <div className="world5ModeDock">
+            <button
+              type="button"
+              className={worldView === "world" ? "world5Mode active" : "world5Mode"}
+              onClick={() => {
+                setWorldView("world");
+                resetMap();
+                window.setTimeout(() => startGlobeSpin(), 900);
+              }}
+            >
+              <b>🌎</b>
+              <span>World</span>
+            </button>
+
+            <button
+              type="button"
+              className={worldView === "near" ? "world5Mode active" : "world5Mode"}
+              onClick={() => {
+                setWorldView("near");
+
+                if (!locationOn) {
+                  toggleLocation();
+                } else if (userLocation) {
+                  flyToLocation(userLocation, 12.8);
+                }
+              }}
+            >
+              <b>📍</b>
+              <span>Nearby</span>
+            </button>
+
+            <button
+              type="button"
+              className={worldView === "today" ? "world5Mode active" : "world5Mode"}
+              onClick={() => {
+                setWorldView("today");
+                setFilter("All");
+                setSelected(null);
+              }}
+            >
+              <b>⚡</b>
+              <span>Today</span>
+            </button>
+
+            <button
+              type="button"
+              className={radarOpen ? "world5Mode active" : "world5Mode"}
+              onClick={() => setRadarOpen((current) => !current)}
+            >
+              <b>📡</b>
+              <span>Radar</span>
+            </button>
+          </div>
+
+          <div className="world5Search">
+            <span>⌕</span>
+
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search city, creator, event..."
+            />
+
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+              >
+                ×
+              </button>
+            ) : null}
+          </div>
+
+          <div className="world5Filters">
+            {["All", "Live", "Events", "Casting", "Music", "Build Together"].map((name) => (
+              <button
+                type="button"
+                key={`map-${name}`}
+                className={filter === name ? "world5Filter active" : "world5Filter"}
+                onClick={() => {
+                  setFilter(name);
+                  setSelected(null);
+                }}
+              >
+                <span>{categoryIcon(name, name === "Live")}</span>
+                {name === "Build Together" ? "Build" : name}
+              </button>
+            ))}
+          </div>
           <div className="mapBadge planetBadge">
             <span>🌍</span>
             UTV WORLD
@@ -2014,7 +2120,7 @@ export default function WorldPage() {
               }}
               mapStyle={
                 mapMode === "night"
-                  ? "mapbox://styles/mapbox/navigation-night-v1"
+                  ? "mapbox://styles/mapbox/dark-v11"
                   : "mapbox://styles/mapbox/satellite-streets-v12"
               }
               projection={{
@@ -7182,5 +7288,738 @@ const styles = `
   }
 
   /* UTV WORLD PREMIUM 4.0 */
+
+
+
+  /* =========================================================
+     UTV WORLD 5.0 — SIGNAL MAP
+     MAP IS THE EXPERIENCE
+     ========================================================= */
+
+  .worldPage {
+    background:#000 !important;
+  }
+
+  /*
+     Old website/dashboard controls are replaced
+     by controls living directly on the map.
+  */
+
+  .worldTop,
+  .worldCommandBar,
+  .worldSearchDock {
+    display:none !important;
+  }
+
+  .worldMapStage {
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  .worldMapShell {
+    height:calc(100dvh - 68px) !important;
+    min-height:620px !important;
+
+    border:0 !important;
+    border-radius:0 !important;
+
+    overflow:hidden !important;
+
+    background:#020307 !important;
+
+    box-shadow:none !important;
+  }
+
+  .worldMapShell::before {
+    content:"" !important;
+    position:absolute !important;
+    inset:0 !important;
+    z-index:3 !important;
+
+    pointer-events:none !important;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.72) 0%,
+        rgba(0,0,0,.16) 20%,
+        transparent 38%,
+        transparent 70%,
+        rgba(0,0,0,.50) 100%
+      ) !important;
+  }
+
+  .worldMapShell::after {
+    content:"" !important;
+    position:absolute !important;
+    inset:0 !important;
+    z-index:3 !important;
+
+    pointer-events:none !important;
+
+    background:
+      radial-gradient(
+        circle at 50% 48%,
+        transparent 38%,
+        rgba(0,0,0,.12) 68%,
+        rgba(0,0,0,.46) 100%
+      ) !important;
+  }
+
+  /* ---------- TOP HUD ---------- */
+
+  .world5TopHud {
+    position:absolute;
+    z-index:40;
+
+    top:12px;
+    left:12px;
+    right:12px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    pointer-events:none;
+  }
+
+  .world5Brand {
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    padding:7px 10px 7px 7px;
+
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:15px;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(4,9,15,.82),
+        rgba(8,5,19,.78)
+      );
+
+    box-shadow:
+      0 14px 35px rgba(0,0,0,.34),
+      inset 0 1px rgba(255,255,255,.05);
+
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+
+  .world5BrandMark {
+    display:grid;
+    place-items:center;
+
+    min-width:39px;
+    height:34px;
+
+    border-radius:10px;
+
+    color:#fff;
+
+    font-size:17px;
+    font-weight:1000;
+    font-style:italic;
+    letter-spacing:-.08em;
+
+    text-shadow:
+      -1px -1px 0 rgba(255,255,255,.5),
+      1px 1px 0 rgba(0,0,0,.9),
+      0 0 10px rgba(85,245,200,.55),
+      8px 0 14px rgba(153,99,255,.4);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(70,255,193,.20),
+        rgba(132,71,255,.18)
+      );
+
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+
+  .world5Brand > div:last-child {
+    display:flex;
+    flex-direction:column;
+    gap:1px;
+  }
+
+  .world5Brand span {
+    color:#55f5c8;
+    font-size:6px;
+    font-weight:950;
+    letter-spacing:.22em;
+  }
+
+  .world5Brand strong {
+    color:#fff;
+    font-size:10px;
+    line-height:1;
+    letter-spacing:-.01em;
+  }
+
+  .world5Status {
+    display:flex;
+    align-items:center;
+    gap:6px;
+
+    padding:8px 10px;
+
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:999px;
+
+    color:rgba(255,255,255,.72);
+
+    background:rgba(2,7,12,.70);
+
+    font-size:6px;
+    font-weight:950;
+    letter-spacing:.12em;
+
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+
+  .world5StatusDot {
+    width:7px;
+    height:7px;
+
+    border-radius:999px;
+
+    background:#59616b;
+  }
+
+  .world5StatusDot.live {
+    background:#55f5c8;
+
+    box-shadow:
+      0 0 0 4px rgba(85,245,200,.10),
+      0 0 14px rgba(85,245,200,.95);
+  }
+
+  /* ---------- MAP MODE DOCK ---------- */
+
+  .world5ModeDock {
+    position:absolute;
+    z-index:40;
+
+    top:62px;
+    left:50%;
+
+    width:calc(100% - 24px);
+    max-width:430px;
+
+    transform:translateX(-50%);
+
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:3px;
+
+    padding:4px;
+
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:15px;
+
+    background:rgba(2,6,11,.75);
+
+    box-shadow:
+      0 15px 35px rgba(0,0,0,.30),
+      inset 0 1px rgba(255,255,255,.04);
+
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+  }
+
+  .world5Mode {
+    min-width:0;
+    height:40px;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+
+    border:0;
+    border-radius:11px;
+
+    color:rgba(255,255,255,.58);
+    background:transparent;
+
+    font-weight:850;
+
+    cursor:pointer;
+  }
+
+  .world5Mode b {
+    font-size:13px;
+  }
+
+  .world5Mode span {
+    font-size:7px;
+  }
+
+  .world5Mode.active {
+    color:#05100d;
+
+    background:
+      linear-gradient(
+        135deg,
+        #55f5c8,
+        #83e6d6 53%,
+        #a178ff
+      );
+
+    box-shadow:
+      0 6px 18px rgba(85,245,200,.17),
+      inset 0 1px rgba(255,255,255,.72);
+  }
+
+  /* ---------- FLOATING SEARCH ---------- */
+
+  .world5Search {
+    position:absolute;
+    z-index:40;
+
+    top:112px;
+    left:50%;
+
+    width:calc(100% - 34px);
+    max-width:390px;
+    height:39px;
+
+    transform:translateX(-50%);
+
+    display:grid;
+    grid-template-columns:28px minmax(0,1fr) 28px;
+    align-items:center;
+
+    padding:0 6px;
+
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:14px;
+
+    background:rgba(3,7,13,.72);
+
+    box-shadow:0 13px 30px rgba(0,0,0,.27);
+
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+
+  .world5Search > span {
+    text-align:center;
+    color:#55f5c8;
+    font-size:18px;
+  }
+
+  .world5Search input {
+    width:100%;
+
+    border:0;
+    outline:0;
+
+    color:#fff;
+    background:transparent;
+
+    font-size:10px;
+  }
+
+  .world5Search input::placeholder {
+    color:rgba(255,255,255,.43);
+  }
+
+  .world5Search button {
+    width:27px;
+    height:27px;
+
+    border:0;
+    border-radius:999px;
+
+    color:#fff;
+    background:rgba(255,255,255,.08);
+  }
+
+  /* ---------- FILTERS FLOAT ON MAP ---------- */
+
+  .world5Filters {
+    position:absolute;
+    z-index:40;
+
+    top:159px;
+    left:0;
+    right:0;
+
+    display:flex;
+    gap:6px;
+
+    padding:0 11px 8px;
+
+    overflow-x:auto;
+
+    scrollbar-width:none;
+  }
+
+  .world5Filters::-webkit-scrollbar {
+    display:none;
+  }
+
+  .world5Filter {
+    flex:0 0 auto;
+
+    min-height:32px;
+
+    display:flex;
+    align-items:center;
+    gap:5px;
+
+    padding:0 11px;
+
+    border:1px solid rgba(255,255,255,.11);
+    border-radius:999px;
+
+    color:rgba(255,255,255,.72);
+
+    background:rgba(2,7,12,.72);
+
+    box-shadow:0 9px 22px rgba(0,0,0,.24);
+
+    font-size:7px;
+    font-weight:900;
+
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+
+  .world5Filter span {
+    font-size:11px;
+  }
+
+  .world5Filter.active {
+    color:#07110e;
+
+    background:
+      linear-gradient(
+        135deg,
+        #55f5c8,
+        #9f7bff
+      );
+
+    border-color:rgba(255,255,255,.32);
+
+    box-shadow:
+      0 7px 18px rgba(85,245,200,.15);
+  }
+
+  /* ---------- OLD HUD REDUCED ---------- */
+
+  .planetBadge {
+    display:none !important;
+  }
+
+  .worldGameHud {
+    top:auto !important;
+    left:11px !important;
+    right:auto !important;
+    bottom:48px !important;
+
+    z-index:36 !important;
+  }
+
+  .hudSignal {
+    display:none !important;
+  }
+
+  .hudNumbers {
+    display:flex !important;
+
+    padding:3px !important;
+
+    border:1px solid rgba(255,255,255,.08) !important;
+
+    background:rgba(2,7,12,.68) !important;
+
+    backdrop-filter:blur(16px) !important;
+    -webkit-backdrop-filter:blur(16px) !important;
+  }
+
+  .hudNumbers > div {
+    min-width:41px !important;
+    padding:4px !important;
+  }
+
+  .hudNumbers strong {
+    font-size:10px !important;
+  }
+
+  .hudNumbers span {
+    font-size:4px !important;
+  }
+
+  /* ---------- RADAR = FLOATING DETAIL CARD ---------- */
+
+  .worldRadar {
+    top:205px !important;
+    left:11px !important;
+
+    width:min(220px,calc(100% - 72px)) !important;
+
+    padding:9px !important;
+
+    z-index:48 !important;
+
+    border:1px solid rgba(255,255,255,.10) !important;
+    border-radius:17px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(3,10,15,.91),
+        rgba(10,6,22,.91)
+      ) !important;
+
+    box-shadow:
+      0 20px 50px rgba(0,0,0,.48),
+      0 0 24px rgba(94,77,255,.07) !important;
+
+    backdrop-filter:blur(22px) !important;
+    -webkit-backdrop-filter:blur(22px) !important;
+  }
+
+  /* ---------- MAP CONTROLS ---------- */
+
+  .worldMapControls {
+    z-index:42 !important;
+
+    right:10px !important;
+    bottom:47px !important;
+
+    gap:6px !important;
+  }
+
+  .worldMapControls button {
+    width:39px !important;
+    height:39px !important;
+
+    border:1px solid rgba(255,255,255,.11) !important;
+    border-radius:13px !important;
+
+    color:#fff !important;
+
+    background:rgba(2,7,13,.75) !important;
+
+    box-shadow:
+      0 9px 24px rgba(0,0,0,.34) !important;
+
+    backdrop-filter:blur(16px) !important;
+    -webkit-backdrop-filter:blur(16px) !important;
+  }
+
+  /* ---------- PINS ---------- */
+
+  .utvPin {
+    width:45px !important;
+    height:45px !important;
+
+    transform:rotate(-4deg);
+
+    border:1px solid rgba(255,255,255,.82) !important;
+
+    border-radius:
+      16px 16px 16px 5px !important;
+
+    box-shadow:
+      0 0 0 5px rgba(255,255,255,.035),
+      0 0 25px currentColor,
+      0 14px 28px rgba(0,0,0,.48) !important;
+
+    animation:
+      world5SignalFloat 2.8s ease-in-out infinite;
+  }
+
+  .utvPin .pinIcon {
+    transform:rotate(4deg);
+  }
+
+  @keyframes world5SignalFloat {
+    0%,
+    100% {
+      translate:0 0;
+    }
+
+    50% {
+      translate:0 -4px;
+    }
+  }
+
+  .cityHub {
+    border:1px solid rgba(85,245,200,.28) !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(2,12,15,.93),
+        rgba(12,7,26,.92)
+      ) !important;
+
+    box-shadow:
+      0 0 28px rgba(85,245,200,.12),
+      0 15px 30px rgba(0,0,0,.42) !important;
+  }
+
+  .userDot {
+    box-shadow:
+      0 0 0 8px rgba(85,245,200,.15),
+      0 0 30px rgba(85,245,200,.95) !important;
+  }
+
+  /* ---------- HIDE DUPLICATE FILTER ROW ---------- */
+
+  .worldOrbitFilters {
+    display:none !important;
+  }
+
+  /*
+     Keep discovery content available below the actual map,
+     but don't let it compete with the map.
+  */
+
+  .worldPulseStrip,
+  .nearPanel,
+  .todayPanel,
+  .worldList {
+    max-width:900px !important;
+  }
+
+  .planetHint {
+    display:none !important;
+  }
+
+  /* Mapbox cleanup */
+
+  .mapboxgl-ctrl-bottom-left {
+    bottom:8px !important;
+  }
+
+  .mapboxgl-ctrl-bottom-right {
+    bottom:8px !important;
+  }
+
+  .mapboxgl-ctrl-attrib {
+    opacity:.28 !important;
+    font-size:7px !important;
+  }
+
+  @media(max-width:700px) {
+
+    .worldPage {
+      padding-bottom:68px !important;
+    }
+
+    .worldMapShell {
+      height:calc(100dvh - 68px) !important;
+      min-height:610px !important;
+    }
+
+    .world5TopHud {
+      top:9px;
+      left:9px;
+      right:9px;
+    }
+
+    .world5Brand {
+      padding:6px 8px 6px 6px;
+      border-radius:13px;
+    }
+
+    .world5BrandMark {
+      min-width:35px;
+      height:31px;
+      font-size:15px;
+    }
+
+    .world5Brand strong {
+      font-size:9px;
+    }
+
+    .world5Status {
+      padding:7px 8px;
+      font-size:5px;
+    }
+
+    .world5ModeDock {
+      top:56px;
+
+      width:calc(100% - 18px);
+
+      border-radius:14px;
+    }
+
+    .world5Mode {
+      height:38px;
+    }
+
+    .world5Mode span {
+      font-size:6px;
+    }
+
+    .world5Search {
+      top:103px;
+
+      width:calc(100% - 26px);
+      height:37px;
+    }
+
+    .world5Filters {
+      top:147px;
+      padding-left:9px;
+      padding-right:9px;
+    }
+
+    .world5Filter {
+      min-height:30px;
+
+      padding:0 9px;
+
+      font-size:6px;
+    }
+
+    .worldRadar {
+      top:187px !important;
+      left:9px !important;
+
+      width:205px !important;
+    }
+
+    .worldMapControls {
+      right:8px !important;
+      bottom:45px !important;
+    }
+
+    .worldMapControls button {
+      width:37px !important;
+      height:37px !important;
+    }
+
+    .worldGameHud {
+      left:9px !important;
+      bottom:46px !important;
+    }
+
+    .utvPin {
+      width:42px !important;
+      height:42px !important;
+    }
+
+    .pinIcon {
+      font-size:16px !important;
+    }
+  }
+
+  /* UTV WORLD 5.0 — SIGNAL MAP */
 
 `;
