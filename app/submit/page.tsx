@@ -502,12 +502,30 @@ const selectedSticker = stickers.find(
 
       setCameraFacing(facing);
       setMessage("");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
 
-      setMessage(
-        "Allow camera and microphone access, or choose a file from Gallery."
-      );
+      const errorName = String(error?.name || "");
+
+      if (
+        errorName === "NotAllowedError" ||
+        errorName === "PermissionDeniedError"
+      ) {
+        setMessage(
+          "Camera and microphone access is blocked. Tap Enable Camera & Mic, or allow UTV in your browser site settings."
+        );
+      } else if (
+        errorName === "NotFoundError" ||
+        errorName === "DevicesNotFoundError"
+      ) {
+        setMessage(
+          "UTV could not find a camera or microphone on this device."
+        );
+      } else {
+        setMessage(
+          "UTV could not open the camera. Try again or choose from Gallery."
+        );
+      }
     }
   }
 
@@ -2421,34 +2439,163 @@ if (mode === "camera") {
           onChange={pickFile}
         />
 
-        {message && (
-          <div className="storyCameraError">
+        {message && !cameraStream && (
+          <div className="storyPermissionOverlay">
             <style>{`
-              .storyCameraError {
+              .storyPermissionOverlay {
                 position: fixed;
-                top: max(
-                  82px,
-                  calc(env(safe-area-inset-top) + 68px)
-                );
-                left: 50%;
-                z-index: 1200;
-                width: min(360px, calc(100% - 32px));
-                padding: 12px 15px;
-                color: white;
-                border: 1px solid rgba(255,255,255,.16);
-                border-radius: 14px;
-                background: rgba(170, 20, 35, .92);
-                box-shadow: 0 12px 35px rgba(0,0,0,.35);
-                font-size: 13px;
-                font-weight: 750;
-                line-height: 1.4;
+                inset: 0;
+                z-index: 1400;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding:
+                  max(24px, env(safe-area-inset-top))
+                  20px
+                  max(110px, env(safe-area-inset-bottom));
+                background:
+                  radial-gradient(
+                    circle at 50% 35%,
+                    rgba(66, 245, 205, .10),
+                    transparent 34%
+                  ),
+                  rgba(0,0,0,.74);
+                backdrop-filter: blur(18px);
+                -webkit-backdrop-filter: blur(18px);
+              }
+
+              .storyPermissionCard {
+                width: min(390px, 100%);
+                padding: 28px 22px 22px;
+                border: 1px solid rgba(255,255,255,.11);
+                border-radius: 28px;
+                background:
+                  linear-gradient(
+                    180deg,
+                    rgba(20,23,27,.97),
+                    rgba(8,10,13,.98)
+                  );
+                box-shadow:
+                  0 28px 80px rgba(0,0,0,.55);
                 text-align: center;
-                transform: translateX(-50%);
-                backdrop-filter: blur(14px);
+              }
+
+              .storyPermissionIcon {
+                width: 70px;
+                height: 70px;
+                margin: 0 auto 18px;
+                display: grid;
+                place-items: center;
+                border-radius: 50%;
+                font-size: 30px;
+                background:
+                  rgba(73, 238, 200, .10);
+                border:
+                  1px solid rgba(73, 238, 200, .22);
+              }
+
+              .storyPermissionCard h2 {
+                margin: 0 0 9px;
+                color: #fff;
+                font-size: 24px;
+                line-height: 1.1;
+                letter-spacing: -.5px;
+              }
+
+              .storyPermissionCard p {
+                margin: 0 auto 22px;
+                max-width: 320px;
+                color: rgba(255,255,255,.64);
+                font-size: 14px;
+                line-height: 1.5;
+              }
+
+              .storyPermissionPrimary,
+              .storyPermissionSecondary,
+              .storyPermissionClose {
+                width: 100%;
+                min-height: 52px;
+                border-radius: 17px;
+                font-size: 15px;
+                font-weight: 850;
+              }
+
+              .storyPermissionPrimary {
+                border: 0;
+                color: #04100d;
+                background:
+                  linear-gradient(
+                    135deg,
+                    #72f7d7,
+                    #42e8c4
+                  );
+                box-shadow:
+                  0 12px 30px rgba(66,232,196,.16);
+              }
+
+              .storyPermissionSecondary {
+                margin-top: 10px;
+                color: #fff;
+                border:
+                  1px solid rgba(255,255,255,.10);
+                background:
+                  rgba(255,255,255,.055);
+              }
+
+              .storyPermissionClose {
+                margin-top: 8px;
+                min-height: 44px;
+                color: rgba(255,255,255,.58);
+                border: 0;
+                background: transparent;
+              }
+
+              .storyPermissionPrimary:active,
+              .storyPermissionSecondary:active {
+                transform: scale(.985);
               }
             `}</style>
 
-            {message}
+            <div className="storyPermissionCard">
+              <div className="storyPermissionIcon">
+                📷
+              </div>
+
+              <h2>Camera access needed</h2>
+
+              <p>{message}</p>
+
+              <button
+                type="button"
+                className="storyPermissionPrimary"
+                onClick={() => {
+                  setMessage("");
+                  void startCamera();
+                }}
+              >
+                Enable Camera & Mic
+              </button>
+
+              <button
+                type="button"
+                className="storyPermissionSecondary"
+                onClick={() => {
+                  document
+                    .getElementById("story-gallery-input")
+                    ?.click();
+                }}
+              >
+                Choose from Gallery
+              </button>
+
+              <button
+                type="button"
+                className="storyPermissionClose"
+                onClick={resetCreator}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </>
