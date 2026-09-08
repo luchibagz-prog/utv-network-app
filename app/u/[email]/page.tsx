@@ -1043,6 +1043,18 @@ export default function PublicProfile() {
 
             <button
               onClick={() =>
+                router.push("/activity")
+              }
+            >
+              <span>♢</span>
+              <div>
+                <strong>Activity</strong>
+                <small>Notifications & updates</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
                 router.push("/settings")
               }
             >
@@ -1081,30 +1093,6 @@ export default function PublicProfile() {
         </section>
       )}
 
-      {song && (
-        <section className="profileMusicBar">
-          <button
-            className={playing ? "musicPlayButton playing" : "musicPlayButton"}
-            onClick={() => void toggleMusic()}
-            aria-label={playing ? "Pause soundtrack" : "Play soundtrack"}
-          >
-            {playing ? "❚❚" : "▶"}
-          </button>
-
-          <div className="profileMusicInfo">
-            <span>NOW PLAYING</span>
-            <strong>{songTitle || "Profile Soundtrack"}</strong>
-            <small>{songArtist || `@${username}`}</small>
-          </div>
-
-          <div className={playing ? "musicBars active" : "musicBars"}>
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        </section>
-      )}
 
       <section className="stats socialStats">
         <button
@@ -3495,7 +3483,846 @@ export default function PublicProfile() {
         }
 
 
-      `}</style>
+      
+
+        /* =====================================================
+           UTV PROFILE 3.0 — SOCIAL LUXURY
+           PROFILE • TOP 8 • MUSIC • CREATOR HUB
+           ===================================================== */
+
+        .page {
+          min-height:100svh !important;
+          padding-bottom:105px !important;
+          overflow-x:hidden !important;
+          color:#fff !important;
+          background:
+            radial-gradient(
+              circle at 18% 13%,
+              rgba(82,247,200,.075),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 85% 18%,
+              rgba(126,75,255,.10),
+              transparent 29%
+            ),
+            #020305 !important;
+        }
+
+        /*
+           COVER / PROFILE HERO
+        */
+
+        .hero {
+          position:relative !important;
+          min-height:430px !important;
+          margin:0 auto !important;
+          padding:
+            185px 18px 25px !important;
+
+          overflow:hidden !important;
+
+          background-position:center !important;
+          background-size:cover !important;
+
+          border-radius:
+            0 0 30px 30px !important;
+
+          box-shadow:
+            0 24px 65px rgba(0,0,0,.44) !important;
+        }
+
+        .hero::before {
+          content:"";
+          position:absolute;
+          inset:0;
+          pointer-events:none;
+
+          background:
+            linear-gradient(
+              180deg,
+              rgba(0,0,0,.04) 0%,
+              rgba(0,0,0,.13) 32%,
+              rgba(2,3,6,.68) 66%,
+              #020305 100%
+            );
+        }
+
+        .hero::after {
+          content:"";
+          position:absolute;
+          right:-90px;
+          bottom:-100px;
+
+          width:260px;
+          height:260px;
+
+          border-radius:50%;
+
+          pointer-events:none;
+
+          background:
+            radial-gradient(
+              circle,
+              rgba(122,72,255,.18),
+              transparent 68%
+            );
+
+          filter:blur(12px);
+        }
+
+        .identity {
+          position:relative !important;
+          z-index:5 !important;
+
+          display:grid !important;
+          grid-template-columns:
+            104px minmax(0,1fr) !important;
+
+          align-items:end !important;
+          gap:16px !important;
+
+          width:min(100%,760px) !important;
+          margin:0 auto !important;
+        }
+
+        .avatar {
+          width:104px !important;
+          height:104px !important;
+
+          padding:4px !important;
+
+          border-radius:31px !important;
+
+          background:
+            linear-gradient(
+              145deg,
+              #52f7c8,
+              #ffffff 30%,
+              #845cff 67%,
+              #d85cff
+            ) !important;
+
+          box-shadow:
+            0 15px 38px rgba(0,0,0,.48),
+            0 0 24px rgba(82,247,200,.16),
+            0 0 34px rgba(128,76,255,.15) !important;
+        }
+
+        .avatar img,
+        .avatar > span {
+          width:100% !important;
+          height:100% !important;
+
+          border:
+            4px solid #050609 !important;
+
+          border-radius:27px !important;
+
+          object-fit:cover !important;
+        }
+
+        .identityText {
+          min-width:0 !important;
+          padding-bottom:3px !important;
+        }
+
+        .category {
+          margin:0 0 4px !important;
+
+          color:#69f8d2 !important;
+
+          font-size:9px !important;
+          font-weight:1000 !important;
+
+          letter-spacing:.16em !important;
+          text-transform:uppercase !important;
+
+          text-shadow:
+            0 0 15px rgba(82,247,200,.34);
+        }
+
+        .identityText h1 {
+          margin:0 !important;
+
+          max-width:100% !important;
+
+          overflow:hidden !important;
+
+          font-size:
+            clamp(27px,7vw,42px) !important;
+
+          line-height:.98 !important;
+          letter-spacing:-.055em !important;
+
+          text-overflow:ellipsis !important;
+          white-space:nowrap !important;
+
+          text-shadow:
+            0 5px 25px rgba(0,0,0,.55) !important;
+        }
+
+        .username {
+          display:block !important;
+
+          margin-top:5px !important;
+
+          color:
+            rgba(255,255,255,.62) !important;
+
+          font-size:11px !important;
+          font-weight:760 !important;
+        }
+
+        .bio {
+          max-width:540px !important;
+
+          margin:
+            10px 0 0 !important;
+
+          color:
+            rgba(255,255,255,.76) !important;
+
+          font-size:11px !important;
+          line-height:1.5 !important;
+        }
+
+        /*
+           OWNER / SOCIAL BUTTONS
+        */
+
+        .ownerProfileTools {
+          top:15px !important;
+          right:14px !important;
+        }
+
+        .ownerCreatorButton {
+          min-height:42px !important;
+
+          border:
+            1px solid rgba(255,255,255,.16) !important;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(5,8,13,.82),
+              rgba(21,11,39,.78)
+            ) !important;
+
+          box-shadow:
+            0 13px 35px rgba(0,0,0,.34),
+            inset 0 1px rgba(255,255,255,.08) !important;
+        }
+
+        .socialActions {
+          position:relative !important;
+          z-index:6 !important;
+
+          width:min(100%,760px) !important;
+
+          margin:
+            18px auto 0 !important;
+
+          display:grid !important;
+          grid-template-columns:
+            1.25fr 1fr 1fr !important;
+
+          gap:8px !important;
+        }
+
+        .socialActions button {
+          min-height:44px !important;
+
+          border-radius:14px !important;
+
+          font-size:10px !important;
+          font-weight:900 !important;
+
+          backdrop-filter:blur(16px) !important;
+          -webkit-backdrop-filter:
+            blur(16px) !important;
+        }
+
+        .messageAction {
+          color:#07120f !important;
+          border:0 !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #83f4d5
+            ) !important;
+        }
+
+        .walkieAction,
+        .contactAction {
+          border:
+            1px solid rgba(255,255,255,.13) !important;
+
+          color:#fff !important;
+
+          background:
+            rgba(5,7,12,.74) !important;
+        }
+
+        /*
+           MUSIC — ONE PLAYER ONLY
+        */
+
+        .profileMusicBar {
+          position:relative !important;
+
+          width:min(calc(100% - 24px),720px) !important;
+
+          min-height:67px !important;
+
+          margin:
+            -2px auto 13px !important;
+
+          display:grid !important;
+          grid-template-columns:
+            45px minmax(0,1fr) 36px !important;
+
+          align-items:center !important;
+          gap:11px !important;
+
+          padding:
+            10px 13px !important;
+
+          overflow:hidden !important;
+
+          border:
+            1px solid rgba(141,96,255,.24) !important;
+
+          border-radius:19px !important;
+
+          background:
+            radial-gradient(
+              circle at 0% 50%,
+              rgba(82,247,200,.11),
+              transparent 32%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(9,13,19,.96),
+              rgba(17,10,31,.96)
+            ) !important;
+
+          box-shadow:
+            0 17px 45px rgba(0,0,0,.27),
+            inset 0 1px rgba(255,255,255,.05) !important;
+        }
+
+        .musicPlayButton {
+          width:43px !important;
+          height:43px !important;
+
+          border:
+            1px solid rgba(255,255,255,.2) !important;
+
+          border-radius:50% !important;
+
+          color:#07120f !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #a7ffdc
+            ) !important;
+
+          box-shadow:
+            0 0 22px rgba(82,247,200,.17) !important;
+        }
+
+        .profileMusicInfo {
+          min-width:0 !important;
+        }
+
+        .profileMusicInfo span {
+          color:#62f7d0 !important;
+
+          font-size:7px !important;
+          font-weight:1000 !important;
+
+          letter-spacing:.15em !important;
+        }
+
+        .profileMusicInfo strong,
+        .profileMusicInfo small {
+          display:block !important;
+
+          overflow:hidden !important;
+
+          text-overflow:ellipsis !important;
+          white-space:nowrap !important;
+        }
+
+        .profileMusicInfo strong {
+          margin-top:2px !important;
+          font-size:12px !important;
+        }
+
+        .profileMusicInfo small {
+          margin-top:2px !important;
+
+          color:
+            rgba(255,255,255,.43) !important;
+
+          font-size:8px !important;
+        }
+
+        /*
+           STATS — SOCIAL, NOT DASHBOARD
+        */
+
+        .stats {
+          width:min(calc(100% - 24px),720px) !important;
+
+          min-height:68px !important;
+
+          margin:
+            0 auto 15px !important;
+
+          padding:6px !important;
+
+          display:grid !important;
+          grid-template-columns:
+            repeat(4,1fr) !important;
+
+          border:
+            1px solid rgba(255,255,255,.075) !important;
+
+          border-radius:19px !important;
+
+          background:
+            rgba(255,255,255,.025) !important;
+        }
+
+        .socialStats button {
+          min-height:54px !important;
+
+          border-radius:14px !important;
+        }
+
+        .socialStats button:active {
+          background:
+            rgba(255,255,255,.055) !important;
+        }
+
+        .socialStats strong {
+          display:block !important;
+
+          font-size:16px !important;
+          line-height:1 !important;
+        }
+
+        .socialStats span {
+          display:block !important;
+
+          margin-top:5px !important;
+
+          color:
+            rgba(255,255,255,.42) !important;
+
+          font-size:7px !important;
+          font-weight:800 !important;
+
+          letter-spacing:.04em !important;
+          text-transform:uppercase !important;
+        }
+
+        /*
+           TOP 8 — SIGNATURE UTV FEATURE
+        */
+
+        .top8Spotlight {
+          width:min(calc(100% - 24px),720px) !important;
+
+          margin:
+            0 auto 16px !important;
+
+          padding:
+            15px 13px 14px !important;
+
+          overflow:hidden !important;
+
+          border:
+            1px solid rgba(139,91,255,.16) !important;
+
+          border-radius:23px !important;
+
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(127,74,255,.12),
+              transparent 36%
+            ),
+            radial-gradient(
+              circle at 0% 100%,
+              rgba(82,247,200,.07),
+              transparent 32%
+            ),
+            rgba(8,10,16,.88) !important;
+
+          box-shadow:
+            0 18px 48px rgba(0,0,0,.24) !important;
+        }
+
+        .top8Heading {
+          margin-bottom:12px !important;
+        }
+
+        .top8Heading p {
+          margin:0 !important;
+
+          color:#9f7aff !important;
+
+          font-size:7px !important;
+          font-weight:1000 !important;
+
+          letter-spacing:.17em !important;
+        }
+
+        .top8Heading h2 {
+          margin:3px 0 0 !important;
+
+          font-size:19px !important;
+          letter-spacing:-.04em !important;
+        }
+
+        .top8Heading button {
+          min-height:31px !important;
+
+          padding:0 11px !important;
+
+          border:
+            1px solid rgba(255,255,255,.09) !important;
+
+          border-radius:999px !important;
+
+          color:
+            rgba(255,255,255,.68) !important;
+
+          background:
+            rgba(255,255,255,.035) !important;
+
+          font-size:8px !important;
+        }
+
+        /*
+           PROFILE TABS
+        */
+
+        .tabs {
+          position:sticky !important;
+          top:53px !important;
+          z-index:30 !important;
+
+          width:min(100%,760px) !important;
+
+          margin:
+            4px auto 0 !important;
+
+          padding:
+            5px 10px !important;
+
+          display:grid !important;
+          grid-template-columns:
+            repeat(4,1fr) !important;
+
+          gap:4px !important;
+
+          border-top:
+            1px solid rgba(255,255,255,.06) !important;
+
+          border-bottom:
+            1px solid rgba(255,255,255,.06) !important;
+
+          background:
+            rgba(2,3,5,.88) !important;
+
+          backdrop-filter:
+            blur(20px) !important;
+
+          -webkit-backdrop-filter:
+            blur(20px) !important;
+        }
+
+        .tabs button {
+          min-height:37px !important;
+
+          border:0 !important;
+          border-radius:11px !important;
+
+          color:
+            rgba(255,255,255,.42) !important;
+
+          background:transparent !important;
+
+          font-size:9px !important;
+          font-weight:900 !important;
+        }
+
+        .tabs button.active {
+          color:#fff !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.12),
+              rgba(126,79,255,.16)
+            ) !important;
+
+          box-shadow:
+            inset 0 -2px #52f7c8 !important;
+        }
+
+        .swipeHint {
+          margin:
+            7px auto 0 !important;
+
+          color:
+            rgba(255,255,255,.22) !important;
+
+          font-size:7px !important;
+          letter-spacing:.12em !important;
+        }
+
+        /*
+           CONTENT
+        */
+
+        .content {
+          width:min(calc(100% - 20px),740px) !important;
+
+          margin:
+            9px auto 0 !important;
+
+          padding-bottom:30px !important;
+        }
+
+        .heading {
+          margin:
+            10px 2px 11px !important;
+        }
+
+        .heading p {
+          color:#6df7d3 !important;
+
+          font-size:7px !important;
+          letter-spacing:.16em !important;
+        }
+
+        .heading h2 {
+          margin-top:3px !important;
+
+          font-size:21px !important;
+          letter-spacing:-.04em !important;
+        }
+
+        /*
+           FEATURED SOUNDTRACK SHOULD BE SECONDARY.
+           Main soundtrack player already lives above stats.
+        */
+
+        .soundtrack {
+          padding:
+            13px !important;
+
+          border-radius:19px !important;
+
+          border:
+            1px solid rgba(255,255,255,.07) !important;
+
+          background:
+            rgba(255,255,255,.025) !important;
+        }
+
+        /*
+           CREATOR HUB
+        */
+
+        .creatorDashboard.open {
+          width:min(calc(100% - 24px),720px) !important;
+
+          max-height:920px !important;
+
+          margin:
+            12px auto 15px !important;
+
+          padding:16px !important;
+
+          border-radius:23px !important;
+
+          border:
+            1px solid rgba(129,84,255,.17) !important;
+
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(124,75,255,.15),
+              transparent 36%
+            ),
+            radial-gradient(
+              circle at 0% 100%,
+              rgba(82,247,200,.08),
+              transparent 34%
+            ),
+            #080b11 !important;
+        }
+
+        .dashboardHeader p {
+          color:#70f8d5 !important;
+        }
+
+        .creatorQuickActions {
+          grid-template-columns:
+            repeat(2,minmax(0,1fr)) !important;
+
+          gap:8px !important;
+        }
+
+        .creatorQuickActions button {
+          min-height:73px !important;
+
+          border:
+            1px solid rgba(255,255,255,.07) !important;
+
+          border-radius:17px !important;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.035),
+              rgba(126,75,255,.035)
+            ) !important;
+        }
+
+        .creatorQuickActions .creatorPrimary {
+          grid-column:
+            1 / -1 !important;
+
+          color:#07120f !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #91f4dc 55%,
+              #9b86ff
+            ) !important;
+        }
+
+        /*
+           ABOUT
+        */
+
+        .about {
+          gap:8px !important;
+        }
+
+        .about article {
+          border:
+            1px solid rgba(255,255,255,.07) !important;
+
+          border-radius:18px !important;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,255,255,.035),
+              rgba(124,75,255,.025)
+            ) !important;
+        }
+
+        /*
+           MOBILE
+        */
+
+        @media(max-width:600px) {
+
+          .hero {
+            min-height:390px !important;
+
+            padding:
+              168px 13px 22px !important;
+
+            border-radius:
+              0 0 25px 25px !important;
+          }
+
+          .identity {
+            grid-template-columns:
+              88px minmax(0,1fr) !important;
+
+            gap:12px !important;
+          }
+
+          .avatar {
+            width:88px !important;
+            height:88px !important;
+
+            border-radius:27px !important;
+          }
+
+          .avatar img,
+          .avatar > span {
+            border-radius:23px !important;
+          }
+
+          .identityText h1 {
+            font-size:
+              clamp(24px,8vw,33px) !important;
+          }
+
+          .bio {
+            font-size:10px !important;
+          }
+
+          .socialActions {
+            gap:6px !important;
+          }
+
+          .socialActions button {
+            min-height:41px !important;
+
+            padding:
+              0 7px !important;
+
+            font-size:8px !important;
+          }
+
+          .profileMusicBar {
+            width:
+              calc(100% - 20px) !important;
+          }
+
+          .stats {
+            width:
+              calc(100% - 20px) !important;
+          }
+
+          .top8Spotlight {
+            width:
+              calc(100% - 20px) !important;
+          }
+
+          .creatorDashboard.open {
+            width:
+              calc(100% - 20px) !important;
+          }
+
+          .content {
+            width:
+              calc(100% - 14px) !important;
+          }
+        }
+
+        /* UTV PROFILE 3.0 — SOCIAL LUXURY */
+
+        `}</style>
     </main>
   );
 }
