@@ -1913,7 +1913,7 @@ export default function FeedPage() {
         </div>
       </section>
 
-      {activeLives.length > 0 && (
+      {feedTab === "live" && activeLives.length > 0 && (
         <section className="liveNowSection">
           <div className="liveNowHeading">
             <div>
@@ -6293,5 +6293,623 @@ const styles = `
     }
   }
 
+
+
+
+/* =========================================================
+   UTV FEED 5.0 — NATIVE REFERENCE FINAL
+   ========================================================= */
+
+.feedPage {
+  --utv-mint-5: #55f6ca;
+  --utv-purple-5: #9367ff;
+
+  width: 100% !important;
+  max-width: 720px !important;
+  min-height: 100dvh !important;
+  margin: 0 auto !important;
+
+  padding-bottom:
+    calc(82px + env(safe-area-inset-bottom)) !important;
+
+  background: #010203 !important;
+  color: #fff !important;
+}
+
+/* No old banner/status clutter */
+.feedHero,
+.feedTopRow {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   CATEGORY BAR
+   --------------------------------------------------------- */
+
+.feedTabs {
+  position: sticky !important;
+  top: 54px !important;
+  z-index: 80 !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(72px, 1fr)) !important;
+
+  width: 100% !important;
+
+  gap: 0 !important;
+  padding: 0 4px !important;
+
+  overflow-x: auto !important;
+
+  border: 0 !important;
+  border-bottom:
+    1px solid rgba(255,255,255,.055) !important;
+
+  background:
+    rgba(1,2,3,.96) !important;
+
+  backdrop-filter:
+    blur(18px) saturate(145%) !important;
+  -webkit-backdrop-filter:
+    blur(18px) saturate(145%) !important;
+
+  scrollbar-width: none !important;
+}
+
+.feedTabs::-webkit-scrollbar {
+  display: none !important;
+}
+
+.feedTabs button {
+  position: relative !important;
+
+  min-height: 48px !important;
+  padding: 0 10px !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  color:
+    rgba(255,255,255,.48) !important;
+
+  background:
+    transparent !important;
+
+  box-shadow: none !important;
+
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.feedTabs button.active {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+.feedTabs button.active::after {
+  content: "" !important;
+
+  position: absolute !important;
+
+  right: 17px !important;
+  bottom: 0 !important;
+  left: 17px !important;
+
+  height: 3px !important;
+
+  border-radius: 999px !important;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--utv-mint-5),
+      var(--utv-purple-5)
+    ) !important;
+
+  box-shadow:
+    0 0 12px rgba(85,246,202,.30) !important;
+}
+
+/* ---------------------------------------------------------
+   STORIES
+   --------------------------------------------------------- */
+
+.stories {
+  display: flex !important;
+  gap: 12px !important;
+
+  overflow-x: auto !important;
+
+  padding: 14px 12px 12px !important;
+
+  border-bottom:
+    1px solid rgba(255,255,255,.05) !important;
+
+  background: #010203 !important;
+
+  scrollbar-width: none !important;
+}
+
+.stories::-webkit-scrollbar {
+  display: none !important;
+}
+
+.storyWrap {
+  flex: 0 0 64px !important;
+  width: 64px !important;
+  min-width: 64px !important;
+}
+
+.storyButton {
+  width: 62px !important;
+  height: 62px !important;
+
+  padding: 2px !important;
+
+  border:
+    2px solid var(--utv-mint-5) !important;
+
+  border-radius: 50% !important;
+
+  background: #080b0e !important;
+
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.025),
+    0 0 15px rgba(85,246,202,.11) !important;
+}
+
+.storyButton.noStory {
+  border-color:
+    rgba(255,255,255,.12) !important;
+
+  opacity: .6 !important;
+}
+
+.storyButton.addStory {
+  border-color:
+    rgba(147,103,255,.9) !important;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(147,103,255,.18),
+      rgba(85,246,202,.035)
+    ) !important;
+
+  color: #fff !important;
+
+  font-size: 28px !important;
+}
+
+.storyName {
+  max-width: 64px !important;
+
+  margin-top: 5px !important;
+
+  overflow: hidden !important;
+
+  color:
+    rgba(255,255,255,.58) !important;
+
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* ---------------------------------------------------------
+   HOME FEED = CONTENT FIRST
+   Create already has its own nav button.
+   --------------------------------------------------------- */
+
+.motionComposer,
+.suggested,
+.searchWrap {
+  display: none !important;
+}
+
+/* Live discovery appears only inside Live tab */
+.liveNowSection {
+  margin: 0 !important;
+  padding: 12px 10px !important;
+
+  border-bottom:
+    1px solid rgba(255,255,255,.05) !important;
+
+  background: #010203 !important;
+}
+
+.liveNowHeading small {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   FEED CARDS
+   --------------------------------------------------------- */
+
+.feedList {
+  display: block !important;
+
+  width: 100% !important;
+  padding: 0 !important;
+}
+
+.feedPost {
+  position: relative !important;
+
+  width: 100% !important;
+
+  margin: 0 !important;
+  overflow: hidden !important;
+
+  border: 0 !important;
+  border-bottom:
+    7px solid #07090c !important;
+
+  border-radius: 0 !important;
+
+  background: #010203 !important;
+
+  box-shadow: none !important;
+}
+
+/* Creator */
+
+.postHeader {
+  min-height: 63px !important;
+
+  display: grid !important;
+  grid-template-columns:
+    43px minmax(0,1fr) 24px !important;
+
+  align-items: center !important;
+
+  gap: 10px !important;
+
+  padding: 9px 13px !important;
+
+  border: 0 !important;
+
+  background: #010203 !important;
+}
+
+.postAvatar {
+  width: 43px !important;
+  height: 43px !important;
+
+  border:
+    2px solid rgba(85,246,202,.76) !important;
+
+  border-radius: 50% !important;
+
+  box-shadow:
+    0 0 12px rgba(85,246,202,.10) !important;
+}
+
+.postCreator h3 {
+  margin: 0 !important;
+
+  color: #fff !important;
+
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.postCreator p {
+  margin-top: 2px !important;
+
+  color:
+    rgba(255,255,255,.39) !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+
+  text-transform: uppercase !important;
+  letter-spacing: .07em !important;
+}
+
+.profileArrow {
+  opacity: .35 !important;
+}
+
+/* ---------------------------------------------------------
+   MEDIA
+   --------------------------------------------------------- */
+
+.mediaWrap {
+  position: relative !important;
+
+  width: 100% !important;
+
+  min-height: 300px !important;
+  max-height: 78dvh !important;
+
+  overflow: hidden !important;
+
+  background: #000 !important;
+}
+
+.postMedia {
+  display: block !important;
+
+  width: 100% !important;
+  height: auto !important;
+
+  min-height: 300px !important;
+  max-height: 78dvh !important;
+
+  background: #000 !important;
+}
+
+.mediaProfileButton {
+  display: none !important;
+}
+
+/* Cleaner media controls */
+.mediaViewControls {
+  left: 12px !important;
+  bottom: 12px !important;
+
+  gap: 7px !important;
+}
+
+.mediaViewButton {
+  min-width: 43px !important;
+  height: 38px !important;
+
+  padding: 0 12px !important;
+
+  border:
+    1px solid rgba(255,255,255,.14) !important;
+
+  border-radius: 999px !important;
+
+  background:
+    rgba(0,0,0,.50) !important;
+
+  color: #fff !important;
+
+  backdrop-filter:
+    blur(12px) !important;
+}
+
+.soundButton {
+  right: 13px !important;
+  bottom: 13px !important;
+
+  width: 42px !important;
+  height: 42px !important;
+
+  border:
+    1px solid rgba(255,255,255,.14) !important;
+
+  border-radius: 50% !important;
+
+  background:
+    rgba(0,0,0,.50) !important;
+
+  font-size: 17px !important;
+
+  backdrop-filter:
+    blur(12px) !important;
+}
+
+.tapHint {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   ACTION BAR
+   --------------------------------------------------------- */
+
+.postBody {
+  padding: 0 !important;
+
+  background: #010203 !important;
+}
+
+.actionRow {
+  display: flex !important;
+  align-items: center !important;
+
+  min-height: 54px !important;
+
+  gap: 5px !important;
+
+  padding: 5px 11px 0 !important;
+}
+
+.actionButton {
+  display: grid !important;
+  place-items: center !important;
+
+  width: 43px !important;
+  height: 43px !important;
+
+  padding: 0 !important;
+
+  border: 0 !important;
+
+  border-radius: 50% !important;
+
+  background: transparent !important;
+
+  color: #fff !important;
+
+  font-size: 23px !important;
+}
+
+.actionButton.liked {
+  transform: scale(1.04);
+}
+
+.saveButton {
+  margin-left: auto !important;
+}
+
+.actionMeta {
+  margin: 0 14px 5px !important;
+
+  color:
+    rgba(255,255,255,.47) !important;
+
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+}
+
+.postTitle {
+  margin:
+    4px 14px 3px !important;
+
+  color: #fff !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+.caption {
+  margin:
+    3px 14px 7px !important;
+
+  color:
+    rgba(255,255,255,.80) !important;
+
+  font-size: 12px !important;
+  line-height: 1.42 !important;
+}
+
+.creatorCaptionButton {
+  font-weight: 900 !important;
+}
+
+/* ---------------------------------------------------------
+   COMMENTS — LIGHTER
+   --------------------------------------------------------- */
+
+.commentSection {
+  padding:
+    0 13px 11px !important;
+}
+
+.viewComments {
+  margin:
+    1px 0 5px !important;
+
+  color:
+    rgba(255,255,255,.40) !important;
+
+  font-size: 11px !important;
+}
+
+.commentBubble {
+  font-size: 11px !important;
+}
+
+.commentComposer {
+  min-height: 40px !important;
+
+  margin-top: 7px !important;
+
+  border:
+    1px solid rgba(255,255,255,.07) !important;
+
+  border-radius: 15px !important;
+
+  background:
+    rgba(255,255,255,.025) !important;
+}
+
+.commentComposer input {
+  font-size: 12px !important;
+}
+
+.sendComment {
+  width: 34px !important;
+  height: 34px !important;
+
+  border-radius: 50% !important;
+
+  background:
+    var(--utv-mint-5) !important;
+
+  color: #03110d !important;
+}
+
+/* ---------------------------------------------------------
+   TEXT-ONLY POSTS
+   --------------------------------------------------------- */
+
+.textOnlyPost {
+  min-height: 330px !important;
+
+  padding: 46px 24px !important;
+
+  background:
+    radial-gradient(
+      circle at 14% 10%,
+      rgba(85,246,202,.11),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 88% 90%,
+      rgba(147,103,255,.17),
+      transparent 42%
+    ),
+    #06080c !important;
+}
+
+.textOnlyPost p {
+  font-size:
+    clamp(23px, 6vw, 35px) !important;
+
+  line-height: 1.15 !important;
+}
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 560px) {
+
+  .feedPage {
+    max-width: none !important;
+  }
+
+  .feedTabs {
+    grid-template-columns:
+      repeat(5, minmax(75px, 1fr)) !important;
+  }
+
+  .mediaWrap,
+  .postMedia {
+    max-height: 74dvh !important;
+  }
+
+}
+
+/* ---------------------------------------------------------
+   DESKTOP
+   --------------------------------------------------------- */
+
+@media (min-width: 760px) {
+
+  .feedPage {
+    border-right:
+      1px solid rgba(255,255,255,.04) !important;
+
+    border-left:
+      1px solid rgba(255,255,255,.04) !important;
+  }
+
+  .feedPost {
+    border-right:
+      1px solid rgba(255,255,255,.035) !important;
+
+    border-left:
+      1px solid rgba(255,255,255,.035) !important;
+  }
+
+}
 
 `;

@@ -61,12 +61,6 @@ const navItems: NavItem[] = [
     icon: "live",
   },
   {
-    href: "/activity",
-    label: "Activity",
-    icon: "activity",
-    activity: true,
-  },
-  {
     href: "/profile-pro-v12",
     label: "Profile",
     icon: "profile",
@@ -2725,7 +2719,232 @@ export default function UTVNav() {
           }
         }
 
-      `}</style>
+      
+
+/* =========================================================
+   UTV NAV 2.0 — SIX TAB NATIVE FINAL
+   ========================================================= */
+
+.utvTopNav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+
+  width: 100% !important;
+  max-width: 720px !important;
+
+  min-height: 54px !important;
+  height: 54px !important;
+
+  margin: 0 auto !important;
+  padding: 0 12px !important;
+
+  border: 0 !important;
+  border-bottom:
+    1px solid rgba(255,255,255,.055) !important;
+
+  border-radius: 0 !important;
+
+  background:
+    rgba(1,2,3,.96) !important;
+
+  box-shadow: none !important;
+
+  backdrop-filter:
+    blur(18px) saturate(150%) !important;
+
+  -webkit-backdrop-filter:
+    blur(18px) saturate(150%) !important;
+}
+
+/* Center the UTV brand instead of tiny left logo */
+.utvLogoLink {
+  position: absolute !important;
+
+  top: 50% !important;
+  left: 50% !important;
+
+  width: 96px !important;
+  height: 45px !important;
+
+  transform:
+    translate(-50%, -50%) !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  margin: 0 !important;
+}
+
+.utvLogoLink img {
+  width: 88px !important;
+  max-width: 88px !important;
+  height: 38px !important;
+
+  object-fit: contain !important;
+
+  transform: none !important;
+}
+
+/* Notification stays top right */
+.topActivityButton {
+  position: absolute !important;
+
+  top: 8px !important;
+  right: 12px !important;
+
+  width: 38px !important;
+  height: 38px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border:
+    1px solid rgba(255,255,255,.10) !important;
+
+  border-radius: 50% !important;
+
+  background:
+    rgba(255,255,255,.035) !important;
+
+  box-shadow: none !important;
+}
+
+/* Kill any giant emoji/pseudo bell from old styles */
+.topActivityButton::before,
+.topActivityButton::after {
+  font-size: 0 !important;
+}
+
+/* ---------------------------------------------------------
+   EXACTLY 6 BOTTOM ITEMS
+   Feed · Watch · World · Create · Live · Profile
+   --------------------------------------------------------- */
+
+.utvBottomNav {
+  position: fixed !important;
+
+  right:
+    max(10px, env(safe-area-inset-right)) !important;
+
+  bottom:
+    max(8px, env(safe-area-inset-bottom)) !important;
+
+  left:
+    max(10px, env(safe-area-inset-left)) !important;
+
+  z-index: 1200 !important;
+
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr)) !important;
+
+  align-items: center !important;
+
+  width: auto !important;
+  max-width: 680px !important;
+
+  min-height: 68px !important;
+
+  margin: 0 auto !important;
+
+  padding:
+    5px 6px 6px !important;
+
+  overflow: visible !important;
+
+  border:
+    1px solid rgba(255,255,255,.085) !important;
+
+  border-radius: 23px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14,20,25,.96),
+      rgba(6,10,14,.97)
+    ) !important;
+
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.48),
+    inset 0 1px rgba(255,255,255,.035) !important;
+
+  backdrop-filter:
+    blur(22px) saturate(150%) !important;
+
+  -webkit-backdrop-filter:
+    blur(22px) saturate(150%) !important;
+}
+
+.utvBottomNav > * {
+  min-width: 0 !important;
+}
+
+.utvNavItem {
+  min-width: 0 !important;
+  min-height: 58px !important;
+
+  margin: 0 !important;
+  padding: 4px 2px !important;
+
+  border-radius: 14px !important;
+}
+
+.utvNavIcon {
+  width: 25px !important;
+  height: 25px !important;
+}
+
+.utvNavLabel {
+  margin-top: 2px !important;
+
+  font-size: 9px !important;
+  font-weight: 750 !important;
+}
+
+.utvNavItem.active {
+  color: #55f6ca !important;
+}
+
+.utvNavItem.active::after {
+  width: 22px !important;
+  height: 2px !important;
+
+  background:
+    linear-gradient(
+      90deg,
+      #55f6ca,
+      #9367ff
+    ) !important;
+}
+
+/* Create remains the focal action */
+.utvNavItem.primary,
+.utvNavItem[data-primary="true"] {
+  transform:
+    translateY(-6px) !important;
+}
+
+@media (max-width: 430px) {
+
+  .utvBottomNav {
+    right: 7px !important;
+    left: 7px !important;
+
+    border-radius: 21px !important;
+  }
+
+  .utvNavLabel {
+    font-size: 8.5px !important;
+  }
+
+}
+
+`}</style>
     </>
   );
 }
