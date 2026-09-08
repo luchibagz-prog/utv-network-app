@@ -916,7 +916,29 @@ export default function PublicProfile() {
             </button>
           </div>
         ) : (
-          <div className="ownerProfileTools">
+          <div className="socialActions ownerSocialActions">
+            <button
+              className="messageAction"
+              onClick={() => router.push("/messages")}
+            >
+              💬 Messages
+            </button>
+
+            <button
+              className="walkieAction"
+              onClick={() => router.push("/walkie")}
+            >
+              <span className="walkiePulse" />
+              🎙 Walkie
+            </button>
+
+            <button
+              className="contactAction"
+              onClick={() => router.push("/bookings")}
+            >
+              📅 Bookings
+            </button>
+
             <button
               className={
                 creatorDashboardOpen
