@@ -1013,56 +1013,22 @@ export default function PublicProfile() {
                 {utvBadge.og_number &&
                   utvBadge.og_number >= 1 &&
                   utvBadge.og_number <= 100 && (
-                    <span
-                      style={{
-                        position: "relative",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        minHeight: "28px",
-                        padding: "6px 11px",
-                        borderRadius: "999px",
-                        border:
-                          "1px solid rgba(82,247,200,.52)",
-                        color: "#effffb",
-                        background:
-                          "linear-gradient(135deg, rgba(16,79,68,.97), rgba(51,31,98,.96))",
-                        boxShadow:
-                          "0 6px 22px rgba(82,247,200,.17), 0 0 18px rgba(123,97,255,.12), inset 0 1px 0 rgba(255,255,255,.15)",
-                        fontSize: "10px",
-                        fontWeight: 900,
-                        letterSpacing: ".7px",
-                        lineHeight: 1,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                      }}
+                                        <span
+                      className="ogShieldBadge"
+                      aria-label={`UTV OG #${String(
+                        utvBadge.og_number
+                      ).padStart(3, "0")}`}
                     >
-                      <span
-                        style={{
-                          color: "#76f7d2",
-                          fontSize: "13px",
-                          textShadow:
-                            "0 0 11px rgba(82,247,200,.75)",
-                        }}
-                      >
-                        ✦
+                      <span className="ogShieldInner">
+                        <span className="ogShieldUTV">UTV</span>
+                        <span className="ogShieldOG">OG</span>
+                        <b className="ogShieldNumber">
+                          #{String(utvBadge.og_number).padStart(
+                            3,
+                            "0"
+                          )}
+                        </b>
                       </span>
-
-                      <span>UTV OG</span>
-
-                      <b
-                        style={{
-                          color: "#8cffe0",
-                          fontWeight: 950,
-                          textShadow:
-                            "0 0 8px rgba(82,247,200,.45)",
-                        }}
-                      >
-                        #{String(utvBadge.og_number).padStart(
-                          3,
-                          "0"
-                        )}
-                      </b>
                     </span>
                   )}
               </div>
@@ -5420,6 +5386,203 @@ function MediaGrid({
   .ogBadge::after,
   .utvOgBadge::after,
   .ogCollectibleBadge::after {
+    animation: none !important;
+  }
+}
+
+
+
+/* UTV OG FIRST 100 — TRUE 3D SHIELD */
+
+.ogShieldBadge {
+  position: relative;
+  width: 76px;
+  height: 84px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  filter:
+    drop-shadow(0 10px 10px rgba(0,0,0,.48))
+    drop-shadow(0 0 12px rgba(82,247,200,.22));
+  animation: ogShieldFloat 3.8s ease-in-out infinite;
+}
+
+.ogShieldBadge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  clip-path: polygon(
+    50% 0%,
+    91% 14%,
+    88% 57%,
+    76% 76%,
+    50% 100%,
+    24% 76%,
+    12% 57%,
+    9% 14%
+  );
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff 0%,
+      #9fffe3 10%,
+      #356e64 23%,
+      #111820 43%,
+      #7663d5 68%,
+      #d6ceff 83%,
+      #4ff1c1 100%
+    );
+
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,.95),
+    inset 6px 0 12px rgba(255,255,255,.16),
+    inset -8px -10px 15px rgba(0,0,0,.68);
+}
+
+.ogShieldBadge::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  top: 2px;
+  bottom: 6px;
+  left: -35%;
+  width: 26%;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.92),
+      rgba(112,255,218,.42),
+      transparent
+    );
+  transform: skewX(-18deg);
+  animation: ogShieldSweep 4.2s ease-in-out infinite;
+}
+
+.ogShieldInner {
+  position: relative;
+  z-index: 2;
+  width: 64px;
+  height: 71px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  clip-path: polygon(
+    50% 0%,
+    90% 15%,
+    86% 55%,
+    74% 73%,
+    50% 94%,
+    26% 73%,
+    14% 55%,
+    10% 15%
+  );
+
+  background:
+    radial-gradient(
+      circle at 35% 16%,
+      rgba(255,255,255,.24),
+      transparent 27%
+    ),
+    linear-gradient(
+      160deg,
+      #182228 0%,
+      #07100f 44%,
+      #17251f 64%,
+      #151126 100%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.16),
+    inset 0 0 19px rgba(82,247,200,.12),
+    inset 0 -12px 16px rgba(0,0,0,.55);
+
+  transform: translateZ(8px);
+}
+
+.ogShieldUTV {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 1000;
+  letter-spacing: -1px;
+  line-height: 1;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.8),
+    0 0 12px rgba(82,247,200,.34);
+}
+
+.ogShieldOG {
+  margin-top: 3px;
+  color: #69f5cf;
+  font-size: 12px;
+  font-weight: 1000;
+  letter-spacing: 2px;
+  line-height: 1;
+  text-shadow:
+    0 0 10px rgba(82,247,200,.62);
+}
+
+.ogShieldNumber {
+  margin-top: 5px;
+  color: #dcd6ff;
+  font-size: 10px;
+  font-weight: 1000;
+  line-height: 1;
+  text-shadow:
+    0 0 9px rgba(129,101,255,.7);
+}
+
+@keyframes ogShieldFloat {
+  0%,100% {
+    transform:
+      perspective(650px)
+      rotateX(4deg)
+      rotateY(-5deg)
+      translateY(0);
+  }
+
+  50% {
+    transform:
+      perspective(650px)
+      rotateX(1deg)
+      rotateY(5deg)
+      translateY(-3px);
+  }
+}
+
+@keyframes ogShieldSweep {
+  0%,68% {
+    left: -35%;
+    opacity: 0;
+  }
+
+  73% {
+    opacity: .9;
+  }
+
+  88% {
+    left: 118%;
+    opacity: .25;
+  }
+
+  100% {
+    left: 118%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ogShieldBadge,
+  .ogShieldBadge::after {
     animation: none !important;
   }
 }

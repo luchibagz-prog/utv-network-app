@@ -263,17 +263,10 @@ export default function StoryCamera({
             disablePictureInPicture
           />
         ) : (
-          <div className="cameraPlaceholder">
-            <div className="placeholderIcon">
-              <CameraIcon />
-            </div>
-
-            <strong>Starting camera</strong>
-
-            <small>
-              Allow camera and microphone access when prompted.
-            </small>
-
+          <div
+            className="cameraPlaceholder"
+            aria-label="Switching camera"
+          >
             <div className="loadingDots" aria-hidden="true">
               <span />
               <span />
