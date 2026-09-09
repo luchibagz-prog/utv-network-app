@@ -6968,94 +6968,59 @@ const styles = `
 /* UTV PREMIUM POLISH 2.0 */
 
 /* =========================================================
-   TOP UTV HEADER — BIGGER LOGO + SINGLE RIGHT BELL
+   FEED HEADER — USE GLOBAL UTV SHELL
    ========================================================= */
 
-.feedPage .utvTopNav {
-  width: 100% !important;
-  min-height: 58px !important;
-  padding: 5px 16px !important;
+/*
+  UTVNav owns the header globally.
+  Feed must not resize, recolor, reposition,
+  or add a separate black background around it.
+*/
 
-  display: grid !important;
-  grid-template-columns: 1fr auto 1fr !important;
-  align-items: center !important;
+.feedPage .utvTopNav {
+  height: 50px !important;
+  min-height: 50px !important;
+  padding: 0 14px !important;
+
+  background: transparent !important;
 
   border: 0 !important;
-  border-bottom:
-    1px solid rgba(255,255,255,.045) !important;
+  border-bottom: 1px solid rgba(255,255,255,.035) !important;
 
-  border-radius: 0 !important;
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(4,7,10,.98),
-      rgba(1,3,5,.96)
-    ) !important;
-
-  box-shadow:
-    0 8px 28px rgba(0,0,0,.32) !important;
+  box-shadow: none !important;
 }
 
 .feedPage .utvLogoLink {
-  grid-column: 2 !important;
-  justify-self: center !important;
-
-  width: 112px !important;
-  height: 48px !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 78px !important;
+  height: 40px !important;
 
   overflow: visible !important;
 }
 
 .feedPage .utvLogoLink img {
-  width: 100% !important;
-  height: 100% !important;
+  width: 102px !important;
+  height: auto !important;
+
+  max-width: none !important;
+  max-height: 48px !important;
 
   object-fit: contain !important;
 
-  transform:
-    scale(1.22) translateZ(0) !important;
-
-  filter:
-    drop-shadow(0 2px 1px rgba(255,255,255,.2))
-    drop-shadow(0 5px 4px rgba(0,0,0,.95))
-    drop-shadow(0 0 8px rgba(82,247,200,.20))
-    drop-shadow(0 0 11px rgba(135,91,255,.20)) !important;
+  transform: none !important;
+  filter: none !important;
 }
 
 .feedPage .topActivityButton {
-  grid-column: 3 !important;
-  justify-self: end !important;
+  top: 6px !important;
+  right: 13px !important;
 
-  width: 40px !important;
-  height: 40px !important;
+  width: 38px !important;
+  height: 38px !important;
 
-  margin: 0 !important;
-  padding: 0 !important;
+  background: rgba(255,255,255,.035) !important;
+  border: 1px solid rgba(255,255,255,.075) !important;
 
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  border:
-    1px solid rgba(255,255,255,.09) !important;
-
-  border-radius: 50% !important;
-
-  background:
-    rgba(255,255,255,.035) !important;
-
-  color: #fff !important;
-
-  /*
-    Kill inherited emoji text while leaving
-    the actual SVG bell visible.
-  */
-  font-size: 0 !important;
+  box-shadow: none !important;
 }
 
 .feedPage .topActivityButton::before,
@@ -7065,18 +7030,12 @@ const styles = `
 
 .feedPage .topActivityButton svg {
   display: block !important;
-
-  width: 24px !important;
-  height: 24px !important;
-
-  color: #fff !important;
-
-  filter:
-    drop-shadow(0 0 7px rgba(82,247,200,.13)) !important;
+  width: 22px !important;
+  height: 22px !important;
 }
 
 .feedPage .feedTabs {
-  top: 58px !important;
+  top: 50px !important;
 }
 
 
