@@ -958,7 +958,14 @@ export default function PublicProfile() {
             )}
           </div>
 
-          <div className="identityText">
+          <div
+            className="identityText"
+            style={{
+              transform: "translateX(-14px)",
+              position: "relative",
+              zIndex: 4,
+            }}
+          >
             <p className="category">{category}</p>
             <h1>{name}</h1>
             <b className="username">@{username}</b>
@@ -1022,12 +1029,12 @@ export default function PublicProfile() {
                       ).padStart(3, "0")}`}
                       style={{
                         position: "relative",
-                        width: "78px",
-                        height: "84px",
-                        flex: "0 0 78px",
+                        width: "68px",
+                        height: "74px",
+                        flex: "0 0 68px",
                         display: "inline-grid",
                         placeItems: "center",
-                        marginLeft: "6px",
+                        marginLeft: "2px",
                         verticalAlign: "middle",
                         filter:
                           "drop-shadow(0 9px 8px rgba(0,0,0,.7)) drop-shadow(0 0 8px rgba(255,193,45,.38))",
@@ -1052,8 +1059,8 @@ export default function PublicProfile() {
                         <span
                           style={{
                             position: "relative",
-                            width: "66px",
-                            height: "72px",
+                            width: "58px",
+                            height: "64px",
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
@@ -1068,27 +1075,85 @@ export default function PublicProfile() {
                               "inset 0 0 10px rgba(255,194,44,.15), inset 0 -12px 15px rgba(0,0,0,.88)",
                           }}
                         >
-                          {/* crown */}
+                          {/* premium metallic 3-point crown */}
                           <span
                             aria-hidden="true"
                             style={{
                               position: "absolute",
-                              top: "6px",
-                              color: "#ffd75b",
-                              fontSize: "13px",
-                              lineHeight: 1,
-                              textShadow:
-                                "0 0 6px rgba(255,190,28,.9),0 2px 2px #000",
+                              top: "5px",
+                              left: "50%",
+                              width: "19px",
+                              height: "11px",
+                              transform: "translateX(-50%)",
+                              filter:
+                                "drop-shadow(0 1px 1px rgba(0,0,0,.9)) drop-shadow(0 0 3px rgba(255,199,47,.55))",
                             }}
                           >
-                            ♛
+                            <span
+                              style={{
+                                position: "absolute",
+                                left: "1px",
+                                bottom: "2px",
+                                width: "6px",
+                                height: "8px",
+                                background:
+                                  "linear-gradient(135deg,#fff1a2,#c9870c 58%,#6b3d00)",
+                                clipPath:
+                                  "polygon(0 100%,50% 0,100% 100%)",
+                                transform: "rotate(-7deg)",
+                              }}
+                            />
+
+                            <span
+                              style={{
+                                position: "absolute",
+                                left: "6.5px",
+                                bottom: "2px",
+                                width: "6px",
+                                height: "10px",
+                                background:
+                                  "linear-gradient(135deg,#fff7bf,#e9ad22 52%,#754300)",
+                                clipPath:
+                                  "polygon(0 100%,50% 0,100% 100%)",
+                              }}
+                            />
+
+                            <span
+                              style={{
+                                position: "absolute",
+                                right: "1px",
+                                bottom: "2px",
+                                width: "6px",
+                                height: "8px",
+                                background:
+                                  "linear-gradient(135deg,#fff1a2,#c9870c 58%,#6b3d00)",
+                                clipPath:
+                                  "polygon(0 100%,50% 0,100% 100%)",
+                                transform: "rotate(7deg)",
+                              }}
+                            />
+
+                            <span
+                              style={{
+                                position: "absolute",
+                                left: "2px",
+                                right: "2px",
+                                bottom: 0,
+                                height: "3px",
+                                borderRadius: "1px",
+                                background:
+                                  "linear-gradient(180deg,#ffec8a,#9a6106)",
+                                boxShadow:
+                                  "inset 0 1px rgba(255,255,255,.6)",
+                              }}
+                            />
                           </span>
 
                           <span
                             style={{
-                              marginTop: "9px",
+                              marginTop: "8px",
                               color: "#f4ca4e",
-                              fontSize: "10px",
+                              fontSize: "9px",
                               lineHeight: 1,
                               fontWeight: 950,
                               letterSpacing: ".4px",
@@ -1103,7 +1168,7 @@ export default function PublicProfile() {
                             style={{
                               marginTop: "2px",
                               color: "#ffd34f",
-                              fontSize: "26px",
+                              fontSize: "22px",
                               lineHeight: ".92",
                               fontWeight: 1000,
                               letterSpacing: "-2px",
@@ -1116,9 +1181,9 @@ export default function PublicProfile() {
 
                           <span
                             style={{
-                              marginTop: "5px",
+                              marginTop: "4px",
                               color: "#ffe9a6",
-                              fontSize: "8px",
+                              fontSize: "7px",
                               lineHeight: 1,
                               fontWeight: 950,
                               letterSpacing: ".8px",
