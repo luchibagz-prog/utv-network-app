@@ -156,11 +156,9 @@ export default function StoryCamera({
     const context = canvas.getContext("2d", { alpha: false });
     if (!context) return false;
 
-    if (facing === "user") {
-      context.translate(canvas.width, 0);
-      context.scale(-1, 1);
-    }
-
+    // Keep the live selfie preview mirrored like a native camera,
+    // but save the actual camera frame without baking that mirror
+    // into the uploaded image.
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(

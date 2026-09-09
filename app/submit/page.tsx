@@ -2031,17 +2031,15 @@ const selectedSticker = stickers.find(
 
       setMediaScale(
         Math.max(
-          isStory ? 1 : 0.5,
-          Math.min(4, nextScale)
+          0.35,
+          Math.min(5, nextScale)
         )
       );
 
-      if (!isStory) {
-        setMediaRotation(
-          gesture.startRotation +
-            (angle - gesture.startAngle)
-        );
-      }
+      setMediaRotation(
+        gesture.startRotation +
+          (angle - gesture.startAngle)
+      );
 
       return;
     }
@@ -2795,7 +2793,7 @@ if (mode === "camera") {
                 muted
                 playsInline
                 style={{
-                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                  transform: mediaTransform,
                 }}
               />
             ) : (
@@ -2803,7 +2801,7 @@ if (mode === "camera") {
                 src={previewUrl}
                 alt="Story preview"
                 style={{
-                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                  transform: mediaTransform,
                 }}
               />
             )}
@@ -2895,7 +2893,7 @@ if (mode === "camera") {
                 muted
                 playsInline
                 disablePictureInPicture
-                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+                style={{ transform: mediaTransform }}
               />
             ) : (
               <img
@@ -2903,7 +2901,7 @@ if (mode === "camera") {
                 className="storyMedia"
                 alt="Story preview"
                 draggable={false}
-                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+                style={{ transform: mediaTransform }}
               />
             )}
           </div>
@@ -2970,7 +2968,7 @@ if (mode === "camera") {
                 setFile(null);
                 setPreview("");
                 setMode("camera");
-                window.setTimeout(() => startCamera(), 150);
+                void startCamera();
               }}
             >←</button>
 
@@ -3010,7 +3008,7 @@ if (mode === "camera") {
                   setFile(null);
                   setPreview("");
                   setMode("camera");
-                  window.setTimeout(() => startCamera(), 150);
+                  void startCamera();
                 }}
               >
                 <span>↻</span>
