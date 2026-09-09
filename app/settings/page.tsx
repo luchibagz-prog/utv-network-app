@@ -269,91 +269,495 @@ export default function SettingsPage() {
       <UTVNav />
 
       <header className="hero">
-        <p>UTV CONTROL CENTER</p>
-        <h1>Settings</h1>
-        <span>{email}</span>
+        <div>
+          <p>UTV</p>
+          <h1>Settings</h1>
+        </div>
+
+        <span className="accountEmail">{email}</span>
       </header>
 
       <section className="shell">
-        <article className="card">
-          <div className="cardTitle">
-            <div>
-              <p>DEVICE ALERTS</p>
-              <h2>Notifications</h2>
+
+        <div className="sectionLabel">DEVICE</div>
+
+        <article className="notificationPanel">
+          <div className="notificationTop">
+            <div className="notificationIcon">🔔</div>
+
+            <div className="notificationIdentity">
+              <strong>Notifications</strong>
+              <small>
+                Alerts on this device
+              </small>
             </div>
-            <span className={`status ${permission === "granted" && subscriptionReady ? "good" : ""}`}>
+
+            <span
+              className={`status ${
+                permission === "granted" && subscriptionReady
+                  ? "good"
+                  : ""
+              }`}
+            >
               {permissionLabel}
             </span>
           </div>
 
-          <p className="muted">
-            Each phone must enable alerts separately. Use Repair when permission is
-            allowed but UTV still says notifications are not enabled.
-          </p>
+          <div className="notificationActions">
+            <button
+              type="button"
+              className="primaryAction"
+              onClick={enableNotifications}
+              disabled={busy}
+            >
+              Enable
+            </button>
 
-          <div className="actionGrid">
-            <button onClick={enableNotifications} disabled={busy}>🔔 Enable alerts</button>
-            <button onClick={repairNotifications} disabled={busy}>🛠 Repair this phone</button>
-            <button onClick={testNotification} disabled={busy || permission !== "granted"}>
-              🧪 Send test alert
+            <button
+              type="button"
+              onClick={repairNotifications}
+              disabled={busy}
+            >
+              Repair
+            </button>
+
+            <button
+              type="button"
+              onClick={testNotification}
+              disabled={busy || permission !== "granted"}
+            >
+              Test
             </button>
           </div>
 
           {permission === "denied" && (
             <div className="warning">
-              Open the browser site settings for UTV, change Notifications to
-              <strong> Allow</strong>, then return here and tap Repair this phone.
+              Notifications are blocked in your browser settings.
+              Allow notifications for UTV, then tap Repair.
             </div>
           )}
         </article>
 
-        <article className="card">
-          <div className="cardTitle"><div><p>ALERT TYPES</p><h2>What reaches you</h2></div></div>
-          <Toggle setting="messageAlerts" title="Messages" description="Direct messages and replies." />
-          <Toggle setting="socialAlerts" title="Social activity" description="Comments, reactions, mentions, and follows." />
-          <Toggle setting="liveAlerts" title="Live and walkie alerts" description="Incoming sessions, calls, and live invitations." />
-          <Toggle setting="notificationSound" title="Notification sound" description="Play the UTV alert sound when supported." />
-          <Toggle setting="vibration" title="Vibration" description="Vibrate for alerts on supported devices." />
+        <div className="sectionLabel">NOTIFICATIONS</div>
+
+        <article className="settingsGroup">
+          <Toggle
+            setting="messageAlerts"
+            title="Messages"
+            description="Direct messages and replies"
+          />
+
+          <Toggle
+            setting="socialAlerts"
+            title="Social activity"
+            description="Comments, reactions, mentions and follows"
+          />
+
+          <Toggle
+            setting="liveAlerts"
+            title="Live & Walkie"
+            description="Live invites, calls and incoming sessions"
+          />
+
+          <Toggle
+            setting="notificationSound"
+            title="Sound"
+            description="Play a sound for supported alerts"
+          />
+
+          <Toggle
+            setting="vibration"
+            title="Vibration"
+            description="Vibrate for supported alerts"
+          />
         </article>
 
-        <article className="card">
-          <div className="cardTitle"><div><p>MEDIA</p><h2>Playback</h2></div></div>
-          <Toggle setting="autoplayVideo" title="Autoplay videos" description="Start feed videos automatically." />
-          <Toggle setting="profileMusic" title="Profile music" description="Allow profile songs to begin on profiles." />
-          <Toggle setting="dataSaver" title="Data saver" description="Reduce automatic media loading." />
+        <div className="sectionLabel">PLAYBACK</div>
+
+        <article className="settingsGroup">
+          <Toggle
+            setting="autoplayVideo"
+            title="Autoplay videos"
+            description="Play videos automatically"
+          />
+
+          <Toggle
+            setting="profileMusic"
+            title="Profile music"
+            description="Allow music to play on profiles"
+          />
+
+          <Toggle
+            setting="dataSaver"
+            title="Data saver"
+            description="Reduce automatic media loading"
+          />
         </article>
 
-        <article className="card">
-          <div className="cardTitle"><div><p>COMMUNICATION</p><h2>Walkie and presence</h2></div></div>
-          <Toggle setting="walkieAutoSpeaker" title="Walkie speaker" description="Use speaker mode automatically." />
-          <Toggle setting="walkieVibration" title="Incoming vibration" description="Vibrate for walkie and call requests." />
-          <Toggle setting="showOnlineStatus" title="Online status" description="Let friends know when you are available." />
+        <div className="sectionLabel">WALKIE & PRESENCE</div>
+
+        <article className="settingsGroup">
+          <Toggle
+            setting="walkieAutoSpeaker"
+            title="Walkie speaker"
+            description="Use speaker mode automatically"
+          />
+
+          <Toggle
+            setting="walkieVibration"
+            title="Incoming vibration"
+            description="Vibrate for Walkie and call requests"
+          />
+
+          <Toggle
+            setting="showOnlineStatus"
+            title="Online status"
+            description="Let friends see when you're available"
+          />
         </article>
 
-        <article className="card links">
-          <button onClick={() => router.push("/notifications")}>🔔 Activity and notifications <span>›</span></button>
-          <button onClick={() => router.push("/messages")}>💬 Messages <span>›</span></button>
-          <button onClick={() => router.push("/profile-edit")}>👤 Edit profile <span>›</span></button>
-          <button onClick={() => router.push("/walkie")}>🎙 Walkie <span>›</span></button>
-          <button onClick={() => router.push("/calls")}>📞 Audio & Video Calls <span>›</span></button>
+        <div className="sectionLabel">ACCOUNT & UTV</div>
+
+        <article className="settingsGroup links">
+          <button onClick={() => router.push("/notifications")}>
+            <span className="linkLeft">
+              <i>🔔</i>
+              Activity
+            </span>
+            <b>›</b>
+          </button>
+
+          <button onClick={() => router.push("/messages")}>
+            <span className="linkLeft">
+              <i>💬</i>
+              Messages
+            </span>
+            <b>›</b>
+          </button>
+
+          <button onClick={() => router.push("/profile-edit")}>
+            <span className="linkLeft">
+              <i>👤</i>
+              Edit profile
+            </span>
+            <b>›</b>
+          </button>
+
+          <button onClick={() => router.push("/walkie")}>
+            <span className="linkLeft">
+              <i>🎙</i>
+              Walkie
+            </span>
+            <b>›</b>
+          </button>
+
+          <button onClick={() => router.push("/calls")}>
+            <span className="linkLeft">
+              <i>📞</i>
+              Audio & Video Calls
+            </span>
+            <b>›</b>
+          </button>
         </article>
+
       </section>
 
       {notice && <div className="toast">{notice}</div>}
 
       <style jsx>{`
-        .settingsPage{min-height:100vh;padding-bottom:120px;color:white;background:radial-gradient(circle at 10% 0%,rgba(69,247,208,.2),transparent 30%),radial-gradient(circle at 95% 8%,rgba(123,97,255,.24),transparent 35%),linear-gradient(180deg,#07111e,#000)}
-        .hero{padding:24px 16px 12px}.hero p,.cardTitle p{margin:0;color:#52f7c8;font-size:11px;font-weight:950;letter-spacing:.14em}.hero h1{margin:4px 0;font-size:44px;letter-spacing:-.045em}.hero span{color:rgba(255,255,255,.58);font-size:13px}
-        .shell{display:grid;gap:14px;padding:0 14px}.card{border:1px solid rgba(255,255,255,.13);border-radius:25px;padding:16px;background:rgba(255,255,255,.07);box-shadow:0 22px 55px rgba(0,0,0,.28);backdrop-filter:blur(20px)}
-        .cardTitle{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.cardTitle h2{margin:4px 0 0;font-size:23px}.muted{margin:0 0 14px;color:rgba(255,255,255,.65);font-size:13px;line-height:1.48}
-        .status{max-width:160px;padding:7px 10px;border-radius:999px;color:#ffd38a;background:rgba(255,169,64,.12);font-size:11px;font-weight:900;text-align:center}.status.good{color:#062018;background:linear-gradient(135deg,#52f7c8,#baff74)}
-        .actionGrid{display:grid;grid-template-columns:1fr;gap:9px}.actionGrid button,.links button{border:1px solid rgba(255,255,255,.14);border-radius:17px;padding:13px 14px;color:white;font-weight:900;background:rgba(0,0,0,.28);text-align:left}.actionGrid button:disabled{opacity:.5}
-        .warning{margin-top:12px;padding:12px;border:1px solid rgba(255,176,80,.3);border-radius:15px;color:#ffd9a2;background:rgba(255,150,40,.1);font-size:12px;line-height:1.45}
-        .settingRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-top:1px solid rgba(255,255,255,.08);padding:14px 0;color:white;background:transparent;text-align:left}.settingRow strong{display:block;font-size:15px}.settingRow small{display:block;margin-top:4px;color:rgba(255,255,255,.55);font-size:12px;line-height:1.35}
-        .switch{flex:none;width:48px;height:28px;padding:3px;border-radius:999px;background:rgba(255,255,255,.16);transition:.2s}.switch i{display:block;width:22px;height:22px;border-radius:50%;background:white;transition:.2s}.switch.on{background:linear-gradient(135deg,#52f7c8,#7b61ff)}.switch.on i{transform:translateX(20px)}
-        .links{padding:7px 14px}.links button{width:100%;display:flex;justify-content:space-between;border:0;border-bottom:1px solid rgba(255,255,255,.08);border-radius:0;background:transparent;padding:16px 2px}.links button:last-child{border-bottom:0}
-        .toast{position:fixed;z-index:99999;left:50%;bottom:100px;width:min(88vw,420px);padding:14px 16px;border:1px solid rgba(82,247,200,.35);border-radius:18px;color:white;background:rgba(7,15,24,.96);box-shadow:0 20px 55px rgba(0,0,0,.5);transform:translateX(-50%);text-align:center;font-size:13px;font-weight:900}
-        @media(min-width:720px){.shell{max-width:760px;margin:auto}.actionGrid{grid-template-columns:repeat(3,1fr)}}
+        .settingsPage{
+          min-height:100vh;
+          padding-bottom:120px;
+          color:#fff;
+          background:#050607;
+        }
+
+        .hero{
+          width:min(100%,720px);
+          margin:0 auto;
+          display:flex;
+          align-items:flex-end;
+          justify-content:space-between;
+          gap:18px;
+          padding:22px 18px 18px;
+        }
+
+        .hero p{
+          margin:0 0 3px;
+          color:#52f7c8;
+          font-size:9px;
+          font-weight:950;
+          letter-spacing:1.8px;
+        }
+
+        .hero h1{
+          margin:0;
+          font-size:34px;
+          line-height:1;
+          letter-spacing:-1.2px;
+        }
+
+        .accountEmail{
+          max-width:48%;
+          overflow:hidden;
+          color:rgba(255,255,255,.42);
+          font-size:11px;
+          text-overflow:ellipsis;
+          white-space:nowrap;
+        }
+
+        .shell{
+          width:min(100%,720px);
+          margin:0 auto;
+          display:grid;
+          gap:0;
+          padding:0 12px;
+        }
+
+        .sectionLabel{
+          padding:19px 6px 7px;
+          color:rgba(255,255,255,.38);
+          font-size:9px;
+          font-weight:900;
+          letter-spacing:1.4px;
+        }
+
+        .notificationPanel,
+        .settingsGroup{
+          overflow:hidden;
+          border:1px solid rgba(255,255,255,.07);
+          border-radius:19px;
+          background:#0d0f11;
+        }
+
+        .notificationPanel{
+          padding:13px;
+        }
+
+        .notificationTop{
+          display:flex;
+          align-items:center;
+          gap:11px;
+        }
+
+        .notificationIcon{
+          width:42px;
+          height:42px;
+          flex:none;
+          display:grid;
+          place-items:center;
+          border-radius:13px;
+          background:rgba(82,247,200,.09);
+          font-size:18px;
+        }
+
+        .notificationIdentity{
+          flex:1;
+          min-width:0;
+          display:grid;
+          gap:2px;
+        }
+
+        .notificationIdentity strong{
+          font-size:14px;
+        }
+
+        .notificationIdentity small{
+          color:rgba(255,255,255,.42);
+          font-size:11px;
+        }
+
+        .status{
+          flex:none;
+          max-width:118px;
+          padding:6px 9px;
+          border-radius:999px;
+          color:#ffc878;
+          background:rgba(255,169,64,.10);
+          font-size:9px;
+          font-weight:900;
+          text-align:center;
+        }
+
+        .status.good{
+          color:#06140f;
+          background:#52f7c8;
+        }
+
+        .notificationActions{
+          display:grid;
+          grid-template-columns:1fr 1fr 1fr;
+          gap:7px;
+          margin-top:12px;
+        }
+
+        .notificationActions button{
+          min-height:38px;
+          padding:0 8px;
+          color:rgba(255,255,255,.72);
+          border:1px solid rgba(255,255,255,.08);
+          border-radius:12px;
+          background:rgba(255,255,255,.035);
+          font-size:10px;
+          font-weight:850;
+        }
+
+        .notificationActions .primaryAction{
+          color:#04100c;
+          border-color:#52f7c8;
+          background:#52f7c8;
+        }
+
+        .notificationActions button:disabled{
+          opacity:.38;
+        }
+
+        .warning{
+          margin-top:10px;
+          padding:10px 11px;
+          color:#ffd59c;
+          border:1px solid rgba(255,176,80,.16);
+          border-radius:12px;
+          background:rgba(255,150,40,.07);
+          font-size:10px;
+          line-height:1.4;
+        }
+
+        .settingRow{
+          width:100%;
+          min-height:64px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:14px;
+          padding:11px 13px;
+          color:white;
+          border:0;
+          border-bottom:1px solid rgba(255,255,255,.055);
+          background:transparent;
+          text-align:left;
+        }
+
+        .settingRow:last-child{
+          border-bottom:0;
+        }
+
+        .settingRow>span:first-child{
+          min-width:0;
+        }
+
+        .settingRow strong{
+          display:block;
+          font-size:14px;
+          line-height:1.2;
+        }
+
+        .settingRow small{
+          display:block;
+          margin-top:3px;
+          color:rgba(255,255,255,.39);
+          font-size:10.5px;
+          line-height:1.28;
+        }
+
+        .switch{
+          position:relative;
+          flex:none;
+          width:44px;
+          height:26px;
+          padding:3px;
+          border-radius:999px;
+          background:rgba(255,255,255,.14);
+          transition:.18s ease;
+        }
+
+        .switch i{
+          display:block;
+          width:20px;
+          height:20px;
+          border-radius:50%;
+          background:#fff;
+          box-shadow:0 2px 5px rgba(0,0,0,.3);
+          transition:.18s ease;
+        }
+
+        .switch.on{
+          background:#52f7c8;
+        }
+
+        .switch.on i{
+          transform:translateX(18px);
+          background:#07110e;
+        }
+
+        .links button{
+          width:100%;
+          min-height:55px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          padding:0 13px;
+          color:#fff;
+          border:0;
+          border-bottom:1px solid rgba(255,255,255,.055);
+          background:transparent;
+          text-align:left;
+        }
+
+        .links button:last-child{
+          border-bottom:0;
+        }
+
+        .linkLeft{
+          display:flex;
+          align-items:center;
+          gap:11px;
+          font-size:13px;
+          font-weight:750;
+        }
+
+        .linkLeft i{
+          width:30px;
+          height:30px;
+          display:grid;
+          place-items:center;
+          border-radius:9px;
+          background:rgba(255,255,255,.055);
+          font-style:normal;
+          font-size:14px;
+        }
+
+        .links b{
+          color:rgba(255,255,255,.28);
+          font-size:23px;
+          font-weight:400;
+        }
+
+        .toast{
+          position:fixed;
+          z-index:99999;
+          left:50%;
+          bottom:100px;
+          width:min(88vw,420px);
+          padding:12px 14px;
+          border:1px solid rgba(82,247,200,.22);
+          border-radius:15px;
+          color:white;
+          background:rgba(10,12,14,.96);
+          box-shadow:0 18px 50px rgba(0,0,0,.5);
+          transform:translateX(-50%);
+          text-align:center;
+          font-size:11px;
+          font-weight:850;
+          backdrop-filter:blur(18px);
+        }
+
+        @media(min-width:720px){
+          .shell{
+            padding:0 16px;
+          }
+        }
       `}</style>
     </main>
   );
