@@ -949,7 +949,15 @@ export default function PublicProfile() {
             `linear-gradient(180deg,rgba(0,0,0,.05),rgba(4,7,14,.34) 48%,#050812 96%),url("${cover}")`,
         }}
       >
-        <div className="identity">
+        <div
+          className="identity"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "flex-start",
+          }}
+        >
           <div className="avatar">
             {avatar ? (
               <img src={avatar} alt={name} />
@@ -961,9 +969,13 @@ export default function PublicProfile() {
           <div
             className="identityText"
             style={{
-              transform: "translateX(-14px)",
               position: "relative",
               zIndex: 4,
+              marginTop: "8px",
+              marginLeft: "2px",
+              transform: "none",
+              textAlign: "left",
+              maxWidth: "240px",
             }}
           >
             <p className="category">{category}</p>
@@ -1029,9 +1041,9 @@ export default function PublicProfile() {
                       ).padStart(3, "0")}`}
                       style={{
                         position: "relative",
-                        width: "68px",
-                        height: "74px",
-                        flex: "0 0 68px",
+                        width: "62px",
+                        height: "68px",
+                        flex: "0 0 62px",
                         display: "inline-grid",
                         placeItems: "center",
                         marginLeft: "2px",
@@ -1059,8 +1071,8 @@ export default function PublicProfile() {
                         <span
                           style={{
                             position: "relative",
-                            width: "58px",
-                            height: "64px",
+                            width: "53px",
+                            height: "59px",
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
@@ -1075,83 +1087,61 @@ export default function PublicProfile() {
                               "inset 0 0 10px rgba(255,194,44,.15), inset 0 -12px 15px rgba(0,0,0,.88)",
                           }}
                         >
-                          {/* premium metallic 3-point crown */}
-                          <span
+                                                    {/* premium UTV crown */}
+                          <svg
                             aria-hidden="true"
+                            viewBox="0 0 32 18"
+                            width="22"
+                            height="14"
                             style={{
                               position: "absolute",
-                              top: "5px",
+                              top: "4px",
                               left: "50%",
-                              width: "19px",
-                              height: "11px",
                               transform: "translateX(-50%)",
+                              overflow: "visible",
                               filter:
-                                "drop-shadow(0 1px 1px rgba(0,0,0,.9)) drop-shadow(0 0 3px rgba(255,199,47,.55))",
+                                "drop-shadow(0 2px 1px rgba(0,0,0,.9)) drop-shadow(0 0 3px rgba(255,195,36,.55))",
                             }}
                           >
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: "1px",
-                                bottom: "2px",
-                                width: "6px",
-                                height: "8px",
-                                background:
-                                  "linear-gradient(135deg,#fff1a2,#c9870c 58%,#6b3d00)",
-                                clipPath:
-                                  "polygon(0 100%,50% 0,100% 100%)",
-                                transform: "rotate(-7deg)",
-                              }}
+                            <defs>
+                              <linearGradient
+                                id="utv-og-crown-gold"
+                                x1="0"
+                                y1="0"
+                                x2="1"
+                                y2="1"
+                              >
+                                <stop offset="0%" stopColor="#fff6b7" />
+                                <stop offset="27%" stopColor="#ffd354" />
+                                <stop offset="58%" stopColor="#b87508" />
+                                <stop offset="82%" stopColor="#f2bd35" />
+                                <stop offset="100%" stopColor="#714000" />
+                              </linearGradient>
+                            </defs>
+
+                            <path
+                              d="M2 4.5 L9.2 9.2 L15.9 1.8 L22.8 9.2 L30 4.5 L27.2 15.7 H4.8 Z"
+                              fill="url(#utv-og-crown-gold)"
+                              stroke="#ffe786"
+                              strokeWidth="1.1"
+                              strokeLinejoin="round"
                             />
 
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: "6.5px",
-                                bottom: "2px",
-                                width: "6px",
-                                height: "10px",
-                                background:
-                                  "linear-gradient(135deg,#fff7bf,#e9ad22 52%,#754300)",
-                                clipPath:
-                                  "polygon(0 100%,50% 0,100% 100%)",
-                              }}
+                            <path
+                              d="M6 13.2 H26"
+                              stroke="rgba(255,245,174,.85)"
+                              strokeWidth="1"
+                              strokeLinecap="round"
                             />
 
-                            <span
-                              style={{
-                                position: "absolute",
-                                right: "1px",
-                                bottom: "2px",
-                                width: "6px",
-                                height: "8px",
-                                background:
-                                  "linear-gradient(135deg,#fff1a2,#c9870c 58%,#6b3d00)",
-                                clipPath:
-                                  "polygon(0 100%,50% 0,100% 100%)",
-                                transform: "rotate(7deg)",
-                              }}
-                            />
-
-                            <span
-                              style={{
-                                position: "absolute",
-                                left: "2px",
-                                right: "2px",
-                                bottom: 0,
-                                height: "3px",
-                                borderRadius: "1px",
-                                background:
-                                  "linear-gradient(180deg,#ffec8a,#9a6106)",
-                                boxShadow:
-                                  "inset 0 1px rgba(255,255,255,.6)",
-                              }}
-                            />
-                          </span>
+                            <circle cx="2" cy="4.2" r="1.5" fill="#ffe16c" />
+                            <circle cx="16" cy="1.7" r="1.5" fill="#fff0a0" />
+                            <circle cx="30" cy="4.2" r="1.5" fill="#ffe16c" />
+                          </svg>
 
                           <span
                             style={{
-                              marginTop: "8px",
+                              marginTop: "10px",
                               color: "#f4ca4e",
                               fontSize: "9px",
                               lineHeight: 1,
@@ -1168,7 +1158,7 @@ export default function PublicProfile() {
                             style={{
                               marginTop: "2px",
                               color: "#ffd34f",
-                              fontSize: "22px",
+                              fontSize: "20px",
                               lineHeight: ".92",
                               fontWeight: 1000,
                               letterSpacing: "-2px",
