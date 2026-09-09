@@ -992,7 +992,6 @@ export default function UTVNav() {
 
           <Link
             href="/activity"
-            className="topActivityButton"
             aria-label={
               unreadCount > 0
                 ? `Activity, ${unreadCount} unread`
@@ -1006,14 +1005,59 @@ export default function UTVNav() {
             onClick={() => {
               void openActivity();
             }}
+            style={{
+              position: "absolute",
+              top: "6px",
+              right: "14px",
+              width: "38px",
+              height: "38px",
+              display: "grid",
+              placeItems: "center",
+              border: "1px solid rgba(255,255,255,.10)",
+              borderRadius: "50%",
+              background: "rgba(12,16,20,.72)",
+              color: "#fff",
+              textDecoration: "none",
+              pointerEvents: "auto",
+              zIndex: 20,
+              boxShadow: "0 6px 22px rgba(0,0,0,.24)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+            }}
           >
-            <NavIcon name="activity" />
+            <span
+              style={{
+                width: "21px",
+                height: "21px",
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <NavIcon name="activity" />
+            </span>
 
             {unreadCount > 0 && (
-              <span className="topActivityBadge">
-                {unreadCount > 99
-                  ? "99+"
-                  : unreadCount}
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-4px",
+                  right: "-4px",
+                  minWidth: "18px",
+                  height: "18px",
+                  padding: "0 4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid #010203",
+                  borderRadius: "999px",
+                  background: "#ff3b4f",
+                  color: "#fff",
+                  fontSize: "9px",
+                  fontWeight: 950,
+                  lineHeight: 1,
+                }}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </Link>

@@ -60,9 +60,159 @@ export default function PublicProfile() {
   const [socialLoading, setSocialLoading] =
     useState(false);
 
+  const [viewerEmail, setViewerEmail] =
+    useState("");
+
+  const [isFollowingProfile, setIsFollowingProfile] =
+    useState(false);
+
+  const [followBusy, setFollowBusy] =
+    useState(false);
+
+  const [profileMenuOpen, setProfileMenuOpen] =
+    useState(false);
+
+  const [isBlocked, setIsBlocked] =
+    useState(false);
+
+  const [blockBusy, setBlockBusy] =
+    useState(false);
+
+
   useEffect(() => {
     void load();
   }, [email]);
+
+  async function toggleProfileFollow() {
+    if (
+      followBusy ||
+      isOwner ||
+      !viewerEmail ||
+      isBlocked
+    ) {
+      return;
+    }
+
+    setFollowBusy(true);
+
+    try {
+      const targetEmail =
+        email.toLowerCase();
+
+      if (isFollowingProfile) {
+        const { error } = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_email", viewerEmail)
+          .eq("following_email", targetEmail);
+
+        if (error) throw error;
+
+        setIsFollowingProfile(false);
+
+        setFollowers((current) =>
+          Math.max(0, current - 1)
+        );
+      } else {
+        const { error } = await supabase
+          .from("follows")
+          .insert({
+            follower_email: viewerEmail,
+            following_email: targetEmail,
+          });
+
+        if (error) throw error;
+
+        setIsFollowingProfile(true);
+
+        setFollowers((current) =>
+          current + 1
+        );
+      }
+    } catch (error) {
+      console.error(
+        "UTV follow update failed:",
+        error
+      );
+    } finally {
+      setFollowBusy(false);
+    }
+  }
+
+  async function toggleProfileBlock() {
+    if (
+      blockBusy ||
+      isOwner ||
+      !viewerEmail
+    ) {
+      return;
+    }
+
+    const targetEmail =
+      email.toLowerCase();
+
+    setBlockBusy(true);
+
+    try {
+      if (isBlocked) {
+        const { error } = await supabase
+          .from("blocks")
+          .delete()
+          .eq("blocker_email", viewerEmail)
+          .eq("blocked_email", targetEmail);
+
+        if (error) throw error;
+
+        setIsBlocked(false);
+        setProfileMenuOpen(false);
+
+        return;
+      }
+
+      const wasFollowing =
+        isFollowingProfile;
+
+      const { error } = await supabase
+        .from("blocks")
+        .insert({
+          blocker_email: viewerEmail,
+          blocked_email: targetEmail,
+        });
+
+      if (error) throw error;
+
+      await Promise.all([
+        supabase
+          .from("follows")
+          .delete()
+          .eq("follower_email", viewerEmail)
+          .eq("following_email", targetEmail),
+
+        supabase
+          .from("follows")
+          .delete()
+          .eq("follower_email", targetEmail)
+          .eq("following_email", viewerEmail),
+      ]);
+
+      if (wasFollowing) {
+        setFollowers((current) =>
+          Math.max(0, current - 1)
+        );
+      }
+
+      setIsFollowingProfile(false);
+      setIsBlocked(true);
+      setProfileMenuOpen(false);
+    } catch (error) {
+      console.error(
+        "UTV block update failed:",
+        error
+      );
+    } finally {
+      setBlockBusy(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -70,11 +220,50 @@ export default function PublicProfile() {
     try {
       const { data: auth } = await supabase.auth.getUser();
 
-      const owner =
-        !!auth.user?.email &&
-        auth.user.email.toLowerCase() === email.toLowerCase();
+      const viewer =
+        auth.user?.email?.toLowerCase() || "";
 
+      const targetEmail =
+        email.toLowerCase();
+
+      const owner =
+        !!viewer &&
+        viewer === targetEmail;
+
+      setViewerEmail(viewer);
       setIsOwner(owner);
+
+      if (viewer && !owner) {
+        const [
+          followRelationship,
+          blockRelationship,
+        ] = await Promise.all([
+          supabase
+            .from("follows")
+            .select("follower_email,following_email")
+            .eq("follower_email", viewer)
+            .eq("following_email", targetEmail)
+            .maybeSingle(),
+
+          supabase
+            .from("blocks")
+            .select("blocker_email,blocked_email")
+            .eq("blocker_email", viewer)
+            .eq("blocked_email", targetEmail)
+            .maybeSingle(),
+        ]);
+
+        setIsFollowingProfile(
+          Boolean(followRelationship.data)
+        );
+
+        setIsBlocked(
+          Boolean(blockRelationship.data)
+        );
+      } else {
+        setIsFollowingProfile(false);
+        setIsBlocked(false);
+      }
 
       const [
         profileResult,
@@ -883,7 +1072,157 @@ export default function PublicProfile() {
           </div>
         </div>
 
+        {!isOwner && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "4px 14px 8px",
+              position: "relative",
+              zIndex: 30,
+            }}
+          >
+            <button
+              type="button"
+              disabled={
+                followBusy ||
+                isBlocked ||
+                !viewerEmail
+              }
+              onClick={() => {
+                void toggleProfileFollow();
+              }}
+              style={{
+                flex: 1,
+                height: "42px",
+                border:
+                  isFollowingProfile
+                    ? "1px solid rgba(255,255,255,.12)"
+                    : "1px solid rgba(82,247,200,.28)",
+                borderRadius: "14px",
+                background:
+                  isBlocked
+                    ? "rgba(255,255,255,.04)"
+                    : isFollowingProfile
+                      ? "rgba(255,255,255,.065)"
+                      : "linear-gradient(135deg,#56f6cf,#48e6bd)",
+                color:
+                  isFollowingProfile ||
+                  isBlocked
+                    ? "#fff"
+                    : "#04110d",
+                fontSize: "13px",
+                fontWeight: 950,
+                cursor:
+                  isBlocked
+                    ? "default"
+                    : "pointer",
+                opacity:
+                  followBusy ? 0.65 : 1,
+              }}
+            >
+              {isBlocked
+                ? "Blocked"
+                : followBusy
+                  ? "..."
+                  : isFollowingProfile
+                    ? "✓ Following"
+                    : "+ Follow"}
+            </button>
+
+            <div
+              style={{
+                position: "relative",
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Profile options"
+                onClick={() =>
+                  setProfileMenuOpen(
+                    (current) => !current
+                  )
+                }
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  border:
+                    "1px solid rgba(255,255,255,.10)",
+                  borderRadius: "14px",
+                  background:
+                    "rgba(255,255,255,.045)",
+                  color: "#fff",
+                  fontSize: "20px",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                }}
+              >
+                •••
+              </button>
+
+              {profileMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "48px",
+                    right: 0,
+                    width: "170px",
+                    padding: "6px",
+                    border:
+                      "1px solid rgba(255,255,255,.10)",
+                    borderRadius: "15px",
+                    background:
+                      "rgba(10,13,17,.98)",
+                    boxShadow:
+                      "0 18px 45px rgba(0,0,0,.48)",
+                    backdropFilter:
+                      "blur(18px)",
+                    WebkitBackdropFilter:
+                      "blur(18px)",
+                    zIndex: 100,
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={blockBusy}
+                    onClick={() => {
+                      void toggleProfileBlock();
+                    }}
+                    style={{
+                      width: "100%",
+                      minHeight: "40px",
+                      border: 0,
+                      borderRadius: "10px",
+                      background:
+                        isBlocked
+                          ? "rgba(82,247,200,.08)"
+                          : "rgba(255,66,85,.08)",
+                      color:
+                        isBlocked
+                          ? "#72f7d3"
+                          : "#ff7584",
+                      fontSize: "12px",
+                      fontWeight: 900,
+                      textAlign: "left",
+                      padding: "0 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {blockBusy
+                      ? "Updating..."
+                      : isBlocked
+                        ? "Unblock user"
+                        : "Block user"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {!isOwner ? (
+          !isBlocked ? (
           <div className="socialActions">
             <button
               className="messageAction"
@@ -915,6 +1254,26 @@ export default function PublicProfile() {
               ⚡ Contact
             </button>
           </div>
+          ) : (
+            <div
+              style={{
+                margin: "0 14px 10px",
+                padding: "10px 12px",
+                border:
+                  "1px solid rgba(255,255,255,.07)",
+                borderRadius: "13px",
+                background:
+                  "rgba(255,255,255,.025)",
+                color:
+                  "rgba(255,255,255,.48)",
+                fontSize: "11px",
+                fontWeight: 750,
+                textAlign: "center",
+              }}
+            >
+              This user is blocked.
+            </div>
+          )
         ) : (
           <div className="socialActions ownerSocialActions">
             <button
