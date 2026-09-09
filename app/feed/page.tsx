@@ -1741,16 +1741,6 @@ export default function FeedPage() {
               : "Pull down to refresh"}
         </b>
       </div>
-
-      <section className="feedHero">
-        <img
-          src={heroHeaders[heroIndex]}
-          alt="UTV"
-          loading="eager"
-          fetchPriority="high"
-        />
-      </section>
-
       <section className="feedTopRow">
         <div className="freshnessStatus">
           <span
@@ -7185,6 +7175,44 @@ const styles = `
 
 .feedPage .commentActive {
   color: #52f7c8 !important;
+}
+
+
+
+/* =========================================================
+   UTV FEED FINAL HEADER LAYOUT
+   Shared UTVNav owns logo + Activity.
+   Old Feed hero removed.
+   ========================================================= */
+
+.feedPage {
+  padding-top: 50px !important;
+}
+
+.feedPage .feedHero {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.feedPage .feedTabs {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 90 !important;
+
+  margin-top: 0 !important;
+
+  background: rgba(1,2,3,.96) !important;
+}
+
+.feedPage .stories {
+  position: relative !important;
+  z-index: 1 !important;
+
+  margin-top: 0 !important;
+  padding-top: 8px !important;
 }
 
 

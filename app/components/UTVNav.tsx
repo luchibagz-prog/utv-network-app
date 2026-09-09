@@ -989,6 +989,34 @@ export default function UTVNav() {
               className="utvNavLogo"
             />
           </Link>
+
+          <Link
+            href="/activity"
+            className="topActivityButton"
+            aria-label={
+              unreadCount > 0
+                ? `Activity, ${unreadCount} unread`
+                : "Activity"
+            }
+            onPointerDown={() => {
+              try {
+                router.prefetch("/activity");
+              } catch {}
+            }}
+            onClick={() => {
+              void openActivity();
+            }}
+          >
+            <NavIcon name="activity" />
+
+            {unreadCount > 0 && (
+              <span className="topActivityBadge">
+                {unreadCount > 99
+                  ? "99+"
+                  : unreadCount}
+              </span>
+            )}
+          </Link>
         </nav>
       )}
 
@@ -1516,7 +1544,63 @@ export default function UTVNav() {
           right: -5px;
         }
 
-        .utvBottomNav {
+        
+.topActivityButton {
+  position: absolute !important;
+  top: 6px !important;
+  right: 14px !important;
+
+  width: 38px !important;
+  height: 38px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 50% !important;
+
+  background: rgba(255,255,255,.035) !important;
+  color: #fff !important;
+
+  text-decoration: none !important;
+
+  pointer-events: auto !important;
+  z-index: 3 !important;
+}
+
+.topActivityButton svg {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+.topActivityBadge {
+  position: absolute !important;
+  top: -3px !important;
+  right: -3px !important;
+
+  min-width: 17px !important;
+  height: 17px !important;
+
+  padding: 0 4px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 2px solid #010203 !important;
+  border-radius: 999px !important;
+
+  background: #ff3b4f !important;
+  color: #fff !important;
+
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+.utvBottomNav {
           position: fixed;
           right: 8px;
           bottom:
