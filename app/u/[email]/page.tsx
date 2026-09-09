@@ -1013,21 +1013,30 @@ export default function PublicProfile() {
                 {utvBadge.og_number &&
                   utvBadge.og_number >= 1 &&
                   utvBadge.og_number <= 100 && (
-                                        <span
-                      className="ogShieldBadge"
-                      aria-label={`UTV OG #${String(
+                    <span
+                      className="utvRealOgBadge"
+                      title={`UTV Original Member #${String(
                         utvBadge.og_number
                       ).padStart(3, "0")}`}
                     >
-                      <span className="ogShieldInner">
-                        <span className="ogShieldUTV">UTV</span>
-                        <span className="ogShieldOG">OG</span>
-                        <b className="ogShieldNumber">
-                          #{String(utvBadge.og_number).padStart(
-                            3,
-                            "0"
-                          )}
-                        </b>
+                      <span className="utvOgOuterShield">
+                        <span className="utvOgInnerShield">
+                          <span className="utvOgCrown">♛</span>
+
+                          <span className="utvOgBrand">
+                            UTV
+                          </span>
+
+                          <span className="utvOgLetters">
+                            OG
+                          </span>
+
+                          <span className="utvOgSerial">
+                            #{String(
+                              utvBadge.og_number
+                            ).padStart(3, "0")}
+                          </span>
+                        </span>
                       </span>
                     </span>
                   )}
@@ -5583,6 +5592,261 @@ function MediaGrid({
 @media (prefers-reduced-motion: reduce) {
   .ogShieldBadge,
   .ogShieldBadge::after {
+    animation: none !important;
+  }
+}
+
+
+
+/* =========================================================
+   UTV ORIGINAL 100 — PREMIUM GOLD OG EMBLEM
+   ========================================================= */
+
+.utvRealOgBadge {
+  position: relative !important;
+  width: 72px !important;
+  height: 78px !important;
+  flex: 0 0 72px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  overflow: visible !important;
+  margin-left: 4px !important;
+  vertical-align: middle !important;
+
+  filter:
+    drop-shadow(0 8px 7px rgba(0,0,0,.60))
+    drop-shadow(0 0 8px rgba(255,190,35,.30)) !important;
+
+  transform:
+    perspective(600px)
+    rotateX(3deg)
+    rotateY(-4deg);
+
+  transform-style: preserve-3d;
+  animation: utvOgBadgeHover 3.6s ease-in-out infinite;
+}
+
+.utvOgOuterShield {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+
+  clip-path: polygon(
+    50% 0%,
+    87% 10%,
+    100% 28%,
+    92% 67%,
+    76% 84%,
+    50% 100%,
+    24% 84%,
+    8% 67%,
+    0% 28%,
+    13% 10%
+  );
+
+  background:
+    linear-gradient(
+      135deg,
+      #fff4b0 0%,
+      #c98c13 15%,
+      #fff0a0 29%,
+      #8a5605 46%,
+      #f8c64d 67%,
+      #6b4003 82%,
+      #ffd96a 100%
+    ) !important;
+
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,.85),
+    inset 0 -8px 12px rgba(74,40,0,.68),
+    inset 5px 0 8px rgba(255,220,110,.32) !important;
+}
+
+.utvOgOuterShield::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+
+  clip-path: inherit;
+
+  background:
+    linear-gradient(
+      160deg,
+      #121212 0%,
+      #050505 36%,
+      #171106 62%,
+      #000 100%
+    );
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,215,104,.42),
+    inset 0 0 15px rgba(255,186,36,.10);
+}
+
+.utvOgOuterShield::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  top: -12%;
+  left: -50%;
+  width: 25%;
+  height: 130%;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,.92),
+      rgba(255,220,118,.48),
+      transparent
+    );
+
+  transform: rotate(18deg);
+  animation: utvOgGoldSweep 4.3s ease-in-out infinite;
+}
+
+.utvOgInnerShield {
+  position: relative !important;
+  z-index: 2 !important;
+
+  width: 60px !important;
+  height: 66px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  clip-path: polygon(
+    50% 0%,
+    88% 11%,
+    96% 29%,
+    87% 63%,
+    72% 79%,
+    50% 94%,
+    28% 79%,
+    13% 63%,
+    4% 29%,
+    12% 11%
+  );
+
+  background:
+    radial-gradient(
+      circle at 32% 18%,
+      rgba(255,218,104,.20),
+      transparent 25%
+    ),
+    linear-gradient(
+      155deg,
+      #17130c,
+      #030303 43%,
+      #151006 72%,
+      #050505
+    ) !important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,209,78,.22),
+    inset 0 -10px 14px rgba(0,0,0,.80) !important;
+
+  transform: translateZ(8px);
+}
+
+.utvOgCrown {
+  position: absolute !important;
+  top: 5px !important;
+
+  color: #ffd75e !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+
+  text-shadow:
+    0 0 5px rgba(255,196,37,.90),
+    0 2px 2px rgba(0,0,0,.9) !important;
+}
+
+.utvOgBrand {
+  margin-top: 9px !important;
+
+  color: #f6ce59 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+  letter-spacing: -.4px !important;
+
+  text-shadow:
+    0 1px 0 #fff0a0,
+    0 2px 2px #000,
+    0 0 7px rgba(255,194,31,.50) !important;
+}
+
+.utvOgLetters {
+  margin-top: 2px !important;
+
+  color: #ffd55a !important;
+  font-size: 23px !important;
+  line-height: .94 !important;
+  font-weight: 1000 !important;
+  letter-spacing: -1.6px !important;
+
+  text-shadow:
+    0 1px 0 #fff4b0,
+    0 3px 2px #5f3700,
+    0 0 8px rgba(255,188,24,.55) !important;
+}
+
+.utvOgSerial {
+  margin-top: 3px !important;
+
+  color: rgba(255,239,184,.92) !important;
+  font-size: 7px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: 1px !important;
+}
+
+@keyframes utvOgGoldSweep {
+  0%, 68% {
+    left: -50%;
+    opacity: 0;
+  }
+
+  73% {
+    opacity: 1;
+  }
+
+  89% {
+    left: 125%;
+    opacity: .24;
+  }
+
+  100% {
+    left: 125%;
+    opacity: 0;
+  }
+}
+
+@keyframes utvOgBadgeHover {
+  0%,100% {
+    transform:
+      perspective(600px)
+      rotateX(3deg)
+      rotateY(-4deg)
+      translateY(0);
+  }
+
+  50% {
+    transform:
+      perspective(600px)
+      rotateX(1deg)
+      rotateY(4deg)
+      translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .utvRealOgBadge,
+  .utvOgOuterShield::after {
     animation: none !important;
   }
 }
