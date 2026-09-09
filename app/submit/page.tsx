@@ -2632,7 +2632,19 @@ if (mode === "camera") {
         onClick={handleCameraDoubleTap}
       >
         <video
-          ref={videoRef}
+          ref={(node) => {
+            videoRef.current = node;
+
+            if (
+              node &&
+              cameraStream &&
+              node.srcObject !== cameraStream
+            ) {
+              node.srcObject = cameraStream;
+
+              void node.play().catch(() => {});
+            }
+          }}
           autoPlay
           muted
           playsInline
@@ -3233,9 +3245,7 @@ if (mode === "camera") {
             setPreview("");
             setMode("camera");
 
-            window.setTimeout(() => {
-              startCamera();
-            }, 150);
+            void startCamera();
           }}
         >
           ←
