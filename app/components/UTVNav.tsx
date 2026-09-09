@@ -976,19 +976,21 @@ export default function UTVNav() {
           </div>
         )}
 
-      <nav className="utvTopNav">
-        <Link
-          href="/feed"
-          className="utvLogoLink"
-        >
-          <img
-            src="/utv-logo.png"
-            alt="UTV"
-            className="utvNavLogo"
-          />
-        </Link>
-
-      </nav>
+      {pathname === "/feed" && (
+        <nav className="utvTopNav">
+          <Link
+            href="/feed"
+            className="utvLogoLink"
+            aria-label="UTV Feed"
+          >
+            <img
+              src="/utv-logo.png"
+              alt="UTV"
+              className="utvNavLogo"
+            />
+          </Link>
+        </nav>
+      )}
 
       <nav className="utvBottomNav">
         {navItems.map((item) => {
@@ -2674,137 +2676,142 @@ export default function UTVNav() {
       
 
 /* =========================================================
-   UTV NAV 2.0 — SIX TAB NATIVE FINAL
+   UTV LAUNCH SHELL — ONE FINAL SOURCE OF TRUTH
    ========================================================= */
 
+/* ---------------------------------------------------------
+   TOP BRAND
+   Only rendered on Feed.
+   No black rectangle. No layout spacer. No sticky bar.
+   --------------------------------------------------------- */
+
 .utvTopNav {
-  position: sticky !important;
+  position: absolute !important;
   top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+
   z-index: 1000 !important;
 
   width: 100% !important;
-  max-width: 720px !important;
-
-  min-height: 54px !important;
-  height: 54px !important;
-
-  margin: 0 auto !important;
-  padding: 0 12px !important;
-
-  border: 0 !important;
-  border-bottom:
-    1px solid rgba(255,255,255,.055) !important;
-
-  border-radius: 0 !important;
-
-  background:
-    rgba(1,2,3,.96) !important;
-
-  box-shadow: none !important;
-
-  backdrop-filter:
-    blur(18px) saturate(150%) !important;
-
-  -webkit-backdrop-filter:
-    blur(18px) saturate(150%) !important;
-}
-
-/* Center the UTV brand instead of tiny left logo */
-.utvLogoLink {
-  position: absolute !important;
-
-  top: 50% !important;
-  left: 50% !important;
-
-  width: 96px !important;
-  height: 45px !important;
-
-  transform:
-    translate(-50%, -50%) !important;
-
-  display: grid !important;
-  place-items: center !important;
-
-  margin: 0 !important;
-}
-
-.utvLogoLink img {
-  width: 145px !important;
-  height: auto !important;
   max-width: none !important;
-  max-height: 78px !important;
-  object-fit: contain;
-  display: block;
-}
 
-/* Notification stays top right */
-.topActivityButton {
-  position: absolute !important;
-
-  top: 8px !important;
-  right: 12px !important;
-
-  width: 38px !important;
-  height: 38px !important;
+  height: 48px !important;
+  min-height: 48px !important;
 
   margin: 0 !important;
   padding: 0 !important;
 
+  pointer-events: none !important;
+
+  border: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+
+  box-shadow: none !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.utvTopNav::before,
+.utvTopNav::after {
+  content: none !important;
+  display: none !important;
+}
+
+.utvLogoLink {
+  position: absolute !important;
+
+  top: 8px !important;
+  left: 50% !important;
+
+  width: 92px !important;
+  height: 38px !important;
+
   display: grid !important;
   place-items: center !important;
 
-  border:
-    1px solid rgba(255,255,255,.10) !important;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  border-radius: 50% !important;
+  overflow: hidden !important;
 
-  background:
-    rgba(255,255,255,.035) !important;
+  transform: translateX(-50%) !important;
 
+  pointer-events: auto !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
   box-shadow: none !important;
 }
 
-/* Kill any giant emoji/pseudo bell from old styles */
-.topActivityButton::before,
-.topActivityButton::after {
-  font-size: 0 !important;
+.utvLogoLink::before,
+.utvLogoLink::after {
+  content: none !important;
+  display: none !important;
 }
 
+.utvLogoLink img,
+.utvNavLogo {
+  width: 96px !important;
+  height: auto !important;
+
+  max-width: none !important;
+  max-height: 40px !important;
+
+  display: block !important;
+
+  object-fit: contain !important;
+
+  background: transparent !important;
+
+  /*
+    The current UTV PNG has dark pixels/canvas around the logo.
+    Screen blend removes that visible black rectangle on UTV's
+    dark pages without touching the actual asset file.
+  */
+  mix-blend-mode: screen !important;
+}
+
+
 /* ---------------------------------------------------------
-   EXACTLY 6 BOTTOM ITEMS
+   BOTTOM NAV
    Feed · Watch · World · Create · Live · Profile
    --------------------------------------------------------- */
 
 .utvBottomNav {
   position: fixed !important;
 
-  right:
-    max(10px, env(safe-area-inset-right)) !important;
+  left: max(10px, env(safe-area-inset-left)) !important;
+  right: max(10px, env(safe-area-inset-right)) !important;
 
   bottom:
-    max(8px, env(safe-area-inset-bottom)) !important;
-
-  left:
-    max(10px, env(safe-area-inset-left)) !important;
+    max(
+      8px,
+      env(safe-area-inset-bottom)
+    ) !important;
 
   z-index: 1200 !important;
 
-  display: grid !important;
+  width: auto !important;
+  max-width: 680px !important;
 
+  min-height: 70px !important;
+
+  display: grid !important;
   grid-template-columns:
     repeat(6, minmax(0, 1fr)) !important;
 
   align-items: center !important;
 
-  width: auto !important;
-  max-width: 680px !important;
-
-  min-height: 68px !important;
-
   margin: 0 auto !important;
 
-  padding:
-    5px 6px 6px !important;
+  padding: 6px !important;
 
   overflow: visible !important;
 
@@ -2816,13 +2823,14 @@ export default function UTVNav() {
   background:
     linear-gradient(
       180deg,
-      rgba(14,20,25,.96),
-      rgba(6,10,14,.97)
+      rgba(14,20,25,.965),
+      rgba(6,10,14,.975)
     ) !important;
 
   box-shadow:
-    0 18px 45px rgba(0,0,0,.48),
-    inset 0 1px rgba(255,255,255,.035) !important;
+    0 18px 45px rgba(0,0,0,.46),
+    inset 0 1px rgba(255,255,255,.035)
+    !important;
 
   backdrop-filter:
     blur(22px) saturate(150%) !important;
@@ -2831,39 +2839,184 @@ export default function UTVNav() {
     blur(22px) saturate(150%) !important;
 }
 
+.utvBottomNav::before {
+  content: "" !important;
+
+  position: absolute !important;
+  inset: 0 !important;
+
+  pointer-events: none !important;
+
+  border-radius: inherit !important;
+
+  background:
+    linear-gradient(
+      120deg,
+      rgba(82,247,200,.025),
+      transparent 32%,
+      rgba(123,97,255,.025)
+    ) !important;
+}
+
 .utvBottomNav > * {
   min-width: 0 !important;
 }
 
+
+/* ---------------------------------------------------------
+   EACH TAB
+   --------------------------------------------------------- */
+
 .utvNavItem {
+  position: relative !important;
+
   min-width: 0 !important;
   min-height: 58px !important;
 
-  margin: 0 !important;
-  padding: 4px 2px !important;
+  display: flex !important;
+  flex-direction: column !important;
 
+  align-items: center !important;
+  justify-content: center !important;
+
+  gap: 2px !important;
+
+  margin: 0 !important;
+  padding: 3px 1px !important;
+
+  overflow: visible !important;
+
+  color: rgba(255,255,255,.48) !important;
+
+  border: 0 !important;
   border-radius: 14px !important;
+
+  background: transparent !important;
+
+  text-decoration: none !important;
+
+  -webkit-tap-highlight-color: transparent !important;
+
+  transition:
+    color .16s ease,
+    transform .16s ease !important;
 }
 
-.utvNavIcon {
+.utvNavItem:active {
+  transform: scale(.94) !important;
+}
+
+.utvNavItem::before {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   ICONS
+   --------------------------------------------------------- */
+
+.navIconWrap {
+  position: relative !important;
+
+  width: 34px !important;
+  height: 31px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  flex: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 11px !important;
+
+  background: transparent !important;
+
+  box-shadow: none !important;
+}
+
+.navIcon {
+  width: 27px !important;
+  height: 27px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  color: inherit !important;
+
+  background: transparent !important;
+
+  font-size: 0 !important;
+}
+
+.navSvg {
   width: 25px !important;
   height: 25px !important;
+
+  display: block !important;
+
+  overflow: visible !important;
+
+  color: currentColor !important;
 }
 
-.utvNavLabel {
-  margin-top: 2px !important;
+
+/* Kill old pseudo icons from previous nav versions */
+.navIcon::before,
+.navIcon::after,
+.navIconWrap::before,
+.navIconWrap::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   LABELS
+   --------------------------------------------------------- */
+
+.utvNavItem small {
+  display: block !important;
+
+  margin: 0 !important;
+
+  color: inherit !important;
 
   font-size: 9px !important;
-  font-weight: 750 !important;
+  font-weight: 800 !important;
+
+  line-height: 1 !important;
+
+  letter-spacing: -.1px !important;
 }
 
-.utvNavItem.active {
+
+/* ---------------------------------------------------------
+   ACTIVE TAB
+   Actual class in JSX = activeNavItem
+   --------------------------------------------------------- */
+
+.activeNavItem {
   color: #55f6ca !important;
 }
 
-.utvNavItem.active::after {
+.activeNavItem::after {
+  content: "" !important;
+
+  position: absolute !important;
+
+  left: 50% !important;
+  bottom: -2px !important;
+
   width: 22px !important;
   height: 2px !important;
+
+  border-radius: 999px !important;
+
+  transform: translateX(-50%) !important;
 
   background:
     linear-gradient(
@@ -2871,26 +3024,183 @@ export default function UTVNav() {
       #55f6ca,
       #9367ff
     ) !important;
+
+  box-shadow:
+    0 0 12px rgba(85,246,202,.38)
+    !important;
 }
 
-/* Create remains the focal action */
-.utvNavItem.primary,
-.utvNavItem[data-primary="true"] {
-  transform:
-    translateY(-6px) !important;
+
+/* ---------------------------------------------------------
+   CREATE
+   Actual class in JSX = createNavItem
+   --------------------------------------------------------- */
+
+.createNavItem {
+  transform: translateY(-7px) !important;
 }
+
+.createNavItem:active {
+  transform:
+    translateY(-7px)
+    scale(.95) !important;
+}
+
+.createNavItem .navIconWrap {
+  width: 50px !important;
+  height: 50px !important;
+
+  border:
+    1px solid rgba(255,255,255,.20) !important;
+
+  border-radius: 16px !important;
+
+  color: #07110e !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      #52f7c8 0%,
+      #69e9e8 52%,
+      #9d73ff 100%
+    ) !important;
+
+  box-shadow:
+    0 8px 26px rgba(82,247,200,.20),
+    inset 0 1px rgba(255,255,255,.55)
+    !important;
+}
+
+.createNavItem .navSvg {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.createNavItem small {
+  margin-top: -1px !important;
+
+  color: rgba(255,255,255,.82) !important;
+}
+
+
+/* ---------------------------------------------------------
+   PROFILE
+   There were old nth-child pseudo styles making this
+   appear as a bell. Force the real profile SVG to win.
+   --------------------------------------------------------- */
+
+.utvNavItem:nth-child(6) .navIconWrap,
+.utvNavItem:nth-child(6) .navIcon {
+  background: transparent !important;
+}
+
+.utvNavItem:nth-child(6) .navIconWrap::before,
+.utvNavItem:nth-child(6) .navIconWrap::after,
+.utvNavItem:nth-child(6) .navIcon::before,
+.utvNavItem:nth-child(6) .navIcon::after {
+  content: none !important;
+  display: none !important;
+}
+
+.utvNavItem:nth-child(6) .navSvg {
+  width: 26px !important;
+  height: 26px !important;
+
+  display: block !important;
+}
+
+
+/* ---------------------------------------------------------
+   UNREAD BADGE — retained for any Activity-enabled item
+   --------------------------------------------------------- */
+
+.navUnreadBadge {
+  position: absolute !important;
+
+  top: -4px !important;
+  right: -8px !important;
+
+  min-width: 17px !important;
+  height: 17px !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  padding: 0 4px !important;
+
+  color: white !important;
+
+  border:
+    2px solid #091015 !important;
+
+  border-radius: 999px !important;
+
+  background: #ff3155 !important;
+
+  font-size: 8px !important;
+  font-weight: 950 !important;
+
+  line-height: 1 !important;
+}
+
+
+/* ---------------------------------------------------------
+   PHONE TUNING
+   --------------------------------------------------------- */
 
 @media (max-width: 430px) {
 
   .utvBottomNav {
-    right: 7px !important;
     left: 7px !important;
+    right: 7px !important;
+
+    min-height: 68px !important;
 
     border-radius: 21px !important;
   }
 
-  .utvNavLabel {
+  .utvNavItem {
+    min-height: 56px !important;
+  }
+
+  .utvNavItem small {
     font-size: 8.5px !important;
+  }
+
+  .navIconWrap {
+    width: 32px !important;
+    height: 29px !important;
+  }
+
+  .navSvg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .createNavItem .navIconWrap {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   SMALL PHONES
+   --------------------------------------------------------- */
+
+@media (max-width: 360px) {
+
+  .utvBottomNav {
+    left: 5px !important;
+    right: 5px !important;
+
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+  }
+
+  .utvNavItem small {
+    font-size: 7.8px !important;
   }
 
 }
@@ -2899,87 +3209,3 @@ export default function UTVNav() {
     </>
   );
 }
-
-/* =========================================================
-   UTV LAUNCH — PREMIUM HEADER POLISH
-   ========================================================= */
-
-<style jsx global>{`
-  .utvTopNav {
-    height: 52px !important;
-    min-height: 52px !important;
-    padding: 0 14px !important;
-
-    background:
-      linear-gradient(
-        180deg,
-        rgba(8, 10, 12, 0.90) 0%,
-        rgba(5, 7, 9, 0.78) 70%,
-        rgba(5, 7, 9, 0.58) 100%
-      ) !important;
-
-    border: 0 !important;
-    border-bottom: 1px solid rgba(255,255,255,.045) !important;
-
-    box-shadow: none !important;
-
-    backdrop-filter: blur(18px) saturate(145%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
-  }
-
-  .utvLogoLink {
-    top: 50% !important;
-    left: 50% !important;
-
-    width: 82px !important;
-    height: 42px !important;
-
-    transform: translate(-50%, -50%) !important;
-
-    overflow: visible !important;
-  }
-
-  .utvLogoLink img {
-    width: 108px !important;
-    height: auto !important;
-
-    max-width: none !important;
-    max-height: 52px !important;
-
-    object-fit: contain !important;
-  }
-
-  .topActivityButton {
-    top: 7px !important;
-    right: 13px !important;
-
-    width: 38px !important;
-    height: 38px !important;
-
-    background: rgba(255,255,255,.035) !important;
-    border: 1px solid rgba(255,255,255,.075) !important;
-
-    box-shadow: none !important;
-  }
-
-  @media (max-width: 600px) {
-    .utvTopNav {
-      height: 50px !important;
-      min-height: 50px !important;
-    }
-
-    .utvLogoLink {
-      width: 78px !important;
-      height: 40px !important;
-    }
-
-    .utvLogoLink img {
-      width: 102px !important;
-      max-height: 48px !important;
-    }
-
-    .topActivityButton {
-      top: 6px !important;
-    }
-  }
-`}</style>
