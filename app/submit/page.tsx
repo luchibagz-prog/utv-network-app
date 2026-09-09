@@ -471,39 +471,71 @@ const selectedSticker = stickers.find(
         throw new Error("Camera is not supported on this device.");
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: {
-            ideal: facing,
-          },
+      let stream: MediaStream;
 
-          // Fast mobile-first Story preview.
-          // 1080p is plenty for capture while avoiding expensive 4K startup.
-          width: {
-            ideal: 1920,
+      try {
+        // First attempt: premium mobile capture.
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: facing,
+            },
+            width: {
+              ideal: 1920,
+            },
+            height: {
+              ideal: 1080,
+            },
+            frameRate: {
+              ideal: 30,
+              max: 30,
+            },
           },
-          height: {
-            ideal: 1080,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
           },
-          frameRate: {
-            ideal: 30,
-            max: 30,
+        });
+      } catch (firstError: any) {
+        const firstName = String(firstError?.name || "");
+
+        // Permission errors should not be silently retried.
+        if (
+          firstName === "NotAllowedError" ||
+          firstName === "PermissionDeniedError"
+        ) {
+          throw firstError;
+        }
+
+        console.warn(
+          "UTV premium camera attempt failed, retrying relaxed mode:",
+          firstName,
+          firstError
+        );
+
+        // Give mobile hardware a moment to release the previous lens.
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 180)
+        );
+
+        // Recovery attempt: let the phone/browser choose safe settings.
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: {
+              ideal: facing,
+            },
           },
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+          audio: true,
+        });
+      }
 
       streamRef.current = stream;
       setCameraStream(stream);
-
       setCameraFacing(facing);
       setMessage("");
     } catch (error: any) {
-      console.error(error);
+      console.error("UTV camera error:", error);
 
       const errorName = String(error?.name || "");
 
@@ -521,9 +553,22 @@ const selectedSticker = stickers.find(
         setMessage(
           "UTV could not find a camera or microphone on this device."
         );
+      } else if (
+        errorName === "NotReadableError" ||
+        errorName === "TrackStartError"
+      ) {
+        setMessage(
+          "Your camera is busy. Close another camera app, then tap the flip button to retry."
+        );
+      } else if (errorName === "OverconstrainedError") {
+        setMessage(
+          "This camera setting is not supported on your device. Tap the flip button to retry."
+        );
       } else {
         setMessage(
-          "UTV could not open the camera. Try again or choose from Gallery."
+          `UTV could not open the camera${
+            errorName ? ` (${errorName})` : ""
+          }. Try again or choose from Gallery.`
         );
       }
     }
