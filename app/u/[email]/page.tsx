@@ -1014,28 +1014,138 @@ export default function PublicProfile() {
                   utvBadge.og_number >= 1 &&
                   utvBadge.og_number <= 100 && (
                     <span
-                      className="utvRealOgBadge"
-                      title={`UTV Original Member #${String(
+                      aria-label={`UTV OG #${String(
                         utvBadge.og_number
                       ).padStart(3, "0")}`}
+                      title={`UTV Original 100 Member #${String(
+                        utvBadge.og_number
+                      ).padStart(3, "0")}`}
+                      style={{
+                        position: "relative",
+                        width: "78px",
+                        height: "84px",
+                        flex: "0 0 78px",
+                        display: "inline-grid",
+                        placeItems: "center",
+                        marginLeft: "6px",
+                        verticalAlign: "middle",
+                        filter:
+                          "drop-shadow(0 9px 8px rgba(0,0,0,.7)) drop-shadow(0 0 8px rgba(255,193,45,.38))",
+                      }}
                     >
-                      <span className="utvOgOuterShield">
-                        <span className="utvOgInnerShield">
-                          <span className="utvOgCrown">♛</span>
+                      {/* metallic outer shield */}
+                      <span
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "grid",
+                          placeItems: "center",
+                          clipPath:
+                            "polygon(50% 0%,88% 9%,100% 27%,92% 66%,77% 84%,50% 100%,23% 84%,8% 66%,0% 27%,12% 9%)",
+                          background:
+                            "linear-gradient(135deg,#fff2a3 0%,#c68810 14%,#ffe27a 28%,#704000 45%,#f3bc38 66%,#603600 82%,#ffd966 100%)",
+                          boxShadow:
+                            "inset 0 2px 2px rgba(255,255,255,.95), inset 0 -9px 13px rgba(55,28,0,.75)",
+                        }}
+                      >
+                        {/* black inner shield */}
+                        <span
+                          style={{
+                            position: "relative",
+                            width: "66px",
+                            height: "72px",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            clipPath:
+                              "polygon(50% 0%,87% 11%,95% 29%,86% 61%,72% 78%,50% 94%,28% 78%,14% 61%,5% 29%,13% 11%)",
+                            background:
+                              "radial-gradient(circle at 30% 17%,rgba(255,218,95,.22),transparent 26%), linear-gradient(155deg,#21190a 0%,#050505 39%,#100b02 68%,#000 100%)",
+                            border:
+                              "1px solid rgba(255,215,101,.48)",
+                            boxShadow:
+                              "inset 0 0 10px rgba(255,194,44,.15), inset 0 -12px 15px rgba(0,0,0,.88)",
+                          }}
+                        >
+                          {/* crown */}
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: "absolute",
+                              top: "6px",
+                              color: "#ffd75b",
+                              fontSize: "13px",
+                              lineHeight: 1,
+                              textShadow:
+                                "0 0 6px rgba(255,190,28,.9),0 2px 2px #000",
+                            }}
+                          >
+                            ♛
+                          </span>
 
-                          <span className="utvOgBrand">
+                          <span
+                            style={{
+                              marginTop: "9px",
+                              color: "#f4ca4e",
+                              fontSize: "10px",
+                              lineHeight: 1,
+                              fontWeight: 950,
+                              letterSpacing: ".4px",
+                              textShadow:
+                                "0 1px 0 #fff0a1,0 2px 2px #000",
+                            }}
+                          >
                             UTV
                           </span>
 
-                          <span className="utvOgLetters">
+                          <span
+                            style={{
+                              marginTop: "2px",
+                              color: "#ffd34f",
+                              fontSize: "26px",
+                              lineHeight: ".92",
+                              fontWeight: 1000,
+                              letterSpacing: "-2px",
+                              textShadow:
+                                "0 1px 0 #fff0a1,0 3px 1px #714200,0 0 7px rgba(255,190,24,.65)",
+                            }}
+                          >
                             OG
                           </span>
 
-                          <span className="utvOgSerial">
+                          <span
+                            style={{
+                              marginTop: "5px",
+                              color: "#ffe9a6",
+                              fontSize: "8px",
+                              lineHeight: 1,
+                              fontWeight: 950,
+                              letterSpacing: ".8px",
+                              textShadow: "0 1px 2px #000",
+                            }}
+                          >
                             #{String(
                               utvBadge.og_number
                             ).padStart(3, "0")}
                           </span>
+
+                          {/* metallic shine */}
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              position: "absolute",
+                              top: "7px",
+                              left: "13px",
+                              width: "20px",
+                              height: "4px",
+                              borderRadius: "999px",
+                              transform: "rotate(-27deg)",
+                              background:
+                                "linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)",
+                              opacity: .75,
+                            }}
+                          />
                         </span>
                       </span>
                     </span>
