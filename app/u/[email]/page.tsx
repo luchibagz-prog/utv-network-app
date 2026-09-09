@@ -6020,3 +6020,63 @@ function MediaGrid({
     </div>
   );
 }
+
+<style jsx>{`
+  /* ===== FINAL UTV PROFILE IDENTITY LOCK ===== */
+
+  .hero .identity {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    align-items: flex-start !important;
+    justify-content: flex-end !important;
+    gap: 0 !important;
+    width: min(100%,760px) !important;
+    margin: 0 auto !important;
+  }
+
+  .hero .avatar {
+    flex: 0 0 auto !important;
+  }
+
+  .hero .identityText {
+    width: auto !important;
+    max-width: 280px !important;
+    min-width: 0 !important;
+    margin: 9px 0 0 2px !important;
+    padding: 0 !important;
+    transform: none !important;
+    text-align: left !important;
+  }
+
+  .hero .identityText .category {
+    margin-bottom: 3px !important;
+  }
+
+  .hero .identityText h1 {
+    margin: 0 !important;
+    overflow: visible !important;
+    font-size: clamp(27px,7vw,38px) !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  .hero .identityText .username {
+    margin-top: 4px !important;
+  }
+
+  @media (max-width:560px) {
+    .hero .identity {
+      display: flex !important;
+      flex-direction: column !important;
+      grid-template-columns: none !important;
+      align-items: flex-start !important;
+      gap: 0 !important;
+    }
+
+    .hero .identityText {
+      margin-top: 8px !important;
+      margin-left: 1px !important;
+    }
+  }
+`}</style>
