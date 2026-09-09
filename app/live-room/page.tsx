@@ -1511,96 +1511,134 @@ export default function LiveRoomPage() {
               </button>
             </header>
 
-            <span className="cameraStatus">{status}</span>
+            {status !== "Camera ready" && (
+              <span className="cameraStatus">{status}</span>
+            )}
 
             <section className="setupSheet">
               <div className="handle" />
-              <p className="eyebrow">GO LIVE</p>
-              <h1>What&apos;s happening?</h1>
 
-              <label>
-                LIVE TITLE
+              <div className="setupIntro">
+                <div>
+                  <p className="eyebrow">UTV LIVE</p>
+                  <h1>Go Live</h1>
+                </div>
+
+                <span className="setupQuality">HD</span>
+              </div>
+
+              <label className="titleField">
+                <span>LIVE TITLE</span>
                 <input
                   className="field"
                   value={title}
                   maxLength={90}
-                  placeholder="Give people a reason to tap in..."
+                  placeholder="What's happening?"
                   onChange={(event) => setTitle(event.target.value)}
                 />
               </label>
 
-              <label>
-                CATEGORY
-                <div className="chips">
-                  {LIVE_CATEGORIES.map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      className={item === category ? "chip selected" : "chip"}
-                      onClick={() => setCategory(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </label>
-
-              <label>
-                CAPTION
-                <textarea
-                  className="field textarea"
-                  value={caption}
-                  maxLength={280}
-                  placeholder="Tell viewers what you're doing..."
-                  onChange={(event) => setCaption(event.target.value)}
-                />
-              </label>
-
-              <button
-                className={showInWorld ? "worldToggle selected" : "worldToggle"}
-                onClick={() => setShowInWorld((current) => !current)}
-              >
-                <span>🌎</span>
-                <div>
-                  <strong>Show in UTV World</strong>
-                  <small>Let people nearby discover your Live.</small>
-                </div>
-                <i />
-              </button>
-
-              {showInWorld && (
-                <div className="locationRow">
-                  <input
-                    className="field"
-                    value={city}
-                    placeholder="City"
-                    onChange={(event) => setCity(event.target.value)}
-                  />
-                  <input
-                    className="field"
-                    value={stateName}
-                    placeholder="State"
-                    onChange={(event) => setStateName(event.target.value)}
-                  />
-                </div>
-              )}
+              <div className="chips">
+                {LIVE_CATEGORIES.map((item) => (
+                  <button
+                    type="button"
+                    key={item}
+                    className={item === category ? "chip selected" : "chip"}
+                    onClick={() => setCategory(item)}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
 
               <div className="deviceRow">
                 <button
+                  type="button"
                   className={micEnabled ? "device selected" : "device"}
                   onClick={toggleMic}
                 >
-                  {micEnabled ? "🎙 Mic On" : "🔇 Mic Off"}
+                  <span>{micEnabled ? "🎙" : "🔇"}</span>
+                  <strong>{micEnabled ? "Mic On" : "Mic Off"}</strong>
                 </button>
+
                 <button
+                  type="button"
                   className={cameraEnabled ? "device selected" : "device"}
                   onClick={toggleCamera}
                 >
-                  {cameraEnabled ? "🎥 Camera On" : "🚫 Camera Off"}
+                  <span>{cameraEnabled ? "🎥" : "🚫"}</span>
+                  <strong>{cameraEnabled ? "Camera On" : "Camera Off"}</strong>
                 </button>
               </div>
 
-              {errorMessage && <p className="error">{errorMessage}</p>}
+              <details className="liveMore">
+                <summary>
+                  <span>More options</span>
+                  <b>⌄</b>
+                </summary>
+
+                <div className="liveMoreBody">
+                  <label>
+                    CAPTION
+                    <textarea
+                      className="field textarea"
+                      value={caption}
+                      maxLength={280}
+                      placeholder="Tell viewers what you're doing..."
+                      onChange={(event) => setCaption(event.target.value)}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    className={
+                      showInWorld
+                        ? "worldToggle selected"
+                        : "worldToggle"
+                    }
+                    onClick={() =>
+                      setShowInWorld((current) => !current)
+                    }
+                  >
+                    <span>🌎</span>
+
+                    <div>
+                      <strong>Show in UTV World</strong>
+                      <small>
+                        Let people nearby discover your Live.
+                      </small>
+                    </div>
+
+                    <i />
+                  </button>
+
+                  {showInWorld && (
+                    <div className="locationRow">
+                      <input
+                        className="field"
+                        value={city}
+                        placeholder="City"
+                        onChange={(event) =>
+                          setCity(event.target.value)
+                        }
+                      />
+
+                      <input
+                        className="field"
+                        value={stateName}
+                        placeholder="State"
+                        onChange={(event) =>
+                          setStateName(event.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              {errorMessage && (
+                <p className="error">{errorMessage}</p>
+              )}
 
               <button
                 className="goLive"
@@ -1888,13 +1926,16 @@ const styles = `
   .circle{width:46px;height:46px;display:grid;place-items:center;color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:50%;background:rgba(0,0,0,.38);backdrop-filter:blur(15px)}
   .brandPill{display:grid;justify-items:center;padding:7px 17px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:rgba(0,0,0,.32);backdrop-filter:blur(15px)}.brandPill span,.eyebrow{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1.8px}.brandPill strong{font-size:11px}
   .cameraStatus{position:absolute;top:max(78px,calc(env(safe-area-inset-top) + 62px));left:50%;z-index:25;transform:translateX(-50%);padding:7px 10px;border-radius:999px;background:rgba(0,0,0,.4);font-size:10px;font-weight:850}
-  .setupSheet{position:absolute;left:12px;right:12px;bottom:max(92px,env(safe-area-inset-bottom));z-index:30;max-height:69dvh;overflow:auto;padding:9px 14px 16px;border:1px solid rgba(255,255,255,.13);border-radius:28px;background:rgba(10,10,12,.9);backdrop-filter:blur(25px)}
-  .handle{width:42px;height:4px;margin:0 auto 9px;border-radius:999px;background:rgba(255,255,255,.25)}.setupSheet h1,.replayWrap h1{margin:3px 0 13px;font-size:clamp(27px,7vw,36px);line-height:1;letter-spacing:-1px}
-  .setupSheet label{display:grid;gap:7px;margin-top:12px;color:rgba(255,255,255,.58);font-size:9px;font-weight:950;letter-spacing:1.25px}.field{width:100%;min-height:48px;padding:11px 13px;color:#fff;border:1px solid rgba(255,255,255,.11);border-radius:15px;outline:none;background:rgba(255,255,255,.06);font-size:13px}.textarea{min-height:70px;resize:none}
-  .chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;min-height:36px;padding:0 12px;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.04);font-size:10px;font-weight:850}.chip.selected{color:#06110d;border-color:#52f7c8;background:#52f7c8}
+  .setupSheet{position:absolute;left:12px;right:12px;bottom:max(88px,env(safe-area-inset-bottom));z-index:30;max-height:58dvh;overflow:auto;padding:9px 14px 14px;border:1px solid rgba(255,255,255,.11);border-radius:26px;background:linear-gradient(180deg,rgba(18,20,23,.88),rgba(7,9,11,.94));box-shadow:0 24px 70px rgba(0,0,0,.34);backdrop-filter:blur(30px) saturate(145%);-webkit-backdrop-filter:blur(30px) saturate(145%)}
+  .handle{width:36px;height:4px;margin:0 auto 10px;border-radius:999px;background:rgba(255,255,255,.22)}
+  .setupIntro{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}.setupIntro h1{margin:2px 0 0;font-size:25px;line-height:1;letter-spacing:-.7px}.setupIntro .eyebrow{margin:0}.setupQuality{padding:6px 9px;color:#52f7c8;border:1px solid rgba(82,247,200,.22);border-radius:999px;background:rgba(82,247,200,.08);font-size:9px;font-weight:950;letter-spacing:1px}
+  .setupSheet label{display:grid;gap:6px;color:rgba(255,255,255,.55);font-size:9px;font-weight:950;letter-spacing:1.2px}.titleField span{font-size:9px}
+  .field{width:100%;min-height:46px;padding:10px 13px;color:#fff;border:1px solid rgba(255,255,255,.10);border-radius:14px;outline:none;background:rgba(255,255,255,.055);font-size:13px}.field:focus{border-color:rgba(82,247,200,.42);background:rgba(255,255,255,.075)}.textarea{min-height:72px;resize:none}
+  .liveMore{margin-top:9px;border:1px solid rgba(255,255,255,.08);border-radius:15px;background:rgba(255,255,255,.035);overflow:hidden}.liveMore summary{min-height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:rgba(255,255,255,.72);font-size:11px;font-weight:850;list-style:none;cursor:pointer}.liveMore summary::-webkit-details-marker{display:none}.liveMore summary b{transition:transform .18s}.liveMore[open] summary b{transform:rotate(180deg)}.liveMoreBody{padding:0 10px 10px;border-top:1px solid rgba(255,255,255,.06)}
+  .chips{display:flex;gap:7px;margin-top:9px;overflow-x:auto;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{flex:0 0 auto;min-height:34px;padding:0 12px;color:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.035);font-size:10px;font-weight:850}.chip.selected{color:#04110d;border-color:#52f7c8;background:#52f7c8;box-shadow:0 6px 18px rgba(82,247,200,.13)}
   .worldToggle{width:100%;display:grid;grid-template-columns:38px 1fr 42px;align-items:center;gap:9px;margin-top:13px;padding:10px;color:#fff;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(255,255,255,.04);text-align:left}.worldToggle>span{font-size:20px}.worldToggle>div{display:grid;gap:2px}.worldToggle strong{font-size:12px}.worldToggle small{color:rgba(255,255,255,.48);font-size:9px}.worldToggle i{position:relative;width:40px;height:24px;border-radius:999px;background:rgba(255,255,255,.14)}.worldToggle i:after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.18s}.worldToggle.selected{border-color:rgba(82,247,200,.24);background:rgba(82,247,200,.07)}.worldToggle.selected i{background:#52f7c8}.worldToggle.selected i:after{left:19px;background:#06110d}
-  .locationRow,.deviceRow,.replaySecondary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.device{min-height:42px;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.04);font-size:10px;font-weight:850}.device.selected{color:#fff;border-color:rgba(82,247,200,.18);background:rgba(82,247,200,.07)}
-  .goLive{width:100%;min-height:54px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:13px;color:#fff;border:0;border-radius:17px;background:linear-gradient(135deg,#ff2d55,#ff526b);font-size:14px;font-weight:950;letter-spacing:.5px}.goLive:disabled{opacity:.42}.goLive>span{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.16)}
+  .locationRow,.deviceRow,.replaySecondary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.device{min-height:42px;display:flex;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.035);font-size:10px;font-weight:850}.device span{font-size:13px}.device strong{font-size:10px}.device.selected{color:#fff;border-color:rgba(82,247,200,.2);background:rgba(82,247,200,.075)}
+  .goLive{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:10px;color:#fff;border:0;border-radius:16px;background:linear-gradient(135deg,#ff244d,#ff4d68);box-shadow:0 12px 28px rgba(255,45,85,.16);font-size:13px;font-weight:950;letter-spacing:.65px}.goLive:active{transform:scale(.99)}.goLive:disabled{opacity:.38;box-shadow:none}.goLive>span{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.14)}
   .error{margin:9px 0 0;padding:9px 11px;color:#ff9aac;border:1px solid rgba(255,78,104,.2);border-radius:13px;background:rgba(255,78,104,.07);font-size:10px}
   .liveBadge,.clock,.viewers,.shareLive{min-height:36px;display:flex;align-items:center;justify-content:center;padding:0 11px;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(0,0,0,.4);font-size:10px;font-weight:900;backdrop-filter:blur(14px)}.liveBadge{background:#ff2d55}.shareLive{width:36px;padding:0}
   .liveInfo{position:absolute;top:max(75px,calc(env(safe-area-inset-top) + 58px));left:16px;right:16px;z-index:22;display:grid;gap:3px;pointer-events:none}.liveInfo>span{color:#52f7c8;font-size:9px;font-weight:950;letter-spacing:1.4px;text-transform:uppercase}.liveInfo h1{max-width:85%;margin:0;font-size:clamp(23px,7vw,35px);line-height:1.02}.liveInfo p{max-width:80%;margin:2px 0;color:rgba(255,255,255,.72);font-size:11px}.liveInfo small{color:rgba(255,255,255,.58);font-size:9px}
