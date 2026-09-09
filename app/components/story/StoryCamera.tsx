@@ -1083,4 +1083,23 @@ const styles = `
       linear-gradient(180deg, rgba(0,0,0,.34), transparent 20%),
       linear-gradient(0deg, rgba(0,0,0,.44), transparent 28%);
   }
+
+/* UTV LAUNCH — CAMERA TRANSITION */
+.cameraSwitching {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(82,247,200,.08), transparent 28%),
+    #000 !important;
+}
+.cameraSwitchSpinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.14);
+  border-top-color: rgba(82,247,200,.92);
+  animation: utvCameraSpin .65s linear infinite;
+}
+@keyframes utvCameraSpin {
+  to { transform: rotate(360deg); }
+}
+
 `;

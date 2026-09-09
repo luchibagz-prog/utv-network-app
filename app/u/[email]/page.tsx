@@ -5331,7 +5331,100 @@ function MediaGrid({
             grid-template-columns: repeat(3,minmax(0,1fr));
           }
         }
-      `}</style>
+      
+/* ==========================================================
+   UTV OG FIRST 100 — 3D COLLECTIBLE CREST
+   ========================================================== */
+
+.ogBadge,
+.utvOgBadge,
+.ogCollectibleBadge {
+  position: relative !important;
+  isolation: isolate;
+  overflow: hidden !important;
+  min-height: 54px !important;
+  padding: 7px 15px 7px 13px !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(145deg,
+      rgba(255,255,255,.28) 0%,
+      rgba(82,247,200,.22) 18%,
+      rgba(15,19,28,.96) 42%,
+      rgba(126,91,255,.28) 72%,
+      rgba(255,255,255,.18) 100%) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.48),
+    inset 0 -8px 16px rgba(0,0,0,.45),
+    0 8px 20px rgba(0,0,0,.34),
+    0 0 18px rgba(82,247,200,.12) !important;
+  transform: perspective(500px) rotateX(3deg) !important;
+  transform-style: preserve-3d;
+}
+
+.ogBadge::before,
+.utvOgBadge::before,
+.ogCollectibleBadge::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow:
+    inset 0 0 15px rgba(82,247,200,.13),
+    inset 0 0 24px rgba(126,91,255,.10);
+}
+
+.ogBadge::after,
+.utvOgBadge::after,
+.ogCollectibleBadge::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -45%;
+  width: 32%;
+  height: 220%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.72),
+    transparent
+  );
+  transform: rotate(18deg);
+  animation: utvOgShine 4.2s ease-in-out infinite;
+}
+
+.ogBadge span,
+.utvOgBadge span,
+.ogCollectibleBadge span {
+  position: relative;
+  z-index: 2;
+  font-weight: 950 !important;
+  letter-spacing: .9px !important;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.30),
+    0 2px 4px rgba(0,0,0,.65),
+    0 0 10px rgba(82,247,200,.22);
+}
+
+@keyframes utvOgShine {
+  0%, 66% { left: -45%; opacity: 0; }
+  72% { opacity: .85; }
+  88% { left: 125%; opacity: .28; }
+  100% { left: 125%; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ogBadge::after,
+  .utvOgBadge::after,
+  .ogCollectibleBadge::after {
+    animation: none !important;
+  }
+}
+
+`}</style>
     </div>
   );
 }

@@ -610,7 +610,26 @@ export default function FeedPage() {
       );
     });
 
-    const rankedItems = feedItems
+    const now = Date.now();
+
+    // UTV Fresh Zone:
+    // Very new uploads stay at the front so the platform always feels alive.
+    // After the freshness window, normal discovery ranking takes over.
+    const freshItems = feedItems
+      .filter((item) => {
+        const created = new Date(item.created_at || 0).getTime();
+        return now - created <= 45 * 60 * 1000;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+      );
+
+    const freshIds = new Set(freshItems.map((item) => String(item.id)));
+
+    const rankedOlderItems = feedItems
+      .filter((item) => !freshIds.has(String(item.id)))
       .map((item) => {
         const creator = item.creator_email || "";
 
@@ -683,6 +702,8 @@ export default function FeedPage() {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
       });
+
+    const rankedItems = [...freshItems, ...rankedOlderItems];
 
     const topPoolSize = Math.min(8, rankedItems.length);
     const topPool = rankedItems.slice(0, topPoolSize);
