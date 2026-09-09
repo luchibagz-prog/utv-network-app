@@ -39,6 +39,7 @@ export default function StoryCamera({
   const animationFrameRef = useRef<number | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
   const pressStartedAtRef = useRef<number | null>(null);
+  const lastPreviewTapRef = useRef(0);
 
   const [pressing, setPressing] = useState(false);
   const [recordingProgress, setRecordingProgress] = useState(0);
@@ -142,6 +143,21 @@ export default function StoryCamera({
     };
   }, [recording]);
 
+  const handlePreviewTap = () => {
+    if (!stream || recording) return;
+
+    const now = Date.now();
+    const elapsed = now - lastPreviewTapRef.current;
+
+    if (elapsed > 0 && elapsed < 320) {
+      lastPreviewTapRef.current = 0;
+      onFlip?.();
+      return;
+    }
+
+    lastPreviewTapRef.current = now;
+  };
+
   const captureLocalPhoto = () => {
     const video = videoRef.current;
 
@@ -229,7 +245,10 @@ export default function StoryCamera({
     <main className="storyCamera">
       <style>{styles}</style>
 
-      <section className="cameraPreview">
+      <section
+        className="cameraPreview"
+        onPointerUp={handlePreviewTap}
+      >
         {stream ? (
           <video
             ref={videoRef}
@@ -241,6 +260,7 @@ export default function StoryCamera({
             autoPlay
             muted
             playsInline
+            disablePictureInPicture
           />
         ) : (
           <div className="cameraPlaceholder">
