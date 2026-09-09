@@ -3337,3 +3337,146 @@ export default function UTVNav() {
     </>
   );
 }
+
+{/* UTV_FEED_HEADER_FINAL */}
+<style jsx global>{`
+  /* Final Feed header positioning */
+  .utvTopNav {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+
+    width: 100% !important;
+    height: 64px !important;
+    min-height: 64px !important;
+
+    margin: 0 !important;
+    padding: 0 14px !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+
+    pointer-events: none !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+
+    z-index: 1000 !important;
+  }
+
+  .utvLogoLink {
+    position: absolute !important;
+    top: 7px !important;
+    left: 50% !important;
+    right: auto !important;
+
+    width: 110px !important;
+    height: 50px !important;
+
+    transform: translateX(-50%) !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    overflow: visible !important;
+    pointer-events: auto !important;
+
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  .utvLogoLink img,
+  .utvNavLogo {
+    display: block !important;
+
+    width: 88px !important;
+    height: 30px !important;
+    max-width: 88px !important;
+    max-height: 30px !important;
+
+    object-fit: contain !important;
+    object-position: center !important;
+
+    margin: 0 auto !important;
+
+    mix-blend-mode: screen !important;
+  }
+
+  .utvLogoLink::after {
+    content: "FEED";
+
+    display: block;
+
+    margin-top: 1px;
+
+    color: rgba(255,255,255,.72);
+
+    font-size: 8px;
+    font-weight: 950;
+    letter-spacing: 3px;
+    line-height: 1;
+
+    text-align: center;
+  }
+
+  .topActivityButton {
+    position: absolute !important;
+
+    top: 8px !important;
+    right: 14px !important;
+    left: auto !important;
+
+    width: 40px !important;
+    height: 40px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 1px solid rgba(255,255,255,.13) !important;
+    border-radius: 50% !important;
+
+    background:
+      rgba(12,17,22,.88) !important;
+
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+
+    color: white !important;
+
+    pointer-events: auto !important;
+
+    z-index: 1002 !important;
+  }
+
+  .topActivityBadge {
+    position: absolute !important;
+
+    top: -3px !important;
+    right: -3px !important;
+
+    min-width: 17px !important;
+    height: 17px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    padding: 0 4px !important;
+
+    border: 2px solid #050708 !important;
+    border-radius: 999px !important;
+
+    background: #ff385c !important;
+    color: white !important;
+
+    font-size: 9px !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+  }
+`}</style>
