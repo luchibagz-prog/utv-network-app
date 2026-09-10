@@ -200,7 +200,7 @@ export default function FeedPage() {
   }, [refreshing]);
 
   useEffect(() => {
-    loadEverything();
+    loadEverything(true, true);
 
     const heroTimer = window.setInterval(() => {
       setHeroIndex((current) => {
@@ -209,7 +209,20 @@ export default function FeedPage() {
     }, 4200);
 
     const liveTimer = window.setInterval(() => {
-      void loadEverything(false, false);
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      /*
+        At the top of Feed we can safely rotate.
+        While the user is scrolling, only check for
+        new content so posts do not jump underneath them.
+      */
+      if (window.scrollY <= 24) {
+        void loadEverything(false, true);
+      } else {
+        void checkForFreshPosts();
+      }
     }, 15000);
 
     const freshnessTimer = window.setInterval(() => {
@@ -693,8 +706,12 @@ export default function FeedPage() {
       older post above a newer post.
     */
 
+    let shouldRotateRecent = rotateOlder;
+    let rotationShift = 0;
+
     if (rotateOlder) {
       refreshCycleRef.current += 1;
+      rotationShift = refreshCycleRef.current;
     }
 
     const { data, error } = await supabase
@@ -745,6 +762,101 @@ export default function FeedPage() {
       return bTime - aTime;
     });
 
+    /*
+      Persistent UTV Feed rotation.
+
+      A brand-new newest post gets the top spot first.
+
+      Once that same newest post has already been loaded,
+      subsequent refreshes rotate the recent Feed window
+      so the same post does not stay glued to #1.
+    */
+    const newestFeedId =
+      String(newestFirst[0]?.id || "");
+
+    if (
+      typeof window !== "undefined" &&
+      newestFeedId
+    ) {
+      try {
+        const rotationKey =
+          "utv:feed-rotation:v2";
+
+        const raw =
+          window.localStorage.getItem(
+            rotationKey
+          );
+
+        let previousTopId = "";
+        let savedCycle = 0;
+
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+
+            previousTopId =
+              String(parsed?.topId || "");
+
+            const parsedCycle =
+              Number(parsed?.cycle || 0);
+
+            savedCycle =
+              Number.isFinite(parsedCycle)
+                ? Math.max(
+                    0,
+                    Math.floor(parsedCycle)
+                  )
+                : 0;
+          } catch {
+            previousTopId = "";
+            savedCycle = 0;
+          }
+        }
+
+        /*
+          NEW POST:
+          Let it sit at #1 for its first load.
+        */
+        if (
+          !previousTopId ||
+          previousTopId !== newestFeedId
+        ) {
+          savedCycle = 0;
+          shouldRotateRecent = false;
+        }
+
+        /*
+          SAME NEWEST POST:
+          Move to another recent post on refresh.
+        */
+        else if (rotateOlder) {
+          savedCycle =
+            (savedCycle + 1) % 100000;
+
+          shouldRotateRecent = true;
+        }
+
+        refreshCycleRef.current =
+          savedCycle;
+
+        rotationShift =
+          savedCycle;
+
+        window.localStorage.setItem(
+          rotationKey,
+          JSON.stringify({
+            topId: newestFeedId,
+            cycle: savedCycle,
+          })
+        );
+      } catch {
+        /*
+          localStorage unavailable:
+          fall back to in-memory rotation.
+        */
+      }
+    }
+
     let displayItems = newestFirst;
 
     /*
@@ -759,7 +871,7 @@ export default function FeedPage() {
 
       Truly new posts still enter above seen content.
     */
-    if (rotateOlder && newestFirst.length > 1) {
+    if (shouldRotateRecent && newestFirst.length > 1) {
       const recentWindowSize =
         Math.min(8, newestFirst.length);
 
@@ -770,7 +882,7 @@ export default function FeedPage() {
         newestFirst.slice(recentWindowSize);
 
       const shift =
-        refreshCycleRef.current % recent.length;
+        rotationShift % recent.length;
 
       const rotatedRecent = [
         ...recent.slice(shift),
