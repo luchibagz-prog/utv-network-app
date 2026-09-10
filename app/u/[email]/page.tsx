@@ -958,6 +958,14 @@ export default function PublicProfile() {
         }}
       >
         <div
+          className="profileCoverStage"
+          aria-hidden="true"
+          style={{
+            backgroundImage: `url("${cover}")`,
+          }}
+        />
+
+        <div
           className="identity"
           style={{
             display: "flex",
@@ -5190,6 +5198,132 @@ export default function PublicProfile() {
 @media (prefers-reduced-motion: reduce) {
   .utvOgStatusPro::before {
     animation: none !important;
+  }
+}
+
+
+/* =========================================================
+   UTV MOBILE COVER STAGE
+   Controlled social-app cover sizing
+   ========================================================= */
+
+.profileCoverStage {
+  display: none;
+}
+
+@media (max-width: 640px) {
+
+  /*
+    On mobile the HERO itself is no longer the giant
+    background image. The dedicated stage below controls it.
+  */
+  .hero {
+    min-height: 0 !important;
+
+    padding:
+      0
+      18px
+      16px !important;
+
+    background-image: none !important;
+    background-color: #050812 !important;
+
+    overflow: hidden !important;
+  }
+
+  /*
+    User cover image:
+    - narrower than phone
+    - capped height
+    - never massively zoomed
+    - whole image can fit naturally
+  */
+  .profileCoverStage {
+    position: absolute;
+
+    display: block;
+
+    top: 0;
+    left: 16px;
+    right: 16px;
+
+    height: 300px;
+
+    overflow: hidden;
+
+    border-radius:
+      0 0 24px 24px;
+
+    background-color: #050812;
+
+    background-repeat:
+      no-repeat;
+
+    background-position:
+      center top;
+
+    background-size:
+      contain;
+
+    box-shadow:
+      0 18px 35px rgba(0,0,0,.28);
+
+    z-index: 0;
+  }
+
+  /*
+    Premium fade into the actual profile.
+    Image remains visible through roughly 70%,
+    then melts naturally into UTV black.
+  */
+  .profileCoverStage::after {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(5,8,18,0) 0%,
+        rgba(5,8,18,0) 55%,
+        rgba(5,8,18,.12) 66%,
+        rgba(5,8,18,.48) 78%,
+        rgba(5,8,18,.88) 91%,
+        #050812 100%
+      );
+  }
+
+  /*
+    Keep the approved identity arrangement.
+    It overlaps the bottom of the smaller cover stage.
+  */
+  .hero .identity {
+    position: relative !important;
+
+    margin:
+      238px
+      0
+      0 !important;
+
+    z-index: 12 !important;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .profileCoverStage {
+    left: 14px;
+    right: 14px;
+
+    height: 285px;
+  }
+
+  .hero .identity {
+    margin-top:
+      225px !important;
   }
 }
 
