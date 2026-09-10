@@ -5217,7 +5217,11 @@ export default function PublicProfile() {
     and where the identity overlaps it.
   */
   .hero {
-    --utv-cover-height: min(100vw, 430px);
+    /*
+      Cover extends farther down, while identity stays locked.
+    */
+    --utv-cover-height: clamp(470px, 118vw, 510px);
+    --utv-identity-anchor: min(100vw, 430px);
 
     min-height: 0 !important;
 
@@ -5286,11 +5290,11 @@ export default function PublicProfile() {
       linear-gradient(
         180deg,
         rgba(5,8,18,0) 0%,
-        rgba(5,8,18,0) 54%,
-        rgba(5,8,18,.06) 64%,
-        rgba(5,8,18,.23) 73%,
-        rgba(5,8,18,.56) 84%,
-        rgba(5,8,18,.88) 94%,
+        rgba(5,8,18,0) 52%,
+        rgba(5,8,18,.04) 62%,
+        rgba(5,8,18,.16) 71%,
+        rgba(5,8,18,.42) 81%,
+        rgba(5,8,18,.78) 91%,
         #050812 100%
       );
   }
@@ -5313,7 +5317,7 @@ export default function PublicProfile() {
     width: auto !important;
 
     margin:
-      calc(var(--utv-cover-height) - 80px)
+      calc(var(--utv-identity-anchor) - 80px)
       18px
       0 !important;
 
@@ -5353,12 +5357,13 @@ export default function PublicProfile() {
 @media (max-width: 390px) {
 
   .hero {
-    --utv-cover-height: 100vw;
+    --utv-cover-height: clamp(455px, 120vw, 485px);
+    --utv-identity-anchor: 100vw;
   }
 
   .hero .identity {
     margin-top:
-      calc(var(--utv-cover-height) - 78px) !important;
+      calc(var(--utv-identity-anchor) - 78px) !important;
 
     margin-left: 16px !important;
     margin-right: 16px !important;
