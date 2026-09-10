@@ -579,9 +579,19 @@ export default function FeedPage() {
     currentEmail: string,
     rotateOlder = false,
   ) {
+    /*
+      UTV MAIN FEED RULE:
+      strict chronological order.
+
+      Newest approved Feed post is always first.
+      No popularity/category/follow score may move an
+      older post above a newer post.
+    */
+
     if (rotateOlder) {
       refreshCycleRef.current += 1;
     }
+
     const { data, error } = await supabase
       .from("uploads")
       .select("*")
@@ -593,15 +603,18 @@ export default function FeedPage() {
 
     if (error) {
       console.error("Feed load error:", error);
-
       setItems([]);
       return;
     }
 
     const feedItems = (data || []).filter((item) => {
-      const category = String(item.category || "").toLowerCase();
+      const category = String(
+        item.category || ""
+      ).toLowerCase();
 
-      const visibility = String(item.visibility || "feed").toLowerCase();
+      const visibility = String(
+        item.visibility || "feed"
+      ).toLowerCase();
 
       return (
         visibility !== "profile" &&
@@ -610,139 +623,29 @@ export default function FeedPage() {
       );
     });
 
-    const now = Date.now();
+    /*
+      Sort again client-side as a final guarantee.
+      This protects the Feed even if another query or
+      future code change changes Supabase's return order.
+    */
+    const newestFirst = [...feedItems].sort((a, b) => {
+      const aTime = new Date(
+        a.created_at || 0
+      ).getTime();
 
-    // UTV Fresh Zone:
-    // Very new uploads stay at the front so the platform always feels alive.
-    // After the freshness window, normal discovery ranking takes over.
-    const freshItems = feedItems
-      .filter((item) => {
-        const created = new Date(item.created_at || 0).getTime();
-        return now - created <= 45 * 60 * 1000;
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.created_at || 0).getTime() -
-          new Date(a.created_at || 0).getTime()
-      );
+      const bTime = new Date(
+        b.created_at || 0
+      ).getTime();
 
-    const freshIds = new Set(freshItems.map((item) => String(item.id)));
+      return bTime - aTime;
+    });
 
-    const rankedOlderItems = feedItems
-      .filter((item) => !freshIds.has(String(item.id)))
-      .map((item) => {
-        const creator = item.creator_email || "";
-
-        const category = String(item.category || "").toLowerCase();
-
-        let score = 20;
-
-        if (following.includes(creator)) {
-          score += 100;
-        }
-
-        if (creator === currentEmail) {
-          score += 8;
-        }
-
-        if (category.includes("live")) {
-          score += 32;
-        }
-
-        if (category.includes("event")) {
-          score += 20;
-        }
-
-        if (category.includes("music")) {
-          score += 16;
-        }
-
-        if (category.includes("podcast")) {
-          score += 12;
-        }
-
-        const createdAt = new Date(item.created_at || Date.now()).getTime();
-
-        const ageHours = (Date.now() - createdAt) / 1000 / 60 / 60;
-
-        score += Math.max(0, 42 - ageHours * 1.4);
-
-        score += Math.min(24, Math.log10(Number(item.views || 0) + 1) * 7);
-
-        score += Math.min(
-          18,
-          Number(item.likes_count || item.likes || 0) * 1.5,
-        );
-
-        score += Math.min(
-          14,
-          Number(item.comments_count || item.comments || 0) * 2,
-        );
-
-        const idText = String(item.id || "");
-        const rotationHash = Array.from(idText).reduce(
-          (total, character) => (total * 31 + character.charCodeAt(0)) % 997,
-          refreshCycleRef.current + 17,
-        );
-
-        const olderRotation =
-          rotateOlder && ageHours > 8 ? (rotationHash % 19) - 9 : 0;
-
-        return {
-          ...item,
-          _score: score + olderRotation,
-        };
-      })
-      .sort((a, b) => {
-        if (b._score !== a._score) {
-          return b._score - a._score;
-        }
-
-        return (
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      });
-
-    const rankedItems = [...freshItems, ...rankedOlderItems];
-
-    const topPoolSize = Math.min(8, rankedItems.length);
-    const topPool = rankedItems.slice(0, topPoolSize);
-    const remainingItems = rankedItems.slice(topPoolSize);
-
-    const topShift =
-      topPoolSize > 1
-        ? refreshCycleRef.current % topPoolSize
-        : 0;
-
-    const rotatedTop =
-      topPoolSize > 1
-        ? [
-            ...topPool.slice(topShift),
-            ...topPool.slice(0, topShift),
-          ]
-        : topPool;
-
-    const finalRankedItems = [
-      ...rotatedTop,
-      ...remainingItems,
-    ];
-
-    newestPostTimeRef.current =
-      rankedItems[0]?.created_at || "";
-
-    setItems(finalRankedItems);
+    setItems(newestFirst);
 
     await loadProfiles(
-      rankedItems.map((item) => item.creator_email || item.user_email),
-    );
-
-    await Promise.all(
-      rankedItems.slice(0, 40).map(async (item) => {
-        await Promise.all([
-          loadLikes(item.id, currentEmail),
-          loadComments(item.id),
-        ]);
-      }),
+      newestFirst
+        .map((item) => item.creator_email)
+        .filter(Boolean)
     );
   }
 
