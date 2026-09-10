@@ -154,6 +154,53 @@ export default function StoryViewerPage() {
     return safeArray(story?.stickers);
   }, [story?.stickers]);
 
+  /*
+    Persist watched Story IDs.
+
+    This runs whenever a Story actually opens,
+    including Stories reached automatically by goNext().
+  */
+  useEffect(() => {
+    const id = String(story?.id || "");
+    const email = String(viewerEmail || "")
+      .trim()
+      .toLowerCase();
+
+    if (!id || !email) {
+      return;
+    }
+
+    try {
+      const key =
+        `utv:watched-stories:v1:${email}`;
+
+      const raw =
+        window.localStorage.getItem(key);
+
+      const parsed =
+        raw ? JSON.parse(raw) : [];
+
+      const ids =
+        Array.isArray(parsed)
+          ? parsed
+              .map((value) => String(value))
+              .filter(Boolean)
+          : [];
+
+      const next = [
+        ...ids.filter((value) => value !== id),
+        id,
+      ].slice(-500);
+
+      window.localStorage.setItem(
+        key,
+        JSON.stringify(next)
+      );
+    } catch {
+      // Storage must never interrupt Story playback.
+    }
+  }, [story?.id, viewerEmail]);
+
   const currentIndex = useMemo(() => {
     return stories.findIndex(
       (item) => String(item.id) === storyId
@@ -256,6 +303,25 @@ export default function StoryViewerPage() {
   ]);
 
   useEffect(() => {
+    // Reset playback state whenever a different Story opens.
+    // This prevents progress/audio state from leaking between Stories.
+    progressValueRef.current = 0;
+    progressStartedRef.current = Date.now();
+
+    setProgress(0);
+    setPaused(false);
+    setAudioNeedsUnlock(false);
+    setVideoDuration(0);
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
     void loadStory();
   }, [storyId]);
 
@@ -575,10 +641,22 @@ export default function StoryViewerPage() {
 
   function toggleSound() {
     const nextMuted = !muted;
+
     setMuted(nextMuted);
-    if (videoRef.current) videoRef.current.muted = nextMuted;
-    if (audioRef.current) audioRef.current.muted = nextMuted;
-    if (!nextMuted) void unlockStoryAudio();
+
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted;
+    }
+
+    if (audioRef.current) {
+      audioRef.current.muted = nextMuted;
+    }
+
+    if (!nextMuted) {
+      void unlockStoryAudio();
+    } else {
+      setAudioNeedsUnlock(false);
+    }
   }
 
   function handlePointerDown(
@@ -1078,8 +1156,27 @@ export default function StoryViewerPage() {
               src={story.music_url}
               autoPlay
               loop
+              preload="auto"
               muted={muted}
+              onLoadedMetadata={(event) => {
+                event.currentTarget.currentTime = 0;
+                event.currentTarget.muted = muted;
+              }}
+              onCanPlay={(event) => {
+                if (!paused && !showActions) {
+                  event.currentTarget
+                    .play()
+                    .then(() => setAudioNeedsUnlock(false))
+                    .catch(() => setAudioNeedsUnlock(true));
+                }
+              }}
               onPlay={() => setAudioNeedsUnlock(false)}
+              onError={() => {
+                console.info(
+                  "UTV Story music could not be loaded:",
+                  story.music_url
+                );
+              }}
             />
           )}
 

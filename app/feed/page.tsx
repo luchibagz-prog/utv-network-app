@@ -34,6 +34,61 @@ function isDirectVideo(url: string) {
   return /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url || "");
 }
 
+function watchedStoryKey(email = "") {
+  const user = String(email || "").trim().toLowerCase() || "guest";
+  return `utv:watched-stories:v1:${user}`;
+}
+
+function readWatchedStoryIds(email = "") {
+  if (typeof window === "undefined") {
+    return new Set<string>();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      watchedStoryKey(email)
+    );
+
+    if (!raw) {
+      return new Set<string>();
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return new Set<string>();
+    }
+
+    return new Set(
+      parsed.map((id) => String(id)).filter(Boolean)
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function markStoryWatched(id: string, email = "") {
+  if (typeof window === "undefined" || !id) {
+    return;
+  }
+
+  try {
+    const watched = readWatchedStoryIds(email);
+
+    watched.delete(String(id));
+    watched.add(String(id));
+
+    const ids = Array.from(watched).slice(-500);
+
+    window.localStorage.setItem(
+      watchedStoryKey(email),
+      JSON.stringify(ids)
+    );
+  } catch {
+    // Storage failure must never stop Story playback.
+  }
+}
+
 export default function FeedPage() {
   const router = useRouter();
 
@@ -43,7 +98,7 @@ export default function FeedPage() {
 
   const lastTapRef = useRef<Record<string, number>>({});
 
-  const refreshCycleRef = useRef(Math.floor(Math.random() * 997));
+  const refreshCycleRef = useRef(0);
   const newestPostTimeRef = useRef("");
   const freshnessCheckRef = useRef(false);
   const pullStartYRef = useRef<number | null>(null);
@@ -311,7 +366,7 @@ export default function FeedPage() {
 
     await Promise.all([
       loadFeed(following, email, rotateOlder),
-      loadStories(following),
+      loadStories(following, email),
       loadSuggestedCreators(email, following),
       loadActiveLives(following, email),
     ]);
@@ -499,40 +554,90 @@ export default function FeedPage() {
     await loadProfiles(creators.map((profile) => profile.email));
   }
 
-  async function loadStories(following: string[]) {
+  async function loadStories(
+    following: string[],
+    currentEmail: string = viewerEmail,
+  ) {
+    /*
+      UTV STORY INTELLIGENCE
+
+      1. Your Story first
+      2. Unwatched Stories next
+      3. Watched Stories move behind unwatched
+      4. New Story IDs automatically become fresh again
+    */
+
+    void following;
+
     const { data, error } = await supabase
       .from("stories")
       .select("*")
       .gt("expires_at", new Date().toISOString())
-      .order("created_at", {
-        ascending: false,
-      })
+      .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
       console.error("Story load error:", error);
-
       setStories([]);
       return;
     }
 
-    const sortedStories = [...(data || [])].sort((a, b) => {
-      const aFollow = following.includes(a.user_email) ? 1 : 0;
+    const watchedIds =
+      readWatchedStoryIds(currentEmail);
 
-      const bFollow = following.includes(b.user_email) ? 1 : 0;
+    const normalizedMe =
+      String(currentEmail || "")
+        .trim()
+        .toLowerCase();
 
-      if (aFollow !== bFollow) {
-        return bFollow - aFollow;
-      }
+    const sortedStories =
+      [...(data || [])].sort((a, b) => {
+        const aEmail =
+          String(a.user_email || "")
+            .trim()
+            .toLowerCase();
 
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    });
+        const bEmail =
+          String(b.user_email || "")
+            .trim()
+            .toLowerCase();
+
+        const aMine =
+          normalizedMe && aEmail === normalizedMe ? 1 : 0;
+
+        const bMine =
+          normalizedMe && bEmail === normalizedMe ? 1 : 0;
+
+        // Your Story stays first.
+        if (aMine !== bMine) {
+          return bMine - aMine;
+        }
+
+        const aWatched =
+          watchedIds.has(String(a.id)) ? 1 : 0;
+
+        const bWatched =
+          watchedIds.has(String(b.id)) ? 1 : 0;
+
+        // Unwatched Stories beat watched Stories.
+        if (aWatched !== bWatched) {
+          return aWatched - bWatched;
+        }
+
+        // Same status = newest first.
+        return (
+          new Date(b.created_at || 0).getTime() -
+          new Date(a.created_at || 0).getTime()
+        );
+      });
 
     setStories(sortedStories);
 
-    await loadProfiles(sortedStories.map((story) => story.user_email));
+    await loadProfiles(
+      sortedStories
+        .map((story) => story.user_email)
+        .filter(Boolean)
+    );
   }
 
 
@@ -640,10 +745,48 @@ export default function FeedPage() {
       return bTime - aTime;
     });
 
-    setItems(newestFirst);
+    let displayItems = newestFirst;
+
+    /*
+      Intentional refresh rotation
+
+      Normal load:
+      newest -> oldest
+
+      Refresh:
+      rotate only the recent window so the exact
+      same post does not stay glued to position #1.
+
+      Truly new posts still enter above seen content.
+    */
+    if (rotateOlder && newestFirst.length > 1) {
+      const recentWindowSize =
+        Math.min(8, newestFirst.length);
+
+      const recent =
+        newestFirst.slice(0, recentWindowSize);
+
+      const older =
+        newestFirst.slice(recentWindowSize);
+
+      const shift =
+        refreshCycleRef.current % recent.length;
+
+      const rotatedRecent = [
+        ...recent.slice(shift),
+        ...recent.slice(0, shift),
+      ];
+
+      displayItems = [
+        ...rotatedRecent,
+        ...older,
+      ];
+    }
+
+    setItems(displayItems);
 
     await loadProfiles(
-      newestFirst
+      displayItems
         .map((item) => item.creator_email)
         .filter(Boolean)
     );
@@ -1908,6 +2051,11 @@ export default function FeedPage() {
 
                     return;
                   }
+
+                  markStoryWatched(
+                    String(story.id),
+                    viewerEmail
+                  );
 
                   router.push(`/stories/${story.id}`);
                 }}
