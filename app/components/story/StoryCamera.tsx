@@ -1,5 +1,7 @@
 "use client";
 
+import UTVCameraHeader from "../camera/UTVCameraHeader";
+
 import {
   CSSProperties,
   PointerEvent,
@@ -277,38 +279,15 @@ export default function StoryCamera({
 
         <div className="cameraShade" />
       </section>
-
-      <header className="cameraTopBar">
-        <button
-          type="button"
-          className="topButton closeButton"
-          onClick={onClose}
-          aria-label="Close story camera"
-        >
-          <CloseIcon />
-        </button>
-
-        <div className="cameraTopCenter">
-          {recording ? (
-            <span className="cameraRecordingLabel">
-              <i />
-              RECORDING
-            </span>
-          ) : (
-            <span className="cameraStoryLabel">STORY</span>
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="topButton flipTopButton"
-          onClick={onFlip}
-          aria-label="Switch camera"
-          disabled={!stream || recording}
-        >
-          <FlipCameraIcon />
-        </button>
-      </header>
+      <UTVCameraHeader
+        onClose={() => {
+          onClose?.();
+        }}
+        onFlip={() => {
+          onFlip?.();
+        }}
+        flipDisabled={!stream || recording}
+      />
 
       {recording && (
         <div className="recordingTimer">
