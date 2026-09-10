@@ -872,8 +872,20 @@ export default function FeedPage() {
       Truly new posts still enter above seen content.
     */
     if (shouldRotateRecent && newestFirst.length > 1) {
+      /*
+        UTV SMART SHUFFLE
+
+        Shuffle only the recent discovery window.
+
+        This prevents:
+        post A -> post B -> post C
+        from appearing together in that exact order
+        every time the Feed refreshes.
+
+        Older Feed history stays stable underneath.
+      */
       const recentWindowSize =
-        Math.min(8, newestFirst.length);
+        Math.min(12, newestFirst.length);
 
       const recent =
         newestFirst.slice(0, recentWindowSize);
@@ -881,18 +893,169 @@ export default function FeedPage() {
       const older =
         newestFirst.slice(recentWindowSize);
 
-      const shift =
-        rotationShift % recent.length;
+      const orderKey =
+        "utv:feed-display-order:v1";
 
-      const rotatedRecent = [
-        ...recent.slice(shift),
-        ...recent.slice(0, shift),
-      ];
+      let previousOrder: string[] = [];
+
+      try {
+        const raw =
+          window.localStorage.getItem(orderKey);
+
+        const parsed =
+          raw ? JSON.parse(raw) : [];
+
+        if (Array.isArray(parsed)) {
+          previousOrder =
+            parsed
+              .map((id) => String(id))
+              .filter(Boolean);
+        }
+      } catch {
+        previousOrder = [];
+      }
+
+      function randomIndex(max: number) {
+        if (max <= 1) return 0;
+
+        try {
+          if (
+            typeof crypto !== "undefined" &&
+            typeof crypto.getRandomValues === "function"
+          ) {
+            const value = new Uint32Array(1);
+
+            crypto.getRandomValues(value);
+
+            return value[0] % max;
+          }
+        } catch {
+          // Fall through to Math.random.
+        }
+
+        return Math.floor(Math.random() * max);
+      }
+
+      function shufflePosts(input: any[]) {
+        /*
+          Start from a different base position on each
+          refresh, then Fisher-Yates shuffle it.
+        */
+        const baseShift =
+          input.length
+            ? rotationShift % input.length
+            : 0;
+
+        const result = [
+          ...input.slice(baseShift),
+          ...input.slice(0, baseShift),
+        ];
+
+        for (
+          let index = result.length - 1;
+          index > 0;
+          index -= 1
+        ) {
+          const swapIndex =
+            randomIndex(index + 1);
+
+          [result[index], result[swapIndex]] = [
+            result[swapIndex],
+            result[index],
+          ];
+        }
+
+        return result;
+      }
+
+      /*
+        Try several shuffled versions and keep
+        whichever looks least like the previous Feed.
+      */
+      let bestShuffle =
+        shufflePosts(recent);
+
+      let bestMatches =
+        Number.POSITIVE_INFINITY;
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const candidate =
+          shufflePosts(recent);
+
+        let samePositions = 0;
+
+        candidate.forEach((item, index) => {
+          if (
+            String(item.id) ===
+            String(previousOrder[index] || "")
+          ) {
+            samePositions += 1;
+          }
+        });
+
+        /*
+          Strong penalty if the first post is
+          exactly the same as last refresh.
+        */
+        if (
+          candidate.length > 1 &&
+          String(candidate[0]?.id) ===
+            String(previousOrder[0] || "")
+        ) {
+          samePositions += 10;
+        }
+
+        if (samePositions < bestMatches) {
+          bestMatches = samePositions;
+          bestShuffle = candidate;
+        }
+
+        if (samePositions === 0) {
+          break;
+        }
+      }
+
+      /*
+        Final guarantee:
+        don't leave the same post sitting at #1
+        if another recent post is available.
+      */
+      if (
+        bestShuffle.length > 1 &&
+        String(bestShuffle[0]?.id) ===
+          String(previousOrder[0] || "")
+      ) {
+        const swapWith =
+          1 + randomIndex(
+            bestShuffle.length - 1
+          );
+
+        [
+          bestShuffle[0],
+          bestShuffle[swapWith],
+        ] = [
+          bestShuffle[swapWith],
+          bestShuffle[0],
+        ];
+      }
 
       displayItems = [
-        ...rotatedRecent,
+        ...bestShuffle,
         ...older,
       ];
+
+      try {
+        window.localStorage.setItem(
+          orderKey,
+          JSON.stringify(
+            bestShuffle.map((item) =>
+              String(item.id)
+            )
+          )
+        );
+      } catch {
+        // Storage restrictions should never break Feed.
+      }
     }
 
     setItems(displayItems);
