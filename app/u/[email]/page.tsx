@@ -953,10 +953,11 @@ export default function PublicProfile() {
           className="identity"
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
+            flexDirection: "row",
+            alignItems: "flex-end",
             justifyContent: "flex-start",
-            gap: 0,
+            gap: "12px",
+            width: "100%",
           }}
         >
           <div className="avatar">
@@ -972,11 +973,13 @@ export default function PublicProfile() {
             style={{
               position: "relative",
               zIndex: 4,
-              marginTop: "5px",
-              marginLeft: "2px",
+              margin: 0,
+              paddingBottom: "1px",
               transform: "none",
               textAlign: "left",
-              maxWidth: "290px",
+              flex: 1,
+              minWidth: 0,
+              maxWidth: "360px",
             }}
           >
             <p className="category">{category}</p>
@@ -988,9 +991,9 @@ export default function PublicProfile() {
                   display: "flex",
                   alignItems: "center",
                   flexWrap: "wrap",
-                  gap: "7px",
-                  marginTop: "7px",
-                  marginBottom: "3px",
+                  gap: "6px",
+                  marginTop: "6px",
+                  marginBottom: "2px",
                 }}
               >
                 {utvBadge.is_ceo && (
@@ -1041,209 +1044,147 @@ export default function PublicProfile() {
                         utvBadge.og_number
                       ).padStart(3, "0")}`}
                       style={{
-                        width: "54px",
-                        height: "58px",
-                        flex: "0 0 54px",
+                        height: "34px",
                         display: "inline-flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        verticalAlign: "middle",
-                        filter:
-                          "drop-shadow(0 6px 8px rgba(0,0,0,.55)) drop-shadow(0 0 5px rgba(255,198,55,.18))",
+                        gap: "7px",
+                        padding: "4px 9px 4px 5px",
+                        borderRadius: "12px",
+                        border:
+                          "1px solid rgba(255,215,103,.28)",
+                        background:
+                          "linear-gradient(145deg,rgba(22,22,25,.96),rgba(7,8,11,.98))",
+                        boxShadow:
+                          "0 5px 16px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.07), 0 0 14px rgba(255,195,48,.06)",
+                        whiteSpace: "nowrap",
+                        flex: "0 0 auto",
                       }}
                     >
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 108 116"
-                        width="54"
-                        height="58"
-                        role="img"
+                      <span
                         style={{
-                          display: "block",
-                          overflow: "visible",
+                          width: "25px",
+                          height: "25px",
+                          flex: "0 0 25px",
+                          display: "grid",
+                          placeItems: "center",
+                          borderRadius: "8px",
+                          border:
+                            "1px solid rgba(255,221,119,.34)",
+                          background:
+                            "radial-gradient(circle at 32% 20%,rgba(255,235,153,.18),transparent 35%),linear-gradient(145deg,#32270f,#0b0b0c)",
+                          boxShadow:
+                            "inset 0 1px 0 rgba(255,255,255,.10)",
                         }}
                       >
-                        <defs>
-                          <linearGradient
-                            id="utv-og-metal"
-                            x1="8"
-                            y1="4"
-                            x2="92"
-                            y2="108"
-                            gradientUnits="userSpaceOnUse"
-                          >
-                            <stop offset="0%" stopColor="#fff4b0" />
-                            <stop offset="13%" stopColor="#d69a20" />
-                            <stop offset="31%" stopColor="#fff0a0" />
-                            <stop offset="49%" stopColor="#8f5707" />
-                            <stop offset="68%" stopColor="#f1bd3c" />
-                            <stop offset="84%" stopColor="#744306" />
-                            <stop offset="100%" stopColor="#ffd86a" />
-                          </linearGradient>
-
-                          <linearGradient
-                            id="utv-og-face"
-                            x1="25"
-                            y1="16"
-                            x2="83"
-                            y2="100"
-                            gradientUnits="userSpaceOnUse"
-                          >
-                            <stop offset="0%" stopColor="#262319" />
-                            <stop offset="43%" stopColor="#070707" />
-                            <stop offset="100%" stopColor="#12100a" />
-                          </linearGradient>
-
-                          <linearGradient
-                            id="utv-og-letter"
-                            x1="35"
-                            y1="44"
-                            x2="75"
-                            y2="80"
-                            gradientUnits="userSpaceOnUse"
-                          >
-                            <stop offset="0%" stopColor="#fff6bd" />
-                            <stop offset="35%" stopColor="#ffd35b" />
-                            <stop offset="70%" stopColor="#bb7a12" />
-                            <stop offset="100%" stopColor="#ffe58a" />
-                          </linearGradient>
-
-                          <filter
-                            id="utv-og-soft-glow"
-                            x="-40%"
-                            y="-40%"
-                            width="180%"
-                            height="180%"
-                          >
-                            <feGaussianBlur stdDeviation="2.2" result="blur" />
-                            <feMerge>
-                              <feMergeNode in="blur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
-
-                        {/* subtle outer glow */}
-                        <path
-                          d="M54 2 94 16 102 39 95 76 78 96 54 113 30 96 13 76 6 39 14 16Z"
-                          fill="rgba(255,197,55,.08)"
-                          stroke="rgba(255,214,104,.18)"
-                          strokeWidth="2"
-                          filter="url(#utv-og-soft-glow)"
-                        />
-
-                        {/* precision metallic frame */}
-                        <path
-                          d="M54 4 92 17 99 39 92 74 76 93 54 109 32 93 16 74 9 39 16 17Z"
-                          fill="url(#utv-og-metal)"
-                        />
-
-                        {/* dark inset */}
-                        <path
-                          d="M54 11 86 22 92 41 86 70 72 87 54 100 36 87 22 70 16 41 22 22Z"
-                          fill="url(#utv-og-face)"
-                          stroke="rgba(255,226,132,.66)"
-                          strokeWidth="1.6"
-                        />
-
-                        {/* inner luxury border */}
-                        <path
-                          d="M54 16 81 25 86 42 81 67 69 82 54 93 39 82 27 67 22 42 27 25Z"
-                          fill="none"
-                          stroke="rgba(224,170,48,.38)"
-                          strokeWidth="1.2"
-                        />
-
-                        {/* REAL SVG CROWN */}
-                        <g
-                          transform="translate(31 22)"
-                          filter="url(#utv-og-soft-glow)"
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 34 27"
+                          width="18"
+                          height="15"
+                          style={{
+                            display: "block",
+                            overflow: "visible",
+                          }}
                         >
+                          <defs>
+                            <linearGradient
+                              id="utvOgWorldCrown"
+                              x1="3"
+                              y1="3"
+                              x2="31"
+                              y2="24"
+                              gradientUnits="userSpaceOnUse"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="#fff4ae"
+                              />
+                              <stop
+                                offset="32%"
+                                stopColor="#ffd35a"
+                              />
+                              <stop
+                                offset="68%"
+                                stopColor="#a96609"
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="#ffe98c"
+                              />
+                            </linearGradient>
+                          </defs>
+
                           <path
-                            d="M3 9.2 11.3 14 22.8 3.6 34.5 14 43 9.2 39.3 24H6.7Z"
-                            fill="url(#utv-og-metal)"
-                            stroke="#ffe794"
-                            strokeWidth="1.5"
+                            d="M3 7.5 10 12 17 2.8 24 12 31 7.5 27.8 21H6.2Z"
+                            fill="url(#utvOgWorldCrown)"
+                            stroke="#ffe89a"
+                            strokeWidth="1.2"
                             strokeLinejoin="round"
                           />
 
                           <path
-                            d="M8.5 20.1H37.5"
-                            stroke="#fff1ad"
-                            strokeWidth="1.5"
+                            d="M7.5 18H26.5"
+                            stroke="#fff2b3"
+                            strokeWidth="1.1"
                             strokeLinecap="round"
-                            opacity=".85"
+                            opacity=".8"
                           />
 
-                          <circle cx="3" cy="8.8" r="2.1" fill="#ffe681" />
-                          <circle cx="22.8" cy="3.2" r="2.2" fill="#fff4bb" />
-                          <circle cx="43" cy="8.8" r="2.1" fill="#ffe681" />
-                        </g>
+                          <circle
+                            cx="3"
+                            cy="7.2"
+                            r="1.5"
+                            fill="#ffe073"
+                          />
+                          <circle
+                            cx="17"
+                            cy="2.6"
+                            r="1.6"
+                            fill="#fff6c0"
+                          />
+                          <circle
+                            cx="31"
+                            cy="7.2"
+                            r="1.5"
+                            fill="#ffe073"
+                          />
+                        </svg>
+                      </span>
 
-                        {/* UTV micro mark */}
-                        <text
-                          x="54"
-                          y="55"
-                          textAnchor="middle"
-                          fill="#e9bd4b"
-                          fontSize="10"
-                          fontWeight="800"
-                          letterSpacing="2.2"
-                          fontFamily="Arial, Helvetica, sans-serif"
+                      <span
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "flex-start",
+                          lineHeight: 1,
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: "#fff3bb",
+                            fontSize: "8px",
+                            fontWeight: 950,
+                            letterSpacing: "1.15px",
+                          }}
                         >
-                          UTV
-                        </text>
+                          UTV OG
+                        </span>
 
-                        {/* OG hero lettering */}
-                        <text
-                          x="54"
-                          y="77"
-                          textAnchor="middle"
-                          fill="url(#utv-og-letter)"
-                          stroke="rgba(95,55,2,.7)"
-                          strokeWidth=".8"
-                          paintOrder="stroke"
-                          fontSize="29"
-                          fontWeight="1000"
-                          letterSpacing="-1.8"
-                          fontFamily="Arial Black, Arial, Helvetica, sans-serif"
+                        <span
+                          style={{
+                            marginTop: "3px",
+                            color: "rgba(255,255,255,.62)",
+                            fontSize: "7px",
+                            fontWeight: 850,
+                            letterSpacing: ".65px",
+                          }}
                         >
-                          OG
-                        </text>
-
-                        {/* limited member number */}
-                        <text
-                          x="54"
-                          y="89"
-                          textAnchor="middle"
-                          fill="#fff0ad"
-                          fontSize="8.5"
-                          fontWeight="900"
-                          letterSpacing="1"
-                          fontFamily="Arial, Helvetica, sans-serif"
-                        >
-                          #{String(utvBadge.og_number).padStart(3, "0")}
-                        </text>
-
-                        {/* premium highlight */}
-                        <path
-                          d="M22 24C34 15 47 12 58 12"
-                          fill="none"
-                          stroke="rgba(255,255,255,.50)"
-                          strokeWidth="1.4"
-                          strokeLinecap="round"
-                        />
-
-                        {/* bottom jewel */}
-                        <circle
-                          cx="54"
-                          cy="101"
-                          r="2.3"
-                          fill="#ffe47b"
-                          stroke="#8c5608"
-                          strokeWidth="1"
-                        />
-                      </svg>
+                          #{String(
+                            utvBadge.og_number
+                          ).padStart(3, "0")} • FIRST 100
+                        </span>
+                      </span>
                     </span>
                   )}
               </div>
@@ -4890,7 +4831,156 @@ export default function PublicProfile() {
         /* UTV PROFILE 3.0 — SOCIAL LUXURY */
 
         `}</style>
-    </main>
+    
+<style jsx global>{`
+/* ===== UTV PROFILE HEADER V2 LOCK ===== */
+
+.hero {
+  position: relative !important;
+  overflow: hidden !important;
+  background-position: center top !important;
+  background-size: cover !important;
+}
+
+/*
+  Keep the upper cover visually open.
+  Identity starts lower, then the rest of the profile flows normally.
+*/
+.hero .identity {
+  position: relative !important;
+
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+
+  gap: 12px !important;
+
+  width: auto !important;
+  max-width: 760px !important;
+
+  margin:
+    clamp(360px, 62vw, 470px)
+    18px
+    0 !important;
+
+  z-index: 12 !important;
+}
+
+/* compact premium avatar */
+.hero .avatar {
+  width: 88px !important;
+  height: 88px !important;
+
+  flex: 0 0 88px !important;
+
+  margin: 0 !important;
+
+  border-radius: 27px !important;
+
+  box-shadow:
+    0 10px 28px rgba(0,0,0,.38),
+    0 0 0 1px rgba(255,255,255,.10) !important;
+}
+
+/* everything beside avatar becomes one identity unit */
+.hero .identityText {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 360px !important;
+
+  flex: 1 1 auto !important;
+
+  margin: 0 !important;
+  padding: 0 0 1px !important;
+
+  transform: none !important;
+  text-align: left !important;
+}
+
+/* Creator */
+.hero .identityText .category {
+  margin: 0 0 4px !important;
+
+  font-size: 10px !important;
+  line-height: 1 !important;
+
+  letter-spacing: 1.6px !important;
+}
+
+/* UTV CEO */
+.hero .identityText h1 {
+  margin: 0 !important;
+
+  font-size: clamp(25px, 6.3vw, 34px) !important;
+  line-height: .98 !important;
+
+  letter-spacing: -.045em !important;
+}
+
+/* @luchi */
+.hero .identityText .username {
+  display: block !important;
+
+  margin-top: 5px !important;
+
+  font-size: 14px !important;
+  line-height: 1 !important;
+}
+
+/* bio stays tight instead of floating far below */
+.hero .identityText .bio {
+  margin: 8px 0 0 !important;
+
+  max-width: 330px !important;
+
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+
+  color: rgba(255,255,255,.76) !important;
+}
+
+@media (max-width: 640px) {
+  .hero .identity {
+    gap: 11px !important;
+
+    margin:
+      clamp(350px, 61vw, 440px)
+      18px
+      0 !important;
+  }
+
+  .hero .avatar {
+    width: 82px !important;
+    height: 82px !important;
+    flex-basis: 82px !important;
+
+    border-radius: 25px !important;
+  }
+
+  .hero .identityText {
+    max-width: calc(100vw - 130px) !important;
+  }
+
+  .hero .identityText h1 {
+    font-size: clamp(24px, 7vw, 31px) !important;
+  }
+
+  .hero .identityText .username {
+    margin-top: 4px !important;
+    font-size: 13px !important;
+  }
+
+  .hero .identityText .bio {
+    margin-top: 7px !important;
+    font-size: 11.5px !important;
+  }
+}
+
+/* ===== END UTV PROFILE HEADER V2 LOCK ===== */
+`}</style>
+
+      </main>
   );
 }
 
@@ -5517,295 +5607,7 @@ function MediaGrid({
             grid-template-columns: repeat(3,minmax(0,1fr));
           }
         }
-      
-/* ==========================================================
-   UTV OG FIRST 100 — 3D COLLECTIBLE CREST
-   ========================================================== */
 
-.ogBadge,
-.utvOgBadge,
-.ogCollectibleBadge {
-  position: relative !important;
-  isolation: isolate;
-  overflow: hidden !important;
-  min-height: 54px !important;
-  padding: 7px 15px 7px 13px !important;
-  border: 1px solid rgba(255,255,255,.34) !important;
-  border-radius: 16px !important;
-  background:
-    linear-gradient(145deg,
-      rgba(255,255,255,.28) 0%,
-      rgba(82,247,200,.22) 18%,
-      rgba(15,19,28,.96) 42%,
-      rgba(126,91,255,.28) 72%,
-      rgba(255,255,255,.18) 100%) !important;
-  box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.48),
-    inset 0 -8px 16px rgba(0,0,0,.45),
-    0 8px 20px rgba(0,0,0,.34),
-    0 0 18px rgba(82,247,200,.12) !important;
-  transform: perspective(500px) rotateX(3deg) !important;
-  transform-style: preserve-3d;
-}
-
-.ogBadge::before,
-.utvOgBadge::before,
-.ogCollectibleBadge::before {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  z-index: -1;
-  border-radius: 13px;
-  border: 1px solid rgba(255,255,255,.12);
-  box-shadow:
-    inset 0 0 15px rgba(82,247,200,.13),
-    inset 0 0 24px rgba(126,91,255,.10);
-}
-
-.ogBadge::after,
-.utvOgBadge::after,
-.ogCollectibleBadge::after {
-  content: "";
-  position: absolute;
-  top: -60%;
-  left: -45%;
-  width: 32%;
-  height: 220%;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255,255,255,.72),
-    transparent
-  );
-  transform: rotate(18deg);
-  animation: utvOgShine 4.2s ease-in-out infinite;
-}
-
-.ogBadge span,
-.utvOgBadge span,
-.ogCollectibleBadge span {
-  position: relative;
-  z-index: 2;
-  font-weight: 950 !important;
-  letter-spacing: .9px !important;
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.30),
-    0 2px 4px rgba(0,0,0,.65),
-    0 0 10px rgba(82,247,200,.22);
-}
-
-@keyframes utvOgShine {
-  0%, 66% { left: -45%; opacity: 0; }
-  72% { opacity: .85; }
-  88% { left: 125%; opacity: .28; }
-  100% { left: 125%; opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ogBadge::after,
-  .utvOgBadge::after,
-  .ogCollectibleBadge::after {
-    animation: none !important;
-  }
-}
-
-
-
-/* UTV OG FIRST 100 — TRUE 3D SHIELD */
-
-.ogShieldBadge {
-  position: relative;
-  width: 76px;
-  height: 84px;
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  isolation: isolate;
-  transform-style: preserve-3d;
-  filter:
-    drop-shadow(0 10px 10px rgba(0,0,0,.48))
-    drop-shadow(0 0 12px rgba(82,247,200,.22));
-  animation: ogShieldFloat 3.8s ease-in-out infinite;
-}
-
-.ogShieldBadge::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-
-  clip-path: polygon(
-    50% 0%,
-    91% 14%,
-    88% 57%,
-    76% 76%,
-    50% 100%,
-    24% 76%,
-    12% 57%,
-    9% 14%
-  );
-
-  background:
-    linear-gradient(
-      145deg,
-      #ffffff 0%,
-      #9fffe3 10%,
-      #356e64 23%,
-      #111820 43%,
-      #7663d5 68%,
-      #d6ceff 83%,
-      #4ff1c1 100%
-    );
-
-  box-shadow:
-    inset 0 2px 2px rgba(255,255,255,.95),
-    inset 6px 0 12px rgba(255,255,255,.16),
-    inset -8px -10px 15px rgba(0,0,0,.68);
-}
-
-.ogShieldBadge::after {
-  content: "";
-  position: absolute;
-  z-index: 5;
-  top: 2px;
-  bottom: 6px;
-  left: -35%;
-  width: 26%;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,255,255,.92),
-      rgba(112,255,218,.42),
-      transparent
-    );
-  transform: skewX(-18deg);
-  animation: ogShieldSweep 4.2s ease-in-out infinite;
-}
-
-.ogShieldInner {
-  position: relative;
-  z-index: 2;
-  width: 64px;
-  height: 71px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  clip-path: polygon(
-    50% 0%,
-    90% 15%,
-    86% 55%,
-    74% 73%,
-    50% 94%,
-    26% 73%,
-    14% 55%,
-    10% 15%
-  );
-
-  background:
-    radial-gradient(
-      circle at 35% 16%,
-      rgba(255,255,255,.24),
-      transparent 27%
-    ),
-    linear-gradient(
-      160deg,
-      #182228 0%,
-      #07100f 44%,
-      #17251f 64%,
-      #151126 100%
-    );
-
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.16),
-    inset 0 0 19px rgba(82,247,200,.12),
-    inset 0 -12px 16px rgba(0,0,0,.55);
-
-  transform: translateZ(8px);
-}
-
-.ogShieldUTV {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 1000;
-  letter-spacing: -1px;
-  line-height: 1;
-  text-shadow:
-    0 2px 3px rgba(0,0,0,.8),
-    0 0 12px rgba(82,247,200,.34);
-}
-
-.ogShieldOG {
-  margin-top: 3px;
-  color: #69f5cf;
-  font-size: 12px;
-  font-weight: 1000;
-  letter-spacing: 2px;
-  line-height: 1;
-  text-shadow:
-    0 0 10px rgba(82,247,200,.62);
-}
-
-.ogShieldNumber {
-  margin-top: 5px;
-  color: #dcd6ff;
-  font-size: 10px;
-  font-weight: 1000;
-  line-height: 1;
-  text-shadow:
-    0 0 9px rgba(129,101,255,.7);
-}
-
-@keyframes ogShieldFloat {
-  0%,100% {
-    transform:
-      perspective(650px)
-      rotateX(4deg)
-      rotateY(-5deg)
-      translateY(0);
-  }
-
-  50% {
-    transform:
-      perspective(650px)
-      rotateX(1deg)
-      rotateY(5deg)
-      translateY(-3px);
-  }
-}
-
-@keyframes ogShieldSweep {
-  0%,68% {
-    left: -35%;
-    opacity: 0;
-  }
-
-  73% {
-    opacity: .9;
-  }
-
-  88% {
-    left: 118%;
-    opacity: .25;
-  }
-
-  100% {
-    left: 118%;
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ogShieldBadge,
-  .ogShieldBadge::after {
-    animation: none !important;
-  }
-}
 
 
 
