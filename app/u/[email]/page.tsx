@@ -956,6 +956,7 @@ export default function PublicProfile() {
             flexDirection: "column",
             alignItems: "flex-start",
             justifyContent: "flex-start",
+            gap: 0,
           }}
         >
           <div className="avatar">
@@ -971,11 +972,11 @@ export default function PublicProfile() {
             style={{
               position: "relative",
               zIndex: 4,
-              marginTop: "8px",
+              marginTop: "5px",
               marginLeft: "2px",
               transform: "none",
               textAlign: "left",
-              maxWidth: "240px",
+              maxWidth: "290px",
             }}
           >
             <p className="category">{category}</p>
@@ -987,9 +988,9 @@ export default function PublicProfile() {
                   display: "flex",
                   alignItems: "center",
                   flexWrap: "wrap",
-                  gap: "8px",
-                  marginTop: "10px",
-                  marginBottom: "4px",
+                  gap: "7px",
+                  marginTop: "7px",
+                  marginBottom: "3px",
                 }}
               >
                 {utvBadge.is_ceo && (
@@ -998,8 +999,8 @@ export default function PublicProfile() {
                       display: "inline-flex",
                       alignItems: "center",
                       gap: "5px",
-                      minHeight: "28px",
-                      padding: "6px 11px",
+                      minHeight: "27px",
+                      padding: "6px 10px",
                       borderRadius: "999px",
                       border: "1px solid rgba(255,211,92,.58)",
                       color: "#fff4bc",
@@ -1040,169 +1041,209 @@ export default function PublicProfile() {
                         utvBadge.og_number
                       ).padStart(3, "0")}`}
                       style={{
-                        position: "relative",
-                        width: "62px",
-                        height: "68px",
-                        flex: "0 0 62px",
-                        display: "inline-grid",
-                        placeItems: "center",
-                        marginLeft: "2px",
+                        width: "54px",
+                        height: "58px",
+                        flex: "0 0 54px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         verticalAlign: "middle",
                         filter:
-                          "drop-shadow(0 9px 8px rgba(0,0,0,.7)) drop-shadow(0 0 8px rgba(255,193,45,.38))",
+                          "drop-shadow(0 6px 8px rgba(0,0,0,.55)) drop-shadow(0 0 5px rgba(255,198,55,.18))",
                       }}
                     >
-                      {/* metallic outer shield */}
-                      <span
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 108 116"
+                        width="54"
+                        height="58"
+                        role="img"
                         style={{
-                          position: "absolute",
-                          inset: 0,
-                          display: "grid",
-                          placeItems: "center",
-                          clipPath:
-                            "polygon(50% 0%,88% 9%,100% 27%,92% 66%,77% 84%,50% 100%,23% 84%,8% 66%,0% 27%,12% 9%)",
-                          background:
-                            "linear-gradient(135deg,#fff2a3 0%,#c68810 14%,#ffe27a 28%,#704000 45%,#f3bc38 66%,#603600 82%,#ffd966 100%)",
-                          boxShadow:
-                            "inset 0 2px 2px rgba(255,255,255,.95), inset 0 -9px 13px rgba(55,28,0,.75)",
+                          display: "block",
+                          overflow: "visible",
                         }}
                       >
-                        {/* black inner shield */}
-                        <span
-                          style={{
-                            position: "relative",
-                            width: "53px",
-                            height: "59px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            clipPath:
-                              "polygon(50% 0%,87% 11%,95% 29%,86% 61%,72% 78%,50% 94%,28% 78%,14% 61%,5% 29%,13% 11%)",
-                            background:
-                              "radial-gradient(circle at 30% 17%,rgba(255,218,95,.22),transparent 26%), linear-gradient(155deg,#21190a 0%,#050505 39%,#100b02 68%,#000 100%)",
-                            border:
-                              "1px solid rgba(255,215,101,.48)",
-                            boxShadow:
-                              "inset 0 0 10px rgba(255,194,44,.15), inset 0 -12px 15px rgba(0,0,0,.88)",
-                          }}
+                        <defs>
+                          <linearGradient
+                            id="utv-og-metal"
+                            x1="8"
+                            y1="4"
+                            x2="92"
+                            y2="108"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0%" stopColor="#fff4b0" />
+                            <stop offset="13%" stopColor="#d69a20" />
+                            <stop offset="31%" stopColor="#fff0a0" />
+                            <stop offset="49%" stopColor="#8f5707" />
+                            <stop offset="68%" stopColor="#f1bd3c" />
+                            <stop offset="84%" stopColor="#744306" />
+                            <stop offset="100%" stopColor="#ffd86a" />
+                          </linearGradient>
+
+                          <linearGradient
+                            id="utv-og-face"
+                            x1="25"
+                            y1="16"
+                            x2="83"
+                            y2="100"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0%" stopColor="#262319" />
+                            <stop offset="43%" stopColor="#070707" />
+                            <stop offset="100%" stopColor="#12100a" />
+                          </linearGradient>
+
+                          <linearGradient
+                            id="utv-og-letter"
+                            x1="35"
+                            y1="44"
+                            x2="75"
+                            y2="80"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0%" stopColor="#fff6bd" />
+                            <stop offset="35%" stopColor="#ffd35b" />
+                            <stop offset="70%" stopColor="#bb7a12" />
+                            <stop offset="100%" stopColor="#ffe58a" />
+                          </linearGradient>
+
+                          <filter
+                            id="utv-og-soft-glow"
+                            x="-40%"
+                            y="-40%"
+                            width="180%"
+                            height="180%"
+                          >
+                            <feGaussianBlur stdDeviation="2.2" result="blur" />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
+
+                        {/* subtle outer glow */}
+                        <path
+                          d="M54 2 94 16 102 39 95 76 78 96 54 113 30 96 13 76 6 39 14 16Z"
+                          fill="rgba(255,197,55,.08)"
+                          stroke="rgba(255,214,104,.18)"
+                          strokeWidth="2"
+                          filter="url(#utv-og-soft-glow)"
+                        />
+
+                        {/* precision metallic frame */}
+                        <path
+                          d="M54 4 92 17 99 39 92 74 76 93 54 109 32 93 16 74 9 39 16 17Z"
+                          fill="url(#utv-og-metal)"
+                        />
+
+                        {/* dark inset */}
+                        <path
+                          d="M54 11 86 22 92 41 86 70 72 87 54 100 36 87 22 70 16 41 22 22Z"
+                          fill="url(#utv-og-face)"
+                          stroke="rgba(255,226,132,.66)"
+                          strokeWidth="1.6"
+                        />
+
+                        {/* inner luxury border */}
+                        <path
+                          d="M54 16 81 25 86 42 81 67 69 82 54 93 39 82 27 67 22 42 27 25Z"
+                          fill="none"
+                          stroke="rgba(224,170,48,.38)"
+                          strokeWidth="1.2"
+                        />
+
+                        {/* REAL SVG CROWN */}
+                        <g
+                          transform="translate(31 22)"
+                          filter="url(#utv-og-soft-glow)"
                         >
-                                                    {/* premium UTV crown */}
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 32 18"
-                            width="22"
-                            height="14"
-                            style={{
-                              position: "absolute",
-                              top: "4px",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                              overflow: "visible",
-                              filter:
-                                "drop-shadow(0 2px 1px rgba(0,0,0,.9)) drop-shadow(0 0 3px rgba(255,195,36,.55))",
-                            }}
-                          >
-                            <defs>
-                              <linearGradient
-                                id="utv-og-crown-gold"
-                                x1="0"
-                                y1="0"
-                                x2="1"
-                                y2="1"
-                              >
-                                <stop offset="0%" stopColor="#fff6b7" />
-                                <stop offset="27%" stopColor="#ffd354" />
-                                <stop offset="58%" stopColor="#b87508" />
-                                <stop offset="82%" stopColor="#f2bd35" />
-                                <stop offset="100%" stopColor="#714000" />
-                              </linearGradient>
-                            </defs>
-
-                            <path
-                              d="M2 4.5 L9.2 9.2 L15.9 1.8 L22.8 9.2 L30 4.5 L27.2 15.7 H4.8 Z"
-                              fill="url(#utv-og-crown-gold)"
-                              stroke="#ffe786"
-                              strokeWidth="1.1"
-                              strokeLinejoin="round"
-                            />
-
-                            <path
-                              d="M6 13.2 H26"
-                              stroke="rgba(255,245,174,.85)"
-                              strokeWidth="1"
-                              strokeLinecap="round"
-                            />
-
-                            <circle cx="2" cy="4.2" r="1.5" fill="#ffe16c" />
-                            <circle cx="16" cy="1.7" r="1.5" fill="#fff0a0" />
-                            <circle cx="30" cy="4.2" r="1.5" fill="#ffe16c" />
-                          </svg>
-
-                          <span
-                            style={{
-                              marginTop: "10px",
-                              color: "#f4ca4e",
-                              fontSize: "9px",
-                              lineHeight: 1,
-                              fontWeight: 950,
-                              letterSpacing: ".4px",
-                              textShadow:
-                                "0 1px 0 #fff0a1,0 2px 2px #000",
-                            }}
-                          >
-                            UTV
-                          </span>
-
-                          <span
-                            style={{
-                              marginTop: "2px",
-                              color: "#ffd34f",
-                              fontSize: "20px",
-                              lineHeight: ".92",
-                              fontWeight: 1000,
-                              letterSpacing: "-2px",
-                              textShadow:
-                                "0 1px 0 #fff0a1,0 3px 1px #714200,0 0 7px rgba(255,190,24,.65)",
-                            }}
-                          >
-                            OG
-                          </span>
-
-                          <span
-                            style={{
-                              marginTop: "4px",
-                              color: "#ffe9a6",
-                              fontSize: "7px",
-                              lineHeight: 1,
-                              fontWeight: 950,
-                              letterSpacing: ".8px",
-                              textShadow: "0 1px 2px #000",
-                            }}
-                          >
-                            #{String(
-                              utvBadge.og_number
-                            ).padStart(3, "0")}
-                          </span>
-
-                          {/* metallic shine */}
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              position: "absolute",
-                              top: "7px",
-                              left: "13px",
-                              width: "20px",
-                              height: "4px",
-                              borderRadius: "999px",
-                              transform: "rotate(-27deg)",
-                              background:
-                                "linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent)",
-                              opacity: .75,
-                            }}
+                          <path
+                            d="M3 9.2 11.3 14 22.8 3.6 34.5 14 43 9.2 39.3 24H6.7Z"
+                            fill="url(#utv-og-metal)"
+                            stroke="#ffe794"
+                            strokeWidth="1.5"
+                            strokeLinejoin="round"
                           />
-                        </span>
-                      </span>
+
+                          <path
+                            d="M8.5 20.1H37.5"
+                            stroke="#fff1ad"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            opacity=".85"
+                          />
+
+                          <circle cx="3" cy="8.8" r="2.1" fill="#ffe681" />
+                          <circle cx="22.8" cy="3.2" r="2.2" fill="#fff4bb" />
+                          <circle cx="43" cy="8.8" r="2.1" fill="#ffe681" />
+                        </g>
+
+                        {/* UTV micro mark */}
+                        <text
+                          x="54"
+                          y="55"
+                          textAnchor="middle"
+                          fill="#e9bd4b"
+                          fontSize="10"
+                          fontWeight="800"
+                          letterSpacing="2.2"
+                          fontFamily="Arial, Helvetica, sans-serif"
+                        >
+                          UTV
+                        </text>
+
+                        {/* OG hero lettering */}
+                        <text
+                          x="54"
+                          y="77"
+                          textAnchor="middle"
+                          fill="url(#utv-og-letter)"
+                          stroke="rgba(95,55,2,.7)"
+                          strokeWidth=".8"
+                          paintOrder="stroke"
+                          fontSize="29"
+                          fontWeight="1000"
+                          letterSpacing="-1.8"
+                          fontFamily="Arial Black, Arial, Helvetica, sans-serif"
+                        >
+                          OG
+                        </text>
+
+                        {/* limited member number */}
+                        <text
+                          x="54"
+                          y="89"
+                          textAnchor="middle"
+                          fill="#fff0ad"
+                          fontSize="8.5"
+                          fontWeight="900"
+                          letterSpacing="1"
+                          fontFamily="Arial, Helvetica, sans-serif"
+                        >
+                          #{String(utvBadge.og_number).padStart(3, "0")}
+                        </text>
+
+                        {/* premium highlight */}
+                        <path
+                          d="M22 24C34 15 47 12 58 12"
+                          fill="none"
+                          stroke="rgba(255,255,255,.50)"
+                          strokeWidth="1.4"
+                          strokeLinecap="round"
+                        />
+
+                        {/* bottom jewel */}
+                        <circle
+                          cx="54"
+                          cy="101"
+                          r="2.3"
+                          fill="#ffe47b"
+                          stroke="#8c5608"
+                          strokeWidth="1"
+                        />
+                      </svg>
                     </span>
                   )}
               </div>
