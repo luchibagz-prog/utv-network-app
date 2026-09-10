@@ -5098,13 +5098,28 @@ export default function PublicProfile() {
 @media (max-width: 640px) {
 
   .hero {
+    /*
+      Mobile cover behaves like a real social profile header:
+      image fits width instead of zooming to fill a huge area.
+    */
+    min-height: 0 !important;
+
     padding:
-      118px
+      0
       18px
       16px !important;
 
+    background-size:
+      100% 100%,
+      100% auto !important;
+
     background-position:
-      center 15% !important;
+      center top,
+      center top !important;
+
+    background-repeat:
+      no-repeat,
+      no-repeat !important;
 
     border-radius:
       0 0 25px 25px !important;
@@ -5113,8 +5128,12 @@ export default function PublicProfile() {
   .hero .identity {
     gap: 11px !important;
 
+    /*
+      Keeps the approved avatar/name location near the
+      lower edge of the cover without making the hero huge.
+    */
     margin:
-      clamp(305px, 82vw, 345px)
+      clamp(275px, 76vw, 315px)
       0
       0 !important;
   }
