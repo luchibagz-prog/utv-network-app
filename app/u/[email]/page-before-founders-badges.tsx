@@ -1,0 +1,3630 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import UTVNav from "../../components/UTVNav";
+import { supabase } from "../../../lib/supabaseClient";
+
+type Tab = "posts" | "featured" | "crew" | "about";
+
+function pick(row: any, keys: string[], fallback = "") {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value) return String(value);
+  }
+
+  return fallback;
+}
+
+export default function PublicProfile() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const email = decodeURIComponent(String(params.email || ""));
+  const preview = searchParams.get("preview") === "1";
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const [profile, setProfile] = useState<any>({});
+  const [posts, setPosts] = useState<any[]>([]);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [creatorDashboardOpen, setCreatorDashboardOpen] =
+    useState(false);
+  const [tabTouchStart, setTabTouchStart] = useState<number | null>(null);
+  const [tabTouchEnd, setTabTouchEnd] = useState<number | null>(null);
+  const [crew, setCrew] = useState<any[]>([]);
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
+  const [tab, setTab] = useState<Tab>("posts");
+  const [playing, setPlaying] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] =
+    useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [socialSheet, setSocialSheet] =
+    useState<"followers" | "following" | null>(null);
+
+  const [socialUsers, setSocialUsers] =
+    useState<any[]>([]);
+
+  const [socialLoading, setSocialLoading] =
+    useState(false);
+
+  useEffect(() => {
+    void load();
+  }, [email]);
+
+  async function load() {
+    setLoading(true);
+
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+
+      const owner =
+        !!auth.user?.email &&
+        auth.user.email.toLowerCase() === email.toLowerCase();
+
+      setIsOwner(owner);
+
+      const [
+        profileResult,
+        postsResult,
+        topCrewResult,
+        followerResult,
+        followingResult,
+      ] = await Promise.all([
+        supabase
+          .from("creator_profiles")
+          .select("*")
+          .eq("email", email)
+          .maybeSingle(),
+
+        supabase
+          .from("uploads")
+          .select("*")
+          .eq("creator_email", email)
+          .order("created_at", { ascending: false })
+          .limit(30),
+
+        supabase
+          .from("top_crew")
+          .select("member_email,position")
+          .eq("owner_email", email)
+          .order("position", { ascending: true })
+          .limit(8),
+
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("following_email", email),
+
+        supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("follower_email", email),
+      ]);
+
+      setProfile(profileResult.data || {});
+      setPosts(postsResult.data || []);
+      setFollowers(followerResult.count || 0);
+      setFollowing(followingResult.count || 0);
+
+      const topRows = topCrewResult.data || [];
+
+      const crewEmails = topRows
+        .map((row: any) => String(row.member_email || ""))
+        .filter(Boolean);
+
+      if (!crewEmails.length) {
+        setCrew([]);
+        return;
+      }
+
+      const { data: crewProfiles } = await supabase
+        .from("creator_profiles")
+        .select("*")
+        .in("email", crewEmails);
+
+      const profileMap = new Map(
+        (crewProfiles || []).map((member: any) => [
+          String(member.email || "").toLowerCase(),
+          member,
+        ])
+      );
+
+      const orderedCrew = crewEmails.map((crewEmail: string) => {
+        const member =
+          profileMap.get(crewEmail.toLowerCase()) || {};
+
+        return {
+          email: crewEmail,
+
+          name: pick(
+            member,
+            [
+              "display_name",
+              "creator_name",
+              "full_name",
+              "username",
+            ],
+            crewEmail.split("@")[0]
+          ),
+
+          username: pick(
+            member,
+            ["username"],
+            crewEmail.split("@")[0]
+          ),
+
+          avatar: pick(member, [
+            "avatar_url",
+            "creator_avatar",
+            "profile_image",
+            "image_url",
+          ]),
+        };
+      });
+
+      setCrew(orderedCrew);
+    } catch (error: any) {
+      console.error(error);
+      setNotice(error?.message || "Could not load profile.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const name = pick(
+    profile,
+    ["display_name", "creator_name", "full_name", "username"],
+    email.split("@")[0] || "UTV Creator"
+  );
+
+  const username = pick(
+    profile,
+    ["username"],
+    email.split("@")[0] || "creator"
+  );
+
+  const avatar = pick(profile, [
+    "avatar_url",
+    "creator_avatar",
+    "profile_image",
+    "image_url",
+  ]);
+
+  const cover = pick(
+    profile,
+    [
+      "profile_background_url",
+      "profile_background",
+      "cover_url",
+      "banner_url",
+    ],
+    "/utv-banner.png"
+  );
+
+  const bio = pick(
+    profile,
+    ["bio", "description"],
+    "The culture streams here."
+  );
+
+  const category = pick(
+    profile,
+    ["category", "creator_type"],
+    "UTV Creator"
+  );
+
+  const song = pick(profile, [
+    "profile_song_url",
+    "profile_song",
+    "music_url",
+  ]);
+
+  const songTitle = pick(
+    profile,
+    ["profile_song_title", "music_title", "song_title"],
+    song ? "Profile Soundtrack" : ""
+  );
+
+  const songArtist = pick(
+    profile,
+    [
+      "profile_song_artist",
+      "music_artist",
+      "song_artist",
+    ],
+    name
+  );
+
+  const featured = useMemo(
+    () => posts.slice(0, 3),
+    [posts]
+  );
+
+  const profileTabs: Tab[] = [
+    "posts",
+    "featured",
+    "crew",
+    "about",
+  ];
+
+  function moveProfileTab(direction: "next" | "prev") {
+    const currentIndex = profileTabs.indexOf(tab);
+
+    if (currentIndex < 0) return;
+
+    const nextIndex =
+      direction === "next"
+        ? Math.min(currentIndex + 1, profileTabs.length - 1)
+        : Math.max(currentIndex - 1, 0);
+
+    if (nextIndex !== currentIndex) {
+      setTab(profileTabs[nextIndex]);
+
+      try {
+        navigator.vibrate?.(12);
+      } catch {}
+    }
+  }
+
+  function finishProfileSwipe() {
+    if (
+      tabTouchStart === null ||
+      tabTouchEnd === null
+    ) {
+      setTabTouchStart(null);
+      setTabTouchEnd(null);
+      return;
+    }
+
+    const distance =
+      tabTouchStart - tabTouchEnd;
+
+    const minimumSwipe = 48;
+
+    if (distance > minimumSwipe) {
+      moveProfileTab("next");
+    } else if (distance < -minimumSwipe) {
+      moveProfileTab("prev");
+    }
+
+    setTabTouchStart(null);
+    setTabTouchEnd(null);
+  }
+
+  useEffect(() => {
+    if (!song || !audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    async function attemptProfileAutoplay() {
+      try {
+        audio.volume = 0.75;
+        await audio.play();
+        setPlaying(true);
+        setAutoplayBlocked(false);
+      } catch {
+        // Most phones block sound-on autoplay until interaction.
+        setPlaying(false);
+        setAutoplayBlocked(true);
+      }
+    }
+
+    const timer = window.setTimeout(() => {
+      void attemptProfileAutoplay();
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [song]);
+
+
+  async function openSocialList(
+    kind: "followers" | "following"
+  ) {
+    setSocialSheet(kind);
+    setSocialLoading(true);
+    setSocialUsers([]);
+
+    try {
+      const query =
+        kind === "followers"
+          ? supabase
+              .from("follows")
+              .select("follower_email")
+              .eq("following_email", email)
+          : supabase
+              .from("follows")
+              .select("following_email")
+              .eq("follower_email", email);
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const emails = Array.from(
+        new Set(
+          (data || [])
+            .map((row: any) =>
+              String(
+                kind === "followers"
+                  ? row.follower_email
+                  : row.following_email
+              )
+            )
+            .filter(Boolean)
+        )
+      );
+
+      if (!emails.length) {
+        setSocialUsers([]);
+        return;
+      }
+
+      const { data: profiles, error: profileError } =
+        await supabase
+          .from("creator_profiles")
+          .select("*")
+          .in("email", emails);
+
+      if (profileError) throw profileError;
+
+      const profileMap = new Map(
+        (profiles || []).map((person: any) => [
+          String(person.email || "").toLowerCase(),
+          person,
+        ])
+      );
+
+      const ordered = emails.map((personEmail) => {
+        const person =
+          profileMap.get(personEmail.toLowerCase()) || {};
+
+        return {
+          email: personEmail,
+
+          name: pick(
+            person,
+            [
+              "display_name",
+              "creator_name",
+              "username",
+            ],
+            "UTV Creator"
+          ),
+
+          username: pick(
+            person,
+            ["username"],
+            "creator"
+          ),
+
+          avatar: pick(
+            person,
+            [
+              "avatar_url",
+              "creator_avatar",
+              "profile_image",
+            ]
+          ),
+
+          category: pick(
+            person,
+            ["category", "creator_type"],
+            "Creator"
+          ),
+        };
+      });
+
+      setSocialUsers(ordered);
+    } catch (error) {
+      console.error(
+        "Could not load social list:",
+        error
+      );
+
+      setNotice(
+        "Could not load this list right now."
+      );
+
+      window.setTimeout(
+        () => setNotice(""),
+        1800
+      );
+    } finally {
+      setSocialLoading(false);
+    }
+  }
+
+  function jumpToProfileTab(
+    nextTab: Tab
+  ) {
+    setTab(nextTab);
+
+    window.setTimeout(() => {
+      document
+        .querySelector(".tabs")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 60);
+  }
+
+  async function toggleMusic() {
+    if (!song || !audioRef.current) {
+      setNotice("This creator has not added a profile song yet.");
+      window.setTimeout(() => setNotice(""), 1800);
+      return;
+    }
+
+    try {
+      if (audioRef.current.paused) {
+        await audioRef.current.play();
+        setPlaying(true);
+        setAutoplayBlocked(false);
+      } else {
+        audioRef.current.pause();
+        setPlaying(false);
+      }
+    } catch {
+      setNotice("Tap again to start the music.");
+      window.setTimeout(() => setNotice(""), 1800);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="utvLoadingPage">
+        <UTVNav />
+
+        <div className="loaderAtmosphere loaderAtmosphereOne" />
+        <div className="loaderAtmosphere loaderAtmosphereTwo" />
+
+        <section className="utvLoader" aria-label="Loading profile">
+          <div className="utvMark">
+            <div className="utvMarkGlow" />
+            <span className="utvLetters">UTV</span>
+          </div>
+
+          <div className="utvLoaderLine">
+            <span />
+          </div>
+
+          <div className="utvLoadingCopy">
+            <strong>Loading profile</strong>
+            <span>Opening UTV</span>
+          </div>
+        </section>
+
+        <style jsx>{`
+          .utvLoadingPage {
+            position: relative;
+            min-height: 100svh;
+            overflow: hidden;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background:
+              radial-gradient(
+                circle at 50% 38%,
+                rgba(82, 247, 200, 0.075),
+                transparent 24%
+              ),
+              radial-gradient(
+                circle at 70% 58%,
+                rgba(123, 97, 255, 0.08),
+                transparent 30%
+              ),
+              linear-gradient(
+                180deg,
+                #020408 0%,
+                #050812 48%,
+                #020409 100%
+              );
+          }
+
+          .loaderAtmosphere {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 999px;
+            filter: blur(70px);
+            opacity: 0.22;
+            animation: loaderFloat 5s ease-in-out infinite alternate;
+          }
+
+          .loaderAtmosphereOne {
+            width: 210px;
+            height: 210px;
+            background: rgba(82, 247, 200, 0.32);
+            top: 24%;
+            left: calc(50% - 150px);
+          }
+
+          .loaderAtmosphereTwo {
+            width: 230px;
+            height: 230px;
+            background: rgba(123, 97, 255, 0.26);
+            bottom: 24%;
+            right: calc(50% - 160px);
+            animation-delay: -2.2s;
+          }
+
+          .utvLoader {
+            position: relative;
+            z-index: 2;
+            width: min(78vw, 270px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
+          .utvMark {
+            position: relative;
+            height: 88px;
+            min-width: 150px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 25px;
+            background: transparent;
+          }
+
+          .utvMarkGlow {
+            position: absolute;
+            width: 112px;
+            height: 112px;
+            border-radius: 50%;
+            background:
+              radial-gradient(
+                circle,
+                rgba(82, 247, 200, 0.19),
+                rgba(123, 97, 255, 0.08) 46%,
+                transparent 70%
+              );
+            filter: blur(3px);
+            animation: logoGlow 1.8s ease-in-out infinite alternate;
+          }
+
+          .utvLetters {
+            position: relative;
+            z-index: 1;
+            font-size: 44px;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -3px;
+            color: #fff;
+            text-shadow:
+              0 0 24px rgba(82, 247, 200, 0.20),
+              0 0 42px rgba(123, 97, 255, 0.12);
+          }
+
+          .utvLoaderLine {
+            width: 128px;
+            height: 3px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.09);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+          }
+
+          .utvLoaderLine span {
+            display: block;
+            width: 42%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+              linear-gradient(
+                90deg,
+                #52f7c8,
+                #a985ff
+              );
+            box-shadow: 0 0 14px rgba(82, 247, 200, 0.45);
+            animation: loadingSweep 1.15s ease-in-out infinite;
+          }
+
+          .utvLoadingCopy {
+            margin-top: 17px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .utvLoadingCopy strong {
+            font-size: 15px;
+            font-weight: 760;
+            letter-spacing: -0.15px;
+          }
+
+          .utvLoadingCopy span {
+            color: rgba(255,255,255,.43);
+            font-size: 11px;
+            font-weight: 650;
+            letter-spacing: 1.25px;
+            text-transform: uppercase;
+          }
+
+          @keyframes loadingSweep {
+            0% {
+              transform: translateX(-120%);
+            }
+
+            55%,
+            100% {
+              transform: translateX(245%);
+            }
+          }
+
+          @keyframes logoGlow {
+            from {
+              opacity: .52;
+              transform: scale(.92);
+            }
+
+            to {
+              opacity: 1;
+              transform: scale(1.08);
+            }
+          }
+
+          @keyframes loaderFloat {
+            from {
+              transform: translate3d(-8px, -5px, 0) scale(.96);
+            }
+
+            to {
+              transform: translate3d(8px, 8px, 0) scale(1.05);
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            .utvLoaderLine span,
+            .utvMarkGlow,
+            .loaderAtmosphere {
+              animation: none;
+            }
+          }
+        `}</style>
+      </main>
+    );
+  }
+
+  return (
+    <main className="page">
+      <UTVNav />
+
+      {song && (
+        <audio
+          ref={audioRef}
+          src={song}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+        />
+      )}
+
+<section
+        className="hero"
+        style={{
+          backgroundImage:
+            `linear-gradient(180deg,rgba(0,0,0,.05),rgba(4,7,14,.34) 48%,#050812 96%),url("${cover}")`,
+        }}
+      >
+        <div className="identity">
+          <div className="avatar">
+            {avatar ? (
+              <img src={avatar} alt={name} />
+            ) : (
+              <span>{name.slice(0, 1)}</span>
+            )}
+          </div>
+
+          <div className="identityText">
+            <p className="category">{category}</p>
+            <h1>{name}</h1>
+            <b className="username">@{username}</b>
+            <p className="bio">{bio}</p>
+          </div>
+        </div>
+
+        {!isOwner ? (
+          <div className="socialActions">
+            <button
+              className="messageAction"
+              onClick={() =>
+                router.push(
+                  `/messages?to=${encodeURIComponent(email)}`
+                )
+              }
+            >
+              💬 Message
+            </button>
+
+            <button
+              className="walkieAction"
+              onClick={() =>
+                router.push(
+                  `/walkie?to=${encodeURIComponent(email)}`
+                )
+              }
+            >
+              <span className="walkiePulse" />
+              🎙 Walkie
+            </button>
+
+            <button
+              className="contactAction"
+              onClick={() => setContactOpen(true)}
+            >
+              ⚡ Contact
+            </button>
+          </div>
+        ) : (
+          <div className="ownerProfileTools">
+            <button
+              className={
+                creatorDashboardOpen
+                  ? "ownerCreatorButton open"
+                  : "ownerCreatorButton"
+              }
+              onClick={() =>
+                setCreatorDashboardOpen(
+                  (current) => !current
+                )
+              }
+            >
+              <span>⚡</span>
+              <strong>Creator</strong>
+              <b>
+                {creatorDashboardOpen ? "⌃" : "⌄"}
+              </b>
+            </button>
+          </div>
+        )}
+      </section>
+
+
+      {isOwner && (
+        <section
+          className={
+            creatorDashboardOpen
+              ? "creatorDashboard open"
+              : "creatorDashboard"
+          }
+        >
+          <div className="dashboardHeader">
+            <div>
+              <p>YOUR UTV</p>
+              <h2>Creator Dashboard</h2>
+              <span>
+                Create, manage and grow without leaving your profile.
+              </span>
+            </div>
+
+            <button
+              onClick={() =>
+                setCreatorDashboardOpen(false)
+              }
+              aria-label="Close creator dashboard"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="creatorQuickActions">
+            <button
+              className="creatorPrimary"
+              onClick={() =>
+                router.push("/submit")
+              }
+            >
+              <span>＋</span>
+              <div>
+                <strong>Create</strong>
+                <small>Post, reel or story</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/profile-edit")
+              }
+            >
+              <span>✎</span>
+              <div>
+                <strong>Edit Profile</strong>
+                <small>Photo, bio & music</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/studio")
+              }
+            >
+              <span>🎬</span>
+              <div>
+                <strong>Creator Studio</strong>
+                <small>Manage your content</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/bookings")
+              }
+            >
+              <span>📅</span>
+              <div>
+                <strong>Bookings</strong>
+                <small>Requests & opportunities</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/calls")
+              }
+            >
+              <span>📞</span>
+              <div>
+                <strong>Calls</strong>
+                <small>Audio & video</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/top-crew")
+              }
+            >
+              <span>8</span>
+              <div>
+                <strong>Top 8</strong>
+                <small>Build your inner circle</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                router.push("/settings")
+              }
+            >
+              <span>⚙</span>
+              <div>
+                <strong>Settings</strong>
+                <small>Account & notifications</small>
+              </div>
+            </button>
+          </div>
+        </section>
+      )}
+
+      {song && (
+        <section className="profileMusicBar">
+          <button
+            className={playing ? "musicPlayButton playing" : "musicPlayButton"}
+            onClick={() => void toggleMusic()}
+            aria-label={playing ? "Pause soundtrack" : "Play soundtrack"}
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+
+          <div className="profileMusicInfo">
+            <span>NOW PLAYING</span>
+            <strong>{songTitle || "Profile Soundtrack"}</strong>
+            <small>{songArtist || `@${username}`}</small>
+          </div>
+
+          <div className={playing ? "musicBars active" : "musicBars"}>
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </section>
+      )}
+
+      {song && (
+        <section className="profileMusicBar">
+          <button
+            className={playing ? "musicPlayButton playing" : "musicPlayButton"}
+            onClick={() => void toggleMusic()}
+            aria-label={playing ? "Pause soundtrack" : "Play soundtrack"}
+          >
+            {playing ? "❚❚" : "▶"}
+          </button>
+
+          <div className="profileMusicInfo">
+            <span>NOW PLAYING</span>
+            <strong>{songTitle || "Profile Soundtrack"}</strong>
+            <small>{songArtist || `@${username}`}</small>
+          </div>
+
+          <div className={playing ? "musicBars active" : "musicBars"}>
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+        </section>
+      )}
+
+      <section className="stats socialStats">
+        <button
+          onClick={() =>
+            jumpToProfileTab("posts")
+          }
+        >
+          <strong>{posts.length}</strong>
+          <span>Posts</span>
+        </button>
+
+        <button
+          onClick={() =>
+            void openSocialList("followers")
+          }
+        >
+          <strong>{followers}</strong>
+          <span>Followers</span>
+        </button>
+
+        <button
+          onClick={() =>
+            void openSocialList("following")
+          }
+        >
+          <strong>{following}</strong>
+          <span>Following</span>
+        </button>
+
+        <button
+          onClick={() =>
+            jumpToProfileTab("crew")
+          }
+        >
+          <strong>{crew.length}/8</strong>
+          <span>Top 8</span>
+        </button>
+      </section>
+
+
+      <section className="top8Spotlight">
+        <div className="top8Heading">
+          <div>
+            <p>UTV INNER CIRCLE</p>
+            <h2>Top 8</h2>
+          </div>
+
+          <button onClick={() => setTab("crew")}>
+            View all
+          </button>
+        </div>
+
+        <CrewGrid crew={crew.slice(0, 8)} router={router} />
+      </section>
+
+      <nav className="tabs">
+        {(
+          [
+            ["posts", "Posts"],
+            ["featured", "Featured"],
+            ["crew", "Top 8"],
+            ["about", "About"],
+          ] as [Tab, string][]
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            className={tab === id ? "active" : ""}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="swipeHint">
+        <span>‹</span>
+        Swipe to explore
+        <span>›</span>
+      </div>
+
+      <section
+        className="content swipeContent"
+        onTouchStart={(event) => {
+          setTabTouchEnd(null);
+          setTabTouchStart(
+            event.targetTouches[0]?.clientX ?? null
+          );
+        }}
+        onTouchMove={(event) => {
+          setTabTouchEnd(
+            event.targetTouches[0]?.clientX ?? null
+          );
+        }}
+        onTouchEnd={finishProfileSwipe}
+      >
+        {tab === "featured" && (
+          <>
+            <section className="soundtrack">
+              <div className="soundIcon">♫</div>
+
+              <div className="soundInfo">
+                <p>PROFILE SOUNDTRACK</p>
+
+                <h2>
+                  {song
+                    ? songTitle
+                    : "No soundtrack yet"}
+                </h2>
+
+                <span>
+                  {song
+                    ? songArtist ||
+                      `Sound of @${username}`
+                    : `${name} hasn't added a profile song yet.`}
+                </span>
+              </div>
+
+              {song && (
+                <button onClick={toggleMusic}>
+                  {playing ? "❚❚" : "▶"}
+                </button>
+              )}
+            </section>
+
+            <section className="crewSection">
+              <div className="heading">
+                <div>
+                  <p>INNER CIRCLE</p>
+                  <h2>Top 8 Crew</h2>
+                </div>
+
+                <button onClick={() => setTab("crew")}>
+                  View all
+                </button>
+              </div>
+
+              <CrewGrid crew={crew} router={router} />
+            </section>
+
+            <section>
+              <div className="heading">
+                <div>
+                  <p>SPOTLIGHT</p>
+                  <h2>Featured</h2>
+                </div>
+
+                <button onClick={() => setTab("posts")}>
+                  See all
+                </button>
+              </div>
+
+              <MediaGrid items={featured} router={router} />
+            </section>
+          </>
+        )}
+
+        {tab === "posts" && (
+          <>
+            <div className="heading">
+              <div>
+                <p>LATEST FROM @{username}</p>
+                <h2>Posts</h2>
+              </div>
+            </div>
+
+            <MediaGrid items={posts} router={router} />
+          </>
+        )}
+
+        {tab === "crew" && (
+          <>
+            <div className="heading">
+              <div>
+                <p>INNER CIRCLE</p>
+                <h2>{name}'s Top 8</h2>
+              </div>
+            </div>
+
+            <CrewGrid crew={crew} router={router} />
+          </>
+        )}
+
+        {tab === "about" && (
+          <div className="about">
+            <article>
+              <span>🎵</span>
+              <b>Profile soundtrack</b>
+              <p>{song ? songTitle : "Not added yet"}</p>
+            </article>
+
+            <article>
+              <span>👥</span>
+              <b>Top Crew</b>
+              <p>{crew.length} of 8 featured</p>
+            </article>
+
+            <article>
+              <span>🎬</span>
+              <b>Creator posts</b>
+              <p>{posts.length} posts on UTV</p>
+            </article>
+
+            <article>
+              <span>⚡</span>
+              <b>About</b>
+              <p>{bio}</p>
+            </article>
+          </div>
+        )}
+      </section>
+
+
+      {song && autoplayBlocked && (
+        <button
+          className="tapForSound"
+          onClick={() => void toggleMusic()}
+        >
+          <span>♫</span>
+          <div>
+            <strong>{songTitle || "Profile soundtrack"}</strong>
+            <small>Tap for sound</small>
+          </div>
+          <b>▶</b>
+        </button>
+      )}
+
+
+      {socialSheet && (
+        <div
+          className="socialSheetBackdrop"
+          onClick={() =>
+            setSocialSheet(null)
+          }
+        >
+          <section
+            className="socialPeopleSheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="socialSheetHandle" />
+
+            <header>
+              <div>
+                <p>UTV SOCIAL</p>
+
+                <h2>
+                  {socialSheet === "followers"
+                    ? "Followers"
+                    : "Following"}
+                </h2>
+
+                <span>
+                  @{username}
+                </span>
+              </div>
+
+              <button
+                onClick={() =>
+                  setSocialSheet(null)
+                }
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="peopleList">
+              {socialLoading ? (
+                <div className="peopleEmpty">
+                  <div className="miniSpinner" />
+                  <b>Loading people…</b>
+                </div>
+              ) : socialUsers.length ? (
+                socialUsers.map(
+                  (person: any) => (
+                    <button
+                      key={person.email}
+                      className="personRow"
+                      onClick={() => {
+                        setSocialSheet(null);
+
+                        router.push(
+                          `/u/${encodeURIComponent(
+                            person.email
+                          )}`
+                        );
+                      }}
+                    >
+                      <div className="personAvatar">
+                        {person.avatar ? (
+                          <img
+                            src={person.avatar}
+                            alt={person.name}
+                          />
+                        ) : (
+                          <span>
+                            {person.name
+                              .slice(0, 1)
+                              .toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <strong>
+                          {person.name}
+                        </strong>
+
+                        <small>
+                          @{person.username}
+                        </small>
+
+                        <em>
+                          {person.category}
+                        </em>
+                      </div>
+
+                      <b>›</b>
+                    </button>
+                  )
+                )
+              ) : (
+                <div className="peopleEmpty">
+                  <span>👥</span>
+
+                  <b>
+                    No people here yet
+                  </b>
+
+                  <small>
+                    Build your UTV circle.
+                  </small>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {contactOpen && !isOwner && (
+        <div
+          className="contactBackdrop"
+          onClick={() => setContactOpen(false)}
+        >
+          <section
+            className="contactSheet"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="contactHandle" />
+
+            <div className="contactTitle">
+              <div>
+                <p>CONNECT WITH</p>
+                <h2>{name}</h2>
+                <span>@{username}</span>
+              </div>
+
+              <button
+                className="contactClose"
+                onClick={() => setContactOpen(false)}
+                aria-label="Close contact menu"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="contactOptions">
+              <button
+                onClick={() =>
+                  router.push(
+                    `/calls?to=${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                <span>📞</span>
+                <div>
+                  <strong>Audio Call</strong>
+                  <small>Start a UTV voice call</small>
+                </div>
+                <b>›</b>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    `/calls?to=${encodeURIComponent(email)}&type=video`
+                  )
+                }
+              >
+                <span>📹</span>
+                <div>
+                  <strong>Video Call</strong>
+                  <small>Face-to-face on UTV</small>
+                </div>
+                <b>›</b>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    `/book/${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                <span>📅</span>
+                <div>
+                  <strong>Book Me</strong>
+                  <small>Business, appearances & creator work</small>
+                </div>
+                <b>›</b>
+              </button>
+            </div>
+
+            <button
+              className="contactCancel"
+              onClick={() => setContactOpen(false)}
+            >
+              Cancel
+            </button>
+          </section>
+        </div>
+      )}
+
+      {notice && (
+        <div className="notice">
+          {notice}
+        </div>
+      )}
+
+      <style jsx>{`
+
+
+        .creatorDashboardButton {
+          width: 100%;
+          min-height: 58px;
+          display: grid;
+          grid-template-columns: 35px 1fr auto;
+          align-items: center;
+          gap: 10px;
+          margin-top: 18px;
+          padding: 9px 13px;
+          border: 1px solid rgba(82,247,200,.25);
+          border-radius: 18px;
+          color: #fff;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.14),
+              rgba(123,97,255,.15)
+            );
+          text-align: left;
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          transition:
+            transform .18s ease,
+            border-color .18s ease,
+            box-shadow .18s ease;
+        }
+
+        .creatorDashboardButton:active {
+          transform: scale(.985);
+        }
+
+        .creatorDashboardButton.open {
+          border-color: rgba(82,247,200,.55);
+          box-shadow:
+            0 12px 38px rgba(82,247,200,.10);
+        }
+
+        .creatorDashboardButton > span {
+          width: 35px;
+          height: 35px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          color: #06140f;
+          background:
+            linear-gradient(135deg,#52f7c8,#9eff78);
+          font-size: 16px;
+        }
+
+        .creatorDashboardButton div {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .creatorDashboardButton strong {
+          font-size: 12px;
+        }
+
+        .creatorDashboardButton small {
+          color: rgba(255,255,255,.45);
+          font-size: 8px;
+        }
+
+        .creatorDashboardButton > b {
+          color: rgba(255,255,255,.55);
+          font-size: 17px;
+        }
+
+        .creatorDashboard {
+          overflow: hidden;
+          max-height: 0;
+          margin: 0 12px;
+          opacity: 0;
+          transform: translateY(-12px);
+          pointer-events: none;
+          transition:
+            max-height .42s cubic-bezier(.2,.75,.25,1),
+            opacity .25s ease,
+            transform .35s ease,
+            margin .35s ease;
+        }
+
+        .creatorDashboard.open {
+          max-height: 760px;
+          margin-top: 13px;
+          margin-bottom: 4px;
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        .creatorDashboard.open {
+          padding: 16px;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 24px;
+          background:
+            radial-gradient(
+              circle at 0% 0%,
+              rgba(82,247,200,.10),
+              transparent 36%
+            ),
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(123,97,255,.15),
+              transparent 40%
+            ),
+            rgba(8,12,20,.94);
+          box-shadow:
+            0 25px 70px rgba(0,0,0,.28);
+          backdrop-filter: blur(22px);
+          -webkit-backdrop-filter: blur(22px);
+        }
+
+        .dashboardHeader {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .dashboardHeader p {
+          margin: 0;
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .15em;
+        }
+
+        .dashboardHeader h2 {
+          margin: 4px 0 3px;
+          font-size: 22px;
+          letter-spacing: -.035em;
+        }
+
+        .dashboardHeader span {
+          color: rgba(255,255,255,.42);
+          font-size: 9px;
+        }
+
+        .dashboardHeader button {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 50%;
+          color: #fff;
+          background: rgba(255,255,255,.07);
+          font-size: 20px;
+        }
+
+        .creatorQuickActions {
+          display: grid;
+          grid-template-columns:
+            repeat(2,minmax(0,1fr));
+          gap: 8px;
+        }
+
+        .creatorQuickActions button {
+          min-height: 77px;
+          display: grid;
+          grid-template-columns: 40px 1fr;
+          align-items: center;
+          gap: 10px;
+          padding: 11px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 18px;
+          color: #fff;
+          background: rgba(255,255,255,.035);
+          text-align: left;
+          transition:
+            transform .15s ease,
+            background .15s ease;
+        }
+
+        .creatorQuickActions button:active {
+          transform: scale(.975);
+          background: rgba(255,255,255,.075);
+        }
+
+        .creatorQuickActions button > span {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(82,247,200,.18),
+              rgba(123,97,255,.22)
+            );
+          font-size: 16px;
+          font-weight: 1000;
+        }
+
+        .creatorQuickActions button > div {
+          min-width: 0;
+          display: grid;
+          gap: 3px;
+        }
+
+        .creatorQuickActions strong {
+          font-size: 10px;
+        }
+
+        .creatorQuickActions small {
+          overflow: hidden;
+          color: rgba(255,255,255,.38);
+          font-size: 7px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .creatorQuickActions .creatorPrimary {
+          grid-column: 1 / -1;
+          color: #06140f;
+          border: 0;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9dff78,
+              #9585ff
+            );
+        }
+
+        .creatorQuickActions .creatorPrimary > span {
+          color: #06140f;
+          background: rgba(255,255,255,.35);
+        }
+
+        .creatorQuickActions .creatorPrimary small {
+          color: rgba(6,20,15,.55);
+        }
+
+
+        .ownerProfileTools {
+          position: absolute;
+          z-index: 25;
+          top: 17px;
+          right: 16px;
+        }
+
+        .ownerCreatorButton {
+          min-height: 39px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border:
+            1px solid rgba(82,247,200,.25);
+          border-radius: 999px;
+          color: white;
+          background:
+            rgba(4,8,14,.72);
+          box-shadow:
+            0 10px 30px rgba(0,0,0,.22);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 25px;
+          height: 25px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: #06140f;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9eff78
+            );
+          font-size: 12px;
+        }
+
+        .ownerCreatorButton strong {
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .ownerCreatorButton > b {
+          color:
+            rgba(255,255,255,.55);
+          font-size: 11px;
+        }
+
+        .ownerCreatorButton.open {
+          border-color:
+            rgba(82,247,200,.65);
+          box-shadow:
+            0 10px 35px
+            rgba(82,247,200,.14);
+        }
+
+        .socialStats button {
+          border: 0;
+          color: inherit;
+          background: transparent;
+          font: inherit;
+          cursor: pointer;
+        }
+
+        .socialStats button:active {
+          transform: scale(.96);
+        }
+
+        .socialStats button {
+          transition:
+            transform .15s ease,
+            background .15s ease;
+        }
+
+        .socialSheetBackdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9200;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          padding: 12px;
+          background:
+            rgba(0,0,0,.72);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter:
+            blur(14px);
+        }
+
+        .socialPeopleSheet {
+          width: min(100%,520px);
+          max-height: 76vh;
+          overflow: hidden;
+          padding: 8px 14px 16px;
+          border:
+            1px solid rgba(255,255,255,.11);
+          border-radius: 28px;
+          color: white;
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(123,97,255,.16),
+              transparent 34%
+            ),
+            linear-gradient(
+              180deg,
+              #111722,
+              #06090f
+            );
+          box-shadow:
+            0 -30px 90px rgba(0,0,0,.55);
+          animation:
+            peopleSheetUp .25s ease both;
+        }
+
+        @keyframes peopleSheetUp {
+          from {
+            opacity: 0;
+            transform:
+              translateY(35px);
+          }
+
+          to {
+            opacity: 1;
+            transform:
+              translateY(0);
+          }
+        }
+
+        .socialSheetHandle {
+          width: 42px;
+          height: 4px;
+          margin: 1px auto 14px;
+          border-radius: 999px;
+          background:
+            rgba(255,255,255,.19);
+        }
+
+        .socialPeopleSheet header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 2px 3px 12px;
+        }
+
+        .socialPeopleSheet header p {
+          margin: 0;
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .15em;
+        }
+
+        .socialPeopleSheet header h2 {
+          margin: 3px 0 1px;
+          font-size: 25px;
+          letter-spacing: -.04em;
+        }
+
+        .socialPeopleSheet header span {
+          color:
+            rgba(255,255,255,.45);
+          font-size: 9px;
+        }
+
+        .socialPeopleSheet header button {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 50%;
+          color: white;
+          background:
+            rgba(255,255,255,.07);
+          font-size: 21px;
+        }
+
+        .peopleList {
+          max-height: 58vh;
+          overflow-y: auto;
+          display: grid;
+          gap: 5px;
+          padding-bottom: 5px;
+        }
+
+        .personRow {
+          width: 100%;
+          min-height: 67px;
+          display: grid;
+          grid-template-columns:
+            48px 1fr auto;
+          align-items: center;
+          gap: 11px;
+          padding: 8px 9px;
+          border: 0;
+          border-bottom:
+            1px solid rgba(255,255,255,.055);
+          color: white;
+          background: transparent;
+          text-align: left;
+        }
+
+        .personRow:active {
+          background:
+            rgba(255,255,255,.05);
+        }
+
+        .personAvatar {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          padding: 2px;
+          border-radius: 16px;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #7865ff,
+              #ff62b6
+            );
+        }
+
+        .personAvatar img,
+        .personAvatar span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          border:
+            3px solid #080c13;
+          border-radius: 14px;
+          object-fit: cover;
+          color: #07120e;
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #fff
+            );
+          font-size: 17px;
+          font-weight: 1000;
+        }
+
+        .personRow > div:nth-child(2) {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .personRow strong {
+          overflow: hidden;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .personRow small {
+          color: #52f7c8;
+          font-size: 8px;
+        }
+
+        .personRow em {
+          color:
+            rgba(255,255,255,.35);
+          font-size: 7px;
+          font-style: normal;
+        }
+
+        .personRow > b {
+          color:
+            rgba(255,255,255,.25);
+          font-size: 20px;
+        }
+
+        .peopleEmpty {
+          min-height: 180px;
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 6px;
+          color:
+            rgba(255,255,255,.55);
+          text-align: center;
+        }
+
+        .peopleEmpty > span {
+          font-size: 31px;
+        }
+
+        .peopleEmpty b {
+          color: white;
+          font-size: 11px;
+        }
+
+        .peopleEmpty small {
+          font-size: 8px;
+        }
+
+        .miniSpinner {
+          width: 28px;
+          height: 28px;
+          border:
+            3px solid
+            rgba(255,255,255,.11);
+          border-top-color:
+            #52f7c8;
+          border-radius: 50%;
+          animation:
+            socialSpin .7s linear infinite;
+        }
+
+        @keyframes socialSpin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .socialActions {
+          display:grid;
+          grid-template-columns:1fr 1fr 1fr;
+          gap:8px;
+          width:100%;
+          margin-top:18px;
+        }
+
+        .socialActions button {
+          min-height:46px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          gap:7px;
+          padding:0 12px;
+          border:1px solid rgba(255,255,255,.13);
+          border-radius:14px;
+          color:#fff;
+          background:rgba(255,255,255,.075);
+          font-size:11px;
+          font-weight:950;
+          backdrop-filter:blur(16px);
+          -webkit-backdrop-filter:blur(16px);
+        }
+
+        .socialActions .messageAction {
+          background:rgba(255,255,255,.09);
+        }
+
+        .socialActions .walkieAction {
+          position:relative;
+          overflow:hidden;
+          color:#04120d;
+          border-color:rgba(82,247,200,.6);
+          background:linear-gradient(135deg,#52f7c8,#8effdc);
+          box-shadow:0 10px 35px rgba(82,247,200,.19);
+        }
+
+        .walkiePulse {
+          width:7px;
+          height:7px;
+          border-radius:999px;
+          background:#06120d;
+          box-shadow:0 0 0 0 rgba(6,18,13,.35);
+          animation:walkieProfilePulse 1.4s infinite;
+        }
+
+        @keyframes walkieProfilePulse {
+          70% { box-shadow:0 0 0 8px rgba(6,18,13,0); }
+          100% { box-shadow:0 0 0 0 rgba(6,18,13,0); }
+        }
+
+        .socialActions .contactAction {
+          border-color:rgba(142,116,255,.35);
+          background:linear-gradient(
+            135deg,
+            rgba(123,97,255,.23),
+            rgba(82,247,200,.09)
+          );
+        }
+
+        .top8Spotlight {
+          margin:14px 12px 8px;
+          padding:15px;
+          border:1px solid rgba(255,255,255,.09);
+          border-radius:20px;
+          background:
+            radial-gradient(circle at 0% 0%,rgba(82,247,200,.08),transparent 38%),
+            rgba(255,255,255,.035);
+        }
+
+        .top8Heading {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          margin-bottom:12px;
+        }
+
+        .top8Heading p {
+          margin:0 0 3px;
+          color:#52f7c8;
+          font-size:8px;
+          font-weight:1000;
+          letter-spacing:.15em;
+        }
+
+        .top8Heading h2 {
+          margin:0;
+          font-size:21px;
+          letter-spacing:-.03em;
+        }
+
+        .top8Heading button {
+          border:0;
+          padding:7px 10px;
+          border-radius:999px;
+          color:rgba(255,255,255,.72);
+          background:rgba(255,255,255,.07);
+          font-size:9px;
+          font-weight:900;
+        }
+
+        .tapForSound {
+          position: fixed;
+          z-index: 7000;
+          left: 50%;
+          bottom: 102px;
+          width: min(420px,calc(100% - 28px));
+          min-height: 54px;
+          display: grid;
+          grid-template-columns: 38px 1fr auto;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          border: 1px solid rgba(82,247,200,.24);
+          border-radius: 18px;
+          color: #fff;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(5,10,16,.96),
+              rgba(18,17,36,.96)
+            );
+          box-shadow: 0 18px 55px rgba(0,0,0,.46);
+          transform: translateX(-50%);
+          text-align: left;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          animation: soundUp .25s ease both;
+        }
+
+        .tapForSound > span {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          color: #07120e;
+          background:
+            linear-gradient(135deg,#52f7c8,#8c7cff);
+          font-size: 18px;
+          font-weight: 1000;
+        }
+
+        .tapForSound div {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .tapForSound strong {
+          overflow: hidden;
+          font-size: 10px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .tapForSound small {
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 900;
+        }
+
+        .tapForSound > b {
+          font-size: 16px;
+        }
+
+        @keyframes soundUp {
+          from {
+            opacity: 0;
+            transform: translate(-50%,10px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translate(-50%,0);
+          }
+        }
+
+        .contactBackdrop {
+          position:fixed;
+          inset:0;
+          z-index:9000;
+          display:flex;
+          align-items:flex-end;
+          justify-content:center;
+          padding:18px 12px 12px;
+          background:rgba(0,0,0,.72);
+          backdrop-filter:blur(14px);
+          -webkit-backdrop-filter:blur(14px);
+        }
+
+        .contactSheet {
+          width:min(100%,520px);
+          padding:9px 14px 14px;
+          border:1px solid rgba(255,255,255,.13);
+          border-radius:28px;
+          background:
+            radial-gradient(circle at 90% 0%,rgba(123,97,255,.18),transparent 35%),
+            linear-gradient(180deg,#111725,#070a11);
+          box-shadow:0 -30px 90px rgba(0,0,0,.65);
+        }
+
+        .contactHandle {
+          width:42px;
+          height:4px;
+          margin:0 auto 13px;
+          border-radius:999px;
+          background:rgba(255,255,255,.2);
+        }
+
+        .contactTitle {
+          display:flex;
+          align-items:flex-start;
+          justify-content:space-between;
+          gap:12px;
+          padding:4px 5px 13px;
+        }
+
+        .contactTitle p {
+          margin:0;
+          color:#52f7c8;
+          font-size:8px;
+          font-weight:1000;
+          letter-spacing:.15em;
+        }
+
+        .contactTitle h2 {
+          margin:3px 0 1px;
+          font-size:25px;
+          letter-spacing:-.04em;
+        }
+
+        .contactTitle span {
+          color:rgba(255,255,255,.5);
+          font-size:11px;
+        }
+
+        .contactClose {
+          width:34px;
+          height:34px;
+          border:0;
+          border-radius:50%;
+          color:#fff;
+          background:rgba(255,255,255,.08);
+          font-size:22px;
+        }
+
+        .contactOptions {
+          display:grid;
+          gap:7px;
+        }
+
+        .contactOptions > button {
+          width:100%;
+          min-height:64px;
+          display:grid;
+          grid-template-columns:38px 1fr auto;
+          align-items:center;
+          gap:10px;
+          padding:9px 12px;
+          border:1px solid rgba(255,255,255,.08);
+          border-radius:16px;
+          color:#fff;
+          background:rgba(255,255,255,.045);
+          text-align:left;
+        }
+
+        .contactOptions > button > span {
+          width:38px;
+          height:38px;
+          display:grid;
+          place-items:center;
+          border-radius:12px;
+          background:rgba(255,255,255,.07);
+          font-size:18px;
+        }
+
+        .contactOptions > button div {
+          display:grid;
+          gap:2px;
+        }
+
+        .contactOptions strong {
+          font-size:11px;
+        }
+
+        .contactOptions small {
+          color:rgba(255,255,255,.45);
+          font-size:8px;
+        }
+
+        .contactOptions b {
+          color:rgba(255,255,255,.3);
+          font-size:20px;
+        }
+
+        .contactCancel {
+          width:100%;
+          min-height:43px;
+          margin-top:9px;
+          border:0;
+          border-radius:14px;
+          color:rgba(255,255,255,.72);
+          background:rgba(255,255,255,.055);
+          font-size:10px;
+          font-weight:900;
+        }
+
+        @media(max-width:390px) {
+          .socialActions {
+            gap:6px;
+          }
+
+          .socialActions button {
+            padding:0 7px;
+            font-size:9px;
+          }
+
+          .top8Spotlight {
+            margin-left:9px;
+            margin-right:9px;
+          }
+        }
+
+        .page {
+          min-height: 100vh;
+          padding-bottom: 150px;
+          color: white;
+          background:
+            radial-gradient(circle at 8% 0%,rgba(82,247,200,.14),transparent 30%),
+            radial-gradient(circle at 92% 6%,rgba(131,87,255,.22),transparent 34%),
+            linear-gradient(180deg,#07101d,#02040a);
+        }
+
+        .previewBar {
+          position: relative;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 13px 15px;
+          color: #061510;
+          background: linear-gradient(135deg,#53f4cd,#9cff78);
+        }
+
+        .previewBar b,
+        .previewBar span {
+          display: block;
+        }
+
+        .previewBar span {
+          margin-top: 2px;
+          font-size: 11px;
+          opacity: .7;
+        }
+
+        .previewBar button {
+          min-height: 40px;
+          border: 0;
+          border-radius: 13px;
+          padding: 0 13px;
+          color: white;
+          background: #07101d;
+          font-weight: 900;
+        }
+
+        .hero {
+          min-height: 560px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          gap: 24px;
+          padding: 22px 18px 32px;
+          background-position: center;
+          background-size: cover;
+        }
+
+        .identity {
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr);
+          align-items: end;
+          gap: 17px;
+        }
+
+        .avatar {
+          width: 112px;
+          height: 112px;
+          padding: 4px;
+          border-radius: 36px;
+          background:
+            linear-gradient(135deg,#53f4cd,#8b6dff,#ff5baa);
+          box-shadow: 0 18px 50px rgba(0,0,0,.45);
+        }
+
+        .avatar img,
+        .avatar span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          border: 4px solid #070b13;
+          border-radius: 32px;
+          object-fit: cover;
+          color: #061510;
+          background: linear-gradient(135deg,#53f4cd,#fff);
+          font-size: 42px;
+          font-weight: 1000;
+        }
+
+        .category {
+          margin: 0 0 7px;
+          color: #53f4cd;
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+          text-transform: uppercase;
+        }
+
+        h1 {
+          margin: 0;
+          font-size: clamp(42px,11vw,70px);
+          line-height: .92;
+          letter-spacing: -.055em;
+        }
+
+        .username {
+          display: block;
+          margin-top: 9px;
+          color: #53f4cd;
+          font-size: 18px;
+        }
+
+        .bio {
+          max-width: 580px;
+          margin: 10px 0 0;
+          color: rgba(255,255,255,.73);
+          line-height: 1.45;
+        }
+
+        .actions,
+        .ownerActions {
+          display: grid;
+          grid-template-columns: repeat(3,1fr);
+          gap: 9px;
+        }
+
+        .actions button,
+        .ownerActions button {
+          min-height: 53px;
+          border: 1px solid rgba(255,255,255,.16);
+          border-radius: 18px;
+          color: white;
+          background: rgba(5,9,16,.72);
+          backdrop-filter: blur(18px);
+          font-weight: 950;
+        }
+
+        .actions .primary {
+          color: #061510;
+          border: 0;
+          background:
+            linear-gradient(135deg,#53f4cd,#aaff79);
+        }
+
+        .stats {
+          position: relative;
+          z-index: 5;
+          display: grid;
+          grid-template-columns: repeat(4,minmax(0,1fr));
+          gap: 8px;
+          margin: -18px 14px 0;
+        }
+
+        .stats article {
+          min-width: 0;
+          padding: 18px 5px;
+          border: 1px solid rgba(255,255,255,.11);
+          border-radius: 21px;
+          background: rgba(8,13,23,.94);
+          text-align: center;
+          backdrop-filter: blur(18px);
+        }
+
+        .stats strong {
+          display: block;
+          font-size: 23px;
+        }
+
+        .stats span {
+          display: block;
+          margin-top: 3px;
+          color: rgba(255,255,255,.48);
+          font-size: 10px;
+          font-weight: 900;
+        }
+
+        .tabs {
+          position: sticky;
+          top: 0;
+          z-index: 80;
+          display: grid;
+          grid-template-columns: repeat(4,minmax(0,1fr));
+          gap: 6px;
+          margin: 14px;
+          padding: 7px;
+          border: 1px solid rgba(255,255,255,.11);
+          border-radius: 22px;
+          background: rgba(4,8,15,.92);
+          backdrop-filter: blur(22px);
+        }
+
+        .tabs button {
+          min-height: 44px;
+          border: 0;
+          border-radius: 15px;
+          color: rgba(255,255,255,.54);
+          background: transparent;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .tabs button.active {
+          color: #061510;
+          background:
+            linear-gradient(135deg,#53f4cd,#8e83ff);
+        }
+
+        .swipeHint {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin: -5px 0 7px;
+          color: rgba(255,255,255,.28);
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          user-select: none;
+        }
+
+        .swipeHint span {
+          color: #52f7c8;
+          font-size: 15px;
+        }
+
+        .content {
+          padding: 3px 14px 40px;
+        }
+
+        .swipeContent {
+          touch-action: pan-y;
+          animation: tabContentIn .24s ease both;
+        }
+
+        @keyframes tabContentIn {
+          from {
+            opacity: .55;
+            transform: translateX(8px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .soundtrack {
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr) auto;
+          align-items: center;
+          gap: 14px;
+          padding: 20px;
+          border: 1px solid rgba(255,255,255,.11);
+          border-radius: 27px;
+          background:
+            linear-gradient(
+              135deg,
+              rgba(129,88,255,.24),
+              rgba(82,247,200,.12)
+            );
+        }
+
+        .soundIcon {
+          width: 55px;
+          height: 55px;
+          display: grid;
+          place-items: center;
+          border-radius: 18px;
+          color: #061510;
+          background:
+            linear-gradient(135deg,#53f4cd,#8e83ff);
+          font-size: 27px;
+          font-weight: 1000;
+        }
+
+        .soundInfo {
+          min-width: 0;
+        }
+
+        .soundInfo p,
+        .heading p {
+          margin: 0;
+          color: #53f4cd;
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .13em;
+        }
+
+        .soundInfo h2 {
+          overflow: hidden;
+          margin: 4px 0;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .soundInfo span {
+          color: rgba(255,255,255,.55);
+          font-size: 11px;
+        }
+
+        .soundtrack button,
+        .heading button {
+          min-height: 44px;
+          border: 1px solid rgba(255,255,255,.15);
+          border-radius: 15px;
+          padding: 0 15px;
+          color: white;
+          background: rgba(4,8,15,.75);
+          font-weight: 950;
+        }
+
+        .heading {
+          display: flex;
+          align-items: end;
+          justify-content: space-between;
+          gap: 12px;
+          margin: 29px 3px 13px;
+        }
+
+        .heading h2 {
+          margin: 5px 0 0;
+          font-size: 25px;
+        }
+
+        .about {
+          display: grid;
+          grid-template-columns: repeat(2,minmax(0,1fr));
+          gap: 10px;
+        }
+
+        .about article {
+          min-height: 145px;
+          padding: 18px;
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 24px;
+          background: rgba(255,255,255,.045);
+        }
+
+        .about article > span {
+          display: block;
+          margin-bottom: 22px;
+          font-size: 27px;
+        }
+
+        .about b {
+          display: block;
+        }
+
+        .about p {
+          color: rgba(255,255,255,.5);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .notice {
+          position: fixed;
+          z-index: 3000;
+          left: 50%;
+          bottom: 130px;
+          width: min(430px,calc(100% - 30px));
+          padding: 14px;
+          border: 1px solid rgba(82,247,200,.28);
+          border-radius: 18px;
+          background: rgba(5,9,17,.96);
+          transform: translateX(-50%);
+          text-align: center;
+          font-weight: 900;
+        }
+
+        @media (max-width: 560px) {
+          .identity {
+            grid-template-columns: 1fr;
+          }
+
+          .avatar {
+            width: 96px;
+            height: 96px;
+          }
+
+          .previewBar {
+            align-items: flex-start;
+          }
+
+          .previewBar span {
+            display: none;
+          }
+        }
+
+        @media (min-width: 760px) {
+          .page {
+            max-width: 900px;
+            margin: auto;
+          }
+
+          .hero {
+            margin-top: 18px;
+            border-radius: 36px;
+          }
+        }
+
+
+        /* ===== UTV PROFILE POLISH ===== */
+
+        .page {
+          position: relative;
+          min-height: 100vh;
+          overflow-x: hidden;
+          background:
+            radial-gradient(
+              circle at 50% 600px,
+              rgba(100,70,190,.10),
+              transparent 48%
+            ),
+            #03060d;
+        }
+
+        .hero {
+          position: relative;
+          isolation: isolate;
+          min-height: 620px;
+          padding-bottom: 60px;
+          background-position: center top !important;
+          background-size: cover !important;
+        }
+
+        .hero::after {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          left: 0;
+          right: 0;
+          bottom: -90px;
+          height: 165px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(3,6,13,.96),
+              rgba(3,6,13,.68) 52%,
+              transparent
+            );
+        }
+
+        .identity {
+          position: relative;
+          z-index: 5;
+        }
+
+        .bio {
+          text-shadow: 0 2px 14px rgba(0,0,0,.8);
+        }
+
+        /* Creator control */
+
+        .ownerProfileTools {
+          position: absolute !important;
+          z-index: 80 !important;
+          top: 18px !important;
+          right: 16px !important;
+          width: auto !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        .ownerCreatorButton {
+          width: auto !important;
+          min-width: 96px !important;
+          min-height: 42px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 7px !important;
+          padding: 6px 11px 6px 7px !important;
+
+          border:
+            1px solid rgba(82,247,200,.46) !important;
+
+          border-radius: 999px !important;
+          color: white !important;
+          background: rgba(3,8,14,.84) !important;
+
+          box-shadow:
+            0 10px 32px rgba(0,0,0,.38),
+            0 0 18px rgba(82,247,200,.10) !important;
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 28px !important;
+          height: 28px !important;
+          display: grid !important;
+          place-items: center !important;
+          border-radius: 50% !important;
+          color: #04130e !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #a0ff7a
+            ) !important;
+        }
+
+        .ownerCreatorButton strong {
+          display: block !important;
+          color: white !important;
+          font-size: 10px !important;
+          font-weight: 950 !important;
+        }
+
+        .ownerCreatorButton > b {
+          display: block !important;
+          color: rgba(255,255,255,.60) !important;
+          font-size: 10px !important;
+        }
+
+        /* Profile music */
+
+        .profileMusicBar {
+          position: relative;
+          z-index: 25;
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr) auto;
+          align-items: center;
+          gap: 11px;
+
+          margin: -22px 12px 12px;
+          padding: 10px 12px;
+
+          border: 1px solid rgba(82,247,200,.20);
+          border-radius: 17px;
+
+          background:
+            linear-gradient(
+              110deg,
+              rgba(7,13,21,.86),
+              rgba(92,63,170,.18)
+            );
+
+          box-shadow: 0 12px 34px rgba(0,0,0,.22);
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .musicPlayButton {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 13px;
+          color: #06130f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9187ff
+            );
+
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .profileMusicInfo {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .profileMusicInfo span {
+          color: #52f7c8;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .16em;
+        }
+
+        .profileMusicInfo strong {
+          overflow: hidden;
+          color: white;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .profileMusicInfo small {
+          overflow: hidden;
+          color: rgba(255,255,255,.46);
+          font-size: 8px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .musicBars {
+          height: 26px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .musicBars i {
+          width: 2px;
+          height: 7px;
+          display: block;
+          border-radius: 99px;
+          background: rgba(82,247,200,.5);
+        }
+
+        .musicBars.active i {
+          animation:
+            utvProfileMusic .65s
+            ease-in-out infinite alternate;
+        }
+
+        .musicBars.active i:nth-child(2) {
+          animation-delay: -.3s;
+        }
+
+        .musicBars.active i:nth-child(3) {
+          animation-delay: -.12s;
+        }
+
+        .musicBars.active i:nth-child(4) {
+          animation-delay: -.45s;
+        }
+
+        @keyframes utvProfileMusic {
+          from {
+            height: 6px;
+            opacity: .45;
+          }
+
+          to {
+            height: 24px;
+            opacity: 1;
+          }
+        }
+
+        /* Cleaner social stats */
+
+        .stats.socialStats {
+          position: relative;
+          z-index: 20;
+          display: grid !important;
+          grid-template-columns:
+            repeat(4,minmax(0,1fr)) !important;
+
+          gap: 0 !important;
+          margin: 0 8px 12px !important;
+          padding: 7px 0 9px !important;
+
+          border: 0 !important;
+          border-top:
+            1px solid rgba(255,255,255,.065) !important;
+          border-bottom:
+            1px solid rgba(255,255,255,.065) !important;
+
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button {
+          position: relative;
+          min-width: 0 !important;
+          min-height: 57px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 2px !important;
+          margin: 0 !important;
+          padding: 4px 2px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button:not(:last-child)::after {
+          content: "";
+          position: absolute;
+          top: 13px;
+          right: 0;
+          width: 1px;
+          height: 31px;
+          background: rgba(255,255,255,.07);
+        }
+
+        .stats.socialStats strong {
+          color: white !important;
+          font-size: 25px !important;
+          line-height: 1 !important;
+        }
+
+        .stats.socialStats span {
+          margin-top: 4px !important;
+          color: rgba(255,255,255,.47) !important;
+          font-size: 10px !important;
+          font-weight: 900 !important;
+        }
+
+        /* Lower profile */
+
+        .top8Spotlight {
+          margin-left: 12px !important;
+          margin-right: 12px !important;
+
+          border-color:
+            rgba(255,255,255,.07) !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(9,16,27,.58),
+              rgba(37,31,72,.32)
+            ) !important;
+
+          box-shadow:
+            0 15px 40px rgba(0,0,0,.12) !important;
+
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .tabs {
+          background:
+            rgba(3,6,13,.74) !important;
+
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+
+
+
+        /* ===== UTV PROFILE POLISH ===== */
+
+        .page {
+          position: relative;
+          min-height: 100vh;
+          overflow-x: hidden;
+          background:
+            radial-gradient(
+              circle at 50% 600px,
+              rgba(100,70,190,.10),
+              transparent 48%
+            ),
+            #03060d;
+        }
+
+        .hero {
+          position: relative;
+          isolation: isolate;
+          min-height: 620px;
+          padding-bottom: 60px;
+          background-position: center top !important;
+          background-size: cover !important;
+        }
+
+        .hero::after {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          left: 0;
+          right: 0;
+          bottom: -90px;
+          height: 165px;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(3,6,13,.96),
+              rgba(3,6,13,.68) 52%,
+              transparent
+            );
+        }
+
+        .identity {
+          position: relative;
+          z-index: 5;
+        }
+
+        .bio {
+          text-shadow: 0 2px 14px rgba(0,0,0,.8);
+        }
+
+        /* Creator control */
+
+        .ownerProfileTools {
+          position: absolute !important;
+          z-index: 80 !important;
+          top: 18px !important;
+          right: 16px !important;
+          width: auto !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        .ownerCreatorButton {
+          width: auto !important;
+          min-width: 96px !important;
+          min-height: 42px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 7px !important;
+          padding: 6px 11px 6px 7px !important;
+
+          border:
+            1px solid rgba(82,247,200,.46) !important;
+
+          border-radius: 999px !important;
+          color: white !important;
+          background: rgba(3,8,14,.84) !important;
+
+          box-shadow:
+            0 10px 32px rgba(0,0,0,.38),
+            0 0 18px rgba(82,247,200,.10) !important;
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .ownerCreatorButton > span {
+          width: 28px !important;
+          height: 28px !important;
+          display: grid !important;
+          place-items: center !important;
+          border-radius: 50% !important;
+          color: #04130e !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #a0ff7a
+            ) !important;
+        }
+
+        .ownerCreatorButton strong {
+          display: block !important;
+          color: white !important;
+          font-size: 10px !important;
+          font-weight: 950 !important;
+        }
+
+        .ownerCreatorButton > b {
+          display: block !important;
+          color: rgba(255,255,255,.60) !important;
+          font-size: 10px !important;
+        }
+
+        /* Profile music */
+
+        .profileMusicBar {
+          position: relative;
+          z-index: 25;
+          display: grid;
+          grid-template-columns: auto minmax(0,1fr) auto;
+          align-items: center;
+          gap: 11px;
+
+          margin: -22px 12px 12px;
+          padding: 10px 12px;
+
+          border: 1px solid rgba(82,247,200,.20);
+          border-radius: 17px;
+
+          background:
+            linear-gradient(
+              110deg,
+              rgba(7,13,21,.86),
+              rgba(92,63,170,.18)
+            );
+
+          box-shadow: 0 12px 34px rgba(0,0,0,.22);
+
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+        }
+
+        .musicPlayButton {
+          width: 40px;
+          height: 40px;
+          display: grid;
+          place-items: center;
+          border: 0;
+          border-radius: 13px;
+          color: #06130f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #9187ff
+            );
+
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .profileMusicInfo {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .profileMusicInfo span {
+          color: #52f7c8;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .16em;
+        }
+
+        .profileMusicInfo strong {
+          overflow: hidden;
+          color: white;
+          font-size: 11px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .profileMusicInfo small {
+          overflow: hidden;
+          color: rgba(255,255,255,.46);
+          font-size: 8px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .musicBars {
+          height: 26px;
+          display: flex;
+          align-items: center;
+          gap: 3px;
+        }
+
+        .musicBars i {
+          width: 2px;
+          height: 7px;
+          display: block;
+          border-radius: 99px;
+          background: rgba(82,247,200,.5);
+        }
+
+        .musicBars.active i {
+          animation:
+            utvProfileMusic .65s
+            ease-in-out infinite alternate;
+        }
+
+        .musicBars.active i:nth-child(2) {
+          animation-delay: -.3s;
+        }
+
+        .musicBars.active i:nth-child(3) {
+          animation-delay: -.12s;
+        }
+
+        .musicBars.active i:nth-child(4) {
+          animation-delay: -.45s;
+        }
+
+        @keyframes utvProfileMusic {
+          from {
+            height: 6px;
+            opacity: .45;
+          }
+
+          to {
+            height: 24px;
+            opacity: 1;
+          }
+        }
+
+        /* Cleaner social stats */
+
+        .stats.socialStats {
+          position: relative;
+          z-index: 20;
+          display: grid !important;
+          grid-template-columns:
+            repeat(4,minmax(0,1fr)) !important;
+
+          gap: 0 !important;
+          margin: 0 8px 12px !important;
+          padding: 7px 0 9px !important;
+
+          border: 0 !important;
+          border-top:
+            1px solid rgba(255,255,255,.065) !important;
+          border-bottom:
+            1px solid rgba(255,255,255,.065) !important;
+
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button {
+          position: relative;
+          min-width: 0 !important;
+          min-height: 57px !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 2px !important;
+          margin: 0 !important;
+          padding: 4px 2px !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .stats.socialStats button:not(:last-child)::after {
+          content: "";
+          position: absolute;
+          top: 13px;
+          right: 0;
+          width: 1px;
+          height: 31px;
+          background: rgba(255,255,255,.07);
+        }
+
+        .stats.socialStats strong {
+          color: white !important;
+          font-size: 25px !important;
+          line-height: 1 !important;
+        }
+
+        .stats.socialStats span {
+          margin-top: 4px !important;
+          color: rgba(255,255,255,.47) !important;
+          font-size: 10px !important;
+          font-weight: 900 !important;
+        }
+
+        /* Lower profile */
+
+        .top8Spotlight {
+          margin-left: 12px !important;
+          margin-right: 12px !important;
+
+          border-color:
+            rgba(255,255,255,.07) !important;
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(9,16,27,.58),
+              rgba(37,31,72,.32)
+            ) !important;
+
+          box-shadow:
+            0 15px 40px rgba(0,0,0,.12) !important;
+
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .tabs {
+          background:
+            rgba(3,6,13,.74) !important;
+
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+
+
+      `}</style>
+    </main>
+  );
+}
+
+function CrewGrid({
+  crew,
+  router,
+}: {
+  crew: any[];
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (!crew.length) {
+    return (
+      <div className="empty">
+        <span>👥</span>
+        <h3>Top 8 coming soon.</h3>
+        <p>This creator hasn't selected their Top 8 yet.</p>
+
+        <style jsx>{`
+          .empty {
+            padding: 36px 20px;
+            border: 1px dashed rgba(255,255,255,.15);
+            border-radius: 25px;
+            color: rgba(255,255,255,.5);
+            text-align: center;
+          }
+
+          .empty span {
+            font-size: 38px;
+          }
+
+          .empty h3 {
+            margin-bottom: 5px;
+            color: white;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div className="crewGrid">
+      {crew.slice(0, 8).map((person) => (
+        <button
+          key={person.email}
+          onClick={() =>
+            router.push(
+              `/u/${encodeURIComponent(person.email)}`
+            )
+          }
+        >
+          <div className="photo">
+            {person.avatar ? (
+              <img src={person.avatar} alt={person.name} />
+            ) : (
+              <span>{person.name.slice(0, 1)}</span>
+            )}
+          </div>
+
+          <b>{person.name}</b>
+          <small>@{person.username}</small>
+        </button>
+      ))}
+
+      <style jsx>{`
+        .crewGrid {
+          display: grid;
+          grid-template-columns: repeat(4,minmax(0,1fr));
+          gap: 8px;
+        }
+
+        .crewGrid button {
+          min-width: 0;
+          padding: 10px 5px 13px;
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 19px;
+          color: white;
+          background: rgba(255,255,255,.045);
+        }
+
+        .photo {
+          width: 58px;
+          height: 58px;
+          margin: auto;
+          padding: 3px;
+          border-radius: 19px;
+          background:
+            linear-gradient(135deg,#53f4cd,#8e83ff,#ff5baa);
+        }
+
+        .photo img,
+        .photo span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          border: 3px solid #080d16;
+          border-radius: 16px;
+          object-fit: cover;
+          color: #061510;
+          background:
+            linear-gradient(135deg,#53f4cd,#8e83ff);
+          font-size: 22px;
+          font-weight: 1000;
+        }
+
+        .crewGrid b,
+        .crewGrid small {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .crewGrid b {
+          margin-top: 7px;
+          font-size: 10px;
+        }
+
+        .crewGrid small {
+          margin-top: 2px;
+          color: rgba(255,255,255,.4);
+          font-size: 8px;
+        }
+
+        @media (min-width: 700px) {
+          .crewGrid {
+            grid-template-columns: repeat(8,minmax(0,1fr));
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function MediaGrid({
+  items,
+  router,
+}: {
+  items: any[];
+  router: ReturnType<typeof useRouter>;
+}) {
+  if (!items.length) {
+    return (
+      <div className="emptyMedia">
+        <span>🎬</span>
+        <h3>No posts yet.</h3>
+
+        <style jsx>{`
+          .emptyMedia {
+            padding: 42px 20px;
+            border: 1px dashed rgba(255,255,255,.15);
+            border-radius: 25px;
+            color: rgba(255,255,255,.5);
+            text-align: center;
+          }
+
+          .emptyMedia span {
+            font-size: 38px;
+          }
+
+          .emptyMedia h3 {
+            color: white;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mediaGrid">
+      {items.map((item) => {
+        const image = pick(item, [
+          "thumbnail_url",
+          "cover_url",
+          "image_url",
+          "poster_url",
+        ]);
+
+        const video = pick(item, [
+          "video_url",
+          "file_url",
+          "media_url",
+          "url",
+        ]);
+
+        return (
+          <button
+            key={item.id || item.created_at}
+            onClick={() => {
+              if (item.id) {
+                router.push(`/watch/${item.id}`);
+              } else if (video) {
+                window.open(video, "_blank");
+              }
+            }}
+          >
+            {image ? (
+              <img
+                src={image}
+                alt={pick(item, ["title"], "UTV post")}
+              />
+            ) : video ? (
+              <video
+                src={video}
+                muted
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <span>UTV</span>
+            )}
+
+            <i />
+
+            <b>
+              {pick(item, ["title", "name"], "UTV post")}
+            </b>
+          </button>
+        );
+      })}
+
+      <style jsx>{`
+        .mediaGrid {
+          display: grid;
+          grid-template-columns: repeat(2,minmax(0,1fr));
+          gap: 9px;
+        }
+
+        .mediaGrid button {
+          position: relative;
+          min-height: 220px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,.1);
+          border-radius: 22px;
+          padding: 0;
+          color: white;
+          background: #090d15;
+          text-align: left;
+        }
+
+        .mediaGrid img,
+        .mediaGrid video,
+        .mediaGrid > button > span {
+          width: 100%;
+          height: 100%;
+          min-height: 220px;
+          display: grid;
+          place-items: center;
+          object-fit: cover;
+          background:
+            linear-gradient(135deg,#8259ff,#050812);
+          font-size: 32px;
+          font-weight: 1000;
+        }
+
+        .mediaGrid i {
+          position: absolute;
+          inset: 45% 0 0;
+          background:
+            linear-gradient(transparent,rgba(0,0,0,.92));
+        }
+
+        .mediaGrid b {
+          position: absolute;
+          right: 12px;
+          bottom: 12px;
+          left: 12px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 12px;
+        }
+
+        @media (min-width: 680px) {
+          .mediaGrid {
+            grid-template-columns: repeat(3,minmax(0,1fr));
+          }
+        }
+      `}</style>
+    </div>
+  );
+}

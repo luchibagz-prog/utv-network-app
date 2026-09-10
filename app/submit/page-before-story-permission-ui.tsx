@@ -1,0 +1,5547 @@
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useRouter } from "next/navigation";
+import UTVNav from "../components/UTVNav";
+import StoryCamera from "../components/story/StoryCamera";
+import { supabase } from "../../lib/supabaseClient";
+
+type Mode = "hub" | "camera" | "editor" | "share" | "link";
+type CameraFacing = "user" | "environment";
+type Destination = "feed" | "profile" | "world";
+
+type TextLayer = {
+  id: string;
+  text: string;
+  color: string;
+  size: number;
+  x: number;
+  y: number;
+};
+
+type StickerLayer = {
+  id: string;
+  value: string;
+  size: number;
+  x: number;
+  y: number;
+};
+
+type DragState = {
+  id: string;
+  startX: number;
+  startY: number;
+  originalX: number;
+  originalY: number;
+};
+
+const mainCreateOptions = [
+  {
+    title: "Story",
+    icon: "📖",
+    description: "Share a photo or video for 24 hours.",
+    type: "story",
+  },
+  {
+    title: "Feed Post",
+    icon: "📱",
+    description: "Post photos, videos, and updates.",
+    type: "feed",
+  },
+  {
+    title: "Go Live",
+    icon: "🔴",
+    description: "Broadcast and connect in real time.",
+    route: "/live-room",
+  },
+];
+
+const moreCreateOptions = [
+  {
+    title: "Paste Link",
+    icon: "🔗",
+    description: "Share hosted videos, images, or flyers.",
+    type: "link",
+  },
+  {
+    title: "TV Show",
+    icon: "🎬",
+    description: "Upload a show or episode.",
+    type: "show",
+  },
+  {
+    title: "Movie",
+    icon: "🎥",
+    description: "Upload a movie or short film.",
+    type: "movie",
+  },
+  {
+    title: "Podcast",
+    icon: "🎤",
+    description: "Upload a podcast episode.",
+    type: "podcast",
+  },
+  {
+    title: "Music Video",
+    icon: "🎵",
+    description: "Share music and visuals.",
+    type: "music",
+  },
+  {
+    title: "Sports",
+    icon: "🏀",
+    description: "Post sports content.",
+    type: "sports",
+  },
+  {
+    title: "Comedy",
+    icon: "😂",
+    description: "Post comedy or skits.",
+    type: "comedy",
+  },
+  {
+    title: "Event",
+    icon: "🎉",
+    description: "Promote an event.",
+    route: "/events/new",
+  },
+  {
+    title: "Casting",
+    icon: "🎭",
+    description: "Find talent.",
+    route: "/casting/new",
+  },
+  {
+    title: "Build Together",
+    icon: "🤝",
+    description: "Find collaborators.",
+    route: "/collabs/new",
+  },
+];
+
+const categories = [
+  "Feed",
+  "Music",
+  "Comedy",
+  "Sports",
+  "Skits",
+  "Business Promo",
+  "Event Promo",
+  "Live Replay",
+  "Live Event",
+  "Podcast",
+  "Show",
+  "Movie",
+];
+
+const stickerChoices = [
+  "🔥",
+  "💯",
+  "🎬",
+  "🎵",
+  "⭐",
+  "👑",
+  "😂",
+  "❤️",
+  "📍",
+  "🎤",
+  "🏆",
+  "✨",
+];
+
+const textColors = [
+  "#ffffff",
+  "#52f7c8",
+  "#7b61ff",
+  "#ffd166",
+  "#ff5ca8",
+  "#ff5f57",
+];
+
+function makeId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+}
+
+function cleanFileName(name: string) {
+  return name
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9._-]/g, "")
+    .toLowerCase();
+}
+
+function isImageUrl(url: string) {
+  return /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url);
+}
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(url);
+}
+
+function isEmbedUrl(url: string) {
+  const value = url.toLowerCase();
+
+  return (
+    value.includes("youtube.com") ||
+    value.includes("youtu.be") ||
+    value.includes("vimeo.com") ||
+    value.includes("tiktok.com") ||
+    value.includes("instagram.com")
+  );
+}
+
+export default function SubmitPage() {
+  const router = useRouter();
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const lastCameraTapRef =
+    useRef<number>(0);
+
+  const cameraTapTimerRef =
+    useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdRecordedRef = useRef(false);
+  const recordStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drawCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const drawHistoryRef = useRef<ImageData[]>([]);
+  const drawingRef = useRef(false);
+
+  const draggingTextRef = useRef<DragState | null>(null);
+  const draggingStickerRef = useRef<DragState | null>(null);
+  const lastTextTapRef = useRef<{ id: string; at: number } | null>(null);
+
+  const [mode, setMode] = useState<Mode>("hub");
+  const [creationType, setCreationType] = useState("feed");
+
+  const [cameraFacing, setCameraFacing] =
+    useState<CameraFacing>("environment");
+
+  const [recording, setRecording] = useState(false);
+  const [cameraStream, setCameraStream] =
+  useState<MediaStream | null>(null);
+  const [storyPanel, setStoryPanel] = useState<
+    "none" | "text" | "music" | "sticker" | "draw"
+  >("none");
+  const [textDraft, setTextDraft] = useState("");
+  const [textColor, setTextColor] = useState("#ffffff");
+  const [editingTextId, setEditingTextId] = useState("");
+  const [drawColor, setDrawColor] = useState("#ffffff");
+  const [drawTool, setDrawTool] = useState<
+    "pen" | "marker" | "neon" | "eraser"
+  >("pen");
+  const [drawVersion, setDrawVersion] = useState(0);
+
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState("");
+
+  const [mediaFit, setMediaFit] = useState<
+    "contain" | "cover" | "original"
+  >("contain");
+  const [mediaScale, setMediaScale] = useState(1);
+  const [mediaX, setMediaX] = useState(0);
+  const [mediaY, setMediaY] = useState(0);
+  const [mediaRotation, setMediaRotation] = useState(0);
+  const [blurBackground, setBlurBackground] = useState(false);
+
+  const mediaPointersRef = useRef<
+    Map<number, { x: number; y: number }>
+  >(new Map());
+
+  const mediaGestureRef = useRef<{
+    startDistance: number;
+    startAngle: number;
+    startScale: number;
+    startRotation: number;
+    dragStartX: number;
+    dragStartY: number;
+    originalX: number;
+    originalY: number;
+  } | null>(null);
+
+  const [linkUrl, setLinkUrl] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+
+  const [title, setTitle] = useState("");
+  const [caption, setCaption] = useState("");
+  const [category, setCategory] = useState("Feed");
+
+  const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
+  const [selectedTextId, setSelectedTextId] = useState("");
+
+  const [stickers, setStickers] = useState<StickerLayer[]>([]);
+  const [selectedStickerId, setSelectedStickerId] = useState("");
+
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [musicUrl, setMusicUrl] = useState("");
+  const [musicTitle, setMusicTitle] = useState("");
+  const [musicDuration, setMusicDuration] = useState(0);
+  const [musicStartSeconds, setMusicStartSeconds] = useState(0);
+  const [musicPreviewUrl, setMusicPreviewUrl] = useState("");
+  const [musicPreviewing, setMusicPreviewing] = useState(false);
+  const musicPreviewRef = useRef<HTMLAudioElement | null>(null);
+
+  const textPointerRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const stickerPointerRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const textPinchRef = useRef<{ id: string; distance: number; size: number } | null>(null);
+  const stickerPinchRef = useRef<{ id: string; distance: number; size: number } | null>(null);
+
+  const [destinations, setDestinations] = useState<
+    Record<Destination, boolean>
+  >({
+    feed: true,
+    profile: true,
+    world: false,
+  });
+
+  const [worldType, setWorldType] = useState("Feed");
+  const [city, setCity] = useState("Sacramento");
+  const [stateName, setStateName] = useState("CA");
+
+  const [posting, setPosting] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const isStory = creationType === "story";
+const selectedText = textLayers.find(
+  (layer) => layer.id === selectedTextId
+);
+
+const selectedSticker = stickers.find(
+  (sticker) => sticker.id === selectedStickerId
+);
+  const selectedDestinations = useMemo(
+    () =>
+      Object.entries(destinations)
+        .filter(([, enabled]) => enabled)
+        .map(([destination]) => destination),
+    [destinations]
+  );
+
+  const previewUrl = preview || linkUrl.trim();
+
+  const previewIsVideo =
+    Boolean(file?.type.startsWith("video")) ||
+    isVideoUrl(previewUrl) ||
+    isEmbedUrl(previewUrl);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedType = params.get("type");
+
+    if (requestedType) {
+      startCreate(requestedType);
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
+  function resetCreator() {
+    stopCamera();
+
+    if (preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setMode("hub");
+    setCreationType("feed");
+
+    setFile(null);
+    setPreview("");
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+    setLinkUrl("");
+    setCoverUrl("");
+
+    setTitle("");
+    setCaption("");
+    setCategory("Feed");
+
+    setTextLayers([]);
+    setSelectedTextId("");
+
+    setStickers([]);
+    setSelectedStickerId("");
+
+    setMusicFile(null);
+    setMusicUrl("");
+    setMusicTitle("");
+    setMusicDuration(0);
+    setMusicStartSeconds(0);
+    setMusicPreviewing(false);
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+    setMusicPreviewUrl("");
+
+    setDestinations({
+      feed: true,
+      profile: true,
+      world: false,
+    });
+
+    setWorldType("Feed");
+    setCity("Sacramento");
+    setStateName("CA");
+
+    setMessage("");
+    setPosting(false);
+    setStoryPanel("none");
+    setTextDraft("");
+    setEditingTextId("");
+    setDrawVersion(0);
+    drawHistoryRef.current = [];
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    if (recordStopTimerRef.current) clearTimeout(recordStopTimerRef.current);
+  }
+
+  function startCreate(type: string) {
+    const categoryMap: Record<string, string> = {
+      story: "Feed",
+      feed: "Feed",
+      show: "Show",
+      movie: "Movie",
+      podcast: "Podcast",
+      music: "Music",
+      sports: "Sports",
+      comedy: "Comedy",
+      link: "Feed",
+    };
+
+    setCreationType(type);
+    setCategory(categoryMap[type] || "Feed");
+    setMessage("");
+
+    if (type === "story") {
+      setDestinations({
+        feed: false,
+        profile: false,
+        world: false,
+      });
+    } else {
+      setDestinations({
+        feed: true,
+        profile: true,
+        world: false,
+      });
+    }
+
+    if (type === "link") {
+      stopCamera();
+      setMode("link");
+      return;
+    }
+
+    setMode("camera");
+
+    // Start immediately. Mobile browsers already handle the permission
+    // prompt asynchronously, so delaying this only makes Story feel slower.
+    void startCamera();
+  }
+
+  async function startCamera(
+    facing: CameraFacing = cameraFacing
+  ) {
+    try {
+      stopCamera();
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Camera is not supported on this device.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {
+            ideal: facing,
+          },
+
+          // Fast mobile-first Story preview.
+          // 1080p is plenty for capture while avoiding expensive 4K startup.
+          width: {
+            ideal: 1920,
+          },
+          height: {
+            ideal: 1080,
+          },
+          frameRate: {
+            ideal: 30,
+            max: 30,
+          },
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      streamRef.current = stream;
+      setCameraStream(stream);
+
+      setCameraFacing(facing);
+      setMessage("");
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        "Allow camera and microphone access, or choose a file from Gallery."
+      );
+    }
+  }
+
+  function stopCamera() {
+    if (
+      recorderRef.current &&
+      recorderRef.current.state !== "inactive"
+    ) {
+      recorderRef.current.stop();
+    }
+
+    streamRef.current?.getTracks().forEach((track) => {
+      track.stop();
+    });
+
+    streamRef.current = null;
+    recorderRef.current = null;
+    setCameraStream(null);
+    setRecording(false);
+  }
+
+  function handleCameraDoubleTap() {
+    const now =
+      Date.now();
+
+    const elapsed =
+      now -
+      lastCameraTapRef.current;
+
+    lastCameraTapRef.current =
+      now;
+
+    if (
+      elapsed > 0 &&
+      elapsed < 320
+    ) {
+      if (
+        cameraTapTimerRef.current
+      ) {
+        window.clearTimeout(
+          cameraTapTimerRef.current
+        );
+
+        cameraTapTimerRef.current =
+          null;
+      }
+
+      lastCameraTapRef.current =
+        0;
+
+      void flipCamera();
+    }
+  }
+
+  async function flipCamera() {
+    const nextFacing =
+      cameraFacing === "user" ? "environment" : "user";
+
+    await startCamera(nextFacing);
+  }
+
+  function pickFile(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFile = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!selectedFile) return;
+
+    if (
+      !selectedFile.type.startsWith("image/") &&
+      !selectedFile.type.startsWith("video/")
+    ) {
+      setMessage("Choose a photo or video.");
+      return;
+    }
+
+    if (preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+    setLinkUrl("");
+
+    stopCamera();
+    setMode("editor");
+    setMessage("");
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current;
+
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setMessage("Camera is still starting. Try again.");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      setMessage("Could not capture the photo.");
+      return;
+    }
+
+    if (cameraFacing === "user") {
+      context.translate(canvas.width, 0);
+      context.scale(-1, 1);
+    }
+
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setMessage("Could not capture the photo.");
+          return;
+        }
+
+        const capturedFile = new File(
+          [blob],
+          `utv-photo-${Date.now()}.jpg`,
+          {
+            type: "image/jpeg",
+          }
+        );
+
+        setFile(capturedFile);
+        setPreview(URL.createObjectURL(blob));
+
+        stopCamera();
+        setMode("editor");
+      },
+      "image/jpeg",
+      0.92
+    );
+  }
+
+  function acceptStoryPhoto(capturedFile: File) {
+    if (preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
+
+    setFile(capturedFile);
+    setPreview(URL.createObjectURL(capturedFile));
+    setMediaFit("cover");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+    setLinkUrl("");
+    setMessage("");
+
+    stopCamera();
+    setMode("editor");
+  }
+
+  function startRecording() {
+    if (!streamRef.current) {
+      setMessage("Camera is not ready.");
+      return;
+    }
+
+    chunksRef.current = [];
+
+    const preferredType =
+      MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+        ? "video/webm;codecs=vp8,opus"
+        : MediaRecorder.isTypeSupported("video/webm")
+        ? "video/webm"
+        : "";
+
+    try {
+      const recorder = new MediaRecorder(
+        streamRef.current,
+        preferredType
+          ? {
+              mimeType: preferredType,
+            }
+          : undefined
+      );
+
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, {
+          type: preferredType || "video/webm",
+        });
+
+        const recordedFile = new File(
+          [blob],
+          `utv-video-${Date.now()}.webm`,
+          {
+            type: preferredType || "video/webm",
+          }
+        );
+
+        setFile(recordedFile);
+        setPreview(URL.createObjectURL(blob));
+
+        streamRef.current?.getTracks().forEach((track) => {
+          track.stop();
+        });
+
+        streamRef.current = null;
+        recorderRef.current = null;
+
+        setRecording(false);
+        setMode("editor");
+      };
+
+      recorder.start();
+      setRecording(true);
+      setMessage("");
+      const maxRecordingMs = isStory ? 15000 : 30000;
+
+      recordStopTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, maxRecordingMs);
+    } catch (error) {
+      console.error(error);
+      setMessage("Video recording could not start.");
+    }
+  }
+
+  function stopRecording() {
+    if (recordStopTimerRef.current) {
+      clearTimeout(recordStopTimerRef.current);
+      recordStopTimerRef.current = null;
+    }
+
+    if (
+      recorderRef.current &&
+      recorderRef.current.state !== "inactive"
+    ) {
+      recorderRef.current.stop();
+    }
+  }
+
+  function beginStoryCapture() {
+    if (recording) return;
+    holdRecordedRef.current = false;
+    holdTimerRef.current = setTimeout(() => {
+      holdRecordedRef.current = true;
+      startRecording();
+    }, 320);
+  }
+
+  function endStoryCapture() {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (holdRecordedRef.current) {
+      stopRecording();
+      window.setTimeout(() => {
+        holdRecordedRef.current = false;
+      }, 250);
+    }
+  }
+
+  function cancelStoryCapture() {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+
+    if (holdRecordedRef.current) stopRecording();
+  }
+    function toggleDestination(destination: Destination) {
+    setDestinations((current) => ({
+      ...current,
+      [destination]: !current[destination],
+    }));
+  }
+
+  function addTextLayer() {
+    const text = window.prompt(
+      isStory ? "Add text to your story" : "Add text to your post"
+    );
+
+    if (!text?.trim()) return;
+
+    const layer: TextLayer = {
+      id: makeId("text"),
+      text: text.trim(),
+      color: "#ffffff",
+      size: 32,
+      x: 50,
+      y: 38,
+    };
+
+    setTextLayers((current) => [...current, layer]);
+    setSelectedTextId(layer.id);
+    setSelectedStickerId("");
+  }
+
+  function updateSelectedText(changes: Partial<TextLayer>) {
+    if (!selectedTextId) return;
+
+    setTextLayers((current) =>
+      current.map((layer) =>
+        layer.id === selectedTextId
+          ? {
+              ...layer,
+              ...changes,
+            }
+          : layer
+      )
+    );
+  }
+
+  function deleteSelectedText() {
+    if (!selectedTextId) return;
+
+    setTextLayers((current) =>
+      current.filter((layer) => layer.id !== selectedTextId)
+    );
+
+    setSelectedTextId("");
+  }
+
+  function addSticker(value: string) {
+    const sticker: StickerLayer = {
+      id: makeId("sticker"),
+      value,
+      size: 48,
+      x: 50,
+      y: 52,
+    };
+
+    setStickers((current) => [...current, sticker]);
+    setSelectedStickerId(sticker.id);
+    setSelectedTextId("");
+  }
+
+  function updateSelectedSticker(
+    changes: Partial<StickerLayer>
+  ) {
+    if (!selectedStickerId) return;
+
+    setStickers((current) =>
+      current.map((sticker) =>
+        sticker.id === selectedStickerId
+          ? {
+              ...sticker,
+              ...changes,
+            }
+          : sticker
+      )
+    );
+  }
+
+  function deleteSelectedSticker() {
+    if (!selectedStickerId) return;
+
+    setStickers((current) =>
+      current.filter(
+        (sticker) => sticker.id !== selectedStickerId
+      )
+    );
+
+    setSelectedStickerId("");
+  }
+
+  function pointerGap(
+    points: { x: number; y: number }[]
+  ) {
+    if (points.length < 2) return 0;
+    return Math.hypot(
+      points[1].x - points[0].x,
+      points[1].y - points[0].y
+    );
+  }
+
+  function beginTextDrag(
+    event: React.PointerEvent<HTMLDivElement>,
+    layer: TextLayer
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    textPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(textPointerRef.current.values());
+
+    if (pointers.length === 1) {
+      draggingTextRef.current = {
+        id: layer.id,
+        startX: event.clientX,
+        startY: event.clientY,
+        originalX: layer.x,
+        originalY: layer.y,
+      };
+      textPinchRef.current = null;
+    } else if (pointers.length === 2) {
+      draggingTextRef.current = null;
+      textPinchRef.current = {
+        id: layer.id,
+        distance: Math.max(1, pointerGap(pointers)),
+        size: layer.size,
+      };
+    }
+
+    setSelectedTextId(layer.id);
+    setSelectedStickerId("");
+  }
+
+  function moveText(
+    event: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (!textPointerRef.current.has(event.pointerId)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    textPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(textPointerRef.current.values());
+
+    if (pointers.length >= 2 && textPinchRef.current) {
+      const pinch = textPinchRef.current;
+      const distance = Math.max(1, pointerGap(pointers));
+      const nextSize = Math.max(
+        18,
+        Math.min(86, pinch.size * (distance / pinch.distance))
+      );
+
+      setTextLayers((current) =>
+        current.map((layer) =>
+          layer.id === pinch.id
+            ? { ...layer, size: Math.round(nextSize) }
+            : layer
+        )
+      );
+      return;
+    }
+
+    const drag = draggingTextRef.current;
+    if (!drag) return;
+
+    const editorBounds =
+      event.currentTarget.parentElement?.getBoundingClientRect();
+
+    if (!editorBounds) return;
+
+    const moveX =
+      ((event.clientX - drag.startX) / editorBounds.width) * 100;
+
+    const moveY =
+      ((event.clientY - drag.startY) / editorBounds.height) * 100;
+
+    setTextLayers((current) =>
+      current.map((layer) =>
+        layer.id === drag.id
+          ? {
+              ...layer,
+              x: Math.min(94, Math.max(6, drag.originalX + moveX)),
+              y: Math.min(94, Math.max(6, drag.originalY + moveY)),
+            }
+          : layer
+      )
+    );
+  }
+
+  function endTextDrag(
+    event?: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (event) {
+      textPointerRef.current.delete(event.pointerId);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    const remaining = Array.from(textPointerRef.current.values());
+
+    if (remaining.length < 2) {
+      textPinchRef.current = null;
+    }
+
+    if (remaining.length === 0) {
+      draggingTextRef.current = null;
+    }
+  }
+
+  function beginStickerDrag(
+    event: React.PointerEvent<HTMLDivElement>,
+    sticker: StickerLayer
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    stickerPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(stickerPointerRef.current.values());
+
+    if (pointers.length === 1) {
+      draggingStickerRef.current = {
+        id: sticker.id,
+        startX: event.clientX,
+        startY: event.clientY,
+        originalX: sticker.x,
+        originalY: sticker.y,
+      };
+      stickerPinchRef.current = null;
+    } else if (pointers.length === 2) {
+      draggingStickerRef.current = null;
+      stickerPinchRef.current = {
+        id: sticker.id,
+        distance: Math.max(1, pointerGap(pointers)),
+        size: sticker.size,
+      };
+    }
+
+    setSelectedStickerId(sticker.id);
+    setSelectedTextId("");
+  }
+
+  function moveSticker(
+    event: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (!stickerPointerRef.current.has(event.pointerId)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    stickerPointerRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const pointers = Array.from(stickerPointerRef.current.values());
+
+    if (pointers.length >= 2 && stickerPinchRef.current) {
+      const pinch = stickerPinchRef.current;
+      const distance = Math.max(1, pointerGap(pointers));
+      const nextSize = Math.max(
+        28,
+        Math.min(130, pinch.size * (distance / pinch.distance))
+      );
+
+      setStickers((current) =>
+        current.map((sticker) =>
+          sticker.id === pinch.id
+            ? { ...sticker, size: Math.round(nextSize) }
+            : sticker
+        )
+      );
+      return;
+    }
+
+    const drag = draggingStickerRef.current;
+    if (!drag) return;
+
+    const editorBounds =
+      event.currentTarget.parentElement?.getBoundingClientRect();
+
+    if (!editorBounds) return;
+
+    const moveX =
+      ((event.clientX - drag.startX) / editorBounds.width) * 100;
+
+    const moveY =
+      ((event.clientY - drag.startY) / editorBounds.height) * 100;
+
+    setStickers((current) =>
+      current.map((sticker) =>
+        sticker.id === drag.id
+          ? {
+              ...sticker,
+              x: Math.min(94, Math.max(6, drag.originalX + moveX)),
+              y: Math.min(94, Math.max(6, drag.originalY + moveY)),
+            }
+          : sticker
+      )
+    );
+  }
+
+  function endStickerDrag(
+    event?: React.PointerEvent<HTMLDivElement>
+  ) {
+    if (event) {
+      stickerPointerRef.current.delete(event.pointerId);
+
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    const remaining = Array.from(stickerPointerRef.current.values());
+
+    if (remaining.length < 2) {
+      stickerPinchRef.current = null;
+    }
+
+    if (remaining.length === 0) {
+      draggingStickerRef.current = null;
+    }
+  }
+
+  function chooseMusic(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!selectedFile) return;
+
+    if (!selectedFile.type.startsWith("audio/")) {
+      setMessage("Choose an audio file.");
+      return;
+    }
+
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+
+    const localUrl = URL.createObjectURL(selectedFile);
+    const probe = new Audio(localUrl);
+
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      const duration = Number.isFinite(probe.duration)
+        ? probe.duration
+        : 0;
+
+      setMusicDuration(duration);
+      setMusicStartSeconds(0);
+    };
+
+    setMusicFile(selectedFile);
+    setMusicUrl("");
+    setMusicPreviewUrl(localUrl);
+    setMusicPreviewing(false);
+
+    if (!musicTitle) {
+      setMusicTitle(
+        selectedFile.name.replace(/\.[^/.]+$/, "")
+      );
+    }
+
+    setMessage("");
+  }
+
+  function stopMusicPreview() {
+    const audio = musicPreviewRef.current;
+
+    if (audio) {
+      audio.pause();
+    }
+
+    setMusicPreviewing(false);
+  }
+
+  function previewMusicSelection() {
+    const audio = musicPreviewRef.current;
+
+    if (!audio) return;
+
+    audio.currentTime = Math.max(0, musicStartSeconds);
+    audio.play().catch(() => {});
+    setMusicPreviewing(true);
+  }
+
+  function updateMusicStart(value: number) {
+    const maxStart = Math.max(0, musicDuration - 30);
+    const next = Math.max(0, Math.min(maxStart, value));
+
+    setMusicStartSeconds(next);
+
+    const audio = musicPreviewRef.current;
+
+    if (audio) {
+      audio.currentTime = next;
+
+      if (musicPreviewing) {
+        audio.play().catch(() => {});
+      }
+    }
+  }
+
+  function removeMusic() {
+    stopMusicPreview();
+    setMusicFile(null);
+    setMusicUrl("");
+    setMusicTitle("");
+    setMusicDuration(0);
+    setMusicStartSeconds(0);
+
+    if (musicPreviewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(musicPreviewUrl);
+    }
+
+    setMusicPreviewUrl("");
+  }
+
+  function audioBufferToWavFile(
+    buffer: AudioBuffer,
+    name: string
+  ) {
+    const channels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const frameCount = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = channels * bytesPerSample;
+    const dataSize = frameCount * blockAlign;
+    const arrayBuffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arrayBuffer);
+
+    const writeString = (offset: number, value: string) => {
+      for (let index = 0; index < value.length; index += 1) {
+        view.setUint8(offset + index, value.charCodeAt(index));
+      }
+    };
+
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, dataSize, true);
+
+    let offset = 44;
+
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      for (let channel = 0; channel < channels; channel += 1) {
+        const sample = Math.max(
+          -1,
+          Math.min(1, buffer.getChannelData(channel)[frame])
+        );
+
+        view.setInt16(
+          offset,
+          sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+          true
+        );
+
+        offset += 2;
+      }
+    }
+
+    return new File(
+      [arrayBuffer],
+      `${cleanFileName(name.replace(/\.[^/.]+$/, "")) || "story-music"}-30s.wav`,
+      { type: "audio/wav" }
+    );
+  }
+
+  async function makeStoryMusicClip(sourceFile: File) {
+    if (!isStory || musicDuration <= 30.05) {
+      return sourceFile;
+    }
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }).webkitAudioContext;
+
+    if (!AudioContextClass) {
+      throw new Error(
+        "Music trimming is not supported in this browser."
+      );
+    }
+
+    const audioContext = new AudioContextClass();
+
+    try {
+      const inputBuffer = await sourceFile.arrayBuffer();
+      const decoded = await audioContext.decodeAudioData(
+        inputBuffer.slice(0)
+      );
+
+      const clipLength = Math.min(
+        30,
+        Math.max(0.1, decoded.duration - musicStartSeconds)
+      );
+
+      const startFrame = Math.floor(
+        Math.max(0, musicStartSeconds) * decoded.sampleRate
+      );
+
+      const frameCount = Math.min(
+        Math.floor(clipLength * decoded.sampleRate),
+        decoded.length - startFrame
+      );
+
+      const clip = audioContext.createBuffer(
+        decoded.numberOfChannels,
+        frameCount,
+        decoded.sampleRate
+      );
+
+      for (
+        let channel = 0;
+        channel < decoded.numberOfChannels;
+        channel += 1
+      ) {
+        const source = decoded.getChannelData(channel);
+        const target = clip.getChannelData(channel);
+
+        target.set(
+          source.subarray(
+            startFrame,
+            startFrame + frameCount
+          )
+        );
+      }
+
+      return audioBufferToWavFile(
+        clip,
+        sourceFile.name
+      );
+    } finally {
+      await audioContext.close().catch(() => {});
+    }
+  }
+
+  function openTextComposer(layer?: TextLayer) {
+    setEditingTextId(layer?.id || "");
+    setTextDraft(layer?.text || "");
+    setTextColor(layer?.color || "#ffffff");
+    setStoryPanel("text");
+  }
+
+  function saveStoryText() {
+    const value = textDraft.trim();
+    if (!value) {
+      setStoryPanel("none");
+      return;
+    }
+
+    if (editingTextId) {
+      setTextLayers((current) =>
+        current.map((layer) =>
+          layer.id === editingTextId
+            ? { ...layer, text: value, color: textColor }
+            : layer
+        )
+      );
+      setSelectedTextId(editingTextId);
+    } else {
+      const layer: TextLayer = {
+        id: makeId("text"),
+        text: value,
+        color: textColor,
+        size: 34,
+        x: 50,
+        y: 42,
+      };
+      setTextLayers((current) => [...current, layer]);
+      setSelectedTextId(layer.id);
+    }
+
+    setEditingTextId("");
+    setTextDraft("");
+    setStoryPanel("none");
+  }
+
+  function prepareDrawCanvas() {
+    window.setTimeout(() => {
+      const canvas = drawCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const ratio = Math.max(1, window.devicePixelRatio || 1);
+      const old = canvas.width && canvas.height
+        ? canvas.toDataURL()
+        : "";
+      canvas.width = Math.round(rect.width * ratio);
+      canvas.height = Math.round(rect.height * ratio);
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      if (old) {
+        const image = new Image();
+        image.onload = () => context.drawImage(image, 0, 0, rect.width, rect.height);
+        image.src = old;
+      }
+    }, 0);
+  }
+
+  function openDrawPanel() {
+    setStoryPanel("draw");
+    prepareDrawCanvas();
+  }
+
+  function beginDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    const ratio = Math.max(1, window.devicePixelRatio || 1);
+    context.save();
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawHistoryRef.current.push(
+      context.getImageData(0, 0, canvas.width / ratio, canvas.height / ratio)
+    );
+    context.restore();
+    const rect = canvas.getBoundingClientRect();
+    context.beginPath();
+    context.moveTo(event.clientX - rect.left, event.clientY - rect.top);
+    drawingRef.current = true;
+  }
+
+  function moveDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return;
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    event.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    context.globalCompositeOperation =
+      drawTool === "eraser" ? "destination-out" : "source-over";
+    context.strokeStyle = drawColor;
+    context.globalAlpha = drawTool === "marker" ? 0.42 : 1;
+    context.shadowBlur = drawTool === "neon" ? 14 : 0;
+    context.shadowColor = drawColor;
+    context.lineWidth =
+      drawTool === "marker" ? 18 : drawTool === "eraser" ? 24 : 6;
+    context.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+    context.stroke();
+    setDrawVersion((current) => current + 1);
+  }
+
+  function endDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    drawingRef.current = false;
+    const canvas = drawCanvasRef.current;
+    if (canvas?.hasPointerCapture(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+    const context = canvas?.getContext("2d");
+    if (context) {
+      context.globalAlpha = 1;
+      context.shadowBlur = 0;
+      context.globalCompositeOperation = "source-over";
+    }
+  }
+
+  function undoDrawing() {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    const previous = drawHistoryRef.current.pop();
+    if (!canvas || !context || !previous) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.putImageData(previous, 0, 0);
+    setDrawVersion((current) => current + 1);
+  }
+
+  function clearDrawing() {
+    const canvas = drawCanvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    drawHistoryRef.current = [];
+    setDrawVersion((current) => current + 1);
+  }
+
+  function getStoryDrawingData() {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return null;
+
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    const pixels = context.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    ).data;
+
+    let hasDrawing = false;
+
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] > 0) {
+        hasDrawing = true;
+        break;
+      }
+    }
+
+    if (!hasDrawing) return null;
+
+    try {
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      console.warn("Could not export Story drawing.", error);
+      return null;
+    }
+  }
+
+  function getStoryDurationSeconds() {
+    if (!previewIsVideo) {
+      return 7;
+    }
+
+    const video =
+      document.querySelector<HTMLVideoElement>(
+        ".storyMediaGesture video"
+      );
+
+    const duration = video?.duration;
+
+    if (
+      duration &&
+      Number.isFinite(duration) &&
+      duration > 0
+    ) {
+      return duration;
+    }
+
+    return 30;
+  }
+
+  async function uploadFileToBucket(
+    bucket: string,
+    folder: string,
+    selectedFile: File
+  ) {
+    const filePath = `${folder}/${Date.now()}-${cleanFileName(
+      selectedFile.name
+    )}`;
+
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, selectedFile, {
+        upsert: false,
+        contentType: selectedFile.type,
+        cacheControl: "3600",
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  async function uploadMedia(): Promise<{
+    mediaUrl: string;
+    mediaType: "image" | "video" | "embed" | "link";
+    thumbnail: string;
+  }> {
+    if (linkUrl.trim()) {
+      const cleanLink = linkUrl.trim();
+
+      return {
+        mediaUrl: cleanLink,
+        mediaType: isImageUrl(cleanLink)
+          ? "image"
+          : isVideoUrl(cleanLink)
+          ? "video"
+          : isEmbedUrl(cleanLink)
+          ? "embed"
+          : "link",
+        thumbnail:
+          coverUrl.trim() ||
+          (isImageUrl(cleanLink) ? cleanLink : ""),
+      };
+    }
+
+    if (!file) {
+      throw new Error("Choose a photo or video first.");
+    }
+
+    const mediaUrl = await uploadFileToBucket(
+      "uploads",
+      "creator-posts",
+      file
+    );
+
+    return {
+      mediaUrl,
+      mediaType: file.type.startsWith("image")
+        ? "image"
+        : "video",
+      thumbnail: coverUrl.trim(),
+    };
+  }
+
+  async function uploadMusic() {
+    if (musicFile) {
+      const selectedMusic =
+        isStory
+          ? await makeStoryMusicClip(musicFile)
+          : musicFile;
+
+      return uploadFileToBucket(
+        "story-music",
+        "audio",
+        selectedMusic
+      );
+    }
+
+    return musicUrl.trim();
+  }
+
+  async function shareStory() {
+    if (!file && !linkUrl.trim()) {
+      setMessage("Choose a photo or video first.");
+      return;
+    }
+
+    setPosting(true);
+    setMessage("");
+
+    try {
+      const { data: authData } =
+        await supabase.auth.getUser();
+
+      const user = authData.user;
+
+      if (!user?.email) {
+        router.push("/login");
+        return;
+      }
+
+      const media = await uploadMedia();
+      const finalMusicUrl = await uploadMusic();
+      const drawingData = getStoryDrawingData();
+      const storyDurationSeconds =
+        getStoryDurationSeconds();
+
+      const { data: storyRow, error: storyError } =
+        await supabase
+          .from("stories")
+          .insert({
+            user_email: user.email,
+            media_url: media.mediaUrl,
+            media_type:
+              media.mediaType === "image"
+                ? "image"
+                : "video",
+            caption: caption.trim(),
+            music_url: finalMusicUrl || null,
+            music_title: musicTitle.trim() || null,
+            text_overlay: textLayers,
+            stickers,
+            drawing_data: drawingData,
+            duration_seconds: storyDurationSeconds,
+            expires_at: new Date(
+              Date.now() + 24 * 60 * 60 * 1000
+            ).toISOString(),
+          })
+          .select("id, music_url, music_title, duration_seconds")
+          .single();
+
+      if (storyError) {
+        throw storyError;
+      }
+
+      // Launch reliability check:
+      // if music was selected, make sure the saved Story row
+      // actually came back with its permanent music URL.
+      if (finalMusicUrl && !storyRow?.music_url) {
+        throw new Error(
+          "Your Story uploaded, but the music did not save correctly. Please try again."
+        );
+      }
+
+      if (storyRow?.id) {
+        router.push(`/stories/${storyRow.id}`);
+      } else {
+        router.push("/feed");
+      }
+    } catch (error: any) {
+      console.error(error);
+
+      setMessage(
+        error?.message || "Could not share your story."
+      );
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function shareRegularPost() {
+    if (!file && !linkUrl.trim()) {
+      setMessage("Choose a photo, video, or link first.");
+      return;
+    }
+
+    if (!selectedDestinations.length) {
+      setMessage("Choose where you want to share.");
+      return;
+    }
+
+    setPosting(true);
+    setMessage("");
+
+    try {
+      const { data: authData } =
+        await supabase.auth.getUser();
+
+      const user = authData.user;
+
+      if (!user?.email) {
+        router.push("/login");
+        return;
+      }
+
+      const media = await uploadMedia();
+
+      const isVideo =
+        media.mediaType === "video" ||
+        media.mediaType === "embed" ||
+        media.mediaType === "link";
+
+      const premiumCategories = [
+        "Show",
+        "Movie",
+        "Podcast",
+        "Live Event",
+      ];
+
+      const needsApproval =
+        premiumCategories.includes(category);
+
+      let uploadId = "";
+
+      if (destinations.feed || destinations.profile) {
+        const visibility =
+          destinations.feed && destinations.profile
+            ? "feed"
+            : destinations.profile
+            ? "profile"
+            : "feed";
+
+        const { data: uploadRow, error: uploadError } =
+          await supabase
+            .from("uploads")
+            .insert({
+              title: title.trim() || "UTV Post",
+              description: caption.trim(),
+              category,
+              creator_email: user.email,
+              video_url: isVideo ? media.mediaUrl : "",
+              thumbnail_url:
+                media.thumbnail ||
+                (media.mediaType === "image"
+                  ? media.mediaUrl
+                  : ""),
+              media_url: media.mediaUrl,
+              file_url: media.mediaUrl,
+              external_url: linkUrl.trim() || "",
+              visibility,
+              content_type: category,
+              needs_approval: needsApproval,
+              approved: !needsApproval,
+            })
+            .select("id")
+            .single();
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        uploadId = uploadRow?.id || "";
+      }
+
+      if (destinations.world) {
+        const worldPayload = {
+          creator_email: user.email,
+          title: title.trim() || "UTV World Post",
+          description: caption.trim(),
+          world_type: worldType || category || "Feed",
+          city: city.trim(),
+          state: stateName.trim(),
+          location:
+            city || stateName
+              ? `${city.trim()}${
+                  city && stateName ? ", " : ""
+                }${stateName.trim()}`
+              : "UTV World",
+          is_live: false,
+          video_url: isVideo ? media.mediaUrl : "",
+          media_url: media.mediaUrl,
+        };
+
+        const { error: worldError } = await supabase
+          .from("world_posts")
+          .insert(worldPayload);
+
+        if (worldError) {
+          throw worldError;
+        }
+      }
+
+      if (
+        destinations.world &&
+        !destinations.feed &&
+        !destinations.profile
+      ) {
+        router.push("/world");
+        return;
+      }
+
+      if (
+        destinations.profile &&
+        !destinations.feed
+      ) {
+        router.push("/profile-pro-v12");
+        return;
+      }
+
+      router.push(uploadId ? "/feed" : "/feed");
+    } catch (error: any) {
+      console.error(error);
+
+      setMessage(
+        error?.message || "Could not post to UTV."
+      );
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  function resetMediaFrame() {
+    setMediaFit("contain");
+    setMediaScale(1);
+    setMediaX(0);
+    setMediaY(0);
+    setMediaRotation(0);
+    setBlurBackground(false);
+  }
+
+  function pointerDistance(
+    first: { x: number; y: number },
+    second: { x: number; y: number }
+  ) {
+    return Math.hypot(
+      second.x - first.x,
+      second.y - first.y
+    );
+  }
+
+  function pointerAngle(
+    first: { x: number; y: number },
+    second: { x: number; y: number }
+  ) {
+    return (
+      Math.atan2(
+        second.y - first.y,
+        second.x - first.x
+      ) *
+      (180 / Math.PI)
+    );
+  }
+
+  function beginMediaDrag(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    event.preventDefault();
+
+    event.currentTarget.setPointerCapture(
+      event.pointerId
+    );
+
+    mediaPointersRef.current.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    const pointers = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    if (pointers.length === 1) {
+      mediaGestureRef.current = {
+        startDistance: 0,
+        startAngle: 0,
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: event.clientX,
+        dragStartY: event.clientY,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    }
+
+    if (pointers.length === 2) {
+      mediaGestureRef.current = {
+        startDistance: pointerDistance(
+          pointers[0],
+          pointers[1]
+        ),
+        startAngle: pointerAngle(
+          pointers[0],
+          pointers[1]
+        ),
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: 0,
+        dragStartY: 0,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    }
+  }
+
+  function moveMedia(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    if (
+      !mediaPointersRef.current.has(
+        event.pointerId
+      )
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    mediaPointersRef.current.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
+
+    const pointers = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    const gesture =
+      mediaGestureRef.current;
+
+    if (!gesture) return;
+
+    if (pointers.length >= 2) {
+      const distance = pointerDistance(
+        pointers[0],
+        pointers[1]
+      );
+
+      const angle = pointerAngle(
+        pointers[0],
+        pointers[1]
+      );
+
+      const nextScale =
+        gesture.startDistance > 0
+          ? gesture.startScale *
+            (distance /
+              gesture.startDistance)
+          : gesture.startScale;
+
+      setMediaScale(
+        Math.max(
+          isStory ? 1 : 0.5,
+          Math.min(4, nextScale)
+        )
+      );
+
+      if (!isStory) {
+        setMediaRotation(
+          gesture.startRotation +
+            (angle - gesture.startAngle)
+        );
+      }
+
+      return;
+    }
+
+    const bounds =
+      event.currentTarget.parentElement
+        ?.getBoundingClientRect();
+
+    if (!bounds) return;
+
+    const movementX =
+      ((event.clientX -
+        gesture.dragStartX) /
+        bounds.width) *
+      100;
+
+    const movementY =
+      ((event.clientY -
+        gesture.dragStartY) /
+        bounds.height) *
+      100;
+
+    setMediaX(
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          gesture.originalX +
+            movementX
+        )
+      )
+    );
+
+    setMediaY(
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          gesture.originalY +
+            movementY
+        )
+      )
+    );
+  }
+
+  function endMediaDrag(
+    event: React.PointerEvent<HTMLElement>
+  ) {
+    mediaPointersRef.current.delete(
+      event.pointerId
+    );
+
+    if (
+      event.currentTarget.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    }
+
+    const remaining = Array.from(
+      mediaPointersRef.current.values()
+    );
+
+    if (remaining.length === 1) {
+      mediaGestureRef.current = {
+        startDistance: 0,
+        startAngle: 0,
+        startScale: mediaScale,
+        startRotation: mediaRotation,
+        dragStartX: remaining[0].x,
+        dragStartY: remaining[0].y,
+        originalX: mediaX,
+        originalY: mediaY,
+      };
+    } else if (remaining.length === 0) {
+      mediaGestureRef.current = null;
+    }
+  }
+
+  const mediaObjectFit =
+    mediaFit === "original"
+      ? "contain"
+      : mediaFit;
+
+  const mediaTransform = `
+    translate(${mediaX}%, ${mediaY}%)
+    rotate(${mediaRotation}deg)
+    scale(${mediaScale})
+  `;
+
+  function handleStoryCanvasTap(
+    event: React.MouseEvent<HTMLElement>
+  ) {
+    if (storyPanel !== "none") return;
+
+    const target = event.target as HTMLElement;
+
+    if (
+      target.closest(
+        "button,input,textarea,label,.storyFloatingTools,.storyLayerDock,.storyBottomActions,.storyMusicPill"
+      )
+    ) {
+      return;
+    }
+
+    if (selectedTextId || selectedStickerId) {
+      setSelectedTextId("");
+      setSelectedStickerId("");
+      return;
+    }
+
+    openTextComposer();
+  }
+
+  async function submitCreation() {
+    if (isStory) {
+      await shareStory();
+      return;
+    }
+
+    await shareRegularPost();
+  }
+    if (mode === "hub") {
+    return (
+      <main className="submitPage">
+        <UTVNav />
+        <style>{styles}</style>
+
+        <section className="createHero">
+          <img
+            src="/utv-logo.png"
+            alt="UTV"
+            className="createLogo"
+          />
+
+          <div>
+            <p>UTV CREATOR</p>
+            <h1>Create Something</h1>
+            <span>
+              Post a story, upload content, or go live.
+            </span>
+          </div>
+        </section>
+
+        <section className="mainCreateGrid">
+          {mainCreateOptions.map((option) => (
+            <button
+              key={option.title}
+              className={`mainCreateCard ${
+                option.title === "Story"
+                  ? "storyCreateCard"
+                  : option.title === "Feed Post"
+                  ? "feedCreateCard"
+                  : "liveCreateCard"
+              }`}
+              onClick={() => {
+                if (option.route) {
+                  router.push(option.route);
+                  return;
+                }
+
+                startCreate(option.type || "feed");
+              }}
+            >
+              <span>{option.icon}</span>
+
+              <div>
+                <h2>{option.title}</h2>
+                <p>{option.description}</p>
+              </div>
+            </button>
+          ))}
+        </section>
+
+        <section className="moreCreateSection">
+          <div className="sectionHeading">
+            <h2>More Ways to Create</h2>
+            <span>Build your audience on UTV</span>
+          </div>
+
+          <div className="moreCreateGrid">
+            {moreCreateOptions.map((option) => (
+              <button
+                key={option.title}
+                className="smallCreateCard"
+                onClick={() => {
+                  if (option.route) {
+                    router.push(option.route);
+                    return;
+                  }
+
+                  startCreate(option.type || "feed");
+                }}
+              >
+                <span>{option.icon}</span>
+                <h3>{option.title}</h3>
+                <p>{option.description}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (mode === "link") {
+    return (
+      <main className="submitPage">
+        <UTVNav />
+        <style>{styles}</style>
+
+        <section className="linkPanel">
+          <button
+            className="backPill"
+            onClick={resetCreator}
+          >
+            ← Back
+          </button>
+
+          <p className="eyebrow">SHARE A LINK</p>
+          <h1>Post to UTV</h1>
+
+          <input
+            className="formField"
+            placeholder="Paste video, image, or hosted media link"
+            value={linkUrl}
+            onChange={(event) =>
+              setLinkUrl(event.target.value)
+            }
+          />
+
+          <input
+            className="formField"
+            placeholder="Cover image URL — optional"
+            value={coverUrl}
+            onChange={(event) =>
+              setCoverUrl(event.target.value)
+            }
+          />
+
+          <input
+            className="formField"
+            placeholder="Title"
+            value={title}
+            onChange={(event) =>
+              setTitle(event.target.value)
+            }
+          />
+
+          <textarea
+            className="formField captionField"
+            placeholder="Caption"
+            value={caption}
+            onChange={(event) =>
+              setCaption(event.target.value)
+            }
+          />
+
+          <select
+            className="formField"
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value)
+            }
+          >
+            {categories.map((option) => (
+              <option key={option}>{option}</option>
+            ))}
+          </select>
+
+          <section className="destinationPanel">
+            <h3>Share To</h3>
+
+            <div className="destinationGrid">
+              {(
+                [
+                  "feed",
+                  "profile",
+                  "world",
+                ] as Destination[]
+              ).map((destination) => (
+                <button
+                  key={destination}
+                  className={
+                    destinations[destination]
+                      ? "destinationButton activeDestination"
+                      : "destinationButton"
+                  }
+                  onClick={() =>
+                    toggleDestination(destination)
+                  }
+                >
+                  {destination === "feed"
+                    ? "📱 Feed"
+                    : destination === "profile"
+                    ? "👤 Profile"
+                    : "🌍 World"}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {destinations.world && (
+            <section className="worldFields">
+              <select
+                className="formField"
+                value={worldType}
+                onChange={(event) =>
+                  setWorldType(event.target.value)
+                }
+              >
+                <option>Feed</option>
+                <option>Live</option>
+                <option>Event</option>
+                <option>Casting</option>
+                <option>Build Together</option>
+                <option>Music</option>
+                <option>Podcast</option>
+                <option>Business</option>
+                <option>Sports</option>
+                <option>Comedy</option>
+              </select>
+
+              <div className="twoFields">
+                <input
+                  className="formField"
+                  placeholder="City"
+                  value={city}
+                  onChange={(event) =>
+                    setCity(event.target.value)
+                  }
+                />
+
+                <input
+                  className="formField"
+                  placeholder="State"
+                  value={stateName}
+                  onChange={(event) =>
+                    setStateName(event.target.value)
+                  }
+                />
+              </div>
+            </section>
+          )}
+
+          <button
+            className="shareButton"
+            disabled={
+              posting ||
+              !linkUrl.trim() ||
+              selectedDestinations.length === 0
+            }
+            onClick={submitCreation}
+          >
+            {posting ? "Posting..." : "Post to UTV"}
+          </button>
+
+          {message && (
+            <p className="submitMessage">{message}</p>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+if (mode === "camera") {
+  if (isStory) {
+    return (
+      <>
+        <StoryCamera
+          stream={cameraStream}
+          facing={cameraFacing}
+          recording={recording}
+          onClose={resetCreator}
+          onFlip={flipCamera}
+          onCaptureStart={beginStoryCapture}
+          onCaptureEnd={endStoryCapture}
+          onCaptureCancel={cancelStoryCapture}
+          onPhotoCapture={acceptStoryPhoto}
+          onGallery={() => {
+            document
+              .getElementById("story-gallery-input")
+              ?.click();
+          }}
+        />
+
+        <input
+          id="story-gallery-input"
+          hidden
+          type="file"
+          accept="image/*,video/*"
+          onChange={pickFile}
+        />
+
+        {message && (
+          <div className="storyCameraError">
+            <style>{`
+              .storyCameraError {
+                position: fixed;
+                top: max(
+                  82px,
+                  calc(env(safe-area-inset-top) + 68px)
+                );
+                left: 50%;
+                z-index: 1200;
+                width: min(360px, calc(100% - 32px));
+                padding: 12px 15px;
+                color: white;
+                border: 1px solid rgba(255,255,255,.16);
+                border-radius: 14px;
+                background: rgba(170, 20, 35, .92);
+                box-shadow: 0 12px 35px rgba(0,0,0,.35);
+                font-size: 13px;
+                font-weight: 750;
+                line-height: 1.4;
+                text-align: center;
+                transform: translateX(-50%);
+                backdrop-filter: blur(14px);
+              }
+            `}</style>
+
+            {message}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <main className="utvCameraPage">
+      <style>{styles}</style>
+
+      <header className="cameraHeader">
+        <button
+          className="cameraHeaderButton"
+          onClick={resetCreator}
+          aria-label="Close camera"
+        >
+          ✕
+        </button>
+
+        <div className="cameraBrand">
+          <strong>U TV</strong>
+          <span>CREATE</span>
+        </div>
+
+        <button
+          className="cameraHeaderButton"
+          onClick={flipCamera}
+          aria-label="Flip camera"
+        >
+          ⟳
+        </button>
+      </header>
+
+      <section
+        className="cameraViewport"
+        onClick={handleCameraDoubleTap}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          disablePictureInPicture
+          controls={false}
+          className="cameraPreview"
+          style={{
+            transform:
+              cameraFacing === "user"
+                ? "scaleX(-1)"
+                : "none",
+          }}
+        />
+
+        <div className="cameraShade" />
+
+        <div className="cameraGrid">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <div className="cameraStatus">
+          <span className="cameraStatusDot" />
+
+          <strong>
+            {recording
+              ? "REC"
+              : "UTV CAMERA"}
+          </strong>
+
+          <small>
+            {cameraFacing ===
+            "user"
+              ? "FRONT"
+              : "BACK"}
+          </small>
+        </div>
+
+        {message && (
+          <div className="cameraMessage">
+            {message}
+          </div>
+        )}
+      </section>
+
+      <section className="cameraControls">
+        <div className="cameraModeRow">
+          <label className="cameraModeButton">
+            <span>🖼️</span>
+            <small>Gallery</small>
+
+            <input
+              hidden
+              type="file"
+              accept="image/*,video/*"
+              onChange={pickFile}
+            />
+          </label>
+
+          <button
+            className="cameraModeButton"
+            onClick={capturePhoto}
+          >
+            <span>📷</span>
+            <small>Photo</small>
+          </button>
+
+          <button
+            className={
+              recording
+                ? "mainCaptureButton recordingCapture"
+                : "mainCaptureButton"
+            }
+            onClick={
+              recording ? stopRecording : capturePhoto
+            }
+            aria-label="Capture photo"
+          >
+            <span />
+          </button>
+
+          <button
+            className="cameraModeButton"
+            onClick={
+              recording
+                ? stopRecording
+                : startRecording
+            }
+          >
+            <span>{recording ? "⏹️" : "🎥"}</span>
+            <small>
+              {recording ? "Stop" : "Video"}
+            </small>
+          </button>
+
+          <button
+            className="cameraModeButton"
+            onClick={() => router.push("/live-room")}
+          >
+            <span>🔴</span>
+            <small>Live</small>
+          </button>
+        </div>
+
+        <div className="cameraQuickModes">
+          <button
+            onClick={() => setCreationType("story")}
+          >
+            Story
+          </button>
+
+          <button
+            className="activeQuickMode"
+            onClick={() => setCreationType("feed")}
+          >
+            Post
+          </button>
+
+          <button
+            onClick={() => router.push("/live-room")}
+          >
+            Live
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+  if (isStory && mode === "share") {
+    return (
+      <main className="storySharePage">
+        <style>{styles}</style>
+        <header className="storyTopBar">
+          <button type="button" className="storyIconButton" onClick={() => setMode("editor")} aria-label="Back to editor">←</button>
+          <strong>Share Story</strong>
+          <span className="storyTopSpacer" />
+        </header>
+
+        <section className="storyShareBody">
+          <div className="storyShareIntro">
+            <div>
+              <p>READY TO DROP</p>
+              <h1>Your Story</h1>
+            </div>
+            <span>24H</span>
+          </div>
+
+          <div className="storySharePreview">
+            <div className="storySharePreviewBadge">UTV STORY</div>
+            {previewIsVideo ? (
+              <video
+                src={previewUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{
+                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                }}
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt="Story preview"
+                style={{
+                  transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})`,
+                }}
+              />
+            )}
+
+            {textLayers.map((layer) => (
+              <div
+                key={`preview-${layer.id}`}
+                className="storyShareTextLayer"
+                style={{
+                  left: `${layer.x}%`,
+                  top: `${layer.y}%`,
+                  color: layer.color,
+                  fontSize: `${Math.max(11, layer.size * 0.34)}px`,
+                }}
+              >
+                {layer.text}
+              </div>
+            ))}
+
+            {stickers.map((sticker) => (
+              <div
+                key={`preview-${sticker.id}`}
+                className="storyShareStickerLayer"
+                style={{
+                  left: `${sticker.x}%`,
+                  top: `${sticker.y}%`,
+                  fontSize: `${Math.max(14, sticker.size * 0.38)}px`,
+                }}
+              >
+                {sticker.value}
+              </div>
+            ))}
+          </div>
+
+          <div className="storyCaptionWrap">
+            <textarea
+              className="storyCaptionInput"
+              placeholder="Add a caption..."
+              value={caption}
+              maxLength={500}
+              onChange={(event) => setCaption(event.target.value)}
+            />
+            <span>{caption.length}/500</span>
+          </div>
+
+          {(musicFile || musicUrl.trim()) && (
+            <div className="storyShareMusic">🎵 {musicTitle || musicFile?.name || "Story music"}</div>
+          )}
+
+          <div className="storyDestinationRow">
+            <div className="storyDestinationAvatar">U</div>
+            <div><strong>Your Story</strong><span>Visible for 24 hours</span></div>
+            <span className="storySelectedCheck">✓</span>
+          </div>
+
+          {message && <p className="storyErrorMessage">{message}</p>}
+
+          <button type="button" className="storyPrimaryButton" disabled={posting} onClick={shareStory}>
+            <span className="storyPrimaryDot" />
+            {posting ? "Sharing Story..." : "Share to Your Story"}
+          </button>
+          <button type="button" className="storyCancelButton" disabled={posting} onClick={resetCreator}>Cancel</button>
+        </section>
+      </main>
+    );
+  }
+
+  if (isStory && mode === "editor") {
+    return (
+      <main className="storyEditorPage">
+        <style>{styles}</style>
+        <section
+          className="storyCanvas"
+          onClick={handleStoryCanvasTap}
+        >
+          <div
+            className="storyMediaGesture"
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+          >
+            {previewIsVideo ? (
+              <video
+                src={previewUrl}
+                className="storyMedia"
+                autoPlay
+                loop
+                muted
+                playsInline
+                disablePictureInPicture
+                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                className="storyMedia"
+                alt="Story preview"
+                draggable={false}
+                style={{ transform: `translate(${mediaX}%, ${mediaY}%) scale(${Math.max(1, mediaScale)})` }}
+              />
+            )}
+          </div>
+
+          <canvas
+            ref={drawCanvasRef}
+            className={`storyDrawCanvas ${storyPanel === "draw" ? "drawingActive" : ""}`}
+            onPointerDown={beginDrawing}
+            onPointerMove={moveDrawing}
+            onPointerUp={endDrawing}
+            onPointerCancel={endDrawing}
+            aria-label="Story drawing canvas"
+          />
+
+          {textLayers.map((layer) => (
+            <div
+              key={layer.id}
+              className={selectedTextId === layer.id ? "storyTextLayer storyLayerSelected" : "storyTextLayer"}
+              onPointerDown={(event) => beginTextDrag(event, layer)}
+              onPointerMove={moveText}
+              onPointerUp={endTextDrag}
+              onPointerCancel={endTextDrag}
+              onClick={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => { event.stopPropagation(); openTextComposer(layer); }}
+              style={{ left: `${layer.x}%`, top: `${layer.y}%`, color: layer.color, fontSize: `${layer.size}px` }}
+            >
+              {layer.text}
+            </div>
+          ))}
+
+          {stickers.map((sticker) => (
+            <div
+              key={sticker.id}
+              className={selectedStickerId === sticker.id ? "storyStickerLayer storyLayerSelected" : "storyStickerLayer"}
+              onPointerDown={(event) => beginStickerDrag(event, sticker)}
+              onPointerMove={moveSticker}
+              onPointerUp={endStickerDrag}
+              onPointerCancel={endStickerDrag}
+              onClick={(event) => event.stopPropagation()}
+              style={{ left: `${sticker.x}%`, top: `${sticker.y}%`, fontSize: `${sticker.size}px` }}
+            >
+              {sticker.value}
+            </div>
+          ))}
+
+          {(musicFile || musicUrl.trim()) && (
+            <div className="storyMusicPill">🎵 {musicTitle || musicFile?.name || "Music"}</div>
+          )}
+
+          {storyPanel === "none" && !selectedTextId && !selectedStickerId && (
+            <div className="storyGestureHint">Drag to move • Pinch to zoom</div>
+          )}
+
+          <div className="storyProgressRail" aria-hidden="true">
+            <span />
+          </div>
+
+          <header className="storyTopBar storyEditorTopBar">
+            <button
+              type="button"
+              className="storyIconButton"
+              aria-label="Back to camera"
+              onClick={() => {
+                setFile(null);
+                setPreview("");
+                setMode("camera");
+                window.setTimeout(() => startCamera(), 150);
+              }}
+            >←</button>
+
+            <div className="storyEditorBrand">
+              <strong>STORY</strong>
+              <span>CREATE</span>
+            </div>
+
+            <button
+              type="button"
+              className="storyNextButton"
+              onClick={() => setMode("share")}
+            >
+              Next →
+            </button>
+          </header>
+
+          <aside className="storyFloatingTools" aria-label="Story tools">
+            <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong><small>Text</small></button>
+            <button type="button" className="storyMusicTool" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
+            <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker"><span>☺</span><small>Sticker</small></button>
+            <button type="button" onClick={openDrawPanel} aria-label="Draw"><span>✎</span><small>Draw</small></button>
+          </aside>
+
+          {storyPanel === "none" && (
+            <div className="storyBottomActions" onPointerDown={(event) => event.stopPropagation()}>
+              <label className="storyBottomAction">
+                <span>▣</span>
+                <small>Gallery</small>
+                <input hidden type="file" accept="image/*,video/*" onChange={pickFile} />
+              </label>
+
+              <button
+                type="button"
+                className="storyBottomAction"
+                onClick={() => {
+                  setFile(null);
+                  setPreview("");
+                  setMode("camera");
+                  window.setTimeout(() => startCamera(), 150);
+                }}
+              >
+                <span>↻</span>
+                <small>Retake</small>
+              </button>
+            </div>
+          )}
+
+          {(selectedTextId || selectedStickerId) && storyPanel === "none" && (
+            <div className="storyLayerDock" onPointerDown={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedText) updateSelectedText({ size: Math.max(18, selectedText.size - 4) });
+                  if (selectedSticker) updateSelectedSticker({ size: Math.max(28, selectedSticker.size - 6) });
+                }}
+                aria-label="Make selected item smaller"
+              >−</button>
+
+              <span>{selectedText ? "Text" : "Sticker"}</span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedText) updateSelectedText({ size: Math.min(72, selectedText.size + 4) });
+                  if (selectedSticker) updateSelectedSticker({ size: Math.min(110, selectedSticker.size + 6) });
+                }}
+                aria-label="Make selected item larger"
+              >+</button>
+
+              {selectedText && (
+                <button
+                  type="button"
+                  className="storyLayerEdit"
+                  onClick={() => openTextComposer(selectedText)}
+                >Edit</button>
+              )}
+
+              <button
+                type="button"
+                className="storyLayerDelete"
+                onClick={() => {
+                  deleteSelectedText();
+                  deleteSelectedSticker();
+                }}
+                aria-label="Delete selected layer"
+              >🗑</button>
+            </div>
+          )}
+
+          {storyPanel === "text" && (
+            <div className="storyTextComposer" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storyComposerHeader">
+                <button type="button" onClick={() => setStoryPanel("none")}>Cancel</button>
+                <button type="button" onClick={saveStoryText}>Done</button>
+              </div>
+              <textarea
+                autoFocus
+                value={textDraft}
+                maxLength={180}
+                placeholder="Type something..."
+                onChange={(event) => setTextDraft(event.target.value)}
+                style={{ color: textColor }}
+              />
+              <div className="storyColorRow">
+                {textColors.map((color) => (
+                  <button
+                    type="button"
+                    key={color}
+                    aria-label={`Use ${color}`}
+                    className={textColor === color ? "storyColor selected" : "storyColor"}
+                    style={{ background: color }}
+                    onClick={() => setTextColor(color)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {storyPanel === "music" && (
+            <div className="storySheet storyMusicSheet" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+              <div className="storySheetHandle" />
+              <div className="storyMusicSheetHeader">
+                <div>
+                  <span>UTV MUSIC</span>
+                  <h2>Choose your moment</h2>
+                </div>
+                <strong>30 SEC</strong>
+              </div>
+
+              <label className="storySheetAction">
+                <span>♫</span>
+                <div><strong>Choose audio</strong><small>{musicFile?.name || "Select a song from your device"}</small></div>
+                <input hidden type="file" accept="audio/*" onChange={chooseMusic} />
+              </label>
+
+              {musicPreviewUrl && (
+                <audio
+                  ref={musicPreviewRef}
+                  src={musicPreviewUrl}
+                  preload="metadata"
+                  onTimeUpdate={(event) => {
+                    const audio = event.currentTarget;
+                    if (audio.currentTime >= musicStartSeconds + Math.min(30, Math.max(1, musicDuration - musicStartSeconds))) {
+                      audio.pause();
+                      setMusicPreviewing(false);
+                    }
+                  }}
+                  onEnded={() => setMusicPreviewing(false)}
+                />
+              )}
+
+              {(musicFile || musicUrl.trim()) && (
+                <>
+                  <input
+                    className="storyMusicTitleInput"
+                    placeholder="Song title"
+                    value={musicTitle}
+                    onChange={(event) => setMusicTitle(event.target.value)}
+                  />
+
+                  {musicDuration > 0 && (
+                    <div className="storyMusicTrimmer">
+                      <div className="musicTrimTimes">
+                        <strong>{Math.floor(musicStartSeconds / 60)}:{String(Math.floor(musicStartSeconds % 60)).padStart(2, "0")}</strong>
+                        <span>Selected clip</span>
+                        <strong>
+                          {Math.floor(Math.min(musicDuration, musicStartSeconds + 30) / 60)}:{String(Math.floor(Math.min(musicDuration, musicStartSeconds + 30) % 60)).padStart(2, "0")}
+                        </strong>
+                      </div>
+
+                      <div className="musicWaveMock" aria-hidden="true">
+                        {Array.from({ length: 28 }).map((_, index) => (
+                          <span key={index} style={{ height: `${24 + ((index * 17) % 48)}%` }} />
+                        ))}
+                      </div>
+
+                      <input
+                        className="musicTrimRange"
+                        type="range"
+                        min="0"
+                        max={Math.max(0, musicDuration - 30)}
+                        step="0.1"
+                        value={Math.min(musicStartSeconds, Math.max(0, musicDuration - 30))}
+                        onChange={(event) => updateMusicStart(Number(event.target.value))}
+                        aria-label="Choose the 30 second part of the song"
+                      />
+
+                      <button
+                        type="button"
+                        className="musicPreviewButton"
+                        onClick={musicPreviewing ? stopMusicPreview : previewMusicSelection}
+                      >
+                        {musicPreviewing ? "❚❚ Pause Preview" : "▶ Preview 30 Seconds"}
+                      </button>
+                    </div>
+                  )}
+
+                  <button type="button" className="storyRemoveAction" onClick={removeMusic}>Remove music</button>
+                </>
+              )}
+
+              <button
+                type="button"
+                className="storySheetDone"
+                onClick={() => {
+                  stopMusicPreview();
+                  setStoryPanel("none");
+                }}
+              >
+                Done
+              </button>
+            </div>
+          )}
+
+          {storyPanel === "sticker" && (
+            <div className="storySheet" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storySheetHandle" />
+              <h2>Stickers</h2>
+              <div className="storyStickerGrid">
+                {stickerChoices.map((value) => (
+                  <button type="button" key={value} onClick={() => { addSticker(value); setStoryPanel("none"); }}>{value}</button>
+                ))}
+              </div>
+              <button type="button" className="storySheetDone" onClick={() => setStoryPanel("none")}>Done</button>
+            </div>
+          )}
+
+          {storyPanel === "draw" && (
+            <div className="storyDrawToolbar" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storyDrawTools">
+                {(["pen", "marker", "neon", "eraser"] as const).map((tool) => (
+                  <button type="button" key={tool} className={drawTool === tool ? "active" : ""} onClick={() => setDrawTool(tool)}>{tool === "pen" ? "Pen" : tool === "marker" ? "Marker" : tool === "neon" ? "Neon" : "Erase"}</button>
+                ))}
+              </div>
+              <div className="storyColorRow compact">
+                {textColors.map((color) => (
+                  <button type="button" key={color} className={drawColor === color ? "storyColor selected" : "storyColor"} style={{ background: color }} onClick={() => setDrawColor(color)} aria-label={`Draw with ${color}`} />
+                ))}
+              </div>
+              <div className="storyDrawActions">
+                <button type="button" onClick={undoDrawing}>Undo</button>
+                <button type="button" onClick={clearDrawing}>Clear</button>
+                <button type="button" className="done" onClick={() => setStoryPanel("none")}>Done</button>
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="editorPage">
+      <style>{styles}</style>
+
+      <header className="editorHeader">
+        <button
+          className="circleButton"
+          onClick={() => {
+            setFile(null);
+            setPreview("");
+            setMode("camera");
+
+            window.setTimeout(() => {
+              startCamera();
+            }, 150);
+          }}
+        >
+          ←
+        </button>
+
+        <strong>
+          {isStory ? "Edit Story" : "Edit Post"}
+        </strong>
+
+        <button
+          className="shareTopButton"
+          disabled={posting}
+          onClick={submitCreation}
+        >
+          {posting
+            ? "..."
+            : isStory
+            ? "Share"
+            : "Post"}
+        </button>
+      </header>
+
+      <section className="editorCanvas">
+        {blurBackground &&
+          previewUrl &&
+          !previewIsVideo && (
+            <div
+              className="mediaBlurBackdrop"
+              style={{
+                backgroundImage:
+                  `url("${previewUrl}")`,
+              }}
+            />
+          )}
+        {previewIsVideo ? (
+          <video
+            src={previewUrl}
+            className="editorMedia"
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+            style={{
+              objectFit: mediaObjectFit,
+              transform: mediaTransform,
+              maxWidth:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+              maxHeight:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+            }}
+          />
+        ) : previewUrl ? (
+          <img
+            src={previewUrl}
+            className="editorMedia"
+            alt="UTV preview"
+            draggable={false}
+            onPointerDown={beginMediaDrag}
+            onPointerMove={moveMedia}
+            onPointerUp={endMediaDrag}
+            onPointerCancel={endMediaDrag}
+            style={{
+              objectFit: mediaObjectFit,
+              transform: mediaTransform,
+              maxWidth:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+              maxHeight:
+                mediaFit === "original"
+                  ? "none"
+                  : "100%",
+            }}
+          />
+        ) : (
+          <div className="emptyPreview">
+            Select a photo or video
+          </div>
+        )}
+
+        {textLayers.map((layer) => (
+          <div
+            key={layer.id}
+            className={
+              selectedTextId === layer.id
+                ? "textLayer selectedLayer"
+                : "textLayer"
+            }
+            onPointerDown={(event) =>
+              beginTextDrag(event, layer)
+            }
+            onPointerMove={moveText}
+            onPointerUp={endTextDrag}
+            onPointerCancel={endTextDrag}
+            style={{
+              left: `${layer.x}%`,
+              top: `${layer.y}%`,
+              color: layer.color,
+              fontSize: `${layer.size}px`,
+              touchAction: "none",
+            }}
+          >
+            {layer.text}
+          </div>
+        ))}
+
+        {stickers.map((sticker) => (
+          <div
+            key={sticker.id}
+            className={
+              selectedStickerId === sticker.id
+                ? "stickerLayer selectedLayer"
+                : "stickerLayer"
+            }
+            onPointerDown={(event) =>
+              beginStickerDrag(event, sticker)
+            }
+            onPointerMove={moveSticker}
+            onPointerUp={endStickerDrag}
+            onPointerCancel={endStickerDrag}
+            style={{
+              left: `${sticker.x}%`,
+              top: `${sticker.y}%`,
+              fontSize: `${sticker.size}px`,
+              touchAction: "none",
+            }}
+          >
+            {sticker.value}
+          </div>
+        ))}
+
+        {(musicFile || musicUrl.trim()) && (
+          <div className="musicBadge">
+            <span>🎵</span>
+            <strong>
+              {musicTitle || "Story Music"}
+            </strong>
+          </div>
+        )}
+      </section>
+
+      <section className="mediaFrameControls">
+        <div className="fitModeRow">
+          <button
+            className={
+              mediaFit === "contain"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("contain")}
+          >
+            Fit
+          </button>
+
+          <button
+            className={
+              mediaFit === "cover"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("cover")}
+          >
+            Fill
+          </button>
+
+          <button
+            className={
+              mediaFit === "original"
+                ? "fitModeButton activeFitMode"
+                : "fitModeButton"
+            }
+            onClick={() => setMediaFit("original")}
+          >
+            Original
+          </button>
+
+          <button
+            className="resetFrameButton"
+            onClick={resetMediaFrame}
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="zoomControl">
+          <span>−</span>
+
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.05"
+            value={mediaScale}
+            onChange={(event) =>
+              setMediaScale(
+                Number(event.target.value)
+              )
+            }
+            aria-label="Resize story media"
+          />
+
+          <span>+</span>
+        </div>
+
+        <div className="rotationControl">
+          <span>↺</span>
+
+          <input
+            type="range"
+            min="-180"
+            max="180"
+            step="1"
+            value={mediaRotation}
+            onChange={(event) =>
+              setMediaRotation(
+                Number(event.target.value)
+              )
+            }
+            aria-label="Rotate story media"
+          />
+
+          <span>↻</span>
+        </div>
+
+        <button
+          type="button"
+          className={
+            blurBackground
+              ? "blurToggle activeBlurToggle"
+              : "blurToggle"
+          }
+          onClick={() =>
+            setBlurBackground(
+              (current) => !current
+            )
+          }
+          disabled={
+            !previewUrl ||
+            previewIsVideo
+          }
+        >
+          ✨ Blurred Background
+        </button>
+
+        <p className="mediaControlHint">
+          Drag with one finger. Pinch with two
+          fingers to resize and rotate.
+        </p>
+      </section>
+
+      <section className="editorToolbar">
+        <button
+          className="toolButton"
+          onClick={addTextLayer}
+        >
+          <strong>Aa</strong>
+          <small>Text</small>
+        </button>
+
+        <label className="toolButton">
+          <span>🎵</span>
+          <small>Music</small>
+
+          <input
+            hidden
+            type="file"
+            accept="audio/*"
+            onChange={chooseMusic}
+          />
+        </label>
+
+        <button
+          className="toolButton"
+          onClick={() => addSticker("🔥")}
+        >
+          <span>😊</span>
+          <small>Sticker</small>
+        </button>
+
+        <button
+          className="toolButton"
+          onClick={() => {
+            deleteSelectedText();
+            deleteSelectedSticker();
+          }}
+        >
+          <span>🗑️</span>
+          <small>Delete</small>
+        </button>
+      </section>
+
+      <section className="editorOptions">
+        {selectedText && (
+          <div className="optionPanel">
+            <input
+              className="formField"
+              value={selectedText.text}
+              onChange={(event) =>
+                updateSelectedText({
+                  text: event.target.value,
+                })
+              }
+            />
+
+            <div className="colorRow">
+              {textColors.map((color) => (
+                <button
+                  key={color}
+                  className={
+                    selectedText.color === color
+                      ? "colorDot selectedColor"
+                      : "colorDot"
+                  }
+                  style={{
+                    background: color,
+                  }}
+                  onClick={() =>
+                    updateSelectedText({
+                      color,
+                    })
+                  }
+                />
+              ))}
+            </div>
+
+            <div className="sizeRow">
+              <button
+                onClick={() =>
+                  updateSelectedText({
+                    size: Math.max(
+                      16,
+                      selectedText.size - 4
+                    ),
+                  })
+                }
+              >
+                A−
+              </button>
+
+              <span>{selectedText.size}px</span>
+
+              <button
+                onClick={() =>
+                  updateSelectedText({
+                    size: Math.min(
+                      72,
+                      selectedText.size + 4
+                    ),
+                  })
+                }
+              >
+                A+
+              </button>
+            </div>
+          </div>
+        )}
+
+        {selectedSticker && (
+          <div className="optionPanel">
+            <div className="sizeRow">
+              <button
+                onClick={() =>
+                  updateSelectedSticker({
+                    size: Math.max(
+                      24,
+                      selectedSticker.size - 6
+                    ),
+                  })
+                }
+              >
+                −
+              </button>
+
+              <span>
+                {selectedSticker.size}px
+              </span>
+
+              <button
+                onClick={() =>
+                  updateSelectedSticker({
+                    size: Math.min(
+                      110,
+                      selectedSticker.size + 6
+                    ),
+                  })
+                }
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="stickerTray">
+          {stickerChoices.map((sticker) => (
+            <button
+              key={sticker}
+              onClick={() => addSticker(sticker)}
+            >
+              {sticker}
+            </button>
+          ))}
+        </div>
+
+        {(musicFile || musicUrl.trim()) && (
+          <div className="optionPanel">
+            <input
+              className="formField"
+              placeholder="Song title"
+              value={musicTitle}
+              onChange={(event) =>
+                setMusicTitle(event.target.value)
+              }
+            />
+
+            <button
+              className="removeMusicButton"
+              onClick={removeMusic}
+            >
+              Remove Music
+            </button>
+          </div>
+        )}
+
+        <textarea
+          className="formField captionField"
+          placeholder={
+            isStory
+              ? "Add a caption..."
+              : "Write a caption..."
+          }
+          value={caption}
+          onChange={(event) =>
+            setCaption(event.target.value)
+          }
+        />
+
+        {!isStory && (
+          <>
+            <input
+              className="formField"
+              placeholder="Title"
+              value={title}
+              onChange={(event) =>
+                setTitle(event.target.value)
+              }
+            />
+
+            <select
+              className="formField"
+              value={category}
+              onChange={(event) =>
+                setCategory(event.target.value)
+              }
+            >
+              {categories.map((option) => (
+                <option key={option}>{option}</option>
+              ))}
+            </select>
+
+            <section className="destinationPanel">
+              <h3>Share To</h3>
+
+              <div className="destinationGrid">
+                {(
+                  [
+                    "feed",
+                    "profile",
+                    "world",
+                  ] as Destination[]
+                ).map((destination) => (
+                  <button
+                    key={destination}
+                    className={
+                      destinations[destination]
+                        ? "destinationButton activeDestination"
+                        : "destinationButton"
+                    }
+                    onClick={() =>
+                      toggleDestination(destination)
+                    }
+                  >
+                    {destination === "feed"
+                      ? "📱 Feed"
+                      : destination === "profile"
+                      ? "👤 Profile"
+                      : "🌍 World"}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {destinations.world && (
+              <section className="worldFields">
+                <select
+                  className="formField"
+                  value={worldType}
+                  onChange={(event) =>
+                    setWorldType(event.target.value)
+                  }
+                >
+                  <option>Feed</option>
+                  <option>Live</option>
+                  <option>Event</option>
+                  <option>Casting</option>
+                  <option>Build Together</option>
+                  <option>Music</option>
+                  <option>Podcast</option>
+                  <option>Business</option>
+                  <option>Sports</option>
+                  <option>Comedy</option>
+                </select>
+
+                <div className="twoFields">
+                  <input
+                    className="formField"
+                    placeholder="City"
+                    value={city}
+                    onChange={(event) =>
+                      setCity(event.target.value)
+                    }
+                  />
+
+                  <input
+                    className="formField"
+                    placeholder="State"
+                    value={stateName}
+                    onChange={(event) =>
+                      setStateName(event.target.value)
+                    }
+                  />
+                </div>
+              </section>
+            )}
+          </>
+        )}
+
+        <button
+          className="shareButton"
+          disabled={
+            posting ||
+            (!file && !linkUrl.trim())
+          }
+          onClick={submitCreation}
+        >
+          {posting
+            ? "Posting..."
+            : isStory
+            ? "Share Story"
+            : "Post to UTV"}
+        </button>
+
+        <button
+          className="cancelButton"
+          onClick={resetCreator}
+        >
+          Cancel
+        </button>
+
+        {message && (
+          <p className="submitMessage">{message}</p>
+        )}
+      </section>
+    </main>
+  );
+}
+const styles = `
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    background: #000;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .submitPage {
+    min-height: 100vh;
+    padding-bottom: 120px;
+    overflow-x: hidden;
+    color: white;
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82, 247, 200, 0.17),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 90% 5%,
+        rgba(123, 97, 255, 0.22),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        #07111e,
+        #000
+      );
+  }
+
+  .createHero {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 15px;
+    padding: 19px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.065);
+    box-shadow:
+      0 18px 45px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px);
+  }
+
+  .createLogo {
+    width: 86px;
+    height: 68px;
+    flex: 0 0 auto;
+    object-fit: contain;
+  }
+
+  .createHero p,
+  .eyebrow {
+    margin: 0 0 6px;
+    color: #52f7c8;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 2px;
+  }
+
+  .createHero h1,
+  .linkPanel h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+
+  .createHero span {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .mainCreateGrid {
+    display: grid;
+    gap: 11px;
+    padding: 0 15px;
+  }
+
+  .mainCreateCard {
+    width: 100%;
+    min-height: 108px;
+    display: flex;
+    align-items: center;
+    gap: 17px;
+    padding: 18px;
+    color: white;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.065);
+    box-shadow:
+      0 15px 38px rgba(0, 0, 0, 0.23);
+    transition:
+      transform 0.16s ease,
+      border-color 0.16s ease;
+  }
+
+  .mainCreateCard:active,
+  .smallCreateCard:active {
+    transform: scale(0.98);
+  }
+
+  .mainCreateCard > span {
+    width: 60px;
+    height: 60px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.28);
+    font-size: 30px;
+  }
+
+  .mainCreateCard h2 {
+    margin: 0 0 6px;
+    font-size: 21px;
+  }
+
+  .mainCreateCard p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .storyCreateCard {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(82, 247, 200, 0.19),
+        rgba(123, 97, 255, 0.16)
+      );
+  }
+
+  .feedCreateCard {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(123, 97, 255, 0.22),
+        rgba(255, 255, 255, 0.055)
+      );
+  }
+
+  .liveCreateCard {
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255, 72, 82, 0.22),
+        rgba(123, 97, 255, 0.14)
+      );
+  }
+
+  .moreCreateSection {
+    padding: 25px 15px 0;
+  }
+
+  .sectionHeading {
+    margin-bottom: 13px;
+  }
+
+  .sectionHeading h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  .sectionHeading span {
+    display: block;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+  }
+
+  .moreCreateGrid {
+    display: grid;
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .smallCreateCard {
+    min-height: 138px;
+    padding: 15px;
+    color: white;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.055);
+    transition: transform 0.16s ease;
+  }
+
+  .smallCreateCard > span {
+    font-size: 28px;
+  }
+
+  .smallCreateCard h3 {
+    margin: 10px 0 5px;
+    font-size: 16px;
+  }
+
+  .smallCreateCard p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    line-height: 1.38;
+  }
+
+  .linkPanel {
+    max-width: 680px;
+    display: grid;
+    gap: 13px;
+    margin: 0 auto;
+    padding: 22px 16px 120px;
+  }
+
+  .backPill {
+    width: max-content;
+    padding: 10px 14px;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .formField {
+    width: 100%;
+    padding: 15px 16px;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .formField::placeholder {
+    color: rgba(255, 255, 255, 0.46);
+  }
+
+  .formField:focus {
+    border-color: rgba(82, 247, 200, 0.72);
+    box-shadow:
+      0 0 0 3px rgba(82, 247, 200, 0.08);
+  }
+
+  .formField option {
+    color: #000;
+  }
+
+  .captionField {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  .utvCameraPage {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: grid;
+    grid-template-rows:
+      auto
+      minmax(0, 1fr)
+      auto;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    color: white;
+    background: #000;
+  }
+
+  .cameraHeader {
+    position: relative;
+    z-index: 30;
+    min-height: 86px;
+    display: grid;
+    grid-template-columns:
+      54px
+      1fr
+      54px;
+    align-items: center;
+    gap: 10px;
+    padding:
+      max(13px, env(safe-area-inset-top))
+      16px
+      11px;
+    background:
+      linear-gradient(
+        180deg,
+        #07111e,
+        #020408
+      );
+    border-bottom:
+      1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .cameraHeader {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 40;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.70),
+        rgba(0,0,0,.22),
+        transparent
+      );
+    border-bottom: 0;
+  }
+
+  .cameraHeaderButton {
+    width: 50px;
+    height: 50px;
+    display: grid;
+    place-items: center;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 26px;
+  }
+
+  .cameraBrand {
+    display: grid;
+    justify-items: center;
+    line-height: 1;
+  }
+
+  .cameraBrand strong {
+    color: #72ff98;
+    font-size: 34px;
+    font-weight: 1000;
+    letter-spacing: -2px;
+    text-shadow:
+      0 0 18px rgba(82, 247, 200, 0.35);
+  }
+
+  .cameraBrand span {
+    margin-top: 5px;
+    color: #8d63ff;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 2px;
+  }
+
+  .cameraViewport {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    min-height: 100dvh;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .cameraPreview {
+    width: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    background: #000;
+  }
+
+  .cameraShade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.03),
+        transparent 18%,
+        transparent 75%,
+        rgba(0, 0, 0, 0.31)
+      );
+  }
+
+  .cameraMessage {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    left: 18px;
+    z-index: 15;
+    padding: 12px;
+    color: #52f7c8;
+    text-align: center;
+    border: 1px solid rgba(82, 247, 200, 0.23);
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.74);
+    backdrop-filter: blur(14px);
+  }
+
+  .cameraControls {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+
+    padding:
+      26px
+      12px
+      max(
+        18px,
+        env(safe-area-inset-bottom)
+      );
+
+    background:
+      linear-gradient(
+        180deg,
+        transparent,
+        rgba(0,0,0,.42) 18%,
+        rgba(0,0,0,.88) 58%,
+        rgba(0,0,0,.98)
+      );
+
+    border-top: 0;
+  }
+
+  .cameraModeRow {
+    display: grid;
+    grid-template-columns:
+      minmax(44px, 1fr)
+      minmax(44px, 1fr)
+      90px
+      minmax(44px, 1fr)
+      minmax(44px, 1fr);
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cameraModeButton {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 5px 2px;
+    color: white;
+    border: 0;
+    background: transparent;
+    font-weight: 850;
+  }
+
+  .cameraModeButton span {
+    font-size: 27px;
+  }
+
+  .cameraModeButton small {
+    font-size: 11px;
+  }
+
+  .mainCaptureButton {
+    width: 82px;
+    height: 82px;
+    display: grid;
+    place-items: center;
+    padding: 7px;
+    border: 5px solid #7b61ff;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.9),
+      0 0 24px rgba(123, 97, 255, 0.42);
+  }
+
+  .mainCaptureButton span {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 50%;
+    background: white;
+  }
+
+  .recordingCapture {
+    border-color: #ff4d57;
+    animation: recordingPulse 1s infinite;
+  }
+
+  .recordingCapture span {
+    width: 52%;
+    height: 52%;
+    border-radius: 10px;
+    background: #ff4d57;
+  }
+
+  @keyframes recordingPulse {
+    50% {
+      transform: scale(0.94);
+      box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.9),
+        0 0 35px rgba(255, 77, 87, 0.72);
+    }
+  }
+
+  .cameraQuickModes {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .cameraQuickModes button {
+    padding: 8px 13px;
+    color: rgba(255, 255, 255, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .cameraQuickModes .activeQuickMode {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .editorPage {
+    min-height: 100vh;
+    padding-bottom: 100px;
+    overflow-x: hidden;
+    color: white;
+    background: #000;
+  }
+
+  .editorHeader {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns:
+      50px
+      1fr
+      72px;
+    align-items: center;
+    gap: 10px;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      14px
+      12px;
+    background: rgba(0, 0, 0, 0.86);
+    border-bottom:
+      1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .editorHeader strong {
+    text-align: center;
+  }
+
+  .circleButton,
+  .shareTopButton {
+    color: white;
+    border:
+      1px solid rgba(255, 255, 255, 0.16);
+    background:
+      rgba(255, 255, 255, 0.07);
+  }
+
+  .circleButton {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+  }
+
+  .shareTopButton {
+    padding: 10px 13px;
+    color: #52f7c8;
+    border-radius: 999px;
+    font-weight: 950;
+  }
+
+  .editorCanvas {
+    position: relative;
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    height: min(67vh, 720px);
+    min-height: 450px;
+    overflow: hidden;
+    background: #090909;
+    touch-action: none;
+  }
+
+  .mediaBlurBackdrop {
+    position: absolute;
+    inset: -28px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(24px);
+    opacity: .72;
+    transform: scale(1.12);
+    pointer-events: none;
+  }
+
+  .editorMedia {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: center;
+    background: #000;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    transition:
+      object-fit .18s ease,
+      transform .08s linear;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  .editorMedia:active {
+    cursor: grabbing;
+  }
+
+  .mediaFrameControls {
+    width: 100%;
+    padding: 12px 14px 10px;
+    border-top:
+      1px solid rgba(255,255,255,.08);
+    border-bottom:
+      1px solid rgba(255,255,255,.08);
+    background:
+      rgba(8,10,16,.96);
+  }
+
+  .fitModeRow {
+    display: grid;
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) auto;
+    gap: 8px;
+  }
+
+  .fitModeButton,
+  .resetFrameButton {
+    min-height: 38px;
+    padding: 8px 10px;
+    color: rgba(255,255,255,.72);
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.055);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .activeFitMode {
+    color: #06110d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8b79ff
+      );
+  }
+
+  .resetFrameButton {
+    color: #ffd166;
+  }
+
+  .zoomControl {
+    display: grid;
+    grid-template-columns:
+      28px minmax(0, 1fr) 28px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 11px;
+    color: white;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .zoomControl input {
+    width: 100%;
+    accent-color: #52f7c8;
+  }
+
+  .rotationControl {
+    display: grid;
+    grid-template-columns:
+      28px minmax(0, 1fr) 28px;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    color: white;
+    text-align: center;
+    font-weight: 900;
+  }
+
+  .rotationControl input {
+    width: 100%;
+    accent-color: #8b79ff;
+  }
+
+  .blurToggle {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 10px;
+    color: rgba(255,255,255,.72);
+    border:
+      1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background:
+      rgba(255,255,255,.055);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .activeBlurToggle {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #8b79ff
+      );
+  }
+
+  .blurToggle:disabled {
+    opacity: .35;
+  }
+
+  .mediaControlHint {
+    margin: 7px 0 0;
+    color: rgba(255,255,255,.48);
+    text-align: center;
+    font-size: 10px;
+  }
+
+  .emptyPreview {
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .textLayer,
+  .stickerLayer {
+    position: absolute;
+    z-index: 20;
+    transform:
+      translate(-50%, -50%);
+    user-select: none;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .textLayer:active,
+  .stickerLayer:active {
+    cursor: grabbing;
+  }
+
+  .textLayer {
+    max-width: 88%;
+    padding: 7px 11px;
+    text-align: center;
+    font-weight: 950;
+    white-space: pre-wrap;
+    text-shadow:
+      0 3px 12px rgba(0, 0, 0, 0.95);
+  }
+
+  .selectedLayer {
+    outline:
+      2px dashed #52f7c8;
+    outline-offset: 5px;
+  }
+
+  .musicBadge {
+    position: absolute;
+    left: 15px;
+    bottom: 15px;
+    z-index: 24;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 74%;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.62);
+    backdrop-filter: blur(14px);
+  }
+
+  .musicBadge strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .editorToolbar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 13px;
+    background:
+      linear-gradient(
+        180deg,
+        #050505,
+        #101010
+      );
+  }
+
+  .toolButton {
+    min-width: 64px;
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    padding: 9px;
+    color: white;
+    border:
+      1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 17px;
+    background:
+      rgba(255, 255, 255, 0.06);
+  }
+
+  .toolButton span,
+  .toolButton strong {
+    font-size: 22px;
+  }
+
+  .toolButton small {
+    font-size: 10px;
+  }
+
+  .editorOptions {
+    max-width: 680px;
+    display: grid;
+    gap: 13px;
+    margin: 0 auto;
+    padding: 15px 15px 110px;
+    background:
+      radial-gradient(
+        circle at top,
+        rgba(82, 247, 200, 0.08),
+        transparent 28%
+      ),
+      linear-gradient(
+        180deg,
+        #10141c,
+        #020304
+      );
+  }
+
+  .optionPanel,
+  .destinationPanel {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border:
+      1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    background:
+      rgba(255, 255, 255, 0.055);
+  }
+
+  .colorRow,
+  .sizeRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+    flex-wrap: wrap;
+  }
+
+  .colorDot {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border:
+      2px solid rgba(255, 255, 255, 0.72);
+    border-radius: 50%;
+  }
+
+  .selectedColor {
+    outline:
+      3px solid #52f7c8;
+    outline-offset: 3px;
+  }
+
+  .sizeRow button {
+    padding: 8px 12px;
+    color: white;
+    border:
+      1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background:
+      rgba(255, 255, 255, 0.07);
+  }
+
+  .stickerTray {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding: 2px 0 5px;
+  }
+
+  .stickerTray::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stickerTray button {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    font-size: 24px;
+    border:
+      1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    background:
+      rgba(255, 255, 255, 0.06);
+  }
+
+  .removeMusicButton {
+    padding: 12px;
+    color: white;
+    border:
+      1px solid rgba(255, 77, 87, 0.42);
+    border-radius: 16px;
+    background:
+      rgba(255, 77, 87, 0.12);
+  }
+
+  .destinationPanel h3 {
+    margin: 0;
+  }
+
+  .destinationGrid {
+    display: grid;
+    grid-template-columns:
+      repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .destinationButton {
+    padding: 12px 8px;
+    color:
+      rgba(255, 255, 255, 0.72);
+    border:
+      1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 15px;
+    background:
+      rgba(0, 0, 0, 0.25);
+    font-weight: 850;
+  }
+
+  .activeDestination {
+    color: #06120d;
+    border-color: transparent;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .worldFields {
+    display: grid;
+    gap: 10px;
+  }
+
+  .twoFields {
+    display: grid;
+    grid-template-columns:
+      1fr 1fr;
+    gap: 9px;
+  }
+
+  .shareButton,
+  .cancelButton {
+    width: 100%;
+    padding: 16px;
+    border-radius: 18px;
+    font-size: 16px;
+    font-weight: 950;
+  }
+
+  .shareButton {
+    color: #06120d;
+    border: 0;
+    background:
+      linear-gradient(
+        135deg,
+        #52f7c8,
+        #7b61ff
+      );
+  }
+
+  .cancelButton {
+    color: white;
+    border:
+      1px solid rgba(255, 255, 255, 0.14);
+    background:
+      rgba(255, 255, 255, 0.07);
+  }
+
+  .submitMessage {
+    margin: 0;
+    padding: 13px;
+    color: #52f7c8;
+    text-align: center;
+    border:
+      1px solid rgba(82, 247, 200, 0.18);
+    border-radius: 16px;
+    background:
+      rgba(82, 247, 200, 0.08);
+    font-weight: 850;
+  }
+
+  @media (min-width: 760px) {
+    .createHero,
+    .mainCreateGrid,
+    .moreCreateSection {
+      max-width: 920px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+
+    .mainCreateGrid {
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    }
+
+    .mainCreateCard {
+      min-height: 175px;
+      display: grid;
+      align-content: center;
+    }
+
+    .moreCreateGrid {
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    }
+
+    .editorCanvas,
+    .editorToolbar,
+    .mediaFrameControls {
+      max-width: 620px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+  }
+
+  @media (max-width: 390px) {
+    .createLogo {
+      width: 72px;
+    }
+
+    .createHero h1 {
+      font-size: 26px;
+    }
+
+    .mainCreateCard {
+      padding: 15px;
+    }
+
+    .cameraModeRow {
+      grid-template-columns:
+        minmax(38px, 1fr)
+        minmax(38px, 1fr)
+        78px
+        minmax(38px, 1fr)
+        minmax(38px, 1fr);
+    }
+
+    .mainCaptureButton {
+      width: 72px;
+      height: 72px;
+    }
+
+    .cameraModeButton span {
+      font-size: 24px;
+    }
+
+    .cameraModeButton small {
+      font-size: 10px;
+    }
+  }
+
+  .storyEditorPage,
+  .storySharePage {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    color: #fff;
+    background: #000;
+  }
+
+  .storyCanvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+  }
+
+  .storyMediaGesture {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .storyMedia {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    transform-origin: center;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .storyTopBar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 80;
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: 52px 1fr 52px;
+    align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 14px 8px;
+    background: linear-gradient(180deg, rgba(0,0,0,.72), transparent);
+  }
+
+  .storyTopBar > strong { text-align: center; font-size: 17px; }
+  .storyTopSpacer { display: block; }
+
+  .storyIconButton,
+  .storyFloatingTools button,
+  .storyDeleteButton {
+    border: 0;
+    color: #fff;
+    background: rgba(0,0,0,.48);
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .storyIconButton {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 26px;
+  }
+
+  .storyNextButton {
+    justify-self: end;
+    padding: 11px 17px;
+    border: 0;
+    border-radius: 999px;
+    color: #06120e;
+    background: #62f7a5;
+    font-weight: 950;
+  }
+
+  .storyFloatingTools {
+    position: absolute;
+    top: max(88px, calc(env(safe-area-inset-top) + 74px));
+    right: 13px;
+    z-index: 70;
+    display: grid;
+    gap: 12px;
+  }
+
+  .storyFloatingTools .storyMusicTool {
+    border-color: rgba(82,247,200,.42);
+    background: rgba(3,22,16,.72);
+    box-shadow: 0 8px 24px rgba(82,247,200,.14);
+  }
+
+  .storyFloatingTools button {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 23px;
+  }
+
+  .storyFloatingTools strong { font-size: 19px; }
+
+  .storyTextLayer,
+  .storyStickerLayer {
+    position: absolute;
+    z-index: 42;
+    transform: translate(-50%, -50%);
+    touch-action: none;
+    user-select: none;
+  }
+
+  .storyTextLayer {
+    max-width: 82%;
+    padding: 5px 9px;
+    text-align: center;
+    font-weight: 900;
+    line-height: 1.08;
+    text-shadow: 0 2px 9px rgba(0,0,0,.8);
+    white-space: pre-wrap;
+  }
+
+  .storyStickerLayer { line-height: 1; }
+  .storyLayerSelected { outline: 2px solid rgba(255,255,255,.86); border-radius: 10px; }
+
+  .storyGestureHint {
+    position: absolute;
+    left: 50%;
+    bottom: max(82px, calc(env(safe-area-inset-bottom) + 62px));
+    z-index: 39;
+    padding: 8px 12px;
+    color: rgba(255,255,255,.82);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 999px;
+    background: rgba(0,0,0,.38);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    backdrop-filter: blur(12px);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: .15px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    animation: storyHintFade 3.2s ease forwards;
+  }
+
+  @keyframes storyHintFade {
+    0%, 62% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .storyMusicPill {
+    position: absolute;
+    left: 18px;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    z-index: 40;
+    max-width: 70%;
+    padding: 10px 14px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(0,0,0,.52);
+    backdrop-filter: blur(16px);
+    font-size: 13px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .storyDeleteButton {
+    position: absolute;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: 50%;
+    z-index: 71;
+    width: 52px;
+    height: 52px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    font-size: 22px;
+  }
+
+  .storyTextComposer {
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: max(12px, env(safe-area-inset-top)) 14px max(22px, env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.76);
+    backdrop-filter: blur(12px);
+  }
+
+  .storyComposerHeader { display: flex; justify-content: space-between; }
+  .storyComposerHeader button { padding: 10px; border: 0; color: #fff; background: transparent; font-weight: 900; }
+  .storyComposerHeader button:last-child { color: #62f7a5; }
+
+  .storyTextComposer textarea {
+    width: 100%;
+    align-self: center;
+    padding: 20px;
+    border: 0;
+    outline: 0;
+    resize: none;
+    text-align: center;
+    background: transparent;
+    font-size: clamp(32px, 9vw, 58px);
+    font-weight: 950;
+    line-height: 1.06;
+  }
+
+  .storyColorRow { display: flex; justify-content: center; gap: 12px; padding: 12px; }
+  .storyColorRow.compact { gap: 8px; padding: 6px 0; }
+  .storyColor { width: 30px; height: 30px; border: 2px solid rgba(255,255,255,.45); border-radius: 50%; }
+  .storyColor.selected { outline: 3px solid #fff; outline-offset: 2px; }
+
+  .storySheet {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 110;
+    display: grid;
+    gap: 13px;
+    max-height: 72dvh;
+    padding: 10px 18px max(22px, env(safe-area-inset-bottom));
+    border-radius: 28px 28px 0 0;
+    background: rgba(18,18,23,.97);
+    box-shadow: 0 -18px 50px rgba(0,0,0,.45);
+  }
+
+  .storySheetHandle { width: 46px; height: 5px; margin: 0 auto 4px; border-radius: 999px; background: rgba(255,255,255,.3); }
+  .storySheet h2 { margin: 2px 0 5px; font-size: 23px; }
+  .storySheetAction { display: flex; align-items: center; gap: 14px; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.08); }
+  .storySheetAction > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: #7b61ff; font-size: 23px; }
+  .storySheetAction div { display: grid; gap: 3px; min-width: 0; }
+  .storySheetAction small { color: rgba(255,255,255,.58); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .storyMusicTitleInput { width: 100%; padding: 14px 15px; color: #fff; border: 1px solid rgba(255,255,255,.14); border-radius: 15px; outline: 0; background: rgba(255,255,255,.07); }
+  .storyRemoveAction { padding: 11px; border: 0; color: #ff7b88; background: transparent; font-weight: 850; }
+  .storySheetDone { padding: 15px; border: 0; border-radius: 16px; color: #07120e; background: #62f7a5; font-weight: 950; }
+  .storyStickerGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .storyStickerGrid button { min-height: 66px; border: 0; border-radius: 17px; background: rgba(255,255,255,.08); font-size: 32px; }
+
+  .storyDrawCanvas { position: absolute; inset: 0; z-index: 35; width: 100%; height: 100%; pointer-events: none; touch-action: none; }
+  .storyDrawCanvas.drawingActive { z-index: 95; pointer-events: auto; }
+  .storyDrawToolbar { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 10px; left: 10px; z-index: 125; display: grid; gap: 9px; padding: 10px; border-radius: 20px; background: rgba(9,9,12,.86); backdrop-filter: blur(16px); }
+  .storyDrawTools, .storyDrawActions { display: flex; gap: 7px; overflow-x: auto; }
+  .storyDrawToolbar button { flex: 1; min-width: max-content; padding: 9px 11px; border: 0; border-radius: 12px; color: #fff; background: rgba(255,255,255,.09); font-size: 12px; font-weight: 800; }
+  .storyDrawToolbar button.active { background: #7b61ff; }
+  .storyDrawToolbar button.done { color: #07120e; background: #62f7a5; }
+
+  .storySharePage { overflow-y: auto; background: linear-gradient(180deg, #11131c, #050608); }
+  .storySharePage .storyTopBar { position: sticky; background: rgba(8,9,13,.92); backdrop-filter: blur(16px); }
+  .storyShareBody { width: min(100%, 560px); display: grid; gap: 16px; margin: 0 auto; padding: 18px 16px max(28px, env(safe-area-inset-bottom)); }
+  .storySharePreview { position: relative; width: min(44vw, 190px); aspect-ratio: 9 / 16; overflow: hidden; margin: 0 auto; border: 1px solid rgba(255,255,255,.11); border-radius: 20px; background: #000; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+  .storySharePreview img, .storySharePreview video { width: 100%; height: 100%; display: block; object-fit: cover; transform-origin: center; }
+  .storyShareTextLayer, .storyShareStickerLayer { position: absolute; z-index: 4; transform: translate(-50%, -50%); pointer-events: none; user-select: none; }
+  .storyShareTextLayer { max-width: 82%; padding: 2px 4px; text-align: center; font-weight: 950; line-height: 1.05; text-shadow: 0 1px 4px rgba(0,0,0,.85); white-space: pre-wrap; }
+  .storyShareStickerLayer { line-height: 1; }
+  .storyCaptionInput { min-height: 108px; padding: 16px; color: #fff; border: 1px solid rgba(255,255,255,.13); border-radius: 18px; outline: 0; resize: none; background: rgba(255,255,255,.07); }
+  .storyShareMusic { padding: 13px 15px; border-radius: 15px; background: rgba(123,97,255,.15); font-weight: 800; }
+  .storyDestinationRow { display: grid; grid-template-columns: 48px 1fr 34px; align-items: center; gap: 12px; padding: 15px; border-radius: 18px; background: rgba(255,255,255,.07); }
+  .storyDestinationAvatar { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: #07120e; background: linear-gradient(135deg,#62f7a5,#8c6cff); font-weight: 1000; }
+  .storyDestinationRow div:nth-child(2) { display: grid; gap: 4px; }
+  .storyDestinationRow span { color: rgba(255,255,255,.55); font-size: 12px; }
+  .storySelectedCheck { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #07120e !important; background: #62f7a5; font-weight: 1000; }
+  .storyPrimaryButton { padding: 17px; border: 0; border-radius: 18px; color: #07120e; background: #62f7a5; font-weight: 1000; font-size: 16px; }
+  .storyCancelButton { padding: 13px; border: 0; color: rgba(255,255,255,.7); background: transparent; font-weight: 850; }
+  .storyErrorMessage { margin: 0; padding: 12px; border-radius: 14px; color: #ffd4d8; background: rgba(255,70,90,.12); text-align: center; }
+
+  .storyCaptureHint { margin: 8px 0 0; color: rgba(255,255,255,.68); text-align: center; font-size: 12px; font-weight: 800; }
+
+  .storyProgressRail {
+    position: absolute;
+    top: max(7px, env(safe-area-inset-top));
+    right: 12px;
+    left: 12px;
+    z-index: 90;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,.22);
+    pointer-events: none;
+  }
+
+  .storyProgressRail span {
+    display: block;
+    width: 68%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg,#52f7c8,#8d6cff);
+    box-shadow: 0 0 14px rgba(82,247,200,.55);
+  }
+
+  .storyEditorBrand {
+    display: grid;
+    justify-items: center;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .storyEditorBrand strong { font-size: 13px; letter-spacing: 2.2px; }
+  .storyEditorBrand span { margin-top: 5px; color: rgba(255,255,255,.55); font-size: 8px; font-weight: 900; letter-spacing: 2px; }
+
+  .storyFloatingTools button {
+    grid-template-rows: 1fr auto;
+    padding: 6px 2px 5px;
+  }
+
+  .storyFloatingTools button > span,
+  .storyFloatingTools button > strong { align-self: end; }
+
+  .storyFloatingTools button small {
+    align-self: start;
+    margin-top: 1px;
+    color: rgba(255,255,255,.72);
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: .15px;
+  }
+
+  .storyBottomActions {
+    position: absolute;
+    left: 14px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 64;
+    display: flex;
+    gap: 9px;
+  }
+
+  .storyBottomAction {
+    min-width: 62px;
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    gap: 1px;
+    padding: 6px 10px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 16px;
+    background: rgba(0,0,0,.44);
+    box-shadow: 0 8px 24px rgba(0,0,0,.24);
+    backdrop-filter: blur(14px);
+    font: inherit;
+  }
+
+  .storyBottomAction span { font-size: 18px; line-height: 1; }
+  .storyBottomAction small { color: rgba(255,255,255,.72); font-size: 8px; font-weight: 900; }
+
+  .storyLayerDock {
+    position: absolute;
+    left: 50%;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    z-index: 82;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 18px;
+    background: rgba(7,8,11,.76);
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+    backdrop-filter: blur(18px);
+    transform: translateX(-50%);
+  }
+
+  .storyLayerDock button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(255,255,255,.09);
+    font-weight: 950;
+  }
+
+  .storyLayerDock > span {
+    min-width: 46px;
+    text-align: center;
+    color: rgba(255,255,255,.68);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+  }
+
+  .storyLayerDock .storyLayerEdit { color: #07120e; background: #52f7c8; }
+  .storyLayerDock .storyLayerDelete { background: rgba(255,58,86,.18); }
+
+  .storyShareIntro {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .storyShareIntro p { margin: 0 0 5px; color: #52f7c8; font-size: 10px; font-weight: 950; letter-spacing: 1.8px; }
+  .storyShareIntro h1 { margin: 0; font-size: 30px; line-height: 1; letter-spacing: -1px; }
+  .storyShareIntro > span { padding: 7px 9px; border-radius: 999px; color: rgba(255,255,255,.7); background: rgba(255,255,255,.07); font-size: 9px; font-weight: 950; letter-spacing: 1px; }
+
+  .storySharePreviewBadge {
+    position: absolute;
+    top: 9px;
+    left: 9px;
+    z-index: 8;
+    padding: 5px 7px;
+    border-radius: 999px;
+    color: #07120e;
+    background: rgba(82,247,200,.92);
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .8px;
+  }
+
+  .storyCaptionWrap { position: relative; }
+  .storyCaptionWrap > span { position: absolute; right: 13px; bottom: 11px; color: rgba(255,255,255,.38); font-size: 10px; font-weight: 800; pointer-events: none; }
+  .storyCaptionWrap .storyCaptionInput { width: 100%; padding-bottom: 30px; }
+
+  .storyPrimaryButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 14px 34px rgba(82,247,200,.18);
+  }
+
+  .storyPrimaryDot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #07120e;
+    box-shadow: 0 0 0 5px rgba(7,18,14,.1);
+  }
+
+
+  .storyTextLayer,
+  .storyStickerLayer {
+    touch-action: none;
+  }
+
+  .storyMusicSheet {
+    max-height: min(82dvh, 690px);
+    overflow-y: auto;
+  }
+
+  .storyMusicSheetHeader {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .storyMusicSheetHeader > div {
+    display: grid;
+    gap: 3px;
+  }
+
+  .storyMusicSheetHeader span {
+    color: #52f7c8;
+    font-size: 9px;
+    font-weight: 950;
+    letter-spacing: 1.7px;
+  }
+
+  .storyMusicSheetHeader h2 {
+    margin: 0;
+  }
+
+  .storyMusicSheetHeader > strong {
+    padding: 7px 10px;
+    color: #07120e;
+    border-radius: 999px;
+    background: #52f7c8;
+    font-size: 10px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .storyMusicTrimmer {
+    display: grid;
+    gap: 11px;
+    padding: 14px;
+    border: 1px solid rgba(82,247,200,.16);
+    border-radius: 18px;
+    background: rgba(82,247,200,.055);
+  }
+
+  .musicTrimTimes {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .musicTrimTimes strong {
+    font-size: 12px;
+  }
+
+  .musicTrimTimes span {
+    color: rgba(255,255,255,.5);
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+  }
+
+  .musicWaveMock {
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    overflow: hidden;
+    padding: 5px 8px;
+    border-radius: 14px;
+    background: rgba(0,0,0,.24);
+  }
+
+  .musicWaveMock span {
+    width: 3px;
+    min-height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #52f7c8, #7b61ff);
+  }
+
+  .musicTrimRange {
+    width: 100%;
+    accent-color: #52f7c8;
+  }
+
+  .musicPreviewButton {
+    min-height: 44px;
+    color: white;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px;
+    background: rgba(255,255,255,.07);
+    font-size: 12px;
+    font-weight: 900;
+  }
+  @media (max-width: 420px) {
+    .storyFloatingTools { right: 10px; gap: 9px; }
+    .storyFloatingTools button { width: 45px; height: 45px; }
+    .storyBottomActions { left: 10px; gap: 6px; }
+    .storyBottomAction { min-width: 56px; }
+    .storyLayerDock { max-width: calc(100% - 20px); }
+    .storyLayerDock button { min-width: 34px; padding: 0 8px; }
+  }
+}
+
+  /* ======================================================
+     UTV PREMIUM CAMERA
+     ====================================================== */
+
+  .utvCameraPage {
+    background: #000;
+  }
+
+  .cameraViewport {
+    background: #000;
+  }
+
+  .cameraPreview {
+    image-rendering: auto;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+
+  .cameraShade {
+    z-index: 3;
+    background:
+      radial-gradient(
+        circle at center,
+        transparent 43%,
+        rgba(0,0,0,.16) 78%,
+        rgba(0,0,0,.34) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.46),
+        transparent 19%,
+        transparent 69%,
+        rgba(0,0,0,.68)
+      );
+  }
+
+  .cameraGrid {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: .16;
+  }
+
+  .cameraGrid span {
+    position: absolute;
+    background:
+      rgba(255,255,255,.36);
+  }
+
+  .cameraGrid span:nth-child(1),
+  .cameraGrid span:nth-child(2) {
+    top: 0;
+    bottom: 0;
+    width: 1px;
+  }
+
+  .cameraGrid span:nth-child(1) {
+    left: 33.333%;
+  }
+
+  .cameraGrid span:nth-child(2) {
+    left: 66.666%;
+  }
+
+  .cameraGrid span:nth-child(3),
+  .cameraGrid span:nth-child(4) {
+    right: 0;
+    left: 0;
+    height: 1px;
+  }
+
+  .cameraGrid span:nth-child(3) {
+    top: 33.333%;
+  }
+
+  .cameraGrid span:nth-child(4) {
+    top: 66.666%;
+  }
+
+  .cameraStatus {
+    position: absolute;
+    top:
+      max(
+        92px,
+        calc(
+          env(safe-area-inset-top)
+          + 78px
+        )
+      );
+    left: 50%;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border:
+      1px solid
+      rgba(255,255,255,.13);
+    border-radius: 999px;
+    color: white;
+    background:
+      rgba(0,0,0,.35);
+    backdrop-filter: blur(13px);
+    transform:
+      translateX(-50%);
+  }
+
+  .cameraStatusDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #52f7c8;
+    box-shadow:
+      0 0 12px
+      rgba(82,247,200,.75);
+  }
+
+  .cameraStatus strong {
+    font-size: 8px;
+    letter-spacing: .08em;
+  }
+
+  .cameraStatus small {
+    color:
+      rgba(255,255,255,.4);
+    font-size: 6px;
+  }
+
+  .cameraHeader {
+    padding-left: 14px;
+    padding-right: 14px;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.76),
+        rgba(0,0,0,.25),
+        transparent
+      );
+  }
+
+  .cameraHeaderButton {
+    width: 46px;
+    height: 46px;
+    border:
+      1px solid
+      rgba(255,255,255,.17);
+    background:
+      rgba(0,0,0,.34);
+    backdrop-filter:
+      blur(12px);
+  }
+
+  .cameraBrand strong {
+    font-size: 30px;
+  }
+
+  .cameraControls {
+    padding-top: 42px;
+    background:
+      linear-gradient(
+        180deg,
+        transparent,
+        rgba(0,0,0,.38) 18%,
+        rgba(0,0,0,.86) 54%,
+        #000 100%
+      );
+  }
+
+  .cameraModeRow {
+    max-width: 510px;
+    margin: 0 auto;
+  }
+
+  .cameraModeButton {
+    opacity: .8;
+  }
+
+  .cameraModeButton:active {
+    transform: scale(.91);
+  }
+
+  .mainCaptureButton {
+    width: 78px;
+    height: 78px;
+    border-width: 4px;
+    box-shadow:
+      0 0 0 3px
+      rgba(255,255,255,.96),
+      0 0 0 8px
+      rgba(123,97,255,.16),
+      0 0 34px
+      rgba(123,97,255,.31);
+  }
+
+  .cameraQuickModes {
+    margin-top: 13px;
+  }
+
+
+`;
