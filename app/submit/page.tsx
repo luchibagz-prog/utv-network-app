@@ -1,5 +1,7 @@
 "use client";
 
+import UTVCameraHeader from "../components/camera/UTVCameraHeader";
+
 import {
   useEffect,
   useMemo,
@@ -2648,29 +2650,12 @@ if (mode === "camera") {
   return (
     <main className="utvCameraPage">
       <style>{styles}</style>
-
-      <header className="cameraHeader">
-        <button
-          className="cameraHeaderButton"
-          onClick={resetCreator}
-          aria-label="Close camera"
-        >
-          ✕
-        </button>
-
-        <div className="cameraBrand">
-          <strong>U TV</strong>
-          <span>CREATE</span>
-        </div>
-
-        <button
-          className="cameraHeaderButton"
-          onClick={flipCamera}
-          aria-label="Flip camera"
-        >
-          ⟳
-        </button>
-      </header>
+      <UTVCameraHeader
+        onClose={resetCreator}
+        onFlip={() => {
+          void flipCamera();
+        }}
+      />
 
       <section
         className="cameraViewport"

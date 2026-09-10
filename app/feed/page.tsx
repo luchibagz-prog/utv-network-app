@@ -1060,6 +1060,12 @@ export default function FeedPage() {
 
     setItems(displayItems);
 
+    /*
+      Repopulate the comment state after every Feed load.
+      Existing comments stay in Supabase; this only reads them.
+    */
+    void loadFeedComments(displayItems);
+
     await loadProfiles(
       displayItems
         .map((item) => item.creator_email)
@@ -1094,6 +1100,158 @@ export default function FeedPage() {
         [id]: Boolean(data),
       }));
     }
+  }
+
+  async function loadFeedComments(
+    feedRows: any[],
+  ) {
+    /*
+      UTV FEED COMMENT RESTORE
+
+      Load comments for the visible Feed in one request.
+      This restores existing DB comments/counts without
+      modifying or deleting any comment rows.
+    */
+
+    const uploadIds = Array.from(
+      new Set(
+        feedRows
+          .map((item) =>
+            String(item?.id || "")
+          )
+          .filter(Boolean)
+      )
+    );
+
+    if (!uploadIds.length) {
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("feed_comments")
+      .select("*")
+      .in("upload_id", uploadIds)
+      .order("created_at", {
+        ascending: true,
+      });
+
+    if (error) {
+      console.error(
+        "Feed comment restore error:",
+        error
+      );
+
+      return;
+    }
+
+    const commentRows = data || [];
+
+    const grouped:
+      Record<string, any[]> = {};
+
+    uploadIds.forEach((id) => {
+      grouped[id] = [];
+    });
+
+    commentRows.forEach((comment: any) => {
+      const key =
+        String(comment.upload_id || "");
+
+      if (!key) {
+        return;
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = [];
+      }
+
+      grouped[key].push(comment);
+    });
+
+    setComments((current) => ({
+      ...current,
+      ...grouped,
+    }));
+
+    const commentEmails =
+      commentRows
+        .map(
+          (comment: any) =>
+            comment.user_email
+        )
+        .filter(Boolean);
+
+    if (commentEmails.length) {
+      await loadProfiles(
+        commentEmails
+      );
+    }
+
+    const commentIds =
+      commentRows
+        .map(
+          (comment: any) =>
+            String(comment.id || "")
+        )
+        .filter(Boolean);
+
+    if (!commentIds.length) {
+      return;
+    }
+
+    const {
+      data: reactionRows,
+      error: reactionError,
+    } = await supabase
+      .from("feed_comment_reactions")
+      .select("comment_id,reaction")
+      .in("comment_id", commentIds);
+
+    if (reactionError) {
+      console.info(
+        "Comment reaction restore skipped:",
+        reactionError.message
+      );
+
+      return;
+    }
+
+    const reactionCounts:
+      Record<
+        string,
+        Record<string, number>
+      > = {};
+
+    (reactionRows || []).forEach(
+      (row: any) => {
+        const commentId =
+          String(row.comment_id || "");
+
+        const reaction =
+          String(row.reaction || "");
+
+        if (!commentId || !reaction) {
+          return;
+        }
+
+        if (!reactionCounts[commentId]) {
+          reactionCounts[commentId] = {};
+        }
+
+        reactionCounts[commentId][reaction] =
+          (
+            reactionCounts[commentId][reaction] ||
+            0
+          ) + 1;
+      }
+    );
+
+    setCommentReactions(
+      (current) => ({
+        ...current,
+        ...reactionCounts,
+      })
+    );
   }
 
   async function loadComments(id: string) {

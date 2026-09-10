@@ -1,5 +1,7 @@
 "use client";
 
+import UTVCameraHeader from "../components/camera/UTVCameraHeader";
+
 import {
   FormEvent,
   useEffect,
@@ -87,6 +89,9 @@ function liveRoomName(id: string) {
 
 export default function LiveRoomPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const liveCameraTapRef =
+    useRef(0);
   const roomRef = useRef<Room | null>(null);
   const videoTrackRef = useRef<LocalVideoTrack | null>(null);
   const audioTrackRef = useRef<LocalAudioTrack | null>(null);
@@ -383,57 +388,123 @@ export default function LiveRoomPage() {
   async function prepareLocalMedia(
     facing: CameraFacing = cameraFacing
   ) {
+    /*
+      UTV LIVE CAMERA PARITY
+
+      Video starts independently from microphone.
+      Camera flip reuses the existing mic.
+      1080p is preferred with a 720p fallback.
+    */
+
     setErrorMessage("");
     setStatus("Starting camera...");
 
     try {
       videoTrackRef.current?.stop();
-      audioTrackRef.current?.stop();
+      videoTrackRef.current = null;
 
-      const [videoTrack, audioTrack] = await Promise.all([
-        createLocalVideoTrack({
-          facingMode: facing,
-          resolution: {
-            width: 1920,
-            height: 1080,
-            frameRate: 30,
-          },
-        }),
-        createLocalAudioTrack({
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }),
-      ]);
+      let videoTrack;
 
-      videoTrackRef.current = videoTrack;
-      audioTrackRef.current = audioTrack;
+      try {
+        videoTrack =
+          await createLocalVideoTrack({
+            facingMode: facing,
+            resolution: {
+              width: 1920,
+              height: 1080,
+              frameRate: 30,
+            },
+          });
+      } catch (primaryVideoError) {
+        console.info(
+          "1080p Live camera fallback:",
+          primaryVideoError
+        );
+
+        videoTrack =
+          await createLocalVideoTrack({
+            facingMode: facing,
+            resolution: {
+              width: 1280,
+              height: 720,
+              frameRate: 30,
+            },
+          });
+      }
+
+      videoTrackRef.current =
+        videoTrack;
 
       if (!cameraEnabled) {
         await videoTrack.mute();
       }
 
-      if (!micEnabled) {
-        await audioTrack.mute();
+      if (videoRef.current) {
+        videoTrack.attach(
+          videoRef.current
+        );
+
+        await videoRef.current
+          .play()
+          .catch(() => {});
       }
 
-      if (videoRef.current) {
-        videoTrack.attach(videoRef.current);
-        await videoRef.current.play().catch(() => {});
+      /*
+        Keep an existing microphone track when
+        flipping the camera. This removes an
+        unnecessary permission/restart cycle.
+      */
+      if (!audioTrackRef.current) {
+        try {
+          const audioTrack =
+            await createLocalAudioTrack({
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            });
+
+          audioTrackRef.current =
+            audioTrack;
+
+          if (!micEnabled) {
+            await audioTrack.mute();
+          }
+        } catch (audioError) {
+          console.warn(
+            "Live microphone unavailable:",
+            audioError
+          );
+
+          audioTrackRef.current = null;
+          setMicEnabled(false);
+        }
       }
 
       setCameraFacing(facing);
       setIsCameraOn(true);
-      setStatus("Camera ready");
+
+      setStatus(
+        audioTrackRef.current
+          ? "Camera ready"
+          : "Camera ready • mic unavailable"
+      );
     } catch (error) {
-      console.error("Live camera failed:", error);
+      console.error(
+        "Live camera failed:",
+        error
+      );
+
       setIsCameraOn(false);
-      setStatus("Camera unavailable");
+      setStatus(
+        "Camera unavailable"
+      );
+
       setErrorMessage(
-        "Allow camera and microphone access, then try again."
+        "Allow camera access, then try again."
       );
     }
   }
+
 
   async function flipCamera() {
     if (isLive) return;
@@ -442,6 +513,29 @@ export default function LiveRoomPage() {
       cameraFacing === "user" ? "environment" : "user";
 
     await prepareLocalMedia(next);
+  }
+
+  function handleLiveCameraDoubleTap() {
+    if (isLive) {
+      return;
+    }
+
+    const now = Date.now();
+
+    const elapsed =
+      now - liveCameraTapRef.current;
+
+    if (
+      liveCameraTapRef.current &&
+      elapsed <= 330
+    ) {
+      liveCameraTapRef.current = 0;
+
+      void flipCamera();
+      return;
+    }
+
+    liveCameraTapRef.current = now;
   }
 
   async function toggleMic() {
@@ -1442,6 +1536,7 @@ export default function LiveRoomPage() {
       >
         <video
           ref={videoRef}
+          onClick={handleLiveCameraDoubleTap}
           autoPlay
           playsInline
           muted
@@ -1493,23 +1588,15 @@ export default function LiveRoomPage() {
 
         {!isLive ? (
           <>
-            <header className="setupHeader">
-              <button
-                className="circle"
-                onClick={() => (window.location.href = "/feed")}
-              >
-                ✕
-              </button>
-
-              <div className="brandPill">
-                <span>UTV LIVE</span>
-                <strong>Set the stage</strong>
-              </div>
-
-              <button className="circle" onClick={flipCamera}>
-                ↻
-              </button>
-            </header>
+            <UTVCameraHeader
+              onClose={() => {
+                window.location.href = "/feed";
+              }}
+              onFlip={() => {
+                void flipCamera();
+              }}
+              flipDisabled={!isCameraOn}
+            />
 
             {status !== "Camera ready" && (
               <span className="cameraStatus">{status}</span>
