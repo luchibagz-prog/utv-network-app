@@ -34,6 +34,36 @@ function isIOSDevice() {
   );
 }
 
+function installPromptRecentlyDismissed() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const raw =
+    window.localStorage.getItem(
+      "utv-install-dismissed"
+    );
+
+  const dismissedAt =
+    Number(raw || 0);
+
+  if (
+    !dismissedAt ||
+    !Number.isFinite(dismissedAt)
+  ) {
+    return false;
+  }
+
+  /*
+    Do not permanently lose a potential install
+    because somebody dismissed the card once.
+  */
+  return (
+    Date.now() - dismissedAt <
+    3 * 24 * 60 * 60 * 1000
+  );
+}
+
 function isStandaloneMode() {
   if (typeof window === "undefined") {
     return false;
@@ -155,7 +185,7 @@ export default function UTVAppShell() {
       setShowInstall(false);
       setShowIOSHelp(false);
       showMessage(
-        "UTV was added to your phone."
+        "UTV is installed on your phone."
       );
     };
 
@@ -299,7 +329,7 @@ export default function UTVAppShell() {
   function dismissInstall() {
     window.localStorage.setItem(
       "utv-install-dismissed",
-      "1"
+      String(Date.now())
     );
 
     setShowInstall(false);
@@ -355,7 +385,7 @@ export default function UTVAppShell() {
 
           <div>
             <strong>
-              Add UTV to your phone
+              Install UTV on your phone
             </strong>
 
             <span>
@@ -370,7 +400,7 @@ export default function UTVAppShell() {
             className="utvInstallButton"
             onClick={installUTV}
           >
-            Add
+            Install
           </button>
         </section>
       )}

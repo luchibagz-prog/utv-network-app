@@ -859,7 +859,13 @@ export default function StoryViewerPage() {
       await loadStoryComments(String(story.id));
       setMessage(parent ? "Reply posted." : "Comment posted.");
     } catch (error: any) {
-      setMessage(error?.message || "Could not post Story comment.");
+      console.info(
+        "Story comment unavailable:",
+        error?.message || error
+      );
+      setMessage(
+        "Could not post comment right now."
+      );
     } finally {
       setSending(false);
       window.setTimeout(() => resumeStory(), 450);
@@ -890,7 +896,13 @@ export default function StoryViewerPage() {
         reaction: emoji,
       });
       if (error) {
-        setMessage(error.message);
+        console.info(
+          "Story comment reaction unavailable:",
+          error.message
+        );
+        setMessage(
+          "Could not react to that comment right now."
+        );
         return;
       }
 
@@ -964,40 +976,88 @@ export default function StoryViewerPage() {
 
     pauseStory();
 
+    /*
+      UTV Story reactions:
+      one active reaction per user / Story.
+      Tapping another emoji updates the reaction.
+    */
     try {
-      const { error } =
-        await supabase
-          .from("story_reactions")
-          .insert({
-            story_id: story.id,
+      setMessage(`${emoji} sent`);
+
+      const { error } = await supabase
+        .from("story_reactions")
+        .upsert(
+          {
+            story_id: String(story.id),
             user_email: viewerEmail,
             reaction: emoji,
-          });
+            updated_at:
+              new Date().toISOString(),
+          },
+          {
+            onConflict:
+              "story_id,user_email",
+          }
+        );
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      await supabase
-        .from("notifications")
-        .insert({
-          user_email: story.user_email,
-          type: "story_reaction",
-          title: `${emoji} Story Reaction`,
-          message: `${viewerEmail.split("@")[0]} reacted to your story.`,
-          is_read: false,
-        });
+      if (
+        story.user_email &&
+        story.user_email
+          .toLowerCase() !==
+          viewerEmail.toLowerCase()
+      ) {
+        const { error: notifyError } =
+          await supabase
+            .from("notifications")
+            .insert({
+              user_email:
+                story.user_email,
+              actor_email:
+                viewerEmail,
+              type:
+                "story_reaction",
+              title:
+                `${emoji} Story Reaction`,
+              message:
+                `${viewerEmail.split("@")[0]} reacted to your Story.`,
+              link:
+                `/stories/${story.id}`,
+              is_read: false,
+            });
 
-      setMessage(`${emoji} sent`);
+        if (notifyError) {
+          console.info(
+            "Story reaction notification:",
+            notifyError.message
+          );
+        }
+      }
+
+      window.navigator.vibrate?.(20);
     } catch (error: any) {
+      console.info(
+        "Story reaction unavailable:",
+        error?.message || error
+      );
+
+      /*
+        Never expose Supabase/schema text
+        directly to UTV users.
+      */
       setMessage(
-        error?.message ||
-          "Could not send reaction."
+        "Could not send reaction right now."
       );
     } finally {
       window.setTimeout(() => {
         resumeStory();
-      }, 500);
+      }, 450);
     }
   }
+
 
   async function shareStory() {
     if (!story) return;
