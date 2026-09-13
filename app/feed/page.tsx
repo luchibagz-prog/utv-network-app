@@ -2515,6 +2515,110 @@ export default function FeedPage() {
         })}
       </section>
 
+      <section className="utvHomePulse" aria-label="UTV Pulse">
+        <div className="utvHomePulseHead">
+          <div>
+            <span className="utvHomePulseDot" />
+            <b>UTV PULSE</b>
+          </div>
+
+          <small>
+            {pendingFreshPosts.length > 0
+              ? `${pendingFreshPosts.length} new post${
+                  pendingFreshPosts.length === 1 ? "" : "s"
+                } moving`
+              : activeLives.length > 0
+                ? `${activeLives.length} live now`
+                : "See what is moving"}
+          </small>
+        </div>
+
+        <div className="utvHomePulseRail">
+          <button
+            type="button"
+            className={
+              pendingFreshPosts.length > 0
+                ? "utvPulseCard fresh"
+                : "utvPulseCard"
+            }
+            onClick={() => {
+              if (pendingFreshPosts.length > 0) {
+                void showFreshPosts();
+                return;
+              }
+
+              void checkForFreshPosts();
+            }}
+          >
+            <span className="utvPulseIcon">↻</span>
+            <strong>
+              {pendingFreshPosts.length > 0
+                ? `${pendingFreshPosts.length} New`
+                : "New Posts"}
+            </strong>
+            <small>
+              {pendingFreshPosts.length > 0
+                ? "Tap to load"
+                : "Check activity"}
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              feedTab === "live"
+                ? "utvPulseCard live active"
+                : "utvPulseCard live"
+            }
+            onClick={() => setFeedTab("live")}
+          >
+            <span className="utvPulseIcon">●</span>
+            <strong>
+              {activeLives.length > 0
+                ? `${activeLives.length} Live`
+                : "Live"}
+            </strong>
+            <small>
+              {activeLives.length > 0
+                ? "Tap in now"
+                : "Live + replays"}
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              feedTab === "following"
+                ? "utvPulseCard following active"
+                : "utvPulseCard following"
+            }
+            onClick={() => setFeedTab("following")}
+          >
+            <span className="utvPulseIcon">◎</span>
+            <strong>
+              {followingEmails.length > 0
+                ? `${followingEmails.length} Following`
+                : "Following"}
+            </strong>
+            <small>Your people</small>
+          </button>
+
+          <button
+            type="button"
+            className="utvPulseCard discover"
+            onClick={() => router.push("/discover")}
+          >
+            <span className="utvPulseIcon">✦</span>
+            <strong>Discover</strong>
+            <small>
+              {suggestedCreators.length > 0
+                ? `${suggestedCreators.length} creators`
+                : "Find motion"}
+            </small>
+          </button>
+        </div>
+      </section>
+
       {suggestedCreators.length > 0 && (
         <section className="suggested">
           {suggestedCreators.slice(0, 8).map((creator) => (
@@ -7720,5 +7824,184 @@ const styles = `
   padding-top: 8px !important;
 }
 
+
+
+/* =========================================================
+   UTV HOME PULSE — COMPACT SOCIAL SIGNAL STRIP
+   ========================================================= */
+
+.utvHomePulse {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 10px 12px 11px !important;
+  border-bottom: 1px solid rgba(255,255,255,.05) !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(82,247,200,.025),
+      rgba(3,5,11,0)
+    ) !important;
+}
+
+.utvHomePulseHead {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.utvHomePulseHead > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.utvHomePulseDot {
+  width: 6px !important;
+  height: 6px !important;
+  flex: 0 0 6px !important;
+  border-radius: 50% !important;
+  background: #52f7c8 !important;
+  box-shadow: 0 0 10px rgba(82,247,200,.78) !important;
+  animation: utvHomePulseGlow 1.7s ease-in-out infinite !important;
+}
+
+.utvHomePulseHead b {
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  letter-spacing: .12em !important;
+}
+
+.utvHomePulseHead small {
+  overflow: hidden !important;
+  color: rgba(255,255,255,.42) !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 8px !important;
+  font-weight: 750 !important;
+}
+
+.utvHomePulseRail {
+  display: grid !important;
+  grid-auto-flow: column !important;
+  grid-auto-columns: minmax(104px, 29vw) !important;
+  gap: 7px !important;
+  overflow-x: auto !important;
+  padding: 0 2px 2px 0 !important;
+  scroll-snap-type: x proximity !important;
+  scrollbar-width: none !important;
+}
+
+.utvHomePulseRail::-webkit-scrollbar {
+  display: none !important;
+}
+
+.utvPulseCard {
+  min-width: 0 !important;
+  min-height: 68px !important;
+  display: grid !important;
+  grid-template-columns: 25px minmax(0,1fr) !important;
+  grid-template-rows: auto auto !important;
+  align-items: center !important;
+  column-gap: 7px !important;
+  padding: 9px 10px !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  border-radius: 15px !important;
+  color: #fff !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.045),
+      rgba(255,255,255,.018)
+    ) !important;
+  text-align: left !important;
+  scroll-snap-align: start !important;
+}
+
+.utvPulseCard:active {
+  transform: scale(.97) !important;
+}
+
+.utvPulseIcon {
+  grid-row: 1 / 3 !important;
+  width: 25px !important;
+  height: 25px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 9px !important;
+  color: #52f7c8 !important;
+  background: rgba(82,247,200,.08) !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+}
+
+.utvPulseCard strong {
+  overflow: hidden !important;
+  color: #fff !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+}
+
+.utvPulseCard small {
+  overflow: hidden !important;
+  color: rgba(255,255,255,.38) !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  font-size: 7px !important;
+  line-height: 1.05 !important;
+}
+
+.utvPulseCard.fresh {
+  border-color: rgba(82,247,200,.22) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(82,247,200,.09),
+      rgba(255,255,255,.018)
+    ) !important;
+}
+
+.utvPulseCard.live .utvPulseIcon {
+  color: #ff496f !important;
+  background: rgba(255,73,111,.09) !important;
+}
+
+.utvPulseCard.following .utvPulseIcon {
+  color: #7f73ff !important;
+  background: rgba(127,115,255,.10) !important;
+}
+
+.utvPulseCard.discover .utvPulseIcon {
+  color: #ff4db8 !important;
+  background: rgba(255,77,184,.09) !important;
+}
+
+.utvPulseCard.active {
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.025) !important;
+}
+
+@keyframes utvHomePulseGlow {
+  50% {
+    opacity: .4;
+    transform: scale(.78);
+  }
+}
+
+@media (min-width: 700px) {
+  .utvHomePulseRail {
+    grid-auto-columns: minmax(118px, 1fr) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .utvHomePulseDot {
+    animation: none !important;
+  }
+}
 
 `;
