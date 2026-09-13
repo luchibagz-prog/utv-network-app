@@ -3756,6 +3756,197 @@ export default function UTVNav() {
 }
 
 `}</style>
+
+      <style>{`
+        /* UTV2 FINAL NAV SPACING */
+
+        .utvBottomNav {
+          position: fixed !important;
+
+          left: 8px !important;
+          right: 8px !important;
+          bottom:
+            max(
+              5px,
+              env(safe-area-inset-bottom)
+            )
+            !important;
+
+          width: auto !important;
+          max-width: none !important;
+
+          box-sizing: border-box !important;
+
+          display: grid !important;
+
+          grid-template-columns:
+            repeat(
+              5,
+              minmax(0,1fr)
+            )
+            !important;
+
+          align-items: center !important;
+
+          gap: 0 !important;
+
+          min-height: 0 !important;
+          height: 70px !important;
+
+          padding:
+            4px 5px 5px 18px
+            !important;
+
+          margin: 0 !important;
+
+          border-radius:
+            18px !important;
+
+          background:
+            rgba(5,9,13,.97)
+            !important;
+
+          box-shadow:
+            0 8px 30px
+              rgba(0,0,0,.38),
+            inset 0 1px 0
+              rgba(255,255,255,.055)
+            !important;
+
+          transform: none !important;
+        }
+
+        .utvNavItem {
+          width: 100% !important;
+          min-width: 0 !important;
+
+          height: 58px !important;
+          min-height: 58px !important;
+
+          display: flex !important;
+          flex-direction: column !important;
+
+          align-items: center !important;
+          justify-content: center !important;
+
+          justify-self: stretch !important;
+
+          gap: 2px !important;
+
+          padding: 0 !important;
+          margin: 0 !important;
+
+          background:
+            transparent !important;
+        }
+
+        .navIconWrap {
+          width: 30px !important;
+          min-width: 30px !important;
+          height: 29px !important;
+
+          display: grid !important;
+          place-items: center !important;
+
+          margin: 0 !important;
+        }
+
+        .navSvg {
+          width: 23px !important;
+          height: 23px !important;
+        }
+
+        .utvNavItem small {
+          margin: 1px 0 0 !important;
+
+          font-size: 8px !important;
+          line-height: 1 !important;
+
+          font-weight: 800 !important;
+        }
+
+        .createNavItem {
+          justify-content:
+            center !important;
+        }
+
+        .createNavItem
+        .navIconWrap {
+          width: 39px !important;
+          min-width: 39px !important;
+          height: 39px !important;
+
+          margin-top:
+            -5px !important;
+
+          border-radius:
+            13px !important;
+
+          transform:
+            none !important;
+
+          box-shadow:
+            0 6px 17px
+              rgba(93,78,255,.25)
+            !important;
+        }
+
+        .createNavItem
+        .navSvg {
+          width: 25px !important;
+          height: 25px !important;
+        }
+
+        .createNavItem small {
+          margin-top:
+            -1px !important;
+        }
+
+        .activeNavItem::after {
+          bottom:
+            1px !important;
+
+          width:
+            15px !important;
+
+          height:
+            2px !important;
+        }
+
+        .activeNavItem
+        .navIconWrap {
+          box-shadow:
+            none !important;
+        }
+
+        /* Smaller signature Walkie */
+
+        .utvWalkieDock {
+          right:
+            3px !important;
+
+          bottom:
+            calc(
+              65px +
+              env(safe-area-inset-bottom)
+            )
+            !important;
+
+          transform:
+            scale(.67)
+            !important;
+
+          transform-origin:
+            bottom right !important;
+        }
+
+        .utvWalkieDock:active {
+          transform:
+            scale(.60)
+            !important;
+        }
+      `}</style>
+
     </>
   );
 }
