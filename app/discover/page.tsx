@@ -164,11 +164,30 @@ export default function DiscoverPage() {
 
     // Always open Discover at the top instead of inheriting
     // the Feed/Profile scroll position.
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "auto",
-    });
+    const resetDiscoverScroll = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+
+      const scrolling =
+        document.scrollingElement;
+
+      if (scrolling) {
+        scrolling.scrollTop = 0;
+      }
+    };
+
+    resetDiscoverScroll();
+
+    requestAnimationFrame(
+      resetDiscoverScroll
+    );
+
+    const scrollTimer =
+      window.setTimeout(
+        resetDiscoverScroll,
+        120
+      );
 
     async function loadDiscover() {
       try {
@@ -216,6 +235,9 @@ export default function DiscoverPage() {
 
     return () => {
       alive = false;
+      window.clearTimeout(
+        scrollTimer
+      );
     };
   }, []);
 
@@ -447,7 +469,16 @@ export default function DiscoverPage() {
               ))}
             </div>
           ) : tiles.length > 0 ? (
-            <div className="discoverMediaGrid">
+            <div
+              className="discoverMediaGrid"
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(3, minmax(0, 1fr))",
+                gap: "3px",
+                width: "100%",
+              }}
+            >
               {tiles.map(
                 (item, index) => {
                   const image =
@@ -477,15 +508,17 @@ export default function DiscoverPage() {
                   return (
                     <Link
                       href={href}
-                      className={[
-                        "discoverMediaTile",
-                        index % 5 === 0 ||
-                        index % 7 === 0
-                          ? "tall"
-                          : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
+                      className="discoverMediaTile"
+                      style={{
+                        position: "relative",
+                        display: "block",
+                        width: "100%",
+                        minWidth: 0,
+                        aspectRatio: "4 / 5",
+                        overflow: "hidden",
+                        borderRadius: "9px",
+                        background: "#0b0f17",
+                      }}
                       key={
                         item?.id ||
                         `${creator}-${index}`
@@ -497,18 +530,29 @@ export default function DiscoverPage() {
                             src={image}
                             alt=""
                             loading="lazy"
-                          />
-                        ) : mediaIsVideo ? (
-                          <video
-                            src={video}
-                            muted
-                            playsInline
-                            preload="metadata"
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              display: "block",
+                            }}
                           />
                         ) : (
-                          <div className="discoverMediaFallback">
+                          <div
+                            className="discoverMediaFallback"
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          >
                             <span>
-                              UTV
+                              {mediaIsVideo
+                                ? "▶"
+                                : "UTV"}
                             </span>
                           </div>
                         )}
