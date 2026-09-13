@@ -5,12 +5,7 @@ import { configureWebPush } from "../../../../lib/utvPushServer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type PushEvent =
-  | "message"
-  | "walkie"
-  | "audio_call"
-  | "video_call"
-  | "booking";
+type PushEvent = string;
 
 function safeText(value: unknown, fallback = "") {
   return typeof value === "string" ? value.trim() : fallback;
@@ -69,12 +64,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const allowedEvents: PushEvent[] = [
+    const allowedEvents: string[] = [
       "message",
       "walkie",
       "audio_call",
       "video_call",
       "booking",
+      "like",
+      "comment",
+      "reply",
+      "comment_reply",
+      "comment_reaction",
+      "story_reaction",
+      "story_comment_reaction",
+      "follow",
     ];
 
     if (!allowedEvents.includes(event)) {
@@ -120,6 +123,49 @@ export async function POST(request: Request) {
       title = "📅 New UTV Booking";
       notificationBody = `${senderName} sent you a booking request.`;
       tag = `utv-booking-${senderEmail}`;
+    }
+
+
+    if (event === "like") {
+      title = "❤️ New UTV Like";
+      notificationBody = `${senderName} liked your post.`;
+      tag = `utv-like-${senderEmail}`;
+    }
+
+    if (event === "comment") {
+      title = "💬 New UTV Comment";
+      notificationBody = `${senderName} commented on your post.`;
+      tag = `utv-comment-${senderEmail}`;
+    }
+
+    if (event === "comment_reply") {
+      title = "↩️ New UTV Reply";
+      notificationBody = `${senderName} replied to your comment.`;
+      tag = `utv-reply-${senderEmail}`;
+    }
+
+    if (event === "comment_reaction") {
+      title = "🔥 UTV Comment Reaction";
+      notificationBody = `${senderName} reacted to your comment.`;
+      tag = `utv-comment-reaction-${senderEmail}`;
+    }
+
+    if (event === "follow") {
+      title = "👥 New UTV Follower";
+      notificationBody = `${senderName} followed you.`;
+      tag = `utv-follow-${senderEmail}`;
+    }
+
+    if (event === "story_reaction") {
+      title = "🔥 UTV Story Reaction";
+      notificationBody = `${senderName} reacted to your Story.`;
+      tag = `utv-story-reaction-${senderEmail}`;
+    }
+
+    if (event === "story_comment_reaction") {
+      title = "💬 UTV Story Comment Reaction";
+      notificationBody = `${senderName} reacted to your Story comment.`;
+      tag = `utv-story-comment-reaction-${senderEmail}`;
     }
 
     const admin = createClient(url, serviceKey, {

@@ -1,11 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-export type UTVPushEvent =
-  | "message"
-  | "walkie"
-  | "audio_call"
-  | "video_call"
-  | "booking";
+export type UTVPushEvent = string;
 
 export async function sendUTVPush({
   recipientEmail,
