@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
+import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 export default function NewBookingPage() {
   const [receiverEmail, setReceiverEmail] = useState("");
@@ -62,6 +63,13 @@ export default function NewBookingPage() {
       type: "booking",
       title: "New Booking Request",
       message: `${senderEmail} booked you for ${service} on ${bookingDate} at ${bookingTime}`,
+    });
+
+    void sendUTVPush({
+      recipientEmail:
+        receiverEmail.trim().toLowerCase(),
+      event: "booking",
+      url: "/bookings",
     });
 
     setSending(false);

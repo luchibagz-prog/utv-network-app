@@ -5,7 +5,12 @@ import { configureWebPush } from "../../../../lib/utvPushServer";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type PushEvent = "message" | "walkie" | "audio_call" | "video_call";
+type PushEvent =
+  | "message"
+  | "walkie"
+  | "audio_call"
+  | "video_call"
+  | "booking";
 
 function safeText(value: unknown, fallback = "") {
   return typeof value === "string" ? value.trim() : fallback;
@@ -69,6 +74,7 @@ export async function POST(request: Request) {
       "walkie",
       "audio_call",
       "video_call",
+      "booking",
     ];
 
     if (!allowedEvents.includes(event)) {
@@ -108,6 +114,12 @@ export async function POST(request: Request) {
       title = "📹 Incoming UTV Video Call";
       notificationBody = `${senderName} is video calling you.`;
       tag = `utv-video-${safeText(body?.callId, senderEmail)}`;
+    }
+
+    if (event === "booking") {
+      title = "📅 New UTV Booking";
+      notificationBody = `${senderName} sent you a booking request.`;
+      tag = `utv-booking-${senderEmail}`;
     }
 
     const admin = createClient(url, serviceKey, {

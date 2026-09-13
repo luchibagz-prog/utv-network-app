@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import { sendUTVPush } from "../../lib/sendUTVPush";
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -186,6 +187,13 @@ export default function MessagesPage() {
       message: `${profileName(email)} sent you a message.`,
       link: "/messages",
       is_read: false,
+    });
+
+    void sendUTVPush({
+      recipientEmail:
+        receiverEmail.trim().toLowerCase(),
+      event: "message",
+      url: `/messages/${encodeURIComponent(email)}`,
     });
 
     setReplyText((prev) => ({ ...prev, [receiverEmail]: "" }));
