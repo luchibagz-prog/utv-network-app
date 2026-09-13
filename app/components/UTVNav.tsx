@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
     icon: "live",
   },
   {
-    href: "/me",
+    href: "/profile-pro-v12",
     label: "Me",
     icon: "profile",
   },
