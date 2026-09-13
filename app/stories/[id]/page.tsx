@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 type StoryItem = {
   id: string;
@@ -916,6 +917,13 @@ export default function StoryViewerPage() {
           link: `/stories/${story.id}`,
           is_read: false,
         });
+
+        void sendUTVPush({
+          recipientEmail:
+            comment.user_email.toLowerCase(),
+          event: "story_comment_reaction",
+          url: `/stories/${story.id}`,
+        });
       }
     }
 
@@ -1034,6 +1042,15 @@ export default function StoryViewerPage() {
             "Story reaction notification:",
             notifyError.message
           );
+        }
+
+        if (!notifyError) {
+          void sendUTVPush({
+            recipientEmail:
+              story.user_email.toLowerCase(),
+            event: "story_reaction",
+            url: `/stories/${story.id}`,
+          });
         }
       }
 

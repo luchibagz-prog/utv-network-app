@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
+import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 type Tab = "posts" | "featured" | "crew" | "about";
 
@@ -128,6 +129,24 @@ export default function PublicProfile() {
         setFollowers((current) =>
           current + 1
         );
+
+        await supabase
+          .from("notifications")
+          .insert({
+            user_email: targetEmail,
+            actor_email: viewerEmail,
+            type: "follow",
+            title: "New Follower",
+            message: `${viewerEmail.split("@")[0]} followed you.`,
+            link: `/u/${encodeURIComponent(viewerEmail)}`,
+            is_read: false,
+          });
+
+        void sendUTVPush({
+          recipientEmail: targetEmail,
+          event: "follow",
+          url: `/u/${encodeURIComponent(viewerEmail)}`,
+        });
       }
     } catch (error) {
       console.error(
