@@ -162,6 +162,14 @@ export default function DiscoverPage() {
   useEffect(() => {
     let alive = true;
 
+    // Always open Discover at the top instead of inheriting
+    // the Feed/Profile scroll position.
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+
     async function loadDiscover() {
       try {
         const [
@@ -428,7 +436,7 @@ export default function DiscoverPage() {
           </div>
 
           {loading ? (
-            <div className="discoverGrid loadingGrid">
+            <div className="discoverMediaGrid loadingGrid">
               {Array.from({
                 length: 6,
               }).map((_, index) => (
@@ -439,7 +447,7 @@ export default function DiscoverPage() {
               ))}
             </div>
           ) : tiles.length > 0 ? (
-            <div className="discoverGrid">
+            <div className="discoverMediaGrid">
               {tiles.map(
                 (item, index) => {
                   const image =
@@ -470,7 +478,7 @@ export default function DiscoverPage() {
                     <Link
                       href={href}
                       className={[
-                        "contentTile",
+                        "discoverMediaTile",
                         index % 5 === 0 ||
                         index % 7 === 0
                           ? "tall"
@@ -483,7 +491,7 @@ export default function DiscoverPage() {
                         `${creator}-${index}`
                       }
                     >
-                      <div className="media">
+                      <div className="discoverMediaFrame">
                         {image ? (
                           <img
                             src={image}
@@ -498,7 +506,7 @@ export default function DiscoverPage() {
                             preload="metadata"
                           />
                         ) : (
-                          <div className="mediaFallback">
+                          <div className="discoverMediaFallback">
                             <span>
                               UTV
                             </span>
@@ -893,44 +901,55 @@ export default function DiscoverPage() {
           font-size: 7px;
         }
 
-        .discoverGrid {
+        .discoverMediaGrid {
           display: grid;
-          grid-template-columns: repeat(2,minmax(0,1fr));
-          grid-auto-flow: dense;
-          gap: 4px;
+          grid-template-columns: repeat(3,minmax(0,1fr));
+          gap: 3px;
+          align-items: start;
         }
 
-        .contentTile {
+        .discoverMediaTile {
           position: relative;
-          min-height: 205px;
+          width: 100%;
+          min-width: 0;
+          min-height: 0;
+          aspect-ratio: 4 / 5;
           overflow: hidden;
-          border-radius: 13px;
+          border-radius: 9px;
           color: white;
           background: #0b0f17;
           text-decoration: none;
           transform: translateZ(0);
+          contain: layout paint;
         }
 
-        .contentTile.tall {
-          min-height: 280px;
+        .discoverMediaTile.tall {
+          aspect-ratio: 4 / 5;
         }
 
-        .media,
-        .media img,
-        .media video,
-        .mediaFallback {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
+        .discoverMediaFrame,
+        .discoverMediaFrame img,
+        .discoverMediaFrame video,
+        .discoverMediaFallback {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
         }
 
-        .media img,
-        .media video {
-          object-fit: cover;
+        .discoverMediaFrame {
+          overflow: hidden;
         }
 
-        .mediaFallback {
+        .discoverMediaFrame img,
+        .discoverMediaFrame video {
+          display: block;
+          object-fit: cover !important;
+        }
+
+        .discoverMediaFallback {
           display: grid;
           place-items: center;
           background:
@@ -1200,9 +1219,9 @@ export default function DiscoverPage() {
             padding-inline: 20px;
           }
 
-          .discoverGrid {
+          .discoverMediaGrid {
             grid-template-columns:
-              repeat(3,minmax(0,1fr));
+              repeat(4,minmax(0,1fr));
           }
 
           .quickRail {
