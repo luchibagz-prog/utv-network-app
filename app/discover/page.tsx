@@ -277,46 +277,59 @@ export default function DiscoverPage() {
             </p>
           </div>
 
-          <Link
-            href="/search"
-            className="roundSearch"
-            aria-label="Search UTV"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <circle
-                cx="11"
-                cy="11"
-                r="6.6"
-              />
-              <path d="m16 16 4 4" />
-            </svg>
-          </Link>
+
         </header>
 
         <Link
           href="/search"
           className="searchBar"
+          style={{
+            minHeight: "47px",
+            marginTop: "18px",
+            display: "grid",
+            gridTemplateColumns: "22px minmax(0,1fr) auto",
+            alignItems: "center",
+            gap: "9px",
+            padding: "0 13px",
+            border: "1px solid rgba(255,255,255,.08)",
+            borderRadius: "15px",
+            color: "rgba(255,255,255,.58)",
+            background: "rgba(255,255,255,.045)",
+            textDecoration: "none",
+          }}
         >
-          <svg
-            viewBox="0 0 24 24"
+          <span
             aria-hidden="true"
+            style={{
+              width: "20px",
+              height: "20px",
+              display: "grid",
+              placeItems: "center",
+              fontSize: "18px",
+              lineHeight: 1,
+            }}
           >
-            <circle
-              cx="11"
-              cy="11"
-              r="6.6"
-            />
-            <path d="m16 16 4 4" />
-          </svg>
+            ⌕
+          </span>
 
-          <span>
+          <span
+            style={{
+              minWidth: 0,
+              fontSize: "11px",
+              fontWeight: 700,
+            }}
+          >
             Search UTV
           </span>
 
-          <b>⌕</b>
+          <b
+            style={{
+              color: "rgba(255,255,255,.25)",
+              fontSize: "14px",
+            }}
+          >
+            →
+          </b>
         </Link>
 
         <nav
@@ -333,6 +346,27 @@ export default function DiscoverPage() {
                     ? "categoryChip active"
                     : "categoryChip"
                 }
+                style={{
+                  flex: "0 0 auto",
+                  padding: "8px 12px",
+                  border:
+                    index === 0
+                      ? "1px solid #52f7c8"
+                      : "1px solid rgba(255,255,255,.07)",
+                  borderRadius: "999px",
+                  color:
+                    index === 0
+                      ? "#04110d"
+                      : "rgba(255,255,255,.62)",
+                  background:
+                    index === 0
+                      ? "#52f7c8"
+                      : "rgba(255,255,255,.03)",
+                  textDecoration: "none",
+                  fontSize: "9px",
+                  fontWeight: 850,
+                  whiteSpace: "nowrap",
+                }}
               >
                 {label}
               </Link>
@@ -400,6 +434,16 @@ export default function DiscoverPage() {
                     <Link
                       href={href}
                       className="creatorBubble"
+                      style={{
+                        width: "76px",
+                        flex: "0 0 76px",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        color: "white",
+                        textDecoration: "none",
+                        textAlign: "center",
+                      }}
                       key={
                         email ||
                         creator.id ||
@@ -421,11 +465,32 @@ export default function DiscoverPage() {
                         </span>
                       </span>
 
-                      <strong>
+                      <strong
+                        style={{
+                          width: "100%",
+                          overflow: "hidden",
+                          marginTop: "6px",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          fontSize: "9px",
+                          display: "block",
+                        }}
+                      >
                         {name}
                       </strong>
 
-                      <small>
+                      <small
+                        style={{
+                          width: "100%",
+                          overflow: "hidden",
+                          marginTop: "2px",
+                          color: "rgba(255,255,255,.35)",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          fontSize: "7px",
+                          display: "block",
+                        }}
+                      >
                         {value(
                           creator,
                           ["category"],
@@ -617,17 +682,43 @@ export default function DiscoverPage() {
                   href={item.href}
                   key={item.title}
                   className={`quickCard ${item.vibe}`}
+                  style={{
+                    minHeight: "105px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    gap: "13px",
+                    padding: "12px",
+                    border: "1px solid rgba(255,255,255,.07)",
+                    borderRadius: "18px",
+                    color: "white",
+                    background: "rgba(255,255,255,.035)",
+                    textDecoration: "none",
+                  }}
                 >
                   <span className="quickIcon">
                     {item.icon}
                   </span>
 
                   <div>
-                    <strong>
+                    <strong
+                      style={{
+                        display: "block",
+                        fontSize: "11px",
+                      }}
+                    >
                       {item.title}
                     </strong>
 
-                    <small>
+                    <small
+                      style={{
+                        display: "block",
+                        marginTop: "3px",
+                        color: "rgba(255,255,255,.38)",
+                        fontSize: "8px",
+                        lineHeight: 1.35,
+                      }}
+                    >
                       {item.copy}
                     </small>
                   </div>
