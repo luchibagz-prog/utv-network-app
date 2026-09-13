@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import { sendUTVPush } from "../../lib/sendUTVPush";
 
 const heroHeaders = [
   "/utv-logo.png",
@@ -1921,6 +1922,20 @@ export default function FeedPage() {
       message: `${profileName(userEmail)} liked your post.`,
       link: `/feed#post-${id}`,
     });
+
+    const likePushRecipient =
+      creatorEmail?.trim().toLowerCase();
+
+    if (
+      likePushRecipient &&
+      likePushRecipient !== userEmail.toLowerCase()
+    ) {
+      void sendUTVPush({
+        recipientEmail: likePushRecipient,
+        event: "like",
+        url: `/feed#post-${id}`,
+      });
+    }
   }
 
   async function addComment(id: string, creatorEmail?: string) {
@@ -1964,6 +1979,26 @@ export default function FeedPage() {
         : `${profileName(userEmail)} commented: "${value}"`,
       link: `/feed#post-${id}`,
     });
+
+    const commentPushRecipient =
+      String(
+        target?.user_email ||
+        creatorEmail ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      commentPushRecipient &&
+      commentPushRecipient !== userEmail.toLowerCase()
+    ) {
+      void sendUTVPush({
+        recipientEmail: commentPushRecipient,
+        event: target ? "comment_reply" : "comment",
+        url: `/feed#post-${id}`,
+      });
+    }
   }
 
   async function reactToComment(uploadId: string, comment: any, emoji: string) {
@@ -2005,6 +2040,22 @@ export default function FeedPage() {
         message: `${profileName(userEmail)} reacted to your comment.`,
         link: `/feed#post-${uploadId}`,
       });
+
+      const reactionPushRecipient =
+        String(comment.user_email || "")
+          .trim()
+          .toLowerCase();
+
+      if (
+        reactionPushRecipient &&
+        reactionPushRecipient !== userEmail.toLowerCase()
+      ) {
+        void sendUTVPush({
+          recipientEmail: reactionPushRecipient,
+          event: "comment_reaction",
+          url: `/feed#post-${uploadId}`,
+        });
+      }
     }
 
     await loadComments(uploadId);
