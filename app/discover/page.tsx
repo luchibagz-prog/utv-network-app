@@ -1,507 +1,1214 @@
 "use client";
 
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import UTVNav from "../components/UTVNav";
+import { supabase } from "../../lib/supabaseClient";
 
-const main = [
-  {
-    href: "/reels",
-    icon: "⚡",
-    tag: "FULL SCREEN",
-    title: "Reels",
-    text: "Quick hits, hidden gems and creators starting to move.",
-    vibe: "pink",
-  },
+type Row = Record<string, any>;
+
+const categories = [
+  ["For You", "/discover"],
+  ["Reels", "/reels"],
+  ["Near Me", "/world"],
+  ["Watch", "/watch"],
+  ["Events", "/events"],
+  ["Casting", "/casting"],
+];
+
+const quickLinks = [
   {
     href: "/world",
     icon: "◎",
-    tag: "LIVE CULTURE",
     title: "UTV World",
-    text: "See Lives, events, creators and motion happening around you.",
+    copy: "See what is moving around you.",
     vibe: "mint",
   },
   {
     href: "/watch",
     icon: "▶",
-    tag: "STREAM UTV",
     title: "Watch",
-    text: "Shows, movies, music, podcasts and UTV originals.",
+    copy: "Shows, movies, music and originals.",
     vibe: "purple",
+  },
+  {
+    href: "/events",
+    icon: "✦",
+    title: "Events",
+    copy: "Find something worth pulling up to.",
+    vibe: "gold",
+  },
+  {
+    href: "/casting",
+    icon: "★",
+    title: "Casting",
+    copy: "Find opportunities and hidden gems.",
+    vibe: "pink",
+  },
+  {
+    href: "/collabs/new",
+    icon: "∞",
+    title: "Collab",
+    copy: "Build something with somebody new.",
+    vibe: "blue",
   },
 ];
 
-const tools = [
-  ["⌕", "Search", "Creators + content", "/search"],
-  ["✦", "Events", "What's happening", "/events"],
-  ["★", "Casting", "Find opportunities", "/casting"],
-  ["∞", "Collab", "Build together", "/collabs/new"],
-];
+function value(
+  row: Row,
+  keys: string[],
+  fallback = ""
+) {
+  for (const key of keys) {
+    const result = row?.[key];
+
+    if (
+      result !== undefined &&
+      result !== null &&
+      String(result).trim() !== ""
+    ) {
+      return String(result);
+    }
+  }
+
+  return fallback;
+}
+
+function uploadImage(row: Row) {
+  return value(row, [
+    "thumbnail_url",
+    "cover_url",
+    "image_url",
+    "poster_url",
+  ]);
+}
+
+function uploadVideo(row: Row) {
+  return value(row, [
+    "video_url",
+    "media_url",
+    "file_url",
+  ]);
+}
+
+function uploadTitle(row: Row) {
+  return value(
+    row,
+    [
+      "title",
+      "name",
+      "caption",
+      "description",
+    ],
+    "UTV"
+  );
+}
+
+function uploadCreator(row: Row) {
+  return value(
+    row,
+    [
+      "creator_name",
+      "display_name",
+      "username",
+      "creator_email",
+      "email",
+    ],
+    "UTV Creator"
+  ).replace(/^@/, "");
+}
+
+function profileName(row: Row) {
+  return value(
+    row,
+    [
+      "display_name",
+      "creator_name",
+      "username",
+      "email",
+    ],
+    "UTV Creator"
+  ).replace(/^@/, "");
+}
+
+function profileAvatar(row: Row) {
+  return value(row, [
+    "avatar_url",
+    "creator_avatar",
+    "profile_image",
+  ]);
+}
+
+function looksLikeVideo(url: string) {
+  return /\.(mp4|mov|webm|m4v)(\?|$)/i.test(
+    url
+  );
+}
 
 export default function DiscoverPage() {
+  const [uploads, setUploads] =
+    useState<Row[]>([]);
+
+  const [creators, setCreators] =
+    useState<Row[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadDiscover() {
+      try {
+        const [
+          uploadResult,
+          profileResult,
+        ] = await Promise.all([
+          supabase
+            .from("uploads")
+            .select("*")
+            .eq("approved", true)
+            .order("created_at", {
+              ascending: false,
+            })
+            .limit(30),
+
+          supabase
+            .from("creator_profiles")
+            .select("*")
+            .limit(18),
+        ]);
+
+        if (!alive) return;
+
+        setUploads(
+          uploadResult.data || []
+        );
+
+        setCreators(
+          profileResult.data || []
+        );
+      } catch (error) {
+        console.info(
+          "Discover could not load everything.",
+          error
+        );
+      } finally {
+        if (alive) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadDiscover();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const tiles = useMemo(
+    () => uploads.slice(0, 12),
+    [uploads]
+  );
+
+  const creatorRail = useMemo(
+    () =>
+      creators
+        .filter(
+          (creator) =>
+            creator?.email ||
+            creator?.username
+        )
+        .slice(0, 12),
+    [creators]
+  );
+
   return (
     <main className="discoverPage">
       <UTVNav />
 
-      <div className="ambient a1" />
-      <div className="ambient a2" />
+      <section className="discoverShell">
+        <header className="discoverHeader">
+          <div>
+            <span className="eyebrow">
+              UTV DISCOVER
+            </span>
 
-      <section className="discoverHero">
-        <div>
-          <small>UTV DISCOVER</small>
-          <h1>
-            What&apos;s <span>moving?</span>
-          </h1>
-          <p>Watch it. Find it. Tap in.</p>
-        </div>
+            <h1>Discover</h1>
 
-        <Link href="/search" className="searchOrb">
-          ⌕
+            <p>
+              Find creators, culture,
+              opportunities and what&apos;s moving.
+            </p>
+          </div>
+
+          <Link
+            href="/search"
+            className="roundSearch"
+            aria-label="Search UTV"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="6.6"
+              />
+              <path d="m16 16 4 4" />
+            </svg>
+          </Link>
+        </header>
+
+        <Link
+          href="/search"
+          className="searchBar"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              cx="11"
+              cy="11"
+              r="6.6"
+            />
+            <path d="m16 16 4 4" />
+          </svg>
+
+          <span>
+            Search UTV
+          </span>
+
+          <b>⌕</b>
         </Link>
-      </section>
 
-      <section className="pulse">
-        <i />
-        <b>UTV PULSE</b>
-        <span>
-          🔥 Trending &nbsp;•&nbsp; ◎ Near You
-          &nbsp;•&nbsp; ⚡ Rising
-        </span>
-      </section>
+        <nav
+          className="categoryRail"
+          aria-label="Discover categories"
+        >
+          {categories.map(
+            ([label, href], index) => (
+              <Link
+                href={href}
+                key={label}
+                className={
+                  index === 0
+                    ? "categoryChip active"
+                    : "categoryChip"
+                }
+              >
+                {label}
+              </Link>
+            )
+          )}
+        </nav>
 
-      <section className="discoverSection">
-        <div className="sectionTitle">
-          <div>
-            <small>JUMP IN</small>
-            <h2>Pick your vibe</h2>
+        <section className="pulseBar">
+          <div className="pulseIdentity">
+            <i />
+            <strong>UTV PULSE</strong>
           </div>
-          <span>Swipe →</span>
-        </div>
 
-        <div className="featureRail">
-          {main.map((item) => (
-            <Link
-              key={item.title}
-              href={item.href}
-              className={`feature ${item.vibe}`}
-            >
-              <div className="shine" />
-
-              <span className="featureIcon">
-                {item.icon}
-              </span>
-
-              <div className="featureText">
-                <small>{item.tag}</small>
-                <h3>{item.title}</h3>
-                <p>{item.text}</p>
-              </div>
-
-              <b className="open">↗</b>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="discoverSection">
-        <div className="sectionTitle">
-          <div>
-            <small>MORE UTV</small>
-            <h2>Find your lane</h2>
+          <div className="pulseItems">
+            <span>🔥 Trending</span>
+            <span>◎ Near You</span>
+            <span>⚡ Rising</span>
           </div>
-        </div>
+        </section>
 
-        <div className="toolGrid">
-          {tools.map(([icon, title, text, href]) => (
-            <Link
-              key={title}
-              href={href}
-              className="tool"
-            >
-              <span>{icon}</span>
-
+        {creatorRail.length > 0 && (
+          <section className="creatorSection">
+            <div className="sectionHeading">
               <div>
-                <b>{title}</b>
-                <small>{text}</small>
+                <small>
+                  PEOPLE TO KNOW
+                </small>
+
+                <h2>
+                  Creators moving
+                </h2>
               </div>
 
-              <i>›</i>
+              <Link href="/search">
+                See all
+              </Link>
+            </div>
+
+            <div className="creatorRail">
+              {creatorRail.map(
+                (creator, index) => {
+                  const avatar =
+                    profileAvatar(
+                      creator
+                    );
+
+                  const name =
+                    profileName(
+                      creator
+                    );
+
+                  const email =
+                    value(
+                      creator,
+                      ["email"]
+                    );
+
+                  const href = email
+                    ? `/u/${encodeURIComponent(
+                        email
+                      )}`
+                    : "/search";
+
+                  return (
+                    <Link
+                      href={href}
+                      className="creatorBubble"
+                      key={
+                        email ||
+                        creator.id ||
+                        `${name}-${index}`
+                      }
+                    >
+                      <span className="creatorRing">
+                        <span className="creatorAvatar">
+                          {avatar ? (
+                            <img
+                              src={avatar}
+                              alt=""
+                            />
+                          ) : (
+                            name
+                              .slice(0, 1)
+                              .toUpperCase()
+                          )}
+                        </span>
+                      </span>
+
+                      <strong>
+                        {name}
+                      </strong>
+
+                      <small>
+                        {value(
+                          creator,
+                          ["category"],
+                          "Creator"
+                        )}
+                      </small>
+                    </Link>
+                  );
+                }
+              )}
+            </div>
+          </section>
+        )}
+
+        <section className="contentSection">
+          <div className="sectionHeading">
+            <div>
+              <small>
+                FOR YOU
+              </small>
+
+              <h2>
+                What&apos;s moving
+              </h2>
+            </div>
+
+            <Link href="/reels">
+              Reels →
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
 
-      <section className="coming">
-        <small>UTV NEXT</small>
+          {loading ? (
+            <div className="discoverGrid loadingGrid">
+              {Array.from({
+                length: 6,
+              }).map((_, index) => (
+                <div
+                  className="skeletonTile"
+                  key={index}
+                />
+              ))}
+            </div>
+          ) : tiles.length > 0 ? (
+            <div className="discoverGrid">
+              {tiles.map(
+                (item, index) => {
+                  const image =
+                    uploadImage(item);
 
-        <h2>
-          Discover is about to get
-          <span> smarter.</span>
-        </h2>
+                  const video =
+                    uploadVideo(item);
 
-        <p>
-          Motion, City Pulse, Collab Radar and
-          personalized discovery are coming into
-          this screen.
-        </p>
+                  const creator =
+                    uploadCreator(item);
 
-        <div>
-          <b>⚡ MOTION</b>
-          <b>📡 RADAR</b>
-          <b>🔥 CITY PULSE</b>
-        </div>
+                  const title =
+                    uploadTitle(item);
+
+                  const mediaIsVideo =
+                    Boolean(
+                      video &&
+                      looksLikeVideo(video)
+                    );
+
+                  const href =
+                    item?.id &&
+                    mediaIsVideo
+                      ? `/watch/${item.id}`
+                      : "/feed";
+
+                  return (
+                    <Link
+                      href={href}
+                      className={[
+                        "contentTile",
+                        index % 5 === 0 ||
+                        index % 7 === 0
+                          ? "tall"
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      key={
+                        item?.id ||
+                        `${creator}-${index}`
+                      }
+                    >
+                      <div className="media">
+                        {image ? (
+                          <img
+                            src={image}
+                            alt=""
+                            loading="lazy"
+                          />
+                        ) : mediaIsVideo ? (
+                          <video
+                            src={video}
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <div className="mediaFallback">
+                            <span>
+                              UTV
+                            </span>
+                          </div>
+                        )}
+
+                        {mediaIsVideo && (
+                          <span className="playBadge">
+                            ▶
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="tileShade" />
+
+                      <div className="tileCopy">
+                        <small>
+                          @{creator}
+                        </small>
+
+                        <strong>
+                          {title}
+                        </strong>
+                      </div>
+                    </Link>
+                  );
+                }
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/feed"
+              className="emptyDiscover"
+            >
+              <strong>
+                Your UTV feed is moving
+              </strong>
+
+              <span>
+                Tap to see the latest
+                creators and posts.
+              </span>
+            </Link>
+          )}
+        </section>
+
+        <section className="quickSection">
+          <div className="sectionHeading">
+            <div>
+              <small>
+                EXPLORE UTV
+              </small>
+
+              <h2>
+                More ways in
+              </h2>
+            </div>
+          </div>
+
+          <div className="quickRail">
+            {quickLinks.map(
+              (item) => (
+                <Link
+                  href={item.href}
+                  key={item.title}
+                  className={`quickCard ${item.vibe}`}
+                >
+                  <span className="quickIcon">
+                    {item.icon}
+                  </span>
+
+                  <div>
+                    <strong>
+                      {item.title}
+                    </strong>
+
+                    <small>
+                      {item.copy}
+                    </small>
+                  </div>
+                </Link>
+              )
+            )}
+          </div>
+        </section>
+
+        <section className="nextStrip">
+          <span>UTV NEXT</span>
+
+          <div>
+            <b>⚡ Motion</b>
+            <b>📡 Collab Radar</b>
+            <b>🔥 City Pulse</b>
+          </div>
+        </section>
       </section>
 
       <style jsx>{`
-        .discoverPage{
-          position:relative;
-          min-height:100svh;
-          overflow:hidden;
-          padding:88px 14px 125px;
-          color:white;
+        .discoverPage {
+          position: relative;
+          min-height: 100svh;
+          overflow-x: clip;
+          padding-bottom: 94px;
+          color: white;
           background:
-            radial-gradient(circle at 10% 5%,rgba(82,247,200,.12),transparent 27%),
-            radial-gradient(circle at 92% 23%,rgba(120,76,255,.17),transparent 31%),
-            radial-gradient(circle at 45% 84%,rgba(255,61,171,.08),transparent 28%),
+            radial-gradient(
+              circle at 12% 0%,
+              rgba(82,247,200,.09),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 95% 18%,
+              rgba(119,83,255,.12),
+              transparent 30%
+            ),
             #03050b;
         }
 
-        .ambient{
-          position:absolute;
-          width:180px;
-          height:180px;
-          border-radius:50%;
-          filter:blur(70px);
-          pointer-events:none;
-          opacity:.18;
+        .discoverShell {
+          width: min(100%,760px);
+          margin: 0 auto;
+          padding: 18px 14px 30px;
         }
 
-        .a1{left:-90px;top:280px;background:#52f7c8}
-        .a2{right:-90px;top:540px;background:#794eff}
-
-        .discoverHero,
-        .pulse,
-        .discoverSection,
-        .coming{
-          position:relative;
-          z-index:2;
-          width:min(100%,760px);
-          margin-inline:auto;
+        .discoverHeader {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
         }
 
-        .discoverHero{
-          display:flex;
-          justify-content:space-between;
-          align-items:flex-start;
-          gap:15px;
+        .eyebrow,
+        .sectionHeading small {
+          display: block;
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .15em;
         }
 
-        .discoverHero small,
-        .sectionTitle small,
-        .coming>small{
-          color:#52f7c8;
-          font-size:8px;
-          font-weight:1000;
-          letter-spacing:.16em;
+        .discoverHeader h1 {
+          margin: 4px 0 0;
+          font-size: clamp(31px,8vw,46px);
+          line-height: 1;
+          letter-spacing: -.055em;
         }
 
-        h1{
-          margin:7px 0 0;
-          font-size:clamp(39px,12vw,70px);
-          line-height:.9;
-          letter-spacing:-.07em;
+        .discoverHeader p {
+          max-width: 390px;
+          margin: 8px 0 0;
+          color: rgba(255,255,255,.5);
+          font-size: 11px;
+          line-height: 1.45;
         }
 
-        h1 span{
-          color:transparent;
-          background:linear-gradient(90deg,#52f7c8,#8a70ff,#ff4eb8);
-          -webkit-background-clip:text;
-          background-clip:text;
+        .roundSearch {
+          width: 42px;
+          height: 42px;
+          flex: 0 0 auto;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255,255,255,.09);
+          border-radius: 50%;
+          color: white;
+          background: rgba(255,255,255,.045);
+          text-decoration: none;
         }
 
-        .discoverHero p{
-          margin:12px 0 0;
-          color:rgba(255,255,255,.5);
-          font-size:12px;
+        .roundSearch svg,
+        .searchBar svg {
+          width: 20px;
+          height: 20px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.8;
+          stroke-linecap: round;
         }
 
-        .searchOrb{
-          width:46px;
-          height:46px;
-          flex:0 0 auto;
-          display:grid;
-          place-items:center;
-          border:1px solid rgba(255,255,255,.1);
-          border-radius:16px;
-          color:white;
-          background:rgba(255,255,255,.055);
-          text-decoration:none;
-          font-size:27px;
-          backdrop-filter:blur(16px);
+        .searchBar {
+          min-height: 47px;
+          margin-top: 18px;
+          display: grid;
+          grid-template-columns: 22px minmax(0,1fr) auto;
+          align-items: center;
+          gap: 9px;
+          padding: 0 13px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 15px;
+          color: rgba(255,255,255,.58);
+          background: rgba(255,255,255,.045);
+          text-decoration: none;
         }
 
-        .pulse{
-          margin-top:25px;
-          min-height:46px;
-          display:flex;
-          align-items:center;
-          gap:8px;
-          padding:0 12px;
-          overflow:hidden;
-          border:1px solid rgba(255,255,255,.08);
-          border-radius:16px;
-          background:linear-gradient(90deg,rgba(82,247,200,.07),rgba(118,80,255,.08),rgba(255,68,178,.05));
+        .searchBar span {
+          min-width: 0;
+          font-size: 11px;
+          font-weight: 700;
         }
 
-        .pulse i{
-          width:7px;
-          height:7px;
-          flex:0 0 auto;
-          border-radius:50%;
-          background:#52f7c8;
-          box-shadow:0 0 12px #52f7c8;
-          animation:pulse 1.6s infinite;
+        .searchBar b {
+          color: rgba(255,255,255,.25);
+          font-size: 16px;
         }
 
-        .pulse b{
-          flex:0 0 auto;
-          font-size:8px;
-          letter-spacing:.11em;
+        .categoryRail {
+          display: flex;
+          gap: 7px;
+          margin-top: 12px;
+          overflow-x: auto;
+          padding-bottom: 3px;
+          scrollbar-width: none;
         }
 
-        .pulse span{
-          overflow:hidden;
-          white-space:nowrap;
-          text-overflow:ellipsis;
-          color:rgba(255,255,255,.57);
-          font-size:9px;
+        .categoryRail::-webkit-scrollbar,
+        .creatorRail::-webkit-scrollbar,
+        .quickRail::-webkit-scrollbar {
+          display: none;
         }
 
-        .discoverSection{margin-top:31px}
-
-        .sectionTitle{
-          display:flex;
-          align-items:flex-end;
-          justify-content:space-between;
-          gap:12px;
-          margin-bottom:12px;
+        .categoryChip {
+          flex: 0 0 auto;
+          padding: 8px 12px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 999px;
+          color: rgba(255,255,255,.58);
+          background: rgba(255,255,255,.03);
+          text-decoration: none;
+          font-size: 9px;
+          font-weight: 850;
         }
 
-        .sectionTitle small{color:rgba(255,255,255,.37)}
-
-        .sectionTitle h2{
-          margin:4px 0 0;
-          font-size:21px;
-          letter-spacing:-.035em;
+        .categoryChip.active {
+          color: #04110d;
+          background: #52f7c8;
+          border-color: #52f7c8;
+          box-shadow: 0 0 18px rgba(82,247,200,.14);
         }
 
-        .sectionTitle>span{
-          color:rgba(255,255,255,.3);
-          font-size:9px;
-        }
-
-        .featureRail{
-          display:grid;
-          grid-auto-flow:column;
-          grid-auto-columns:minmax(245px,78vw);
-          gap:10px;
-          overflow-x:auto;
-          scroll-snap-type:x mandatory;
-          padding-bottom:4px;
-          scrollbar-width:none;
-        }
-
-        .featureRail::-webkit-scrollbar{display:none}
-
-        .feature{
-          position:relative;
-          min-height:225px;
-          overflow:hidden;
-          display:flex;
-          flex-direction:column;
-          justify-content:space-between;
-          scroll-snap-align:start;
-          padding:18px;
-          border:1px solid rgba(255,255,255,.09);
-          border-radius:27px;
-          color:white;
-          text-decoration:none;
-          background:#0a0d15;
-          box-shadow:0 22px 48px rgba(0,0,0,.25);
-        }
-
-        .feature:active{transform:scale(.97)}
-
-        .feature.pink{
+        .pulseBar {
+          min-height: 44px;
+          margin-top: 13px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 0 12px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 14px;
           background:
-            radial-gradient(circle at 88% 12%,rgba(255,59,170,.34),transparent 34%),
-            linear-gradient(145deg,#171020,#080910);
+            linear-gradient(
+              90deg,
+              rgba(82,247,200,.055),
+              rgba(120,83,255,.065),
+              rgba(255,70,181,.035)
+            );
         }
 
-        .feature.mint{
+        .pulseIdentity {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .pulseIdentity i {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow: 0 0 10px #52f7c8;
+          animation: pulse 1.6s ease-in-out infinite;
+        }
+
+        .pulseIdentity strong {
+          font-size: 8px;
+          letter-spacing: .09em;
+        }
+
+        .pulseItems {
+          min-width: 0;
+          display: flex;
+          gap: 12px;
+          overflow-x: auto;
+          color: rgba(255,255,255,.5);
+          font-size: 8px;
+          white-space: nowrap;
+          scrollbar-width: none;
+        }
+
+        .creatorSection,
+        .contentSection,
+        .quickSection {
+          margin-top: 25px;
+        }
+
+        .sectionHeading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 11px;
+        }
+
+        .sectionHeading small {
+          color: rgba(255,255,255,.36);
+        }
+
+        .sectionHeading h2 {
+          margin: 3px 0 0;
+          font-size: 20px;
+          letter-spacing: -.035em;
+        }
+
+        .sectionHeading > a {
+          color: rgba(255,255,255,.42);
+          text-decoration: none;
+          font-size: 9px;
+          font-weight: 750;
+        }
+
+        .creatorRail {
+          display: flex;
+          gap: 13px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          scrollbar-width: none;
+        }
+
+        .creatorBubble {
+          width: 76px;
+          flex: 0 0 76px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          color: white;
+          text-decoration: none;
+          text-align: center;
+        }
+
+        .creatorRing {
+          width: 61px;
+          height: 61px;
+          display: grid;
+          place-items: center;
+          padding: 2px;
+          border-radius: 50%;
           background:
-            radial-gradient(circle at 88% 12%,rgba(82,247,200,.3),transparent 34%),
-            linear-gradient(145deg,#071b19,#070910);
+            linear-gradient(
+              145deg,
+              #52f7c8,
+              #7d61ff,
+              #ff4db8
+            );
         }
 
-        .feature.purple{
+        .creatorAvatar {
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+          border: 3px solid #05070d;
+          border-radius: 50%;
+          background: #101521;
+          font-size: 18px;
+          font-weight: 1000;
+        }
+
+        .creatorAvatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .creatorBubble strong {
+          width: 100%;
+          overflow: hidden;
+          margin-top: 6px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 9px;
+        }
+
+        .creatorBubble small {
+          width: 100%;
+          overflow: hidden;
+          margin-top: 2px;
+          color: rgba(255,255,255,.35);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 7px;
+        }
+
+        .discoverGrid {
+          display: grid;
+          grid-template-columns: repeat(2,minmax(0,1fr));
+          grid-auto-flow: dense;
+          gap: 4px;
+        }
+
+        .contentTile {
+          position: relative;
+          min-height: 205px;
+          overflow: hidden;
+          border-radius: 13px;
+          color: white;
+          background: #0b0f17;
+          text-decoration: none;
+          transform: translateZ(0);
+        }
+
+        .contentTile.tall {
+          min-height: 280px;
+        }
+
+        .media,
+        .media img,
+        .media video,
+        .mediaFallback {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .media img,
+        .media video {
+          object-fit: cover;
+        }
+
+        .mediaFallback {
+          display: grid;
+          place-items: center;
           background:
-            radial-gradient(circle at 88% 12%,rgba(115,88,255,.4),transparent 34%),
-            linear-gradient(145deg,#111326,#070910);
+            radial-gradient(
+              circle at 30% 20%,
+              rgba(82,247,200,.18),
+              transparent 35%
+            ),
+            radial-gradient(
+              circle at 85% 80%,
+              rgba(122,88,255,.22),
+              transparent 42%
+            ),
+            #0b0f17;
         }
 
-        .shine{
-          position:absolute;
-          right:-40px;
-          top:-40px;
-          width:130px;
-          height:130px;
-          border-radius:50%;
-          background:rgba(255,255,255,.06);
-          filter:blur(20px);
+        .mediaFallback span {
+          color: rgba(255,255,255,.18);
+          font-size: 27px;
+          font-weight: 1000;
+          letter-spacing: -.06em;
         }
 
-        .featureIcon{
-          width:47px;
-          height:47px;
-          display:grid;
-          place-items:center;
-          border:1px solid rgba(255,255,255,.1);
-          border-radius:15px;
-          background:rgba(255,255,255,.07);
-          font-size:22px;
+        .tileShade {
+          position: absolute;
+          inset: 35% 0 0;
+          background:
+            linear-gradient(
+              transparent,
+              rgba(0,0,0,.82)
+            );
         }
 
-        .featureText{position:relative;z-index:2}
-
-        .featureText small{
-          color:rgba(255,255,255,.42);
-          font-size:7px;
-          font-weight:1000;
-          letter-spacing:.14em;
+        .tileCopy {
+          position: absolute;
+          right: 10px;
+          bottom: 10px;
+          left: 10px;
+          min-width: 0;
         }
 
-        .featureText h3{
-          margin:4px 0;
-          font-size:28px;
-          line-height:1;
-          letter-spacing:-.05em;
+        .tileCopy small {
+          display: block;
+          overflow: hidden;
+          color: #52f7c8;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 7px;
+          font-weight: 900;
         }
 
-        .featureText p{
-          max-width:205px;
-          margin:0;
-          color:rgba(255,255,255,.55);
-          font-size:10px;
-          line-height:1.5;
+        .tileCopy strong {
+          display: -webkit-box;
+          overflow: hidden;
+          margin-top: 3px;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          font-size: 10px;
+          line-height: 1.25;
         }
 
-        .open{
-          position:absolute;
-          right:15px;
-          bottom:15px;
-          width:33px;
-          height:33px;
-          display:grid;
-          place-items:center;
-          border-radius:50%;
-          background:rgba(255,255,255,.08);
+        .playBadge {
+          position: absolute;
+          top: 9px;
+          right: 9px;
+          width: 27px;
+          height: 27px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: white;
+          background: rgba(0,0,0,.48);
+          backdrop-filter: blur(8px);
+          font-size: 9px;
         }
 
-        .toolGrid{
-          display:grid;
-          grid-template-columns:repeat(2,minmax(0,1fr));
-          gap:9px;
+        .loadingGrid {
+          pointer-events: none;
         }
 
-        .tool{
-          min-height:82px;
-          display:grid;
-          grid-template-columns:38px minmax(0,1fr) auto;
-          align-items:center;
-          gap:9px;
-          padding:11px;
-          border:1px solid rgba(255,255,255,.07);
-          border-radius:19px;
-          color:white;
-          background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
-          text-decoration:none;
+        .skeletonTile {
+          min-height: 205px;
+          border-radius: 13px;
+          background:
+            linear-gradient(
+              110deg,
+              rgba(255,255,255,.035) 20%,
+              rgba(255,255,255,.08) 35%,
+              rgba(255,255,255,.035) 50%
+            );
+          background-size: 200% 100%;
+          animation: shimmer 1.3s linear infinite;
         }
 
-        .tool>span{
-          width:38px;
-          height:38px;
-          display:grid;
-          place-items:center;
-          border-radius:13px;
-          background:linear-gradient(135deg,rgba(82,247,200,.14),rgba(120,82,255,.17));
-          font-size:18px;
+        .skeletonTile:nth-child(3n+1) {
+          min-height: 280px;
         }
 
-        .tool b{display:block;font-size:11px}
-
-        .tool small{
-          display:block;
-          margin-top:3px;
-          color:rgba(255,255,255,.39);
-          font-size:8px;
+        .emptyDiscover {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          padding: 20px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 18px;
+          color: white;
+          background: rgba(255,255,255,.035);
+          text-decoration: none;
         }
 
-        .tool>i{
-          color:rgba(255,255,255,.33);
-          font-size:20px;
-          font-style:normal;
+        .emptyDiscover strong {
+          font-size: 14px;
         }
 
-        .coming{
-          overflow:hidden;
-          margin-top:31px;
-          padding:22px;
-          border:1px solid rgba(131,94,255,.16);
-          border-radius:26px;
-          background:linear-gradient(145deg,rgba(28,19,53,.82),rgba(5,8,15,.96));
+        .emptyDiscover span {
+          color: rgba(255,255,255,.44);
+          font-size: 9px;
         }
 
-        .coming h2{
-          margin:9px 0 8px;
-          max-width:430px;
-          font-size:clamp(24px,7vw,34px);
-          line-height:1;
-          letter-spacing:-.045em;
+        .quickRail {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(165px,48%);
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          scrollbar-width: none;
         }
 
-        .coming h2 span{color:#9e88ff}
-
-        .coming p{
-          margin:0;
-          max-width:500px;
-          color:rgba(255,255,255,.5);
-          font-size:10px;
-          line-height:1.55;
+        .quickCard {
+          min-height: 105px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 13px;
+          padding: 12px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 18px;
+          color: white;
+          background: rgba(255,255,255,.03);
+          text-decoration: none;
         }
 
-        .coming div{
-          display:flex;
-          flex-wrap:wrap;
-          gap:6px;
-          margin-top:17px;
+        .quickCard.mint {
+          background:
+            linear-gradient(
+              145deg,
+              rgba(82,247,200,.08),
+              rgba(255,255,255,.02)
+            );
         }
 
-        .coming div b{
-          padding:7px 9px;
-          border:1px solid rgba(255,255,255,.07);
-          border-radius:999px;
-          background:rgba(255,255,255,.04);
-          font-size:7px;
-          letter-spacing:.05em;
+        .quickCard.purple {
+          background:
+            linear-gradient(
+              145deg,
+              rgba(120,83,255,.11),
+              rgba(255,255,255,.02)
+            );
         }
 
-        @keyframes pulse{
-          50%{opacity:.4;transform:scale(.75)}
+        .quickCard.gold {
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,194,63,.08),
+              rgba(255,255,255,.02)
+            );
         }
 
-        @media(min-width:700px){
-          .discoverPage{padding-inline:22px}
-          .toolGrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+        .quickCard.pink {
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255,70,181,.085),
+              rgba(255,255,255,.02)
+            );
+        }
+
+        .quickCard.blue {
+          background:
+            linear-gradient(
+              145deg,
+              rgba(64,178,255,.09),
+              rgba(255,255,255,.02)
+            );
+        }
+
+        .quickIcon {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 11px;
+          background: rgba(255,255,255,.065);
+          font-size: 16px;
+        }
+
+        .quickCard strong {
+          display: block;
+          font-size: 11px;
+        }
+
+        .quickCard small {
+          display: block;
+          margin-top: 3px;
+          color: rgba(255,255,255,.38);
+          font-size: 8px;
+          line-height: 1.35;
+        }
+
+        .nextStrip {
+          margin-top: 22px;
+          padding: 13px;
+          border: 1px solid rgba(124,90,255,.1);
+          border-radius: 15px;
+          background: rgba(119,83,255,.045);
+        }
+
+        .nextStrip > span {
+          color: #9b87ff;
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+        }
+
+        .nextStrip > div {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .nextStrip b {
+          padding: 6px 8px;
+          border: 1px solid rgba(255,255,255,.06);
+          border-radius: 999px;
+          color: rgba(255,255,255,.63);
+          background: rgba(255,255,255,.025);
+          font-size: 7px;
+        }
+
+        @keyframes pulse {
+          50% {
+            opacity: .38;
+            transform: scale(.76);
+          }
+        }
+
+        @keyframes shimmer {
+          to {
+            background-position-x: -200%;
+          }
+        }
+
+        @media (
+          prefers-reduced-motion: reduce
+        ) {
+          .pulseIdentity i,
+          .skeletonTile {
+            animation: none;
+          }
+        }
+
+        @media (min-width:700px) {
+          .discoverShell {
+            padding-inline: 20px;
+          }
+
+          .discoverGrid {
+            grid-template-columns:
+              repeat(3,minmax(0,1fr));
+          }
+
+          .quickRail {
+            grid-auto-columns:
+              minmax(180px,30%);
+          }
         }
       `}</style>
     </main>
