@@ -1938,6 +1938,21 @@ export default function PublicProfile() {
               <button
                 onClick={() =>
                   router.push(
+                    `/support/${encodeURIComponent(email)}`
+                  )
+                }
+              >
+                <span>🎁</span>
+                <div>
+                  <strong>Support / Gift</strong>
+                  <small>Send creator support on UTV</small>
+                </div>
+                <b>›</b>
+              </button>
+
+              <button
+                onClick={() =>
+                  router.push(
                     `/book/${encodeURIComponent(email)}`
                   )
                 }

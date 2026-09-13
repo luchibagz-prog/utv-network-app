@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+import { configureWebPush } from "../../../../lib/utvPushServer";
 
 export const runtime = "nodejs";
 
@@ -206,6 +208,205 @@ export async function POST(request: NextRequest) {
             ends_at: ends.toISOString(),
           }
         );
+      }
+      if (
+        metadata.kind === "gift" &&
+        metadata.sender_email &&
+        metadata.recipient_email &&
+        metadata.amount_cents
+      ) {
+        const senderEmail =
+          String(metadata.sender_email)
+            .trim()
+            .toLowerCase();
+
+        const recipientEmail =
+          String(metadata.recipient_email)
+            .trim()
+            .toLowerCase();
+
+        const giftName =
+          String(
+            metadata.gift_name ||
+            "UTV Gift"
+          ).slice(0, 60);
+
+        const amountCents =
+          Number(metadata.amount_cents || 0);
+
+        const supabaseUrl =
+          process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+
+        const serviceKey =
+          process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+        if (!supabaseUrl || !serviceKey) {
+          throw new Error(
+            "Gift webhook Supabase environment is incomplete."
+          );
+        }
+
+        const admin = createClient(
+          supabaseUrl,
+          serviceKey,
+          {
+            auth: {
+              persistSession: false,
+              autoRefreshToken: false,
+            },
+          }
+        );
+
+        const {
+          data: giftRow,
+          error: giftError,
+        } = await admin
+          .from("utv_gifts")
+          .upsert(
+            {
+              sender_email: senderEmail,
+              recipient_email: recipientEmail,
+              gift_name: giftName,
+              amount_cents: amountCents,
+              stripe_session_id: session.id,
+              stripe_payment_intent_id:
+                typeof session.payment_intent ===
+                "string"
+                  ? session.payment_intent
+                  : session.payment_intent?.id ||
+                    null,
+              status: "paid",
+              payout_status: "pending_setup",
+            },
+            {
+              onConflict: "stripe_session_id",
+              ignoreDuplicates: true,
+            }
+          )
+          .select("id")
+          .maybeSingle();
+
+        if (giftError) {
+          throw giftError;
+        }
+
+        /*
+          Stripe can retry webhooks. Only the first successful
+          ledger insert creates Activity + background push.
+        */
+        if (giftRow?.id) {
+          const dollars =
+            (amountCents / 100).toFixed(2);
+
+          const actor =
+            senderEmail.split("@")[0];
+
+          const {
+            error: notificationError,
+          } = await admin
+            .from("notifications")
+            .insert({
+              user_email: recipientEmail,
+              actor_email: senderEmail,
+              type: "gift",
+              title: `🎁 ${giftName} received`,
+              message:
+                `${actor} sent you a ${giftName} ($${dollars}).`,
+              link: "/activity",
+              is_read: false,
+            });
+
+          if (notificationError) {
+            console.error(
+              "UTV gift Activity notification:",
+              notificationError
+            );
+          }
+
+          try {
+            const {
+              data: subscriptions,
+              error: subscriptionError,
+            } = await admin
+              .from("push_subscriptions")
+              .select("*")
+              .ilike(
+                "user_email",
+                recipientEmail
+              );
+
+            if (subscriptionError) {
+              throw subscriptionError;
+            }
+
+            const push = configureWebPush();
+
+            const payload = JSON.stringify({
+              title: `🎁 ${giftName} received`,
+              body:
+                `${actor} sent you a ${giftName} ($${dollars}).`,
+              url: "/activity",
+              tag: `utv-gift-${session.id}`,
+              icon: "/utv-logo.png",
+              badge: "/utv-logo.png",
+              data: {
+                event: "gift",
+                senderEmail,
+                recipientEmail,
+                giftName,
+                amountCents,
+              },
+            });
+
+            for (
+              const row of subscriptions || []
+            ) {
+              try {
+                await push.sendNotification(
+                  {
+                    endpoint: row.endpoint,
+                    keys: {
+                      p256dh: row.p256dh,
+                      auth: row.auth_key,
+                    },
+                  },
+                  payload
+                );
+              } catch (pushError: any) {
+                const status =
+                  pushError?.statusCode ||
+                  pushError?.status;
+
+                if (
+                  status === 404 ||
+                  status === 410
+                ) {
+                  await admin
+                    .from("push_subscriptions")
+                    .delete()
+                    .eq(
+                      "endpoint",
+                      row.endpoint
+                    );
+                } else {
+                  console.error(
+                    "UTV gift push:",
+                    pushError
+                  );
+                }
+              }
+            }
+          } catch (pushError) {
+            /*
+              Payment + gift ledger must never fail just
+              because a device push is unavailable.
+            */
+            console.error(
+              "UTV gift push unavailable:",
+              pushError
+            );
+          }
+        }
       }
     }
 

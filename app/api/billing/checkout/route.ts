@@ -199,6 +199,99 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (body.kind === "gift") {
+      const recipientEmail = String(
+        body.recipientEmail || ""
+      )
+        .trim()
+        .toLowerCase()
+        .slice(0, 320);
+
+      const giftName = String(
+        body.giftName || "UTV Gift"
+      ).slice(0, 60);
+
+      const amountCents = Number(
+        body.amountCents || 0
+      );
+
+      const allowedAmounts = new Set([
+        100,
+        300,
+        500,
+        2000,
+        5000,
+      ]);
+
+      if (!recipientEmail) {
+        return NextResponse.json(
+          { error: "Choose a creator to support." },
+          { status: 400 }
+        );
+      }
+
+      if (
+        recipientEmail.toLowerCase() ===
+        email.toLowerCase()
+      ) {
+        return NextResponse.json(
+          { error: "You cannot send a gift to yourself." },
+          { status: 400 }
+        );
+      }
+
+      if (!allowedAmounts.has(amountCents)) {
+        return NextResponse.json(
+          { error: "That gift amount is not available." },
+          { status: 400 }
+        );
+      }
+
+      const metadata = {
+        kind: "gift",
+        sender_email: email,
+        recipient_email: recipientEmail,
+        gift_name: giftName,
+        amount_cents: String(amountCents),
+      };
+
+      const session =
+        await stripe.checkout.sessions.create({
+          mode: "payment",
+          customer_email: email,
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                product_data: {
+                  name: `UTV Gift — ${giftName}`,
+                  description:
+                    `Support a creator on UTV`,
+                },
+                unit_amount: amountCents,
+              },
+              quantity: 1,
+            },
+          ],
+          metadata,
+          payment_intent_data: {
+            metadata,
+          },
+          success_url:
+            `${origin}/support/${encodeURIComponent(
+              recipientEmail
+            )}?success=1`,
+          cancel_url:
+            `${origin}/support/${encodeURIComponent(
+              recipientEmail
+            )}?canceled=1`,
+        });
+
+      return NextResponse.json({
+        url: session.url,
+      });
+    }
+
     return NextResponse.json(
       { error: "Unknown checkout type." },
       { status: 400 }
