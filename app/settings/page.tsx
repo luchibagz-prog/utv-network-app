@@ -162,37 +162,195 @@ export default function SettingsPage() {
     setNotice("");
 
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      if (
+        typeof window === "undefined" ||
+        !("Notification" in window) ||
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window)
+      ) {
+        throw new Error(
+          "Push notifications are not supported on this device."
+        );
+      }
+
+      const publicKey =
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+      if (!publicKey) {
+        throw new Error(
+          "UTV push keys are not configured."
+        );
+      }
+
+      const permission =
+        Notification.permission === "granted"
+          ? "granted"
+          : await Notification.requestPermission();
+
+      setPermission(
+        permission as PermissionState
+      );
+
+      if (permission !== "granted") {
+        throw new Error(
+          permission === "denied"
+            ? "Notifications are blocked in browser settings."
+            : "Notification permission was not enabled."
+        );
+      }
+
+      const registration =
+        await navigator.serviceWorker.register(
+          "/sw.js"
+        );
+
       await navigator.serviceWorker.ready;
 
-      const existing = await registration.pushManager.getSubscription();
-
-      if (!existing) {
-        await enableNotifications();
-        return;
+      try {
+        await registration.update();
+      } catch {
+        // A service-worker update failure should not
+        // prevent rebuilding the push subscription.
       }
 
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      /*
+        IMPORTANT:
+        Push subscriptions are tied to the VAPID public key
+        used when they were created.
 
-      const response = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ subscription: existing }),
-      });
+        If UTV's VAPID keys changed, simply saving the old
+        subscription again will still look "subscribed" but
+        background delivery can fail.
 
-      const payload = await response.json();
+        Repair now removes the old subscription and creates
+        a fresh one with the CURRENT UTV VAPID public key.
+      */
+      const existing =
+        await registration.pushManager
+          .getSubscription();
+
+      if (existing) {
+        try {
+          await existing.unsubscribe();
+        } catch {
+          // Continue and try to establish a fresh subscription.
+        }
+      }
+
+      const subscription =
+        await registration.pushManager
+          .subscribe({
+            userVisibleOnly: true,
+            applicationServerKey:
+              fromBase64Url(publicKey),
+          });
+
+      const { data } =
+        await supabase.auth.getSession();
+
+      const token =
+        data.session?.access_token;
+
+      if (!token) {
+        throw new Error(
+          "Sign in again before repairing UTV alerts."
+        );
+      }
+
+      const response =
+        await fetch(
+          "/api/push/subscribe",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Authorization:
+                `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              subscription,
+            }),
+          }
+        );
+
+      const payload =
+        await response
+          .json()
+          .catch(() => ({}));
+
       if (!response.ok) {
-        throw new Error(payload.error || "Repair failed.");
+        throw new Error(
+          payload?.error ||
+          "Could not reconnect this device."
+        );
       }
 
-      setNotice("This device was reconnected to UTV alerts.");
       setSubscriptionReady(true);
+
+      const testResponse =
+        await fetch(
+          "/api/push/test",
+          {
+            method: "POST",
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+      const testPayload =
+        await testResponse
+          .json()
+          .catch(() => ({}));
+
+      const sent =
+        Number(testPayload?.sent || 0);
+
+      const failed =
+        Number(testPayload?.failed || 0);
+
+      const subscriptions =
+        Number(
+          testPayload?.subscriptions || 0
+        );
+
+      if (!testResponse.ok) {
+        throw new Error(
+          testPayload?.error ||
+          testPayload?.lastError ||
+          "UTV test alert failed."
+        );
+      }
+
+      if (sent > 0) {
+        setNotice(
+          `UTV alerts repaired. ${sent} test alert${
+            sent === 1 ? "" : "s"
+          } sent to this account.`
+        );
+      } else if (failed > 0) {
+        setNotice(
+          `Device reconnected, but push delivery failed: ${
+            testPayload?.lastError ||
+            "push service rejected the alert"
+          }`
+        );
+      } else if (subscriptions === 0) {
+        setNotice(
+          "Device reconnected, but the server still cannot see a saved push subscription."
+        );
+      } else {
+        setNotice(
+          "Device reconnected. The server found the subscription but did not deliver the test alert."
+        );
+      }
     } catch (error: any) {
-      setNotice(error?.message || "Could not repair notifications.");
+      setNotice(
+        error?.message ||
+        "Could not repair notifications."
+      );
     } finally {
       setBusy(false);
       await refreshNotificationState();

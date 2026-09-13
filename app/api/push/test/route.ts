@@ -100,6 +100,8 @@ export async function POST(request: Request) {
 
     let sent = 0;
     let expired = 0;
+    let failed = 0;
+    let lastError = "";
 
     for (const row of subscriptions || []) {
       try {
@@ -128,6 +130,16 @@ export async function POST(request: Request) {
             .delete()
             .eq("endpoint", row.endpoint);
         } else {
+          failed += 1;
+
+          lastError =
+            String(
+              error?.body ||
+              error?.message ||
+              error ||
+              "Unknown push error."
+            );
+
           console.error(
             "Push send error:",
             error
@@ -140,6 +152,10 @@ export async function POST(request: Request) {
       ok: true,
       sent,
       expired,
+      failed,
+      subscriptions:
+        (subscriptions || []).length,
+      lastError,
     });
   } catch (error: any) {
     console.error("UTV test push:", error);
