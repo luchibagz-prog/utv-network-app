@@ -121,6 +121,12 @@ export default function FeedPage() {
 
   const [followingEmails, setFollowingEmails] = useState<string[]>([]);
 
+  const [topCrewPositions, setTopCrewPositions] =
+    useState<Record<string, number>>({});
+
+  const [engagedCreatorScores, setEngagedCreatorScores] =
+    useState<Record<string, number>>({});
+
   const [profiles, setProfiles] = useState<Record<string, any>>({});
 
   const [likes, setLikes] = useState<Record<string, number>>({});
@@ -382,6 +388,7 @@ export default function FeedPage() {
       loadStories(following, email),
       loadSuggestedCreators(email, following),
       loadActiveLives(following, email),
+      loadPersonalSignals(email),
     ]);
 
     setPendingFreshPosts([]);
@@ -543,6 +550,167 @@ export default function FeedPage() {
       ...current,
       ...profileMap,
     }));
+  }
+
+  async function loadPersonalSignals(email: string) {
+    const normalizedEmail =
+      String(email || "")
+        .trim()
+        .toLowerCase();
+
+    if (!normalizedEmail) {
+      setTopCrewPositions({});
+      setEngagedCreatorScores({});
+      return;
+    }
+
+    try {
+      const [
+        crewResult,
+        likedResult,
+        commentedResult,
+      ] = await Promise.all([
+        supabase
+          .from("top_crew")
+          .select("member_email,position")
+          .eq("owner_email", email)
+          .order("position", {
+            ascending: true,
+          })
+          .limit(8),
+
+        supabase
+          .from("feed_likes")
+          .select("upload_id")
+          .eq("user_email", email)
+          .limit(80),
+
+        supabase
+          .from("feed_comments")
+          .select("upload_id")
+          .eq("user_email", email)
+          .limit(80),
+      ]);
+
+      const crewMap: Record<string, number> = {};
+
+      (crewResult.data || []).forEach(
+        (row: any) => {
+          const memberEmail =
+            String(row.member_email || "")
+              .trim()
+              .toLowerCase();
+
+          if (!memberEmail) return;
+
+          const position =
+            Number(row.position || 8);
+
+          crewMap[memberEmail] =
+            Number.isFinite(position)
+              ? Math.max(
+                  1,
+                  Math.min(8, position)
+                )
+              : 8;
+        }
+      );
+
+      setTopCrewPositions(crewMap);
+
+      const likedIds =
+        (likedResult.data || [])
+          .map((row: any) =>
+            String(row.upload_id || "")
+          )
+          .filter(Boolean);
+
+      const commentedIds =
+        (commentedResult.data || [])
+          .map((row: any) =>
+            String(row.upload_id || "")
+          )
+          .filter(Boolean);
+
+      const interactionIds =
+        Array.from(
+          new Set([
+            ...likedIds,
+            ...commentedIds,
+          ])
+        );
+
+      if (!interactionIds.length) {
+        setEngagedCreatorScores({});
+        return;
+      }
+
+      const { data: interactedUploads } =
+        await supabase
+          .from("uploads")
+          .select("id,creator_email,user_email")
+          .in("id", interactionIds);
+
+      const creatorByPost =
+        new Map<string, string>();
+
+      (interactedUploads || []).forEach(
+        (item: any) => {
+          const creatorEmail =
+            String(
+              item.creator_email ||
+              item.user_email ||
+              ""
+            )
+              .trim()
+              .toLowerCase();
+
+          if (!creatorEmail) return;
+
+          creatorByPost.set(
+            String(item.id),
+            creatorEmail
+          );
+        }
+      );
+
+      const creatorScores:
+        Record<string, number> = {};
+
+      likedIds.forEach((id) => {
+        const creatorEmail =
+          creatorByPost.get(id);
+
+        if (!creatorEmail) return;
+
+        creatorScores[creatorEmail] =
+          (creatorScores[creatorEmail] || 0) +
+          2;
+      });
+
+      commentedIds.forEach((id) => {
+        const creatorEmail =
+          creatorByPost.get(id);
+
+        if (!creatorEmail) return;
+
+        creatorScores[creatorEmail] =
+          (creatorScores[creatorEmail] || 0) +
+          3;
+      });
+
+      setEngagedCreatorScores(
+        creatorScores
+      );
+    } catch (error) {
+      console.info(
+        "For You personalization signals skipped:",
+        error
+      );
+
+      setTopCrewPositions({});
+      setEngagedCreatorScores({});
+    }
   }
 
   async function loadSuggestedCreators(myEmail: string, following: string[]) {
@@ -2129,6 +2297,249 @@ export default function FeedPage() {
   const filteredItems = useMemo(() => {
     let base = items;
 
+    if (
+      feedTab === "forYou" &&
+      items.length > 1
+    ) {
+      const recentWindowSize =
+        Math.min(12, items.length);
+
+      const anchor = items[0];
+
+      const recent =
+        items.slice(
+          1,
+          recentWindowSize
+        );
+
+      const older =
+        items.slice(
+          recentWindowSize
+        );
+
+      const followingSet =
+        new Set(
+          followingEmails.map(
+            (email) =>
+              String(email || "")
+                .trim()
+                .toLowerCase()
+          )
+        );
+
+      const creatorEmail = (
+        item: any
+      ) =>
+        String(
+          item.creator_email ||
+          item.user_email ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const isInnerCircle = (
+        email: string
+      ) =>
+        Boolean(
+          topCrewPositions[email]
+        ) ||
+        followingSet.has(email) ||
+        Boolean(
+          engagedCreatorScores[email]
+        );
+
+      const scorePost = (
+        item: any
+      ) => {
+        const id =
+          String(item.id || "");
+
+        const email =
+          creatorEmail(item);
+
+        let score = 0;
+
+        const topPosition =
+          topCrewPositions[email];
+
+        if (topPosition) {
+          score +=
+            145 -
+            Math.min(
+              8,
+              topPosition
+            ) *
+              8;
+        }
+
+        if (
+          followingSet.has(email)
+        ) {
+          score += 58;
+        }
+
+        const relationshipScore =
+          Number(
+            engagedCreatorScores[email] ||
+            0
+          );
+
+        score +=
+          Math.min(
+            48,
+            relationshipScore * 5
+          );
+
+        if (likedPosts[id]) {
+          score += 12;
+        }
+
+        score +=
+          Math.min(
+            30,
+            Number(likes[id] || 0) *
+              1.5
+          );
+
+        score +=
+          Math.min(
+            36,
+            Number(
+              comments[id]?.length ||
+              0
+            ) *
+              3
+          );
+
+        const createdAt =
+          new Date(
+            item.created_at || 0
+          ).getTime();
+
+        if (createdAt > 0) {
+          const ageHours =
+            Math.max(
+              0,
+              (
+                Date.now() -
+                createdAt
+              ) /
+                3600000
+            );
+
+          score +=
+            Math.max(
+              0,
+              48 - ageHours
+            ) *
+            .65;
+        }
+
+        if (
+          email &&
+          !isInnerCircle(email)
+        ) {
+          score += 8;
+        }
+
+        return score;
+      };
+
+      const ranked =
+        recent
+          .map((item, index) => ({
+            item,
+            index,
+            score: scorePost(item),
+          }))
+          .sort((a, b) => {
+            if (b.score !== a.score) {
+              return b.score - a.score;
+            }
+
+            return a.index - b.index;
+          });
+
+      const personalized: any[] = [];
+
+      let previousCreator =
+        creatorEmail(anchor);
+
+      let circleStreak =
+        isInnerCircle(
+          previousCreator
+        )
+          ? 1
+          : 0;
+
+      while (ranked.length) {
+        let candidateIndex =
+          ranked.findIndex(
+            ({ item }) =>
+              creatorEmail(item) !==
+              previousCreator
+          );
+
+        if (circleStreak >= 2) {
+          const discoveryIndex =
+            ranked.findIndex(
+              ({ item }) => {
+                const email =
+                  creatorEmail(item);
+
+                return (
+                  email !==
+                    previousCreator &&
+                  !isInnerCircle(
+                    email
+                  )
+                );
+              }
+            );
+
+          if (
+            discoveryIndex >= 0
+          ) {
+            candidateIndex =
+              discoveryIndex;
+          }
+        }
+
+        if (candidateIndex < 0) {
+          candidateIndex = 0;
+        }
+
+        const [selected] =
+          ranked.splice(
+            candidateIndex,
+            1
+          );
+
+        personalized.push(
+          selected.item
+        );
+
+        previousCreator =
+          creatorEmail(
+            selected.item
+          );
+
+        circleStreak =
+          isInnerCircle(
+            previousCreator
+          )
+            ? circleStreak + 1
+            : 0;
+      }
+
+      base = [
+        anchor,
+        ...personalized,
+        ...older,
+      ];
+    }
+
     if (feedTab === "following") {
       base = items.filter((item) =>
         followingEmails.includes(item.creator_email),
@@ -2249,6 +2660,9 @@ export default function FeedPage() {
     profiles,
     likes,
     comments,
+    likedPosts,
+    topCrewPositions,
+    engagedCreatorScores,
   ]);
 
   return (
