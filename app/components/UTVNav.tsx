@@ -25,6 +25,7 @@ type NavItem = {
     | "feed"
     | "watch"
     | "world"
+    | "discover"
     | "create"
     | "live"
     | "activity"
@@ -36,18 +37,13 @@ type NavItem = {
 const navItems: NavItem[] = [
   {
     href: "/feed",
-    label: "Feed",
+    label: "Home",
     icon: "feed",
   },
   {
-    href: "/watch",
-    label: "Watch",
-    icon: "watch",
-  },
-  {
-    href: "/world",
-    label: "World",
-    icon: "world",
+    href: "/discover",
+    label: "Discover",
+    icon: "discover",
   },
   {
     href: "/submit",
@@ -61,8 +57,8 @@ const navItems: NavItem[] = [
     icon: "live",
   },
   {
-    href: "/profile-pro-v12",
-    label: "Profile",
+    href: "/me",
+    label: "Me",
     icon: "profile",
   },
 ];
@@ -118,6 +114,38 @@ function NavIcon({
         />
         <path
           d="m10 9 5 3-5 3V9Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+
+  if (name === "discover") {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        className="navSvg"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="8.6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+        />
+        <path
+          d="m15.7 8.3-2.4 5-5 2.4 2.4-5 5-2.4Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="1.15"
           fill="currentColor"
         />
       </svg>
@@ -1064,6 +1092,38 @@ export default function UTVNav() {
         </nav>
       )}
 
+      {!pathname.startsWith("/walkie") && (
+        <Link
+          href="/walkie"
+          className="utvWalkieDock"
+          aria-label="Open UTV Walkie Talkie"
+        >
+          <span className="radioAntenna" />
+
+          <span className="radioBody">
+            <span className="radioScreen">
+              <i />
+              <b>UTV</b>
+            </span>
+
+            <span className="radioSpeaker">
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+
+            <span className="radioPTT">
+              PTT
+            </span>
+          </span>
+
+          <small>WALKIE</small>
+        </Link>
+      )}
+
       <nav className="utvBottomNav">
         {navItems.map((item) => {
           const isActive =
@@ -1657,7 +1717,7 @@ export default function UTVNav() {
           display: grid;
           grid-template-columns:
             repeat(
-              7,
+              5,
               minmax(0,1fr)
             );
           align-items: end;
@@ -2051,6 +2111,185 @@ export default function UTVNav() {
               min(700px,calc(100% - 28px));
             transform:
               translateX(50%);
+          }
+        }
+
+        .utvWalkieDock {
+          position: fixed;
+          right: max(
+            13px,
+            env(safe-area-inset-right)
+          );
+          bottom: calc(
+            90px +
+            env(safe-area-inset-bottom)
+          );
+          z-index: 1190;
+          width: 60px;
+          height: 84px;
+          color: white;
+          text-decoration: none;
+          filter:
+            drop-shadow(
+              0 14px 23px
+              rgba(0,0,0,.52)
+            );
+          transition:
+            transform .15s ease;
+        }
+
+        .utvWalkieDock:active {
+          transform:
+            scale(.9)
+            rotate(-2deg);
+        }
+
+        .radioAntenna {
+          position: absolute;
+          top: 0;
+          right: 13px;
+          width: 5px;
+          height: 20px;
+          border-radius:
+            4px 4px 1px 1px;
+          background:
+            linear-gradient(
+              #7affdf,
+              #3b4352
+            );
+          transform:
+            rotate(8deg);
+          box-shadow:
+            0 0 12px
+            rgba(82,247,200,.32);
+        }
+
+        .radioBody {
+          position: absolute;
+          top: 14px;
+          left: 8px;
+          width: 44px;
+          height: 58px;
+          overflow: hidden;
+          border:
+            1px solid
+            rgba(255,255,255,.18);
+          border-radius:
+            9px 9px 13px 13px;
+          background:
+            linear-gradient(
+              150deg,
+              #292e3d,
+              #080a11 63%,
+              #171328
+            );
+          box-shadow:
+            inset 0 1px 0
+              rgba(255,255,255,.12),
+            0 0 22px
+              rgba(116,84,255,.22);
+        }
+
+        .radioScreen {
+          position: absolute;
+          top: 6px;
+          left: 6px;
+          right: 6px;
+          height: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          color: #52f7c8;
+          border:
+            1px solid
+            rgba(82,247,200,.23);
+          border-radius: 4px;
+          background:
+            rgba(82,247,200,.065);
+        }
+
+        .radioScreen i {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow:
+            0 0 8px #52f7c8;
+          animation:
+            radioPulse 1.4s
+            ease-in-out infinite;
+        }
+
+        .radioScreen b {
+          font-size: 6px;
+          letter-spacing: .09em;
+        }
+
+        .radioSpeaker {
+          position: absolute;
+          top: 27px;
+          left: 8px;
+          right: 8px;
+          display: grid;
+          grid-template-columns:
+            repeat(3,1fr);
+          gap: 3px;
+        }
+
+        .radioSpeaker i {
+          width: 5px;
+          height: 5px;
+          margin: auto;
+          border-radius: 50%;
+          background:
+            rgba(255,255,255,.2);
+        }
+
+        .radioPTT {
+          position: absolute;
+          right: 11px;
+          bottom: 5px;
+          left: 11px;
+          height: 11px;
+          display: grid;
+          place-items: center;
+          border-radius: 4px;
+          color: white;
+          background:
+            linear-gradient(
+              90deg,
+              #6550ff,
+              #b344ff
+            );
+          font-size: 5px;
+          font-weight: 1000;
+          letter-spacing: .09em;
+        }
+
+        .utvWalkieDock > small {
+          position: absolute;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          color:
+            rgba(255,255,255,.7);
+          text-align: center;
+          font-size: 6px;
+          font-weight: 1000;
+          letter-spacing: .09em;
+        }
+
+        @keyframes radioPulse {
+          0%,
+          100% {
+            opacity: .4;
+            transform: scale(.78);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scale(1.18);
           }
         }
 
