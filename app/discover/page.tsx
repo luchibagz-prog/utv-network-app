@@ -456,6 +456,13 @@ export default function DiscoverPage() {
                             <img
                               src={avatar}
                               alt=""
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                objectPosition: "center",
+                                display: "block",
+                              }}
                             />
                           ) : (
                             name
@@ -615,9 +622,7 @@ export default function DiscoverPage() {
                             }}
                           >
                             <span>
-                              {mediaIsVideo
-                                ? "▶"
-                                : "UTV"}
+                              UTV
                             </span>
                           </div>
                         )}
@@ -744,7 +749,7 @@ export default function DiscoverPage() {
           position: relative;
           min-height: 100svh;
           overflow-x: clip;
-          padding-bottom: 94px;
+          padding-bottom: 132px;
           color: white;
           background:
             radial-gradient(
@@ -1120,9 +1125,9 @@ export default function DiscoverPage() {
 
         .tileCopy {
           position: absolute;
-          right: 10px;
-          bottom: 10px;
-          left: 10px;
+          right: 8px;
+          bottom: 8px;
+          left: 8px;
           min-width: 0;
         }
 
@@ -1207,15 +1212,20 @@ export default function DiscoverPage() {
         .quickRail {
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: minmax(165px,48%);
-          gap: 8px;
+          grid-auto-columns: minmax(220px,78vw);
+          gap: 10px;
           overflow-x: auto;
-          padding-bottom: 4px;
+          overscroll-behavior-inline: contain;
+          scroll-snap-type: x mandatory;
+          scroll-padding-inline: 0;
+          padding: 0 18px 6px 0;
           scrollbar-width: none;
         }
 
         .quickCard {
           min-height: 105px;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
