@@ -2193,6 +2193,41 @@ export default function FeedPage() {
       });
     }
 
+    if (feedTab === "rising") {
+      const now = Date.now();
+
+      base = [...items].sort((a, b) => {
+        const score = (item: any) => {
+          const id = String(item.id);
+          const likeScore = Number(likes[id] || 0) * 3;
+          const commentScore =
+            Number(comments[id]?.length || 0) * 4;
+
+          const createdAt =
+            new Date(item.created_at || 0).getTime();
+
+          const ageHours =
+            createdAt > 0
+              ? Math.max(
+                  0,
+                  (now - createdAt) / 3600000
+                )
+              : 999;
+
+          const freshnessScore =
+            Math.max(0, 48 - ageHours) * .35;
+
+          return (
+            likeScore +
+            commentScore +
+            freshnessScore
+          );
+        };
+
+        return score(b) - score(a);
+      });
+    }
+
     const query = search.trim().toLowerCase();
 
     if (!query) {
@@ -2206,7 +2241,15 @@ export default function FeedPage() {
 
       return text.includes(query);
     });
-  }, [items, feedTab, followingEmails, search, profiles]);
+  }, [
+    items,
+    feedTab,
+    followingEmails,
+    search,
+    profiles,
+    likes,
+    comments,
+  ]);
 
   return (
     <main
@@ -2416,7 +2459,24 @@ export default function FeedPage() {
           </div>
 
           <div className="liveNowRail">
-            {activeLives.map((live) => {
+            {[...activeLives]
+              .sort((a, b) => {
+                const aHost =
+                  a.host_email || "";
+
+                const bHost =
+                  b.host_email || "";
+
+                return (
+                  Number(
+                    followingEmails.includes(bHost)
+                  ) -
+                  Number(
+                    followingEmails.includes(aHost)
+                  )
+                );
+              })
+              .map((live) => {
               const host = live.host_email || "";
               const avatar = profileAvatar(host);
               const name = profileName(host);
@@ -2551,15 +2611,13 @@ export default function FeedPage() {
             }}
           >
             <span className="utvPulseIcon">↻</span>
-            <strong>
-              {pendingFreshPosts.length > 0
-                ? `${pendingFreshPosts.length} New`
-                : "New Posts"}
-            </strong>
+            <strong>New Posts</strong>
             <small>
               {pendingFreshPosts.length > 0
-                ? "Tap to load"
-                : "Check activity"}
+                ? `${pendingFreshPosts.length} ready`
+                : checkingFreshness
+                  ? "Checking..."
+                  : "Check activity"}
             </small>
           </button>
 
@@ -2573,14 +2631,10 @@ export default function FeedPage() {
             onClick={() => setFeedTab("live")}
           >
             <span className="utvPulseIcon">●</span>
-            <strong>
-              {activeLives.length > 0
-                ? `${activeLives.length} Live`
-                : "Live"}
-            </strong>
+            <strong>Live Now</strong>
             <small>
               {activeLives.length > 0
-                ? "Tap in now"
+                ? `${activeLives.length} broadcasting`
                 : "Live + replays"}
             </small>
           </button>
@@ -2595,12 +2649,40 @@ export default function FeedPage() {
             onClick={() => setFeedTab("following")}
           >
             <span className="utvPulseIcon">◎</span>
-            <strong>
+            <strong>Following</strong>
+            <small>
               {followingEmails.length > 0
-                ? `${followingEmails.length} Following`
-                : "Following"}
-            </strong>
-            <small>Your people</small>
+                ? `${followingEmails.length} people`
+                : "Build your circle"}
+            </small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              feedTab === "rising"
+                ? "utvPulseCard rising active"
+                : "utvPulseCard rising"
+            }
+            onClick={() => setFeedTab("rising")}
+          >
+            <span className="utvPulseIcon">↗</span>
+            <strong>Rising</strong>
+            <small>Fresh + engaged</small>
+          </button>
+
+          <button
+            type="button"
+            className={
+              feedTab === "near"
+                ? "utvPulseCard near active"
+                : "utvPulseCard near"
+            }
+            onClick={() => setFeedTab("near")}
+          >
+            <span className="utvPulseIcon">⌖</span>
+            <strong>Near You</strong>
+            <small>Local motion</small>
           </button>
 
           <button
@@ -7886,7 +7968,7 @@ const styles = `
 .utvHomePulseRail {
   display: grid !important;
   grid-auto-flow: column !important;
-  grid-auto-columns: minmax(104px, 29vw) !important;
+  grid-auto-columns: minmax(116px, 31vw) !important;
   gap: 7px !important;
   overflow-x: auto !important;
   padding: 0 2px 2px 0 !important;
@@ -7978,6 +8060,16 @@ const styles = `
 .utvPulseCard.discover .utvPulseIcon {
   color: #ff4db8 !important;
   background: rgba(255,77,184,.09) !important;
+}
+
+.utvPulseCard.rising .utvPulseIcon {
+  color: #ffd45d !important;
+  background: rgba(255,212,93,.09) !important;
+}
+
+.utvPulseCard.near .utvPulseIcon {
+  color: #45b8ff !important;
+  background: rgba(69,184,255,.09) !important;
 }
 
 .utvPulseCard.active {
