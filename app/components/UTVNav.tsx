@@ -2280,6 +2280,189 @@ export default function UTVNav() {
           letter-spacing: .09em;
         }
 
+
+        /* =================================
+           UTV2 NAV FIT FIX
+           ================================= */
+
+        .utvBottomNav {
+          right: 0 !important;
+          bottom: 0 !important;
+          left: 0 !important;
+
+          width: 100% !important;
+          max-width: none !important;
+
+          margin: 0 !important;
+
+          grid-template-columns:
+            repeat(5,minmax(0,1fr))
+            !important;
+
+          gap: 0 !important;
+
+          min-height: 64px !important;
+
+          padding:
+            6px 8px
+            max(
+              8px,
+              env(safe-area-inset-bottom)
+            )
+            !important;
+
+          border-right: 0 !important;
+          border-left: 0 !important;
+
+          border-radius:
+            20px 20px 0 0
+            !important;
+
+          background:
+            linear-gradient(
+              180deg,
+              rgba(13,17,24,.97),
+              rgba(3,6,10,.99)
+            )
+            !important;
+
+          box-shadow:
+            0 -10px 35px
+              rgba(0,0,0,.32),
+            inset 0 1px 0
+              rgba(255,255,255,.055)
+            !important;
+
+          transform: none !important;
+        }
+
+        .utvNavItem {
+          min-width: 0 !important;
+          min-height: 52px !important;
+
+          display: flex !important;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+
+          gap: 2px !important;
+
+          padding:
+            4px 0 !important;
+
+          border-radius:
+            14px !important;
+
+          background:
+            transparent !important;
+        }
+
+        .navIconWrap {
+          width: 31px !important;
+          height: 30px !important;
+
+          min-width: 31px !important;
+
+          display: grid !important;
+          place-items: center !important;
+        }
+
+        .navSvg {
+          width: 24px !important;
+          height: 24px !important;
+        }
+
+        .utvNavItem small {
+          font-size: 9px !important;
+          font-weight: 800 !important;
+          line-height: 1 !important;
+        }
+
+        .activeNavItem {
+          background:
+            transparent !important;
+        }
+
+        .activeNavItem
+        .navIconWrap {
+          background:
+            rgba(82,247,200,.07)
+            !important;
+
+          box-shadow:
+            none !important;
+        }
+
+        .createNavItem
+        .navIconWrap {
+          width: 42px !important;
+          height: 42px !important;
+
+          margin-top:
+            -8px !important;
+
+          border-radius:
+            14px !important;
+
+          transform:
+            none !important;
+
+          box-shadow:
+            0 7px 18px
+              rgba(93,78,255,.26)
+            !important;
+        }
+
+        .createNavItem
+        .navSvg {
+          width: 27px !important;
+          height: 27px !important;
+        }
+
+        .createNavItem small {
+          margin-top:
+            -2px !important;
+        }
+
+        .activeNavItem::after {
+          bottom:
+            -1px !important;
+
+          width:
+            19px !important;
+
+          height:
+            2px !important;
+        }
+
+        /* Keep Walkie signature,
+           just stop it dominating screen */
+
+        .utvWalkieDock {
+          right:
+            7px !important;
+
+          bottom:
+            calc(
+              68px +
+              env(safe-area-inset-bottom)
+            )
+            !important;
+
+          transform:
+            scale(.78);
+
+          transform-origin:
+            bottom right;
+
+          opacity: .96;
+        }
+
+        .utvWalkieDock:active {
+          transform:
+            scale(.70);
+        }
+
         @keyframes radioPulse {
           0%,
           100% {
