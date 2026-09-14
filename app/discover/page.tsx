@@ -388,192 +388,301 @@ export default function DiscoverPage() {
         </section>
 
         <section className="signatureSection">
-          <div className="signatureLead">
+          <div className="discoverV2Top">
             <div>
-              <small>ONLY ON UTV</small>
+              <small>DISCOVER V2</small>
 
               <h2>
-                Tap into the biggest parts of UTV
+                The UTV command center
               </h2>
 
               <p>
-                Make Discover feel alive with bold entry
-                points into UTV World, Watch and what is
-                moving right now.
+                Big motion. Fast access. Tap into
+                World, Watch, trending activity and
+                what&apos;s moving around you.
               </p>
             </div>
 
-            <span className="signatureMiniLabel">
-              ✨ MAIN FEATURES
+            <span className="discoverV2Label">
+              FIRST IMPRESSION
             </span>
           </div>
 
-          <div className="signatureHeroGrid">
+          <div className="heroDeckScroller">
             <Link
               href="/world"
-              className="heroFlyer worldHero"
+              className="megaHeroCard worldMegaCard"
             >
-              <div className="heroGlow" />
-              <div className="heroMesh" />
+              <div className="megaHeroGlow" />
+              <div className="megaHeroGrid" />
 
-              <div className="heroTopRow">
-                <span className="heroPill">
+              <div className="megaHeroTop">
+                <span className="megaHeroBadge">
                   <i />
                   LIVE WORLD
                 </span>
 
-                <span className="heroArrow">
+                <span className="megaHeroArrow">
                   ↗
                 </span>
               </div>
 
-              <div className="heroContent">
-                <div className="heroBigIcon">
-                  🌎
+              <div className="megaHeroCenter">
+                <div className="megaHeroVisual worldVisual">
+                  <div className="radarCore" />
+                  <div className="radarRing ring1" />
+                  <div className="radarRing ring2" />
+                  <div className="radarRing ring3" />
+                  <div className="signalDot dot1" />
+                  <div className="signalDot dot2" />
+                  <div className="signalDot dot3" />
+                  <div className="signalDot dot4" />
                 </div>
 
-                <div className="heroCopy">
+                <div className="megaHeroCopy">
                   <small>
                     UTV SIGNATURE
                   </small>
 
                   <h3>
-                    Explore
+                    See What&apos;s
                     <br />
-                    UTV World
+                    Moving
                   </h3>
 
                   <p>
-                    Lives, events, casting,
-                    creators and people ready
-                    to build around you.
+                    Open UTV World and tap into lives,
+                    events, casting, build signals
+                    and local motion.
                   </p>
                 </div>
               </div>
 
-              <div className="heroBottomRow">
-                <span className="heroPrimaryBtn">
+              <div className="megaHeroBottom">
+                <span className="megaHeroButton">
                   Open World
                 </span>
 
-                <span className="heroMetaText">
-                  Map • local motion • live signals
+                <span className="megaHeroMeta">
+                  Nearby • cities • live motion
                 </span>
               </div>
-
-              <div className="worldPulse worldPulseA" />
-              <div className="worldPulse worldPulseB" />
-              <div className="worldPulse worldPulseC" />
             </Link>
 
             <Link
               href="/watch"
-              className="heroFlyer watchHero"
+              className="megaHeroCard watchMegaCard"
             >
-              <div className="heroGlow" />
-              <div className="heroMesh" />
+              <div className="megaHeroGlow" />
+              <div className="megaHeroGrid" />
 
-              <div className="heroTopRow">
-                <span className="heroPill">
+              <div className="megaHeroTop">
+                <span className="megaHeroBadge">
                   ▶ STREAM UTV
                 </span>
 
-                <span className="heroArrow">
+                <span className="megaHeroArrow">
                   ↗
                 </span>
               </div>
 
-              <div className="heroContent">
-                <div className="heroBigIcon">
-                  ▶️
+              <div className="megaHeroCenter">
+                <div className="megaHeroVisual watchVisual">
+                  <div className="watchPoster posterA" />
+                  <div className="watchPoster posterB" />
+                  <div className="watchPoster posterC" />
+                  <div className="playPulse">
+                    ▶
+                  </div>
                 </div>
 
-                <div className="heroCopy">
+                <div className="megaHeroCopy">
                   <small>
-                    WATCH SOMETHING
+                    WATCH NOW
                   </small>
 
                   <h3>
                     Watch
                     <br />
-                    Now
+                    Something Fire
                   </h3>
 
                   <p>
-                    Shows, movies, originals,
-                    creator content, live
-                    performances and more.
+                    Movies, shows, originals,
+                    performances and entertainment
+                    built for the UTV vibe.
                   </p>
                 </div>
               </div>
 
-              <div className="heroBottomRow">
-                <span className="heroPrimaryBtn">
+              <div className="megaHeroBottom">
+                <span className="megaHeroButton">
                   Start Watching
                 </span>
 
-                <span className="heroMetaText">
+                <span className="megaHeroMeta">
                   Movies • shows • originals
                 </span>
-              </div>
-
-              <div className="watchBars">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
               </div>
             </Link>
           </div>
 
-          <div className="discoverHotRow">
-            <Link href="/live" className="hotMoveCard">
-              <span>🔴</span>
+          <section className="pulseZone">
+            <div className="pulseZoneTop">
               <div>
+                <small>UTV PULSE</small>
+                <h3>
+                  What&apos;s moving around you?
+                </h3>
+              </div>
+
+              <span>
+                NEAR YOU
+              </span>
+            </div>
+
+            <div className="pulseStatGrid">
+              <Link href="/live" className="pulseStatCard pulseLive">
+                <b>2</b>
+                <span>Live right now</span>
+              </Link>
+
+              <Link href="/events" className="pulseStatCard pulseEvents">
+                <b>1</b>
+                <span>Event tonight</span>
+              </Link>
+
+              <Link href="/world" className="pulseStatCard pulseBuild">
+                <b>3</b>
+                <span>Build signals</span>
+              </Link>
+
+              <Link href="/discover" className="pulseStatCard pulseTrend">
+                <b>5</b>
+                <span>Trending posts</span>
+              </Link>
+            </div>
+
+            <div className="pulseRangeRow">
+              <span className="activeRange">
+                📍 Near You
+              </span>
+
+              <span>
+                🏙 Your City
+              </span>
+
+              <span>
+                🚗 25–50 Miles
+              </span>
+
+              <span>
+                🌎 Explore Cities
+              </span>
+            </div>
+
+            <div className="pulseCityRow">
+              <span className="cityChip activeCity">
+                Fresno
+              </span>
+
+              <span className="cityChip">
+                Sacramento
+              </span>
+
+              <span className="cityChip">
+                Oakland
+              </span>
+
+              <span className="cityChip">
+                Los Angeles
+              </span>
+
+              <span className="cityChip">
+                Las Vegas
+              </span>
+            </div>
+          </section>
+
+          <div className="launchPadGrid">
+            <Link href="/live" className="launchPadCard liveLaunch">
+              <div className="launchPadIcon">
+                🔴
+              </div>
+
+              <div className="launchPadCopy">
                 <strong>
                   Who&apos;s Live
                 </strong>
+
                 <small>
-                  Jump in live now
+                  Jump in right now
                 </small>
               </div>
+
+              <b>
+                ↗
+              </b>
             </Link>
 
-            <Link href="/events" className="hotMoveCard">
-              <span>🎉</span>
-              <div>
+            <Link href="/events" className="launchPadCard eventLaunch">
+              <div className="launchPadIcon">
+                🎉
+              </div>
+
+              <div className="launchPadCopy">
                 <strong>
                   Events
                 </strong>
+
                 <small>
-                  Flyers and motion near you
+                  Flyers, venues and motion
                 </small>
               </div>
+
+              <b>
+                ↗
+              </b>
             </Link>
 
-            <Link href="/casting" className="hotMoveCard">
-              <span>🎭</span>
-              <div>
+            <Link href="/casting" className="launchPadCard castingLaunch">
+              <div className="launchPadIcon">
+                🎭
+              </div>
+
+              <div className="launchPadCopy">
                 <strong>
                   Casting
                 </strong>
+
                 <small>
                   Auditions and opportunities
                 </small>
               </div>
+
+              <b>
+                ↗
+              </b>
             </Link>
 
-            <Link href="/collabs/new" className="hotMoveCard">
-              <span>🤝</span>
-              <div>
+            <Link href="/collabs/new" className="launchPadCard buildLaunch">
+              <div className="launchPadIcon">
+                🤝
+              </div>
+
+              <div className="launchPadCopy">
                 <strong>
                   Build
                 </strong>
+
                 <small>
                   Find people to work with
                 </small>
               </div>
+
+              <b>
+                ↗
+              </b>
             </Link>
           </div>
         </section>
@@ -1132,7 +1241,7 @@ export default function DiscoverPage() {
           margin-top: 22px;
         }
 
-        .signatureLead {
+        .discoverV2Top {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
@@ -1140,404 +1249,622 @@ export default function DiscoverPage() {
           margin-bottom: 14px;
         }
 
-        .signatureLead small {
-          color: #53f8ca;
+        .discoverV2Top small {
+          color: #54f6cd;
           font-size: 10px;
           font-weight: 1000;
           letter-spacing: .18em;
         }
 
-        .signatureLead h2 {
-          max-width: 520px;
+        .discoverV2Top h2 {
+          max-width: 560px;
           margin: 6px 0 8px;
-          font-size: clamp(28px, 7vw, 46px);
-          line-height: .95;
-          letter-spacing: -.06em;
+          font-size: clamp(30px, 8vw, 50px);
+          line-height: .92;
+          letter-spacing: -.07em;
         }
 
-        .signatureLead p {
-          max-width: 520px;
+        .discoverV2Top p {
+          max-width: 530px;
           margin: 0;
           color: rgba(255,255,255,.48);
           font-size: 13px;
           line-height: 1.45;
         }
 
-        .signatureMiniLabel {
+        .discoverV2Label {
           color: rgba(255,255,255,.28);
           font-size: 9px;
           font-weight: 1000;
-          letter-spacing: .14em;
+          letter-spacing: .16em;
           white-space: nowrap;
         }
 
-        .signatureHeroGrid {
+        .heroDeckScroller {
           display: grid;
-          grid-template-columns: 1fr;
-          gap: 14px;
+          gap: 16px;
         }
 
-        .heroFlyer {
+        .megaHeroCard {
           position: relative;
           overflow: hidden;
-          min-height: 250px;
-          padding: 16px;
-          border: 1px solid rgba(255,255,255,.08);
+          min-height: 290px;
+          padding: 18px;
+          border: 1px solid rgba(255,255,255,.09);
           border-radius: 28px;
           color: white;
           text-decoration: none;
           isolation: isolate;
-          box-shadow: 0 20px 60px rgba(0,0,0,.28);
+          box-shadow: 0 24px 60px rgba(0,0,0,.28);
         }
 
-        .worldHero {
+        .worldMegaCard {
           background:
-            radial-gradient(circle at 0% 0%, rgba(83,248,202,.18), transparent 32%),
-            radial-gradient(circle at 100% 100%, rgba(69,160,255,.14), transparent 38%),
-            linear-gradient(145deg, #07110f 0%, #08111f 100%);
+            radial-gradient(circle at 0% 0%, rgba(82,247,200,.18), transparent 32%),
+            radial-gradient(circle at 100% 100%, rgba(85,120,255,.15), transparent 42%),
+            linear-gradient(145deg, #061111 0%, #081123 100%);
         }
 
-        .watchHero {
+        .watchMegaCard {
           background:
-            radial-gradient(circle at 0% 0%, rgba(168,118,255,.18), transparent 32%),
-            radial-gradient(circle at 100% 100%, rgba(255,78,165,.11), transparent 40%),
-            linear-gradient(145deg, #0c0914 0%, #08111f 100%);
+            radial-gradient(circle at 0% 0%, rgba(155,124,255,.18), transparent 32%),
+            radial-gradient(circle at 100% 100%, rgba(255,76,165,.12), transparent 42%),
+            linear-gradient(145deg, #0c0812 0%, #091120 100%);
         }
 
-        .heroGlow {
+        .megaHeroGlow {
           position: absolute;
-          inset: auto;
-          width: 180px;
-          height: 180px;
-          right: -60px;
+          right: -55px;
           bottom: -70px;
+          width: 190px;
+          height: 190px;
           border-radius: 50%;
-          filter: blur(10px);
+          background: rgba(82,247,200,.13);
+          filter: blur(12px);
           z-index: -2;
-          background: rgba(83,248,202,.14);
-          animation: heroGlowFloat 4s ease-in-out infinite alternate;
+          animation: discoverHeroGlow 4s ease-in-out infinite alternate;
         }
 
-        .watchHero .heroGlow {
-          background: rgba(168,118,255,.18);
+        .watchMegaCard .megaHeroGlow {
+          background: rgba(155,124,255,.16);
         }
 
-        .heroMesh {
+        .megaHeroGrid {
           position: absolute;
           inset: 0;
-          opacity: .22;
+          opacity: .18;
           z-index: -1;
           background-image:
             linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
           background-size: 22px 22px;
-          mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+          mask-image: radial-gradient(circle at center, black 42%, transparent 100%);
         }
 
-        .heroTopRow {
+        .megaHeroTop {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
+          gap: 12px;
         }
 
-        .heroPill {
+        .megaHeroBadge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          padding: 9px 12px;
+          padding: 10px 13px;
           border: 1px solid rgba(255,255,255,.08);
           border-radius: 999px;
           background: rgba(255,255,255,.05);
           color: rgba(255,255,255,.82);
           font-size: 10px;
           font-weight: 1000;
-          letter-spacing: .14em;
+          letter-spacing: .15em;
         }
 
-        .heroPill i {
+        .megaHeroBadge i {
           width: 7px;
           height: 7px;
           border-radius: 50%;
           background: #53f8ca;
           box-shadow: 0 0 12px #53f8ca;
-          animation: heroDotPulse 1.5s infinite;
+          animation: badgePulse 1.5s infinite;
         }
 
-        .watchHero .heroPill i {
-          background: #a876ff;
-          box-shadow: 0 0 12px #a876ff;
+        .watchMegaCard .megaHeroBadge i {
+          background: #a879ff;
+          box-shadow: 0 0 12px #a879ff;
         }
 
-        .heroArrow {
-          width: 42px;
-          height: 42px;
+        .megaHeroArrow {
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255,255,255,.10);
+          border: 1px solid rgba(255,255,255,.11);
           border-radius: 50%;
           background: rgba(255,255,255,.05);
           font-size: 16px;
           font-weight: 1000;
         }
 
-        .heroContent {
+        .megaHeroCenter {
           display: grid;
-          grid-template-columns: 88px 1fr;
-          gap: 14px;
+          grid-template-columns: 106px 1fr;
+          gap: 16px;
           align-items: center;
           margin-top: 22px;
         }
 
-        .heroBigIcon {
+        .megaHeroVisual {
+          position: relative;
+          width: 106px;
+          height: 106px;
+          border-radius: 28px;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.045);
+          overflow: hidden;
+        }
+
+        .worldVisual {
+          box-shadow: 0 0 36px rgba(82,247,200,.14);
+        }
+
+        .watchVisual {
+          box-shadow: 0 0 36px rgba(155,124,255,.18);
+        }
+
+        .megaHeroCopy small {
+          color: rgba(255,255,255,.34);
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .15em;
+        }
+
+        .megaHeroCopy h3 {
+          margin: 6px 0 8px;
+          font-size: clamp(34px, 8vw, 52px);
+          line-height: .88;
+          letter-spacing: -.075em;
+        }
+
+        .megaHeroCopy p {
+          max-width: 380px;
+          margin: 0;
+          color: rgba(255,255,255,.58);
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        .megaHeroBottom {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 24px;
+          flex-wrap: wrap;
+        }
+
+        .megaHeroButton {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 52px;
+          padding: 0 20px;
+          border-radius: 999px;
+          background: linear-gradient(100deg, #52f7c8, #6adcf2 52%, #9c7cff);
+          color: #05110d;
+          font-size: 15px;
+          font-weight: 1000;
+          box-shadow: 0 15px 36px rgba(92,120,255,.18);
+        }
+
+        .megaHeroMeta {
+          color: rgba(255,255,255,.38);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .07em;
+        }
+
+        .radarCore {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 18px;
+          height: 18px;
+          margin: -9px 0 0 -9px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow: 0 0 18px #52f7c8;
+        }
+
+        .radarRing {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          border: 1px solid rgba(82,247,200,.32);
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          animation: radarPulse 2.6s infinite;
+        }
+
+        .ring1 {
+          width: 34px;
+          height: 34px;
+        }
+
+        .ring2 {
+          width: 60px;
+          height: 60px;
+          animation-delay: .4s;
+        }
+
+        .ring3 {
+          width: 86px;
+          height: 86px;
+          animation-delay: .8s;
+        }
+
+        .signalDot {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow: 0 0 10px #52f7c8;
+          animation: dotBlink 1.8s infinite;
+        }
+
+        .dot1 { top: 16px; left: 58px; }
+        .dot2 { top: 34px; right: 12px; animation-delay: .4s; }
+        .dot3 { bottom: 18px; left: 14px; animation-delay: .8s; }
+        .dot4 { bottom: 10px; right: 26px; animation-delay: 1.2s; }
+
+        .watchPoster {
+          position: absolute;
+          width: 32px;
+          height: 58px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.08);
+          background:
+            linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
+          box-shadow: 0 6px 18px rgba(0,0,0,.20);
+        }
+
+        .posterA {
+          left: 12px;
+          top: 22px;
+          transform: rotate(-8deg);
+        }
+
+        .posterB {
+          left: 36px;
+          top: 14px;
+        }
+
+        .posterC {
+          right: 12px;
+          top: 22px;
+          transform: rotate(8deg);
+        }
+
+        .playPulse {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 38px;
+          height: 38px;
+          margin: -19px 0 0 -19px;
           display: grid;
           place-items: center;
-          width: 88px;
-          height: 88px;
-          border-radius: 24px;
-          background: rgba(255,255,255,.045);
+          border-radius: 50%;
+          background: rgba(255,255,255,.12);
+          border: 1px solid rgba(255,255,255,.12);
+          box-shadow: 0 0 24px rgba(155,124,255,.22);
+          font-size: 16px;
+          animation: playPulse 1.8s infinite;
+        }
+
+        .pulseZone {
+          margin-top: 16px;
+          padding: 16px;
           border: 1px solid rgba(255,255,255,.08);
-          font-size: 46px;
-          box-shadow: 0 0 32px rgba(83,248,202,.12);
+          border-radius: 24px;
+          background:
+            radial-gradient(circle at 0% 0%, rgba(82,247,200,.08), transparent 30%),
+            radial-gradient(circle at 100% 100%, rgba(155,124,255,.10), transparent 35%),
+            rgba(255,255,255,.025);
+          box-shadow: 0 18px 40px rgba(0,0,0,.18);
         }
 
-        .watchHero .heroBigIcon {
-          box-shadow: 0 0 32px rgba(168,118,255,.14);
+        .pulseZoneTop {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 14px;
+          margin-bottom: 14px;
         }
 
-        .heroCopy small {
-          color: rgba(255,255,255,.34);
+        .pulseZoneTop small {
+          color: #53f8ca;
           font-size: 10px;
           font-weight: 1000;
           letter-spacing: .16em;
         }
 
-        .heroCopy h3 {
-          margin: 6px 0 8px;
-          font-size: clamp(34px, 7vw, 48px);
-          line-height: .88;
-          letter-spacing: -.07em;
+        .pulseZoneTop h3 {
+          margin: 6px 0 0;
+          font-size: clamp(24px, 6vw, 38px);
+          line-height: .95;
+          letter-spacing: -.06em;
         }
 
-        .heroCopy p {
-          max-width: 360px;
-          margin: 0;
-          color: rgba(255,255,255,.56);
-          font-size: 14px;
-          line-height: 1.45;
-        }
-
-        .heroBottomRow {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: 20px;
-          flex-wrap: wrap;
-        }
-
-        .heroPrimaryBtn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 48px;
-          padding: 0 18px;
-          border-radius: 999px;
-          background: linear-gradient(100deg, #53f8ca, #6cdaf0 52%, #9b7cff);
-          color: #04120d;
-          font-size: 14px;
+        .pulseZoneTop > span {
+          color: rgba(255,255,255,.34);
+          font-size: 9px;
           font-weight: 1000;
-          box-shadow: 0 14px 30px rgba(92,120,255,.18);
+          letter-spacing: .15em;
+          white-space: nowrap;
         }
 
-        .heroMetaText {
-          color: rgba(255,255,255,.38);
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: .06em;
-        }
-
-        .worldPulse {
-          position: absolute;
-          border-radius: 50%;
-          border: 1px solid rgba(83,248,202,.25);
-          opacity: .45;
-          animation: worldRing 2.8s infinite;
-        }
-
-        .worldPulseA {
-          width: 50px;
-          height: 50px;
-          right: 30px;
-          bottom: 32px;
-        }
-
-        .worldPulseB {
-          width: 74px;
-          height: 74px;
-          right: 18px;
-          bottom: 20px;
-          animation-delay: .55s;
-        }
-
-        .worldPulseC {
-          width: 102px;
-          height: 102px;
-          right: 4px;
-          bottom: 6px;
-          animation-delay: 1.1s;
-        }
-
-        .watchBars {
-          position: absolute;
-          right: 20px;
-          bottom: 24px;
-          display: flex;
-          align-items: end;
-          gap: 4px;
-          opacity: .48;
-        }
-
-        .watchBars i {
-          display: block;
-          width: 6px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, #a876ff, #53f8ca);
-          animation: watchBarsMove .85s ease-in-out infinite alternate;
-        }
-
-        .watchBars i:nth-child(1) { height: 18px; }
-        .watchBars i:nth-child(2) { height: 34px; animation-delay: .12s; }
-        .watchBars i:nth-child(3) { height: 24px; animation-delay: .24s; }
-        .watchBars i:nth-child(4) { height: 40px; animation-delay: .36s; }
-        .watchBars i:nth-child(5) { height: 20px; animation-delay: .48s; }
-
-        .discoverHotRow {
+        .pulseStatGrid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
+        }
+
+        .pulseStatCard {
+          min-height: 92px;
+          padding: 14px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 18px;
+          color: white;
+          text-decoration: none;
+          background: rgba(255,255,255,.035);
+          box-shadow: 0 10px 24px rgba(0,0,0,.16);
+        }
+
+        .pulseStatCard b {
+          display: block;
+          margin-bottom: 6px;
+          font-size: 34px;
+          line-height: 1;
+          letter-spacing: -.06em;
+        }
+
+        .pulseStatCard span {
+          display: block;
+          color: rgba(255,255,255,.56);
+          font-size: 12px;
+          line-height: 1.35;
+        }
+
+        .pulseLive b { color: #ff6977; }
+        .pulseEvents b { color: #ffc46b; }
+        .pulseBuild b { color: #6ff0d0; }
+        .pulseTrend b { color: #b894ff; }
+
+        .pulseRangeRow,
+        .pulseCityRow {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+          overflow-x: auto;
+          padding-bottom: 2px;
+          scrollbar-width: none;
+        }
+
+        .pulseRangeRow::-webkit-scrollbar,
+        .pulseCityRow::-webkit-scrollbar {
+          display: none;
+        }
+
+        .pulseRangeRow span,
+        .cityChip {
+          display: inline-flex;
+          align-items: center;
+          min-height: 38px;
+          padding: 0 14px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 999px;
+          background: rgba(255,255,255,.03);
+          color: rgba(255,255,255,.72);
+          white-space: nowrap;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .activeRange,
+        .activeCity {
+          background: linear-gradient(100deg, rgba(82,247,200,.20), rgba(155,124,255,.16));
+          border-color: rgba(82,247,200,.20);
+          color: white;
+        }
+
+        .launchPadGrid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .launchPadCard {
+          position: relative;
+          min-height: 112px;
+          padding: 14px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 22px;
+          overflow: hidden;
+          color: white;
+          text-decoration: none;
+          background:
+            linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+          box-shadow: 0 14px 34px rgba(0,0,0,.16);
+        }
+
+        .liveLaunch {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(255,95,120,.13), transparent 30%),
+            rgba(255,255,255,.03);
+        }
+
+        .eventLaunch {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(255,190,92,.13), transparent 30%),
+            rgba(255,255,255,.03);
+        }
+
+        .castingLaunch {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(121,195,255,.13), transparent 30%),
+            rgba(255,255,255,.03);
+        }
+
+        .buildLaunch {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(82,247,200,.13), transparent 30%),
+            rgba(255,255,255,.03);
+        }
+
+        .launchPadIcon {
+          display: grid;
+          place-items: center;
+          width: 46px;
+          height: 46px;
+          border-radius: 16px;
+          background: rgba(255,255,255,.06);
+          font-size: 24px;
+        }
+
+        .launchPadCopy {
           margin-top: 12px;
         }
 
-        .hotMoveCard {
-          display: flex;
-          align-items: center;
-          gap: 11px;
-          min-height: 76px;
-          padding: 14px;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 20px;
-          background:
-            linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
-          color: white;
-          text-decoration: none;
-          box-shadow: 0 12px 30px rgba(0,0,0,.16);
-        }
-
-        .hotMoveCard span {
-          display: grid;
-          place-items: center;
-          width: 42px;
-          height: 42px;
-          flex: 0 0 42px;
-          border-radius: 14px;
-          background: rgba(255,255,255,.05);
-          font-size: 22px;
-        }
-
-        .hotMoveCard strong {
+        .launchPadCopy strong {
           display: block;
-          font-size: 16px;
+          font-size: 18px;
           line-height: 1;
         }
 
-        .hotMoveCard small {
+        .launchPadCopy small {
           display: block;
-          margin-top: 5px;
-          color: rgba(255,255,255,.45);
+          margin-top: 6px;
+          color: rgba(255,255,255,.48);
           font-size: 11px;
-          line-height: 1.3;
+          line-height: 1.35;
         }
 
-        @keyframes heroDotPulse {
+        .launchPadCard > b {
+          position: absolute;
+          right: 14px;
+          top: 14px;
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          background: rgba(255,255,255,.05);
+          border: 1px solid rgba(255,255,255,.08);
+          font-size: 13px;
+        }
+
+        @keyframes discoverHeroGlow {
+          to {
+            transform: translate(-18px, -10px) scale(1.08);
+          }
+        }
+
+        @keyframes badgePulse {
           50% {
             opacity: .35;
-            transform: scale(.7);
+            transform: scale(.72);
           }
         }
 
-        @keyframes heroGlowFloat {
-          to {
-            transform: translate(-16px, -10px) scale(1.08);
-          }
-        }
-
-        @keyframes worldRing {
+        @keyframes radarPulse {
           50% {
-            opacity: .18;
-            transform: scale(.8);
+            opacity: .20;
+            transform: translate(-50%, -50%) scale(.86);
           }
         }
 
-        @keyframes watchBarsMove {
-          to {
-            transform: scaleY(.45);
-            opacity: .45;
+        @keyframes dotBlink {
+          50% {
+            opacity: .28;
+            transform: scale(.65);
+          }
+        }
+
+        @keyframes playPulse {
+          50% {
+            transform: scale(.88);
+            opacity: .72;
           }
         }
 
         @media(max-width: 560px) {
-          .signatureLead {
+          .discoverV2Top {
             display: block;
           }
 
-          .signatureMiniLabel {
+          .discoverV2Label {
             display: inline-block;
             margin-top: 10px;
           }
 
-          .heroContent {
-            grid-template-columns: 76px 1fr;
-            gap: 12px;
+          .megaHeroCenter {
+            grid-template-columns: 90px 1fr;
+            gap: 14px;
           }
 
-          .heroBigIcon {
-            width: 76px;
-            height: 76px;
-            font-size: 40px;
+          .megaHeroVisual {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
           }
 
-          .discoverHotRow {
+          .pulseStatGrid,
+          .launchPadGrid {
             grid-template-columns: 1fr 1fr;
           }
         }
 
         @media(max-width: 420px) {
-          .heroFlyer {
-            min-height: 235px;
-            padding: 14px;
+          .megaHeroCard {
+            min-height: 270px;
+            padding: 15px;
             border-radius: 24px;
           }
 
-          .heroCopy h3 {
+          .megaHeroCopy h3 {
             font-size: 30px;
           }
 
-          .heroCopy p {
+          .megaHeroCopy p {
             font-size: 13px;
           }
 
-          .hotMoveCard {
-            min-height: 72px;
+          .pulseZone {
+            padding: 14px;
+            border-radius: 20px;
+          }
+
+          .pulseStatCard {
+            min-height: 84px;
             padding: 12px;
           }
 
-          .hotMoveCard strong {
-            font-size: 14px;
+          .pulseStatCard b {
+            font-size: 28px;
           }
 
-          .hotMoveCard small {
-            font-size: 10px;
+          .launchPadCard {
+            min-height: 102px;
+            padding: 12px;
+          }
+
+          .launchPadCopy strong {
+            font-size: 16px;
           }
         }
 
