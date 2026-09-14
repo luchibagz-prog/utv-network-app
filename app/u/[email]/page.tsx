@@ -1488,6 +1488,18 @@ export default function PublicProfile() {
 
             <button
               onClick={() =>
+                router.push("/wallet")
+              }
+            >
+              <span>💰</span>
+              <div>
+                <strong>Wallet</strong>
+                <small>Earnings & payouts</small>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
                 router.push("/activity")
               }
             >
