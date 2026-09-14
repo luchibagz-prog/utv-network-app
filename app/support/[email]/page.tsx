@@ -17,26 +17,26 @@ const gifts = [
   {
     name: "Flame",
     emoji: "🔥",
-    amountCents: 100,
-    label: "$1",
-  },
-  {
-    name: "Love",
-    emoji: "💚",
     amountCents: 300,
     label: "$3",
   },
   {
-    name: "Rocket",
-    emoji: "🚀",
+    name: "Love",
+    emoji: "💚",
     amountCents: 500,
     label: "$5",
   },
   {
+    name: "Rocket",
+    emoji: "🚀",
+    amountCents: 1000,
+    label: "$10",
+  },
+  {
     name: "Crown",
     emoji: "👑",
-    amountCents: 2000,
-    label: "$20",
+    amountCents: 2500,
+    label: "$25",
   },
   {
     name: "Diamond",

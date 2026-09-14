@@ -67,6 +67,9 @@ export default function WalletPage() {
   const [starting, setStarting] =
     useState(false);
 
+  const [payingOut, setPayingOut] =
+    useState(false);
+
   const [message, setMessage] =
     useState("");
 
@@ -206,6 +209,70 @@ export default function WalletPage() {
     }
   }
 
+  async function transferEarnings() {
+    if (payingOut) return;
+
+    setPayingOut(true);
+    setMessage("");
+
+    try {
+      const {
+        data: { session },
+      } =
+        await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        router.push("/login");
+        return;
+      }
+
+      const response =
+        await fetch(
+          "/api/connect/payout",
+          {
+            method: "POST",
+            headers: {
+              Authorization:
+                `Bearer ${session.access_token}`,
+            },
+          }
+        );
+
+      const payload =
+        await response
+          .json()
+          .catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error ||
+          "Creator payout could not be completed."
+        );
+      }
+
+      const sent =
+        Number(
+          payload?.transferredCents || 0
+        ) / 100;
+
+      setMessage(
+        payload?.transferredCount
+          ? `💰 $${sent.toFixed(2)} moved to your Stripe creator balance.`
+          : payload?.message ||
+            "No earnings are waiting to transfer."
+      );
+
+      await loadWallet();
+    } catch (error: any) {
+      setMessage(
+        error?.message ||
+        "Creator payout could not be completed."
+      );
+    } finally {
+      setPayingOut(false);
+    }
+  }
+
   const connected =
     Boolean(
       data?.payoutAccount
@@ -240,7 +307,7 @@ export default function WalletPage() {
         <>
           <section className="balanceGrid">
             <article>
-              <span>CONFIRMED GIFTS</span>
+              <span>GROSS GIFTS</span>
               <strong>
                 {money(
                   data?.balances
@@ -248,13 +315,12 @@ export default function WalletPage() {
                 )}
               </strong>
               <small>
-                Paid gifts recorded by
-                Stripe
+                Before UTV creator split
               </small>
             </article>
 
             <article>
-              <span>NOT TRANSFERRED</span>
+              <span>CREATOR AVAILABLE</span>
               <strong>
                 {money(
                   data?.balances
@@ -262,12 +328,12 @@ export default function WalletPage() {
                 )}
               </strong>
               <small>
-                Before UTV payout rules
+                Your 75% share waiting
               </small>
             </article>
 
             <article>
-              <span>TRANSFERRED</span>
+              <span>SENT TO STRIPE</span>
               <strong>
                 {money(
                   data?.balances
@@ -327,6 +393,64 @@ export default function WalletPage() {
                     ?.connected
                 ? "CONTINUE PAYOUT SETUP"
                 : "SET UP PAYOUTS"}
+            </button>
+          </section>
+
+          <section className="walletCard transferCard">
+            <div className="setupTop">
+              <div>
+                <span>UTV CREATOR SPLIT</span>
+                <h2>75% creator · 25% UTV</h2>
+              </div>
+
+              <b
+                className={
+                  connected
+                    ? "status ready"
+                    : "status"
+                }
+              >
+                {connected
+                  ? "READY"
+                  : "SETUP"}
+              </b>
+            </div>
+
+            <p>
+              Your available creator share is{" "}
+              <strong>
+                {money(
+                  data?.balances
+                    ?.pendingCents || 0
+                )}
+              </strong>
+              . UTV keeps 25% of each gift;
+              your 75% is transferred to your
+              connected Stripe account.
+            </p>
+
+            <button
+              className="connectButton"
+              onClick={transferEarnings}
+              disabled={
+                payingOut ||
+                !connected ||
+                !Number(
+                  data?.balances
+                    ?.pendingCents || 0
+                )
+              }
+            >
+              {payingOut
+                ? "TRANSFERRING..."
+                : !connected
+                ? "FINISH STRIPE SETUP FIRST"
+                : Number(
+                    data?.balances
+                      ?.pendingCents || 0
+                  ) > 0
+                ? "TRANSFER AVAILABLE EARNINGS"
+                : "NO EARNINGS TO TRANSFER"}
             </button>
           </section>
 
@@ -396,17 +520,15 @@ export default function WalletPage() {
 
           <section className="walletNotice">
             <strong>
-              Payout transfers are not
-              active yet.
+              UTV creator split: 75 / 25
             </strong>
             <span>
-              This screen shows confirmed
-              gift revenue. UTV platform
-              fees and creator transfer
-              amounts will be activated
-              in the next payout pack
-              after the platform cut is
-              set.
+              Creators receive 75% of each
+              confirmed gift and UTV keeps
+              25%. Stripe processing,
+              refunds and disputes are
+              handled separately from the
+              creator-share calculation.
             </span>
           </section>
         </>

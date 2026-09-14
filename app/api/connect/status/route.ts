@@ -112,7 +112,7 @@ export async function GET(
       admin
         .from("utv_gifts")
         .select(
-          "id,sender_email,gift_name,amount_cents,status,payout_status,stripe_session_id,created_at"
+          "id,sender_email,gift_name,amount_cents,creator_share_cents,platform_fee_cents,status,payout_status,stripe_session_id,stripe_transfer_id,transferred_at,created_at"
         )
         .eq("recipient_email", email)
         .eq("status", "paid")
@@ -189,13 +189,52 @@ export async function GET(
     const gifts =
       giftsResult.data || [];
 
+    const shareForGift = (gift: any) => {
+      const stored =
+        Number(gift.creator_share_cents);
+
+      if (Number.isFinite(stored) && stored >= 0) {
+        return stored;
+      }
+
+      return Math.floor(
+        Number(gift.amount_cents || 0) * 0.75
+      );
+    };
+
+    const feeForGift = (gift: any) => {
+      const stored =
+        Number(gift.platform_fee_cents);
+
+      if (Number.isFinite(stored) && stored >= 0) {
+        return stored;
+      }
+
+      const amount =
+        Number(gift.amount_cents || 0);
+
+      return amount - shareForGift(gift);
+    };
+
     const grossCents =
       gifts.reduce(
         (sum: number, gift: any) =>
           sum +
-          Number(
-            gift.amount_cents || 0
-          ),
+          Number(gift.amount_cents || 0),
+        0
+      );
+
+    const creatorEarningsCents =
+      gifts.reduce(
+        (sum: number, gift: any) =>
+          sum + shareForGift(gift),
+        0
+      );
+
+    const platformFeeCents =
+      gifts.reduce(
+        (sum: number, gift: any) =>
+          sum + feeForGift(gift),
         0
       );
 
@@ -208,10 +247,7 @@ export async function GET(
         )
         .reduce(
           (sum: number, gift: any) =>
-            sum +
-            Number(
-              gift.amount_cents || 0
-            ),
+            sum + shareForGift(gift),
           0
         );
 
@@ -224,10 +260,7 @@ export async function GET(
         )
         .reduce(
           (sum: number, gift: any) =>
-            sum +
-            Number(
-              gift.amount_cents || 0
-            ),
+            sum + shareForGift(gift),
           0
         );
 
@@ -262,8 +295,12 @@ export async function GET(
           },
       balances: {
         grossCents,
+        creatorEarningsCents,
+        platformFeeCents,
         pendingCents,
         transferredCents,
+        creatorSharePercent: 75,
+        platformSharePercent: 25,
       },
       gifts,
     });

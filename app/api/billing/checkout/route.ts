@@ -216,10 +216,10 @@ export async function POST(request: NextRequest) {
       );
 
       const allowedAmounts = new Set([
-        100,
         300,
         500,
-        2000,
+        1000,
+        2500,
         5000,
       ]);
 

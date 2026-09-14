@@ -268,6 +268,11 @@ export async function POST(request: NextRequest) {
               recipient_email: recipientEmail,
               gift_name: giftName,
               amount_cents: amountCents,
+              creator_share_cents:
+                Math.floor(amountCents * 0.75),
+              platform_fee_cents:
+                amountCents -
+                Math.floor(amountCents * 0.75),
               stripe_session_id: session.id,
               stripe_payment_intent_id:
                 typeof session.payment_intent ===
