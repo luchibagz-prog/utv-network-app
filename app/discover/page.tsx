@@ -388,103 +388,133 @@ export default function DiscoverPage() {
         </section>
 
         <section className="signatureSection">
-          <div className="signatureHeading">
+          <div className="signatureLead">
             <div>
               <small>ONLY ON UTV</small>
 
               <h2>
-                Enter the UTV universe
+                Tap into the biggest parts of UTV
               </h2>
+
+              <p>
+                Make Discover feel alive with bold entry
+                points into UTV World, Watch and what is
+                moving right now.
+              </p>
             </div>
 
-            <span>
-              ✨ PICK YOUR MOVE
+            <span className="signatureMiniLabel">
+              ✨ MAIN FEATURES
             </span>
           </div>
 
-          <div className="signatureFeatureGrid">
+          <div className="signatureHeroGrid">
             <Link
               href="/world"
-              className="signatureCard worldSignature"
+              className="heroFlyer worldHero"
             >
-              <div className="signatureGlow" />
+              <div className="heroGlow" />
+              <div className="heroMesh" />
 
-              <div className="signatureTop">
-                <span className="signatureBadge">
+              <div className="heroTopRow">
+                <span className="heroPill">
                   <i />
                   LIVE WORLD
                 </span>
 
-                <b>↗</b>
+                <span className="heroArrow">
+                  ↗
+                </span>
               </div>
 
-              <div className="signatureIcon">
-                🌎
+              <div className="heroContent">
+                <div className="heroBigIcon">
+                  🌎
+                </div>
+
+                <div className="heroCopy">
+                  <small>
+                    UTV SIGNATURE
+                  </small>
+
+                  <h3>
+                    Explore
+                    <br />
+                    UTV World
+                  </h3>
+
+                  <p>
+                    Lives, events, casting,
+                    creators and people ready
+                    to build around you.
+                  </p>
+                </div>
               </div>
 
-              <div className="signatureCopy">
-                <small>
-                  UTV SIGNATURE
-                </small>
+              <div className="heroBottomRow">
+                <span className="heroPrimaryBtn">
+                  Open World
+                </span>
 
-                <h2>
-                  UTV World
-                </h2>
-
-                <p>
-                  See Lives, events, casting,
-                  creators and people looking
-                  to build around you.
-                </p>
-
-                <strong>
-                  Explore the World →
-                </strong>
+                <span className="heroMetaText">
+                  Map • local motion • live signals
+                </span>
               </div>
 
-              <div className="worldRadar">
-                <i />
-                <i />
-                <i />
-              </div>
+              <div className="worldPulse worldPulseA" />
+              <div className="worldPulse worldPulseB" />
+              <div className="worldPulse worldPulseC" />
             </Link>
 
             <Link
               href="/watch"
-              className="signatureCard watchSignature"
+              className="heroFlyer watchHero"
             >
-              <div className="signatureGlow" />
+              <div className="heroGlow" />
+              <div className="heroMesh" />
 
-              <div className="signatureTop">
-                <span className="signatureBadge">
+              <div className="heroTopRow">
+                <span className="heroPill">
                   ▶ STREAM UTV
                 </span>
 
-                <b>↗</b>
+                <span className="heroArrow">
+                  ↗
+                </span>
               </div>
 
-              <div className="signatureIcon">
-                ▶️
+              <div className="heroContent">
+                <div className="heroBigIcon">
+                  ▶️
+                </div>
+
+                <div className="heroCopy">
+                  <small>
+                    WATCH SOMETHING
+                  </small>
+
+                  <h3>
+                    Watch
+                    <br />
+                    Now
+                  </h3>
+
+                  <p>
+                    Shows, movies, originals,
+                    creator content, live
+                    performances and more.
+                  </p>
+                </div>
               </div>
 
-              <div className="signatureCopy">
-                <small>
-                  WATCH SOMETHING
-                </small>
+              <div className="heroBottomRow">
+                <span className="heroPrimaryBtn">
+                  Start Watching
+                </span>
 
-                <h2>
-                  Watch
-                </h2>
-
-                <p>
-                  Shows, movies, originals,
-                  performances and creator
-                  entertainment.
-                </p>
-
-                <strong>
-                  Start watching →
-                </strong>
+                <span className="heroMetaText">
+                  Movies • shows • originals
+                </span>
               </div>
 
               <div className="watchBars">
@@ -492,25 +522,58 @@ export default function DiscoverPage() {
                 <i />
                 <i />
                 <i />
+                <i />
               </div>
             </Link>
           </div>
 
-          <div className="signatureQuickMoves">
-            <Link href="/live">
-              🔴 Who&apos;s Live
+          <div className="discoverHotRow">
+            <Link href="/live" className="hotMoveCard">
+              <span>🔴</span>
+              <div>
+                <strong>
+                  Who&apos;s Live
+                </strong>
+                <small>
+                  Jump in live now
+                </small>
+              </div>
             </Link>
 
-            <Link href="/events">
-              🎉 Events
+            <Link href="/events" className="hotMoveCard">
+              <span>🎉</span>
+              <div>
+                <strong>
+                  Events
+                </strong>
+                <small>
+                  Flyers and motion near you
+                </small>
+              </div>
             </Link>
 
-            <Link href="/casting">
-              🎭 Casting
+            <Link href="/casting" className="hotMoveCard">
+              <span>🎭</span>
+              <div>
+                <strong>
+                  Casting
+                </strong>
+                <small>
+                  Auditions and opportunities
+                </small>
+              </div>
             </Link>
 
-            <Link href="/collabs/new">
-              🤝 Build
+            <Link href="/collabs/new" className="hotMoveCard">
+              <span>🤝</span>
+              <div>
+                <strong>
+                  Build
+                </strong>
+                <small>
+                  Find people to work with
+                </small>
+              </div>
             </Link>
           </div>
         </section>
@@ -1069,368 +1132,412 @@ export default function DiscoverPage() {
           margin-top: 22px;
         }
 
-        .signatureHeading {
+        .signatureLead {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 11px;
+          gap: 14px;
+          margin-bottom: 14px;
         }
 
-        .signatureHeading small {
-          color: #52f7c8;
-          font-size: 8px;
+        .signatureLead small {
+          color: #53f8ca;
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .18em;
+        }
+
+        .signatureLead h2 {
+          max-width: 520px;
+          margin: 6px 0 8px;
+          font-size: clamp(28px, 7vw, 46px);
+          line-height: .95;
+          letter-spacing: -.06em;
+        }
+
+        .signatureLead p {
+          max-width: 520px;
+          margin: 0;
+          color: rgba(255,255,255,.48);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .signatureMiniLabel {
+          color: rgba(255,255,255,.28);
+          font-size: 9px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+          white-space: nowrap;
+        }
+
+        .signatureHeroGrid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 14px;
+        }
+
+        .heroFlyer {
+          position: relative;
+          overflow: hidden;
+          min-height: 250px;
+          padding: 16px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 28px;
+          color: white;
+          text-decoration: none;
+          isolation: isolate;
+          box-shadow: 0 20px 60px rgba(0,0,0,.28);
+        }
+
+        .worldHero {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(83,248,202,.18), transparent 32%),
+            radial-gradient(circle at 100% 100%, rgba(69,160,255,.14), transparent 38%),
+            linear-gradient(145deg, #07110f 0%, #08111f 100%);
+        }
+
+        .watchHero {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(168,118,255,.18), transparent 32%),
+            radial-gradient(circle at 100% 100%, rgba(255,78,165,.11), transparent 40%),
+            linear-gradient(145deg, #0c0914 0%, #08111f 100%);
+        }
+
+        .heroGlow {
+          position: absolute;
+          inset: auto;
+          width: 180px;
+          height: 180px;
+          right: -60px;
+          bottom: -70px;
+          border-radius: 50%;
+          filter: blur(10px);
+          z-index: -2;
+          background: rgba(83,248,202,.14);
+          animation: heroGlowFloat 4s ease-in-out infinite alternate;
+        }
+
+        .watchHero .heroGlow {
+          background: rgba(168,118,255,.18);
+        }
+
+        .heroMesh {
+          position: absolute;
+          inset: 0;
+          opacity: .22;
+          z-index: -1;
+          background-image:
+            linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+          background-size: 22px 22px;
+          mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
+        .heroTopRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .heroPill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 12px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 999px;
+          background: rgba(255,255,255,.05);
+          color: rgba(255,255,255,.82);
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .14em;
+        }
+
+        .heroPill i {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #53f8ca;
+          box-shadow: 0 0 12px #53f8ca;
+          animation: heroDotPulse 1.5s infinite;
+        }
+
+        .watchHero .heroPill i {
+          background: #a876ff;
+          box-shadow: 0 0 12px #a876ff;
+        }
+
+        .heroArrow {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          border: 1px solid rgba(255,255,255,.10);
+          border-radius: 50%;
+          background: rgba(255,255,255,.05);
+          font-size: 16px;
+          font-weight: 1000;
+        }
+
+        .heroContent {
+          display: grid;
+          grid-template-columns: 88px 1fr;
+          gap: 14px;
+          align-items: center;
+          margin-top: 22px;
+        }
+
+        .heroBigIcon {
+          display: grid;
+          place-items: center;
+          width: 88px;
+          height: 88px;
+          border-radius: 24px;
+          background: rgba(255,255,255,.045);
+          border: 1px solid rgba(255,255,255,.08);
+          font-size: 46px;
+          box-shadow: 0 0 32px rgba(83,248,202,.12);
+        }
+
+        .watchHero .heroBigIcon {
+          box-shadow: 0 0 32px rgba(168,118,255,.14);
+        }
+
+        .heroCopy small {
+          color: rgba(255,255,255,.34);
+          font-size: 10px;
           font-weight: 1000;
           letter-spacing: .16em;
         }
 
-        .signatureHeading h2 {
-          margin: 4px 0 0;
-          font-size: 22px;
-          letter-spacing: -.045em;
+        .heroCopy h3 {
+          margin: 6px 0 8px;
+          font-size: clamp(34px, 7vw, 48px);
+          line-height: .88;
+          letter-spacing: -.07em;
         }
 
-        .signatureHeading > span {
-          color: rgba(255,255,255,.35);
-          font-size: 7px;
-          font-weight: 950;
-          letter-spacing: .12em;
+        .heroCopy p {
+          max-width: 360px;
+          margin: 0;
+          color: rgba(255,255,255,.56);
+          font-size: 14px;
+          line-height: 1.45;
         }
 
-        .signatureFeatureGrid {
-          display: grid;
-          grid-template-columns:
-            repeat(2,minmax(0,1fr));
-          gap: 10px;
-        }
-
-        .signatureCard {
-          position: relative;
-          min-height: 245px;
-          overflow: hidden;
-          padding: 16px;
-          color: white;
-          border: 1px solid
-            rgba(255,255,255,.09);
-          border-radius: 23px;
-          text-decoration: none;
-          isolation: isolate;
-          box-shadow:
-            0 18px 50px
-            rgba(0,0,0,.24);
-        }
-
-        .worldSignature {
-          background:
-            radial-gradient(
-              circle at 22% 12%,
-              rgba(82,247,200,.25),
-              transparent 36%
-            ),
-            radial-gradient(
-              circle at 100% 100%,
-              rgba(49,215,255,.12),
-              transparent 45%
-            ),
-            #07100f;
-        }
-
-        .watchSignature {
-          background:
-            radial-gradient(
-              circle at 20% 10%,
-              rgba(155,124,255,.26),
-              transparent 37%
-            ),
-            radial-gradient(
-              circle at 100% 100%,
-              rgba(255,70,181,.11),
-              transparent 45%
-            ),
-            #0b0812;
-        }
-
-        .signatureGlow {
-          position: absolute;
-          width: 150px;
-          height: 150px;
-          right: -55px;
-          bottom: -65px;
-          z-index: -1;
-          border-radius: 50%;
-          background:
-            rgba(82,247,200,.11);
-          filter: blur(5px);
-          animation:
-            signatureGlow 3.2s
-            ease-in-out infinite alternate;
-        }
-
-        .watchSignature .signatureGlow {
-          background:
-            rgba(155,124,255,.16);
-        }
-
-        .signatureTop {
+        .heroBottomRow {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
+          gap: 12px;
+          margin-top: 20px;
+          flex-wrap: wrap;
         }
 
-        .signatureTop > b {
-          width: 31px;
-          height: 31px;
-          display: grid;
-          place-items: center;
-          border: 1px solid
-            rgba(255,255,255,.10);
-          border-radius: 50%;
-          background:
-            rgba(255,255,255,.05);
-          font-size: 11px;
-        }
-
-        .signatureBadge {
+        .heroPrimaryBtn {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          color:
-            rgba(255,255,255,.68);
-          font-size: 7px;
-          font-weight: 1000;
-          letter-spacing: .13em;
-        }
-
-        .signatureBadge i {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #52f7c8;
-          box-shadow:
-            0 0 11px #52f7c8;
-          animation:
-            signaturePulse 1.4s infinite;
-        }
-
-        .signatureIcon {
-          margin-top: 23px;
-          font-size: 35px;
-          filter:
-            drop-shadow(
-              0 0 14px
-              rgba(82,247,200,.28)
-            );
-        }
-
-        .watchSignature .signatureIcon {
-          filter:
-            drop-shadow(
-              0 0 14px
-              rgba(155,124,255,.38)
-            );
-        }
-
-        .signatureCopy {
-          position: relative;
-          z-index: 3;
-          margin-top: 12px;
-        }
-
-        .signatureCopy > small {
-          color:
-            rgba(255,255,255,.34);
-          font-size: 7px;
-          font-weight: 950;
-          letter-spacing: .14em;
-        }
-
-        .signatureCopy h2 {
-          margin: 3px 0 6px;
-          font-size: 24px;
-          line-height: 1;
-          letter-spacing: -.05em;
-        }
-
-        .signatureCopy p {
+          justify-content: center;
           min-height: 48px;
-          margin: 0;
-          color:
-            rgba(255,255,255,.49);
-          font-size: 9px;
-          line-height: 1.48;
+          padding: 0 18px;
+          border-radius: 999px;
+          background: linear-gradient(100deg, #53f8ca, #6cdaf0 52%, #9b7cff);
+          color: #04120d;
+          font-size: 14px;
+          font-weight: 1000;
+          box-shadow: 0 14px 30px rgba(92,120,255,.18);
         }
 
-        .signatureCopy strong {
-          display: block;
-          margin-top: 13px;
-          color: #70f9cf;
-          font-size: 9px;
+        .heroMetaText {
+          color: rgba(255,255,255,.38);
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: .06em;
         }
 
-        .watchSignature
-        .signatureCopy strong {
-          color: #b7a5ff;
-        }
-
-        .worldRadar {
+        .worldPulse {
           position: absolute;
-          right: 13px;
-          bottom: 13px;
-          width: 58px;
-          height: 58px;
-          opacity: .36;
-          border: 1px solid
-            rgba(82,247,200,.35);
           border-radius: 50%;
+          border: 1px solid rgba(83,248,202,.25);
+          opacity: .45;
+          animation: worldRing 2.8s infinite;
         }
 
-        .worldRadar::before,
-        .worldRadar::after {
-          content: "";
-          position: absolute;
-          inset: 9px;
-          border: 1px solid
-            rgba(82,247,200,.25);
-          border-radius: 50%;
+        .worldPulseA {
+          width: 50px;
+          height: 50px;
+          right: 30px;
+          bottom: 32px;
         }
 
-        .worldRadar::after {
-          inset: 20px;
+        .worldPulseB {
+          width: 74px;
+          height: 74px;
+          right: 18px;
+          bottom: 20px;
+          animation-delay: .55s;
         }
 
-        .worldRadar i {
-          position: absolute;
-          width: 5px;
-          height: 5px;
-          border-radius: 50%;
-          background: #52f7c8;
-          box-shadow:
-            0 0 9px #52f7c8;
-          animation:
-            radarPop 2s infinite;
-        }
-
-        .worldRadar i:nth-child(1) {
-          top: 12px;
-          left: 27px;
-        }
-
-        .worldRadar i:nth-child(2) {
-          right: 9px;
-          bottom: 18px;
-          animation-delay: .6s;
-        }
-
-        .worldRadar i:nth-child(3) {
-          left: 9px;
-          bottom: 11px;
+        .worldPulseC {
+          width: 102px;
+          height: 102px;
+          right: 4px;
+          bottom: 6px;
           animation-delay: 1.1s;
         }
 
         .watchBars {
           position: absolute;
-          right: 15px;
-          bottom: 14px;
+          right: 20px;
+          bottom: 24px;
           display: flex;
           align-items: end;
-          gap: 3px;
-          opacity: .36;
+          gap: 4px;
+          opacity: .48;
         }
 
         .watchBars i {
-          width: 4px;
-          height: 14px;
+          display: block;
+          width: 6px;
           border-radius: 999px;
-          background: #9b7cff;
-          animation:
-            watchBounce .8s
-            ease-in-out infinite alternate;
+          background: linear-gradient(180deg, #a876ff, #53f8ca);
+          animation: watchBarsMove .85s ease-in-out infinite alternate;
         }
 
-        .watchBars i:nth-child(2) {
-          height: 25px;
-          animation-delay: .15s;
-        }
+        .watchBars i:nth-child(1) { height: 18px; }
+        .watchBars i:nth-child(2) { height: 34px; animation-delay: .12s; }
+        .watchBars i:nth-child(3) { height: 24px; animation-delay: .24s; }
+        .watchBars i:nth-child(4) { height: 40px; animation-delay: .36s; }
+        .watchBars i:nth-child(5) { height: 20px; animation-delay: .48s; }
 
-        .watchBars i:nth-child(3) {
-          height: 18px;
-          animation-delay: .3s;
-        }
-
-        .watchBars i:nth-child(4) {
-          height: 30px;
-          animation-delay: .45s;
-        }
-
-        .signatureQuickMoves {
+        .discoverHotRow {
           display: grid;
-          grid-template-columns:
-            repeat(4,minmax(0,1fr));
-          gap: 6px;
-          margin-top: 8px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 12px;
         }
 
-        .signatureQuickMoves a {
-          min-width: 0;
-          padding: 9px 4px;
-          overflow: hidden;
-          color:
-            rgba(255,255,255,.68);
-          border: 1px solid
-            rgba(255,255,255,.06);
-          border-radius: 12px;
+        .hotMoveCard {
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          min-height: 76px;
+          padding: 14px;
+          border: 1px solid rgba(255,255,255,.07);
+          border-radius: 20px;
           background:
-            rgba(255,255,255,.025);
-          text-align: center;
+            linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+          color: white;
           text-decoration: none;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 7px;
-          font-weight: 900;
+          box-shadow: 0 12px 30px rgba(0,0,0,.16);
         }
 
-        @keyframes signaturePulse {
+        .hotMoveCard span {
+          display: grid;
+          place-items: center;
+          width: 42px;
+          height: 42px;
+          flex: 0 0 42px;
+          border-radius: 14px;
+          background: rgba(255,255,255,.05);
+          font-size: 22px;
+        }
+
+        .hotMoveCard strong {
+          display: block;
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .hotMoveCard small {
+          display: block;
+          margin-top: 5px;
+          color: rgba(255,255,255,.45);
+          font-size: 11px;
+          line-height: 1.3;
+        }
+
+        @keyframes heroDotPulse {
           50% {
-            opacity: .34;
-            transform: scale(.65);
+            opacity: .35;
+            transform: scale(.7);
           }
         }
 
-        @keyframes signatureGlow {
+        @keyframes heroGlowFloat {
           to {
-            transform:
-              translate(-15px,-10px)
-              scale(1.15);
+            transform: translate(-16px, -10px) scale(1.08);
           }
         }
 
-        @keyframes radarPop {
+        @keyframes worldRing {
           50% {
-            opacity: .25;
-            transform: scale(.55);
+            opacity: .18;
+            transform: scale(.8);
           }
         }
 
-        @keyframes watchBounce {
+        @keyframes watchBarsMove {
           to {
             transform: scaleY(.45);
             opacity: .45;
           }
         }
 
-        @media(max-width: 390px) {
-          .signatureFeatureGrid {
-            gap: 7px;
+        @media(max-width: 560px) {
+          .signatureLead {
+            display: block;
           }
 
-          .signatureCard {
-            min-height: 230px;
-            padding: 13px;
+          .signatureMiniLabel {
+            display: inline-block;
+            margin-top: 10px;
           }
 
-          .signatureCopy h2 {
-            font-size: 21px;
+          .heroContent {
+            grid-template-columns: 76px 1fr;
+            gap: 12px;
+          }
+
+          .heroBigIcon {
+            width: 76px;
+            height: 76px;
+            font-size: 40px;
+          }
+
+          .discoverHotRow {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+
+        @media(max-width: 420px) {
+          .heroFlyer {
+            min-height: 235px;
+            padding: 14px;
+            border-radius: 24px;
+          }
+
+          .heroCopy h3 {
+            font-size: 30px;
+          }
+
+          .heroCopy p {
+            font-size: 13px;
+          }
+
+          .hotMoveCard {
+            min-height: 72px;
+            padding: 12px;
+          }
+
+          .hotMoveCard strong {
+            font-size: 14px;
+          }
+
+          .hotMoveCard small {
+            font-size: 10px;
           }
         }
 
