@@ -387,6 +387,134 @@ export default function DiscoverPage() {
           </div>
         </section>
 
+        <section className="signatureSection">
+          <div className="signatureHeading">
+            <div>
+              <small>ONLY ON UTV</small>
+
+              <h2>
+                Enter the UTV universe
+              </h2>
+            </div>
+
+            <span>
+              ✨ PICK YOUR MOVE
+            </span>
+          </div>
+
+          <div className="signatureFeatureGrid">
+            <Link
+              href="/world"
+              className="signatureCard worldSignature"
+            >
+              <div className="signatureGlow" />
+
+              <div className="signatureTop">
+                <span className="signatureBadge">
+                  <i />
+                  LIVE WORLD
+                </span>
+
+                <b>↗</b>
+              </div>
+
+              <div className="signatureIcon">
+                🌎
+              </div>
+
+              <div className="signatureCopy">
+                <small>
+                  UTV SIGNATURE
+                </small>
+
+                <h2>
+                  UTV World
+                </h2>
+
+                <p>
+                  See Lives, events, casting,
+                  creators and people looking
+                  to build around you.
+                </p>
+
+                <strong>
+                  Explore the World →
+                </strong>
+              </div>
+
+              <div className="worldRadar">
+                <i />
+                <i />
+                <i />
+              </div>
+            </Link>
+
+            <Link
+              href="/watch"
+              className="signatureCard watchSignature"
+            >
+              <div className="signatureGlow" />
+
+              <div className="signatureTop">
+                <span className="signatureBadge">
+                  ▶ STREAM UTV
+                </span>
+
+                <b>↗</b>
+              </div>
+
+              <div className="signatureIcon">
+                ▶️
+              </div>
+
+              <div className="signatureCopy">
+                <small>
+                  WATCH SOMETHING
+                </small>
+
+                <h2>
+                  Watch
+                </h2>
+
+                <p>
+                  Shows, movies, originals,
+                  performances and creator
+                  entertainment.
+                </p>
+
+                <strong>
+                  Start watching →
+                </strong>
+              </div>
+
+              <div className="watchBars">
+                <i />
+                <i />
+                <i />
+                <i />
+              </div>
+            </Link>
+          </div>
+
+          <div className="signatureQuickMoves">
+            <Link href="/live">
+              🔴 Who&apos;s Live
+            </Link>
+
+            <Link href="/events">
+              🎉 Events
+            </Link>
+
+            <Link href="/casting">
+              🎭 Casting
+            </Link>
+
+            <Link href="/collabs/new">
+              🤝 Build
+            </Link>
+          </div>
+        </section>
+
         {creatorRail.length > 0 && (
           <section className="creatorSection">
             <div className="sectionHeading">
@@ -935,6 +1063,375 @@ export default function DiscoverPage() {
           font-size: 8px;
           white-space: nowrap;
           scrollbar-width: none;
+        }
+
+        .signatureSection {
+          margin-top: 22px;
+        }
+
+        .signatureHeading {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 11px;
+        }
+
+        .signatureHeading small {
+          color: #52f7c8;
+          font-size: 8px;
+          font-weight: 1000;
+          letter-spacing: .16em;
+        }
+
+        .signatureHeading h2 {
+          margin: 4px 0 0;
+          font-size: 22px;
+          letter-spacing: -.045em;
+        }
+
+        .signatureHeading > span {
+          color: rgba(255,255,255,.35);
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: .12em;
+        }
+
+        .signatureFeatureGrid {
+          display: grid;
+          grid-template-columns:
+            repeat(2,minmax(0,1fr));
+          gap: 10px;
+        }
+
+        .signatureCard {
+          position: relative;
+          min-height: 245px;
+          overflow: hidden;
+          padding: 16px;
+          color: white;
+          border: 1px solid
+            rgba(255,255,255,.09);
+          border-radius: 23px;
+          text-decoration: none;
+          isolation: isolate;
+          box-shadow:
+            0 18px 50px
+            rgba(0,0,0,.24);
+        }
+
+        .worldSignature {
+          background:
+            radial-gradient(
+              circle at 22% 12%,
+              rgba(82,247,200,.25),
+              transparent 36%
+            ),
+            radial-gradient(
+              circle at 100% 100%,
+              rgba(49,215,255,.12),
+              transparent 45%
+            ),
+            #07100f;
+        }
+
+        .watchSignature {
+          background:
+            radial-gradient(
+              circle at 20% 10%,
+              rgba(155,124,255,.26),
+              transparent 37%
+            ),
+            radial-gradient(
+              circle at 100% 100%,
+              rgba(255,70,181,.11),
+              transparent 45%
+            ),
+            #0b0812;
+        }
+
+        .signatureGlow {
+          position: absolute;
+          width: 150px;
+          height: 150px;
+          right: -55px;
+          bottom: -65px;
+          z-index: -1;
+          border-radius: 50%;
+          background:
+            rgba(82,247,200,.11);
+          filter: blur(5px);
+          animation:
+            signatureGlow 3.2s
+            ease-in-out infinite alternate;
+        }
+
+        .watchSignature .signatureGlow {
+          background:
+            rgba(155,124,255,.16);
+        }
+
+        .signatureTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .signatureTop > b {
+          width: 31px;
+          height: 31px;
+          display: grid;
+          place-items: center;
+          border: 1px solid
+            rgba(255,255,255,.10);
+          border-radius: 50%;
+          background:
+            rgba(255,255,255,.05);
+          font-size: 11px;
+        }
+
+        .signatureBadge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color:
+            rgba(255,255,255,.68);
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .13em;
+        }
+
+        .signatureBadge i {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow:
+            0 0 11px #52f7c8;
+          animation:
+            signaturePulse 1.4s infinite;
+        }
+
+        .signatureIcon {
+          margin-top: 23px;
+          font-size: 35px;
+          filter:
+            drop-shadow(
+              0 0 14px
+              rgba(82,247,200,.28)
+            );
+        }
+
+        .watchSignature .signatureIcon {
+          filter:
+            drop-shadow(
+              0 0 14px
+              rgba(155,124,255,.38)
+            );
+        }
+
+        .signatureCopy {
+          position: relative;
+          z-index: 3;
+          margin-top: 12px;
+        }
+
+        .signatureCopy > small {
+          color:
+            rgba(255,255,255,.34);
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: .14em;
+        }
+
+        .signatureCopy h2 {
+          margin: 3px 0 6px;
+          font-size: 24px;
+          line-height: 1;
+          letter-spacing: -.05em;
+        }
+
+        .signatureCopy p {
+          min-height: 48px;
+          margin: 0;
+          color:
+            rgba(255,255,255,.49);
+          font-size: 9px;
+          line-height: 1.48;
+        }
+
+        .signatureCopy strong {
+          display: block;
+          margin-top: 13px;
+          color: #70f9cf;
+          font-size: 9px;
+        }
+
+        .watchSignature
+        .signatureCopy strong {
+          color: #b7a5ff;
+        }
+
+        .worldRadar {
+          position: absolute;
+          right: 13px;
+          bottom: 13px;
+          width: 58px;
+          height: 58px;
+          opacity: .36;
+          border: 1px solid
+            rgba(82,247,200,.35);
+          border-radius: 50%;
+        }
+
+        .worldRadar::before,
+        .worldRadar::after {
+          content: "";
+          position: absolute;
+          inset: 9px;
+          border: 1px solid
+            rgba(82,247,200,.25);
+          border-radius: 50%;
+        }
+
+        .worldRadar::after {
+          inset: 20px;
+        }
+
+        .worldRadar i {
+          position: absolute;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #52f7c8;
+          box-shadow:
+            0 0 9px #52f7c8;
+          animation:
+            radarPop 2s infinite;
+        }
+
+        .worldRadar i:nth-child(1) {
+          top: 12px;
+          left: 27px;
+        }
+
+        .worldRadar i:nth-child(2) {
+          right: 9px;
+          bottom: 18px;
+          animation-delay: .6s;
+        }
+
+        .worldRadar i:nth-child(3) {
+          left: 9px;
+          bottom: 11px;
+          animation-delay: 1.1s;
+        }
+
+        .watchBars {
+          position: absolute;
+          right: 15px;
+          bottom: 14px;
+          display: flex;
+          align-items: end;
+          gap: 3px;
+          opacity: .36;
+        }
+
+        .watchBars i {
+          width: 4px;
+          height: 14px;
+          border-radius: 999px;
+          background: #9b7cff;
+          animation:
+            watchBounce .8s
+            ease-in-out infinite alternate;
+        }
+
+        .watchBars i:nth-child(2) {
+          height: 25px;
+          animation-delay: .15s;
+        }
+
+        .watchBars i:nth-child(3) {
+          height: 18px;
+          animation-delay: .3s;
+        }
+
+        .watchBars i:nth-child(4) {
+          height: 30px;
+          animation-delay: .45s;
+        }
+
+        .signatureQuickMoves {
+          display: grid;
+          grid-template-columns:
+            repeat(4,minmax(0,1fr));
+          gap: 6px;
+          margin-top: 8px;
+        }
+
+        .signatureQuickMoves a {
+          min-width: 0;
+          padding: 9px 4px;
+          overflow: hidden;
+          color:
+            rgba(255,255,255,.68);
+          border: 1px solid
+            rgba(255,255,255,.06);
+          border-radius: 12px;
+          background:
+            rgba(255,255,255,.025);
+          text-align: center;
+          text-decoration: none;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 7px;
+          font-weight: 900;
+        }
+
+        @keyframes signaturePulse {
+          50% {
+            opacity: .34;
+            transform: scale(.65);
+          }
+        }
+
+        @keyframes signatureGlow {
+          to {
+            transform:
+              translate(-15px,-10px)
+              scale(1.15);
+          }
+        }
+
+        @keyframes radarPop {
+          50% {
+            opacity: .25;
+            transform: scale(.55);
+          }
+        }
+
+        @keyframes watchBounce {
+          to {
+            transform: scaleY(.45);
+            opacity: .45;
+          }
+        }
+
+        @media(max-width: 390px) {
+          .signatureFeatureGrid {
+            gap: 7px;
+          }
+
+          .signatureCard {
+            min-height: 230px;
+            padding: 13px;
+          }
+
+          .signatureCopy h2 {
+            font-size: 21px;
+          }
         }
 
         .creatorSection,
