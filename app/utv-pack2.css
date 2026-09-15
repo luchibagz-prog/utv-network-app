@@ -545,3 +545,52 @@ main[data-utv-page="support"] button {
 
 
 /* UTV VISUAL PACK #2 END */
+
+
+/* =========================================
+   UTV FEED + LIVE TRUTH HOTFIX V1
+========================================= */
+
+/*
+ * Kill the original Feed top chrome.
+ * The new UTV Feed header is now the
+ * only Feed brand/header.
+ */
+
+main[data-utv-skin="feed"]
+> header:not(.utvFeedPremiumHeader) {
+  display:
+    none !important;
+}
+
+
+[data-utv-legacy-feed-top="true"] {
+  display:
+    none !important;
+}
+
+
+/*
+ * Never display a session card after
+ * LiveKit says its host is gone.
+ */
+
+[data-utv-stale-live="true"] {
+  display:
+    none !important;
+}
+
+
+/*
+ * Discover / Live pages should not leave
+ * an empty "Live Now" shelf when nobody
+ * is actually broadcasting.
+ */
+
+section[data-utv-empty-live="true"] {
+  display:
+    none !important;
+}
+
+
+/* UTV FEED + LIVE TRUTH HOTFIX V1 END */
