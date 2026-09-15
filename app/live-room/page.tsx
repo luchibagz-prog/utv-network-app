@@ -1753,7 +1753,7 @@ export default function LiveRoomPage() {
                 className="shareLive"
                 onClick={async () => {
                   const url =
-                    `${window.location.origin}/live/${liveSessionId}`;
+                    `${window.location.origin}/watch-live/${liveSessionId}`;
                   if (navigator.share) {
                     await navigator.share({
                       title,
