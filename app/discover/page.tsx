@@ -3191,6 +3191,1601 @@ export default function DiscoverPage() {
           }
         }
       `}</style>
-    </main>
+    
+      {/* DISCOVER V3.1 GLOBAL POLISH START */}
+      <style jsx global>{`
+        /*
+         * UTV DISCOVER V3.1
+         * Global override layer.
+         *
+         * This intentionally fixes styling on Next <Link>
+         * elements and child Media components without
+         * rebuilding the working Discover logic.
+         */
+
+        /* =========================
+           PAGE / SHELL
+        ========================= */
+
+        .discoverPage {
+          overflow-x: hidden;
+          background:
+            radial-gradient(
+              circle at 10% -4%,
+              rgba(53, 255, 217, 0.07),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 100% 19%,
+              rgba(123, 79, 255, 0.09),
+              transparent 26%
+            ),
+            #02040a;
+        }
+
+        .discoverPage .discoverShell {
+          width: min(100%, 760px);
+          margin: 0 auto;
+          padding:
+            max(13px, env(safe-area-inset-top))
+            12px
+            26px;
+        }
+
+
+        /* =========================
+           TOP UTV HEADER
+        ========================= */
+
+        .discoverPage .topBar {
+          position: relative;
+          z-index: 20;
+          width: 100%;
+          display: grid;
+          grid-template-columns:
+            auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .discoverPage .utvLogo {
+          display: block;
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 37px;
+          line-height: 0.9;
+          font-weight: 1000;
+          letter-spacing: -0.075em;
+        }
+
+        .discoverPage .topSearch {
+          min-width: 0;
+          height: 43px;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 14px;
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.1);
+
+          border-radius: 999px;
+
+          color:
+            rgba(255, 255, 255, 0.56);
+
+          background:
+            linear-gradient(
+              180deg,
+              rgba(22, 32, 46, 0.9),
+              rgba(10, 17, 27, 0.9)
+            );
+
+          box-shadow:
+            inset 0 1px 0
+              rgba(255, 255, 255, 0.03),
+            0 7px 25px
+              rgba(0, 0, 0, 0.22);
+
+          text-decoration: none;
+          backdrop-filter: blur(15px);
+          -webkit-backdrop-filter: blur(15px);
+        }
+
+        .discoverPage .topSearch svg {
+          width: 18px;
+          height: 18px;
+          flex: 0 0 auto;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+        }
+
+        .discoverPage .topSearch span {
+          min-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 12px;
+          font-weight: 750;
+        }
+
+        .discoverPage .bell {
+          width: 37px;
+          height: 37px;
+          display: grid;
+          place-items: center;
+          color: #fff;
+          text-decoration: none;
+        }
+
+        .discoverPage .bell svg {
+          width: 24px;
+          height: 24px;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.8;
+        }
+
+
+        /* =========================
+           CATEGORY PILLS
+        ========================= */
+
+        .discoverPage .categoryRail {
+          position: relative;
+          z-index: 19;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          width: 100%;
+          margin-top: 10px;
+          padding: 1px 0 3px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .discoverPage
+          .categoryRail::-webkit-scrollbar {
+          display: none;
+        }
+
+        .discoverPage .categoryChip {
+          flex: 0 0 auto;
+          min-width: auto;
+          display: grid;
+          place-items: center;
+
+          padding: 8px 14px;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.1);
+
+          border-radius: 999px;
+
+          color:
+            rgba(255, 255, 255, 0.7);
+
+          background:
+            rgba(255, 255, 255, 0.035);
+
+          text-decoration: none;
+          white-space: nowrap;
+
+          font-size: 10px;
+          line-height: 1;
+          font-weight: 850;
+        }
+
+        .discoverPage
+          .categoryChip.active {
+          color: #03130f;
+          border-color: #52f7c8;
+
+          background:
+            linear-gradient(
+              105deg,
+              #52f7c8,
+              #58e8ed
+            );
+
+          box-shadow:
+            0 0 20px
+            rgba(82, 247, 200, 0.22);
+        }
+
+
+        /* =========================
+           WATCH FEATURE
+        ========================= */
+
+        .discoverPage .watchHero {
+          position: relative;
+          z-index: 5;
+          width: 100%;
+          margin-top: 9px;
+        }
+
+        .discoverPage .watchMedia {
+          position: relative;
+          width: 100%;
+          height: clamp(
+            158px,
+            43vw,
+            205px
+          );
+
+          display: block;
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.15);
+
+          border-radius: 18px;
+
+          color: #fff;
+          background: #080c13;
+          text-decoration: none;
+
+          isolation: isolate;
+
+          box-shadow:
+            0 16px 40px
+              rgba(0, 0, 0, 0.32),
+            inset 0 0 0 1px
+              rgba(255, 255, 255, 0.02);
+        }
+
+        .discoverPage
+          .watchMedia
+          .mediaVisual,
+        .discoverPage
+          .watchMedia
+          .mediaFallback {
+          position: absolute !important;
+          inset: 0 !important;
+          z-index: 0 !important;
+
+          width: 100% !important;
+          height: 100% !important;
+
+          display: block;
+          object-fit: cover !important;
+          object-position: center 38%;
+        }
+
+        .discoverPage
+          .watchMedia
+          .mediaFallback {
+          display: grid;
+          place-items: center;
+        }
+
+        .discoverPage .watchShade {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+
+          background:
+            linear-gradient(
+              90deg,
+              rgba(1, 3, 9, 0.91) 0%,
+              rgba(1, 3, 9, 0.65) 34%,
+              rgba(1, 3, 9, 0.17) 72%,
+              rgba(1, 3, 9, 0.08) 100%
+            ),
+            linear-gradient(
+              0deg,
+              rgba(1, 3, 9, 0.73),
+              transparent 66%
+            );
+        }
+
+        .discoverPage .watchTop {
+          position: absolute;
+          z-index: 3;
+          top: 12px;
+          right: 13px;
+          left: 13px;
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .discoverPage .originalTag {
+          color:
+            rgba(255, 255, 255, 0.88);
+
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: 0.19em;
+        }
+
+        .discoverPage .newBadge {
+          padding: 5px 7px;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.14);
+
+          border-radius: 7px;
+
+          color: #fff;
+
+          background:
+            rgba(3, 7, 14, 0.7);
+
+          font-size: 7px;
+          font-weight: 900;
+
+          backdrop-filter: blur(10px);
+        }
+
+        .discoverPage .watchCopy {
+          position: absolute;
+          z-index: 3;
+
+          left: 14px;
+          bottom: 14px;
+
+          width: min(67%, 340px);
+        }
+
+        .discoverPage .watchCopy small {
+          display: block;
+          margin: 0 0 4px;
+
+          color: #55f2cf;
+
+          font-size: 7px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: 0.15em;
+        }
+
+        .discoverPage .watchCopy h1 {
+          display: -webkit-box;
+          overflow: hidden;
+
+          margin: 0;
+
+          color: white;
+
+          font-size: clamp(
+            22px,
+            6.3vw,
+            37px
+          );
+
+          line-height: 0.96;
+          font-weight: 1000;
+          letter-spacing: -0.055em;
+
+          text-shadow:
+            0 4px 18px
+            rgba(0, 0, 0, 0.85);
+
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .discoverPage .watchCopy p {
+          margin: 5px 0 9px;
+
+          color:
+            rgba(255, 255, 255, 0.68);
+
+          font-size: 8px;
+          font-weight: 750;
+        }
+
+        .discoverPage .watchButton {
+          width: max-content;
+          min-height: 34px;
+
+          display: flex;
+          align-items: center;
+          gap: 7px;
+
+          padding: 0 13px;
+
+          border-radius: 999px;
+
+          color: #03110e;
+
+          background:
+            linear-gradient(
+              105deg,
+              #52f7c8,
+              #58e6ef 55%,
+              #9369ff
+            );
+
+          box-shadow:
+            0 0 22px
+            rgba(82, 247, 200, 0.2);
+
+          font-size: 9px;
+          font-weight: 950;
+        }
+
+        .discoverPage .heroDots {
+          position: absolute;
+          z-index: 3;
+
+          right: 12px;
+          bottom: 10px;
+
+          display: flex;
+          gap: 4px;
+        }
+
+
+        /* =========================
+           UTV WORLD
+        ========================= */
+
+        .discoverPage .worldCard {
+          position: relative;
+          z-index: 4;
+
+          width: 100%;
+          height: clamp(
+            175px,
+            48vw,
+            215px
+          );
+
+          display: block;
+          overflow: hidden;
+
+          margin-top: 10px;
+
+          border:
+            1px solid
+            rgba(82, 247, 200, 0.4);
+
+          border-radius: 18px;
+
+          color: #fff;
+
+          background:
+            radial-gradient(
+              circle at 82% 57%,
+              rgba(44, 150, 255, 0.2),
+              transparent 32%
+            ),
+            radial-gradient(
+              circle at 67% 25%,
+              rgba(82, 247, 200, 0.12),
+              transparent 24%
+            ),
+            radial-gradient(
+              circle at 97% 18%,
+              rgba(139, 75, 255, 0.18),
+              transparent 31%
+            ),
+            linear-gradient(
+              135deg,
+              #021118,
+              #050a18 52%,
+              #09051a
+            );
+
+          text-decoration: none;
+
+          isolation: isolate;
+
+          box-shadow:
+            0 17px 45px
+              rgba(0, 0, 0, 0.3),
+            inset 0 0 35px
+              rgba(41, 175, 255, 0.04);
+        }
+
+        .discoverPage
+          .worldCard::before {
+          content: "";
+
+          position: absolute;
+          z-index: 0;
+          inset: 0;
+
+          pointer-events: none;
+
+          background-image:
+            radial-gradient(
+              circle at 57% 22%,
+              rgba(82, 247, 200, 0.75)
+              0 1px,
+              transparent 2px
+            ),
+            radial-gradient(
+              circle at 69% 38%,
+              rgba(112, 97, 255, 0.85)
+              0 1px,
+              transparent 2px
+            ),
+            radial-gradient(
+              circle at 85% 28%,
+              rgba(82, 220, 255, 0.8)
+              0 1px,
+              transparent 2px
+            ),
+            radial-gradient(
+              circle at 92% 63%,
+              rgba(255, 74, 192, 0.7)
+              0 1px,
+              transparent 2px
+            );
+        }
+
+        .discoverPage .worldGlow {
+          position: absolute;
+          z-index: 0;
+
+          width: 270px;
+          height: 270px;
+
+          right: -34px;
+          bottom: -130px;
+
+          border-radius: 50%;
+
+          background:
+            radial-gradient(
+              circle,
+              rgba(82, 247, 200, 0.2),
+              rgba(62, 118, 255, 0.12) 35%,
+              transparent 68%
+            );
+
+          filter: blur(6px);
+        }
+
+        .discoverPage .worldSpace {
+          position: absolute;
+          z-index: 1;
+          inset: 0;
+
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        /*
+         * Make the globe BLUE/CYAN and visibly alive.
+         * No more giant black circle.
+         */
+
+        .discoverPage .worldGlobe {
+          position: absolute !important;
+          z-index: 1 !important;
+
+          width: 360px !important;
+          height: 235px !important;
+
+          right: -74px !important;
+          bottom: -102px !important;
+
+          overflow: visible;
+
+          border:
+            1px solid
+            rgba(94, 234, 255, 0.58);
+
+          border-radius: 50%;
+
+          background:
+            radial-gradient(
+              circle at 24% 40%,
+              #ffe36b 0 2px,
+              transparent 3px
+            ),
+            radial-gradient(
+              circle at 37% 28%,
+              #63ffe1 0 2px,
+              transparent 3px
+            ),
+            radial-gradient(
+              circle at 48% 51%,
+              #ffd35c 0 2px,
+              transparent 3px
+            ),
+            radial-gradient(
+              circle at 61% 35%,
+              #59d9ff 0 2px,
+              transparent 3px
+            ),
+            radial-gradient(
+              circle at 70% 58%,
+              #ffe46c 0 2px,
+              transparent 3px
+            ),
+            radial-gradient(
+              ellipse at 45% 42%,
+              #0a3d6d 0%,
+              #082b55 30%,
+              #061c3d 57%,
+              #031027 78%,
+              #020814 100%
+            ) !important;
+
+          box-shadow:
+            inset 0 0 55px
+              rgba(78, 217, 255, 0.25),
+            inset 0 0 100px
+              rgba(68, 92, 255, 0.12),
+            0 -7px 34px
+              rgba(82, 247, 200, 0.18),
+            0 0 55px
+              rgba(47, 135, 255, 0.13);
+
+          transform:
+            perspective(700px)
+            rotateX(50deg)
+            rotateZ(-4deg);
+
+          filter:
+            saturate(1.35)
+            brightness(1.12);
+
+          animation:
+            utvV31Globe
+            6s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage
+          .worldGlobe::before {
+          content: "";
+
+          position: absolute;
+          inset: 6%;
+
+          border-radius: 50%;
+
+          border:
+            1px solid
+            rgba(88, 222, 255, 0.2);
+
+          background:
+            repeating-radial-gradient(
+              ellipse at center,
+              transparent 0 17px,
+              rgba(76, 211, 255, 0.12)
+              18px 19px
+            ),
+            repeating-linear-gradient(
+              18deg,
+              transparent 0 30px,
+              rgba(116, 104, 255, 0.09)
+              31px 32px
+            );
+
+          mix-blend-mode: screen;
+        }
+
+        .discoverPage
+          .worldGlobe::after {
+          content: "";
+
+          position: absolute;
+          inset: -7px;
+
+          border-radius: 50%;
+
+          border:
+            1px solid
+            rgba(82, 247, 200, 0.14);
+
+          box-shadow:
+            0 0 32px
+            rgba(82, 247, 200, 0.13);
+        }
+
+        .discoverPage .globeLine {
+          z-index: 2;
+        }
+
+        .discoverPage .cityLight {
+          z-index: 4;
+        }
+
+        .discoverPage .worldPin {
+          z-index: 7 !important;
+        }
+
+        .discoverPage .worldCopy {
+          position: absolute;
+          z-index: 12;
+
+          top: 22px;
+          left: 14px;
+
+          width: 54%;
+        }
+
+        .discoverPage .worldCopy small {
+          display: block;
+
+          color: #5df4da;
+
+          font-size: 7px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: 0.17em;
+        }
+
+        .discoverPage .worldCopy h2 {
+          margin: 6px 0 3px;
+
+          color: #fff;
+
+          font-size: clamp(
+            26px,
+            7.6vw,
+            40px
+          );
+
+          line-height: 0.93;
+          font-weight: 1000;
+          letter-spacing: -0.06em;
+
+          text-shadow:
+            0 4px 18px
+            rgba(0, 0, 0, 0.65);
+        }
+
+        .discoverPage .worldCopy p {
+          margin: 7px 0 11px;
+
+          color:
+            rgba(255, 255, 255, 0.7);
+
+          font-size: 9px;
+          font-weight: 700;
+        }
+
+        .discoverPage .worldButton {
+          width: max-content;
+          min-width: 126px;
+          height: 38px;
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
+
+          padding: 0 13px;
+
+          border-radius: 999px;
+
+          color: #03120e;
+
+          background:
+            linear-gradient(
+              105deg,
+              #52f7c8,
+              #59e7ef 54%,
+              #9468ff
+            );
+
+          box-shadow:
+            0 0 22px
+            rgba(82, 247, 200, 0.22);
+
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .discoverPage .worldStats {
+          position: absolute;
+          z-index: 15;
+
+          top: 10px;
+          right: 10px;
+
+          display: flex;
+          gap: 6px;
+
+          padding: 6px 8px;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.11);
+
+          border-radius: 999px;
+
+          background:
+            rgba(2, 7, 15, 0.72);
+
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .discoverPage .worldStats span {
+          display: flex;
+          align-items: center;
+          gap: 3px;
+
+          color:
+            rgba(255, 255, 255, 0.75);
+
+          white-space: nowrap;
+
+          font-size: 6px;
+          font-weight: 850;
+        }
+
+        .discoverPage .worldLocation {
+          position: absolute;
+          z-index: 14;
+
+          right: 10px;
+          bottom: 10px;
+
+          padding: 6px 9px;
+
+          border:
+            1px solid
+            rgba(82, 247, 200, 0.28);
+
+          border-radius: 999px;
+
+          color:
+            rgba(255, 255, 255, 0.88);
+
+          background:
+            rgba(2, 8, 16, 0.76);
+
+          font-size: 7px;
+          font-weight: 850;
+
+          backdrop-filter: blur(10px);
+        }
+
+
+        /* =========================
+           LIVE / EVENTS / CAST / BUILD
+        ========================= */
+
+        .discoverPage .quickGrid {
+          position: relative;
+          z-index: 6;
+
+          width: 100%;
+
+          display: grid;
+          grid-template-columns:
+            repeat(4, minmax(0, 1fr));
+
+          gap: 6px;
+          margin-top: 9px;
+        }
+
+        .discoverPage .quickVisual {
+          position: relative;
+
+          width: 100%;
+          min-width: 0;
+          height: 118px;
+
+          display: block;
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.13);
+
+          border-radius: 14px;
+
+          color: #fff;
+          background: #090d14;
+
+          text-decoration: none;
+
+          isolation: isolate;
+        }
+
+        .discoverPage
+          .quickVisual
+          > .mediaVisual,
+        .discoverPage
+          .quickVisual
+          > .mediaFallback {
+          position: absolute !important;
+          z-index: 0 !important;
+
+          inset: 0 !important;
+
+          width: 100% !important;
+          height: 100% !important;
+
+          object-fit: cover !important;
+        }
+
+        .discoverPage .quickTint {
+          position: absolute;
+          z-index: 1;
+          inset: 0;
+
+          background:
+            linear-gradient(
+              0deg,
+              rgba(2, 3, 8, 0.95),
+              rgba(2, 3, 8, 0.18) 70%,
+              transparent
+            );
+        }
+
+        .discoverPage .quickBadge {
+          z-index: 3;
+        }
+
+        .discoverPage .quickBottom {
+          position: absolute;
+          z-index: 3;
+
+          right: 7px;
+          bottom: 8px;
+          left: 7px;
+
+          display: flex;
+          align-items: center;
+
+          min-width: 0;
+        }
+
+        .discoverPage
+          .quickBottom strong {
+          min-width: 0;
+          flex: 1;
+
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          font-size: 9px;
+          line-height: 1;
+          font-weight: 950;
+        }
+
+        .discoverPage .quickIcon {
+          margin-right: 4px;
+          font-size: 14px;
+        }
+
+        .discoverPage .quickArrow {
+          margin-left: 2px;
+          font-size: 17px;
+        }
+
+
+        /* =========================
+           SECTION TITLES
+        ========================= */
+
+        .discoverPage .sectionBlock {
+          position: relative;
+          z-index: 5;
+
+          width: 100%;
+          margin-top: 18px;
+        }
+
+        .discoverPage .sectionHeading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+
+          margin-bottom: 9px;
+        }
+
+        .discoverPage
+          .sectionHeading h2,
+        .discoverPage
+          .movingHeader h2 {
+          margin: 0;
+
+          color: #fff;
+
+          font-size: 17px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: -0.035em;
+        }
+
+        .discoverPage
+          .sectionHeading > a {
+          flex: 0 0 auto;
+
+          color:
+            rgba(255, 255, 255, 0.58);
+
+          text-decoration: none;
+
+          font-size: 9px;
+          font-weight: 750;
+        }
+
+
+        /* =========================
+           TRENDING NEAR YOU
+        ========================= */
+
+        .discoverPage .trendRail {
+          width: 100%;
+
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: 31%;
+
+          gap: 7px;
+
+          overflow-x: auto;
+
+          padding: 0 0 3px;
+
+          scrollbar-width: none;
+          scroll-snap-type: x proximity;
+        }
+
+        .discoverPage .trendCard {
+          position: relative;
+
+          width: 100%;
+          height: 180px;
+
+          display: block;
+          overflow: hidden;
+
+          border-radius: 13px;
+
+          color: #fff;
+          background: #0a0e16;
+
+          text-decoration: none;
+
+          isolation: isolate;
+          scroll-snap-align: start;
+        }
+
+        .discoverPage
+          .trendCard
+          .mediaVisual,
+        .discoverPage
+          .trendCard
+          .mediaFallback {
+          position: absolute !important;
+          z-index: 0 !important;
+          inset: 0 !important;
+
+          width: 100% !important;
+          height: 100% !important;
+
+          object-fit: cover !important;
+        }
+
+        .discoverPage .trendShade {
+          position: absolute;
+          z-index: 1;
+          inset: 32% 0 0;
+
+          background:
+            linear-gradient(
+              transparent,
+              rgba(0, 0, 0, 0.91)
+            );
+        }
+
+        .discoverPage .miniPlay {
+          z-index: 3;
+        }
+
+        .discoverPage .trendCopy {
+          position: absolute;
+          z-index: 3;
+
+          right: 8px;
+          bottom: 8px;
+          left: 8px;
+
+          min-width: 0;
+        }
+
+        .discoverPage .trendCopy small {
+          display: block;
+          margin-bottom: 2px;
+
+          color:
+            rgba(255, 255, 255, 0.78);
+
+          font-size: 7px;
+          font-weight: 800;
+        }
+
+        .discoverPage .trendCopy strong {
+          display: -webkit-box;
+          overflow: hidden;
+
+          color: #fff;
+
+          font-size: 9px;
+          line-height: 1.15;
+          font-weight: 900;
+
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .discoverPage .trendCopy span {
+          display: block;
+          overflow: hidden;
+
+          margin-top: 3px;
+
+          color:
+            rgba(255, 255, 255, 0.52);
+
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          font-size: 6px;
+        }
+
+
+        /* =========================
+           CREATORS MOVING
+        ========================= */
+
+        .discoverPage .creatorsBlock {
+          margin-top: 17px;
+        }
+
+        .discoverPage .creatorRail {
+          width: 100%;
+
+          display: flex;
+          align-items: flex-start;
+
+          gap: 9px;
+
+          overflow-x: auto;
+
+          padding: 1px 0 3px;
+
+          scrollbar-width: none;
+        }
+
+        .discoverPage .creatorBubble {
+          width: 60px;
+          flex: 0 0 60px;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+
+          color: #fff;
+
+          text-decoration: none;
+          text-align: center;
+        }
+
+        .discoverPage .creatorRing {
+          position: relative;
+
+          width: 52px;
+          height: 52px;
+
+          display: grid;
+          place-items: center;
+
+          padding: 2px;
+
+          border-radius: 50%;
+
+          background:
+            linear-gradient(
+              145deg,
+              #52f7c8,
+              #5ad9ff,
+              #8d65ff,
+              #ff48bb
+            );
+        }
+
+        .discoverPage .creatorAvatar {
+          width: 100%;
+          height: 100%;
+
+          display: grid;
+          place-items: center;
+
+          overflow: hidden;
+
+          border:
+            3px solid #02040a;
+
+          border-radius: 50%;
+
+          color: #fff;
+          background: #111722;
+
+          font-size: 16px;
+          font-weight: 950;
+        }
+
+        .discoverPage
+          .creatorAvatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .discoverPage
+          .creatorBubble > strong {
+          width: 100%;
+
+          display: block;
+          overflow: hidden;
+
+          margin-top: 5px;
+
+          color: #fff;
+
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          font-size: 8px;
+          line-height: 1.15;
+          font-weight: 800;
+        }
+
+        .discoverPage .creatorLive {
+          font-size: 6px;
+        }
+
+        .discoverPage
+          .moreCreator
+          .creatorAvatar {
+          font-size: 23px;
+          font-weight: 400;
+        }
+
+
+        /* =========================
+           WHAT'S MOVING
+        ========================= */
+
+        .discoverPage .movingBlock {
+          margin-top: 18px;
+        }
+
+        .discoverPage .movingHeader {
+          width: 100%;
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          gap: 9px;
+
+          margin-bottom: 9px;
+        }
+
+        .discoverPage .movingFilters {
+          min-width: 0;
+
+          display: flex;
+          align-items: center;
+
+          gap: 4px;
+
+          overflow-x: auto;
+
+          scrollbar-width: none;
+        }
+
+        .discoverPage
+          .movingFilters a,
+        .discoverPage
+          .movingFilters span {
+          flex: 0 0 auto;
+
+          padding: 5px 8px;
+
+          border:
+            1px solid
+            rgba(255, 255, 255, 0.08);
+
+          border-radius: 999px;
+
+          color:
+            rgba(255, 255, 255, 0.64);
+
+          background:
+            rgba(255, 255, 255, 0.025);
+
+          text-decoration: none;
+
+          font-size: 7px;
+          line-height: 1;
+          font-weight: 800;
+        }
+
+        .discoverPage
+          .movingFilters
+          .selected {
+          color: #03130f;
+          border-color: #52f7c8;
+
+          background:
+            linear-gradient(
+              105deg,
+              #52f7c8,
+              #62dafa,
+              #8d68ff
+            );
+        }
+
+        .discoverPage .movingGrid {
+          width: 100%;
+
+          display: grid;
+
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+
+          gap: 3px;
+        }
+
+        .discoverPage .movingCard {
+          position: relative;
+
+          width: 100%;
+          aspect-ratio: 0.82;
+
+          display: block;
+          overflow: hidden;
+
+          border-radius: 9px;
+
+          color: #fff;
+          background: #0a0e15;
+
+          text-decoration: none;
+
+          isolation: isolate;
+        }
+
+        .discoverPage
+          .movingCard
+          .mediaVisual,
+        .discoverPage
+          .movingCard
+          .mediaFallback {
+          position: absolute !important;
+          z-index: 0 !important;
+          inset: 0 !important;
+
+          width: 100% !important;
+          height: 100% !important;
+
+          object-fit: cover !important;
+        }
+
+        .discoverPage .movingShade {
+          position: absolute;
+          z-index: 1;
+
+          inset: 55% 0 0;
+
+          background:
+            linear-gradient(
+              transparent,
+              rgba(0, 0, 0, 0.64)
+            );
+        }
+
+        .discoverPage .movingViews {
+          z-index: 3;
+        }
+
+
+        /* =========================
+           MOTION
+        ========================= */
+
+        @keyframes utvV31Globe {
+          0%,
+          100% {
+            transform:
+              perspective(700px)
+              rotateX(50deg)
+              rotateZ(-4deg)
+              translateY(0);
+          }
+
+          50% {
+            transform:
+              perspective(700px)
+              rotateX(50deg)
+              rotateZ(-2deg)
+              translateY(-5px);
+          }
+        }
+
+
+        /* =========================
+           PHONE TIGHTENING
+        ========================= */
+
+        @media (max-width: 430px) {
+          .discoverPage
+            .discoverShell {
+            padding-right: 10px;
+            padding-left: 10px;
+          }
+
+          .discoverPage .utvLogo {
+            font-size: 34px;
+          }
+
+          .discoverPage .topSearch {
+            height: 41px;
+          }
+
+          .discoverPage
+            .categoryChip {
+            padding: 8px 12px;
+            font-size: 9px;
+          }
+
+          .discoverPage .watchMedia {
+            height: 164px;
+          }
+
+          .discoverPage .worldCard {
+            height: 181px;
+          }
+
+          .discoverPage .worldGlobe {
+            width: 315px !important;
+            height: 212px !important;
+
+            right: -82px !important;
+            bottom: -98px !important;
+          }
+
+          .discoverPage
+            .worldCopy {
+            top: 19px;
+            left: 13px;
+          }
+
+          .discoverPage
+            .worldCopy h2 {
+            font-size: 29px;
+          }
+
+          .discoverPage
+            .worldCopy p {
+            font-size: 8px;
+          }
+
+          .discoverPage
+            .worldButton {
+            min-width: 117px;
+            height: 35px;
+            padding: 0 12px;
+            font-size: 9px;
+          }
+
+          .discoverPage
+            .worldStats {
+            top: 8px;
+            right: 8px;
+            gap: 5px;
+            padding: 5px 7px;
+          }
+
+          .discoverPage
+            .worldStats span {
+            font-size: 5.5px;
+          }
+
+          .discoverPage
+            .quickVisual {
+            height: 111px;
+          }
+
+          .discoverPage .trendRail {
+            grid-auto-columns: 31%;
+          }
+
+          .discoverPage .trendCard {
+            height: 173px;
+          }
+
+          .discoverPage
+            .creatorBubble {
+            width: 57px;
+            flex-basis: 57px;
+          }
+
+          .discoverPage
+            .creatorRing {
+            width: 49px;
+            height: 49px;
+          }
+
+          .discoverPage
+            .sectionHeading h2,
+          .discoverPage
+            .movingHeader h2 {
+            font-size: 16px;
+          }
+        }
+
+
+        @media (max-width: 365px) {
+          .discoverPage .topBar {
+            gap: 7px;
+          }
+
+          .discoverPage .utvLogo {
+            font-size: 31px;
+          }
+
+          .discoverPage .bell {
+            width: 31px;
+          }
+
+          .discoverPage .watchMedia {
+            height: 155px;
+          }
+
+          .discoverPage .worldCard {
+            height: 174px;
+          }
+
+          .discoverPage
+            .worldStats
+            span:nth-child(3) {
+            display: none;
+          }
+
+          .discoverPage .trendRail {
+            grid-auto-columns: 34%;
+          }
+
+          .discoverPage .trendCard {
+            height: 168px;
+          }
+        }
+
+
+        @media (
+          prefers-reduced-motion:
+            reduce
+        ) {
+          .discoverPage .worldGlobe {
+            animation: none;
+          }
+        }
+      `}</style>
+      {/* DISCOVER V3.1 GLOBAL POLISH END */}
+
+</main>
   );
 }
