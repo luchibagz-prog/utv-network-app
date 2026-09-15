@@ -182,6 +182,32 @@ export default function LiveRoomPage() {
   const [spotlightIdentity, setSpotlightIdentity] =
     useState("host");
 
+  // UTV LIVE R2B — HOST RECOVERY CORE
+  const micEnabledRef =
+    useRef(micEnabled);
+
+  const cameraEnabledRef =
+    useRef(cameraEnabled);
+
+  const cameraFacingRef =
+    useRef<CameraFacing>(
+      cameraFacing
+    );
+
+  /*
+   * Keep connection/recovery callbacks aware
+   * of the CURRENT host controls.
+   */
+  micEnabledRef.current =
+    micEnabled;
+
+  cameraEnabledRef.current =
+    cameraEnabled;
+
+  cameraFacingRef.current =
+    cameraFacing;
+
+
   const canGoLive = useMemo(
     () =>
       Boolean(
@@ -1368,6 +1394,173 @@ export default function LiveRoomPage() {
     };
   }
 
+  async function recoverHostLiveMedia(
+    room: Room
+  ) {
+    /*
+     * R2B RECOVERY:
+     *
+     * LiveKit normally repairs publications
+     * itself during a reconnect.
+     *
+     * This is our second safety layer for
+     * mobile browsers that return with an
+     * ended camera or microphone track.
+     */
+
+    if (
+      cameraEnabledRef.current
+    ) {
+      try {
+        let videoTrack =
+          videoTrackRef.current;
+
+        if (!videoTrack) {
+          videoTrack =
+            await createLocalVideoTrack({
+              facingMode:
+                cameraFacingRef.current,
+
+              resolution: {
+                width: 1280,
+                height: 720,
+                frameRate: 30,
+              },
+            });
+
+          videoTrackRef.current =
+            videoTrack;
+
+          await room
+            .localParticipant
+            .publishTrack(
+              videoTrack,
+              {
+                source:
+                  Track.Source.Camera,
+              }
+            );
+
+        } else if (
+          videoTrack
+            .mediaStreamTrack
+            .readyState ===
+          "ended"
+        ) {
+          await videoTrack
+            .restartTrack({
+              facingMode:
+                cameraFacingRef.current,
+
+              resolution: {
+                width: 1280,
+                height: 720,
+                frameRate: 30,
+              },
+            });
+        }
+
+
+        if (
+          videoRef.current
+        ) {
+          try {
+            videoTrack.detach(
+              videoRef.current
+            );
+          } catch {}
+
+          videoTrack.attach(
+            videoRef.current
+          );
+
+          await videoRef.current
+            .play()
+            .catch(() => {});
+        }
+
+
+        setIsCameraOn(true);
+
+      } catch (error) {
+        console.error(
+          "UTV Live camera recovery:",
+          error
+        );
+
+        setInteractionMessage(
+          "Live restored • tap Camera if video does not return."
+        );
+      }
+    }
+
+
+    if (
+      micEnabledRef.current
+    ) {
+      try {
+        let audioTrack =
+          audioTrackRef.current;
+
+        if (!audioTrack) {
+          audioTrack =
+            await createLocalAudioTrack({
+              echoCancellation:
+                true,
+
+              noiseSuppression:
+                true,
+
+              autoGainControl:
+                true,
+            });
+
+          audioTrackRef.current =
+            audioTrack;
+
+          await room
+            .localParticipant
+            .publishTrack(
+              audioTrack,
+              {
+                source:
+                  Track.Source.Microphone,
+              }
+            );
+
+        } else if (
+          audioTrack
+            .mediaStreamTrack
+            .readyState ===
+          "ended"
+        ) {
+          await audioTrack
+            .restartTrack({
+              echoCancellation:
+                true,
+
+              noiseSuppression:
+                true,
+
+              autoGainControl:
+                true,
+            });
+        }
+
+      } catch (error) {
+        console.error(
+          "UTV Live microphone recovery:",
+          error
+        );
+
+        setInteractionMessage(
+          "Live restored • tap Mic if audio does not return."
+        );
+      }
+    }
+  }
+
+
   async function startLive() {
     if (!canGoLive) return;
 
@@ -1457,6 +1650,16 @@ export default function LiveRoomPage() {
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
+
+        /*
+         * Temporary app switching should not
+         * destroy the host transport.
+         *
+         * Explicit UTV cleanup still handles
+         * actually ending/leaving the Live.
+         */
+        disconnectOnPageLeave:
+          false,
       });
 
       roomRef.current = room;
@@ -1753,6 +1956,133 @@ export default function LiveRoomPage() {
         }
       );
 
+      room.on(
+        RoomEvent.Reconnecting,
+        () => {
+          setStatus(
+            "Weak signal • reconnecting…"
+          );
+
+          setInteractionMessage(
+            "Signal interrupted • keeping your Live open…"
+          );
+        }
+      );
+
+
+      room.on(
+        RoomEvent.Reconnected,
+        () => {
+          setErrorMessage("");
+
+          setStatus(
+            "Live • signal restored"
+          );
+
+          setInteractionMessage(
+            "Signal restored • broadcast reconnected."
+          );
+
+          /*
+           * Guest audio can be blocked after a
+           * long mobile background period.
+           */
+          void room
+            .startAudio()
+            .catch(() => {});
+
+
+          /*
+           * Recover camera/mic only if the OS
+           * actually killed their underlying
+           * MediaStreamTracks.
+           */
+          void recoverHostLiveMedia(
+            room
+          )
+            .catch((error) => {
+              console.error(
+                "UTV host reconnect recovery:",
+                error
+              );
+            });
+
+
+          window.setTimeout(
+            () => {
+              setInteractionMessage("");
+            },
+            2400
+          );
+        }
+      );
+
+
+      room.on(
+        RoomEvent.ConnectionQualityChanged,
+        (
+          connectionQuality,
+          participant
+        ) => {
+          /*
+           * We only want HOST network quality
+           * here — not a guest's weak signal.
+           */
+          if (
+            participant.identity !==
+            room.localParticipant
+              .identity
+          ) {
+            return;
+          }
+
+
+          const value =
+            String(
+              connectionQuality
+            ).toLowerCase();
+
+
+          if (
+            value.includes("poor") ||
+            value.includes("lost")
+          ) {
+            setStatus(
+              "Live • weak signal"
+            );
+
+            setInteractionMessage(
+              "Weak connection • UTV is adjusting the stream."
+            );
+
+            return;
+          }
+
+
+          if (
+            value.includes(
+              "excellent"
+            )
+          ) {
+            setStatus(
+              "Live • strong signal"
+            );
+
+            return;
+          }
+
+
+          if (
+            value.includes("good")
+          ) {
+            setStatus(
+              "Live • good signal"
+            );
+          }
+        }
+      );
+
+
       room.on(RoomEvent.Disconnected, () => {
         if (
           isLiveRef.current &&
@@ -1772,7 +2102,13 @@ export default function LiveRoomPage() {
         }
       });
 
-      await room.connect(serverUrl, tokenData.token);
+      await room.connect(
+        serverUrl,
+        tokenData.token,
+        {
+          autoSubscribe: true,
+        }
+      );
 
       if (!videoTrackRef.current || !audioTrackRef.current) {
         throw new Error("Camera or microphone is not ready.");
