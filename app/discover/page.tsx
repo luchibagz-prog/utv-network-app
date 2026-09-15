@@ -317,14 +317,12 @@ function QuickCard({
   href,
   title,
   icon,
-  item,
   vibe,
   badge,
 }: {
   href: string;
   title: string;
   icon: ReactNode;
-  item?: Row;
   vibe: string;
   badge?: string;
 }) {
@@ -333,7 +331,78 @@ function QuickCard({
       href={href}
       className={`quickVisual ${vibe}`}
     >
-      <Media item={item} />
+      {/* DISCOVER REAL FEATURE CARDS */}
+      <span
+        className="quickArt"
+        aria-hidden="true"
+      >
+        {vibe === "live" && (
+          <>
+            <span className="liveCore">
+              <i />
+            </span>
+
+            <span className="liveWave waveOne" />
+            <span className="liveWave waveTwo" />
+            <span className="liveWave waveThree" />
+
+            <span className="liveWord">
+              UTV
+            </span>
+          </>
+        )}
+
+        {vibe === "events" && (
+          <>
+            <span className="eventHalo" />
+
+            <span className="eventGraphic">
+              <b>UTV</b>
+              <strong>EVENT</strong>
+              <i />
+              <i />
+              <i />
+            </span>
+          </>
+        )}
+
+        {vibe === "casting" && (
+          <>
+            <span className="castingGlow" />
+
+            <span className="castingBoard">
+              <i className="castingTop" />
+
+              <b>UTV</b>
+
+              <strong>
+                CASTING
+              </strong>
+
+              <small>
+                OPEN CALL
+              </small>
+            </span>
+          </>
+        )}
+
+        {vibe === "build" && (
+          <>
+            <span className="buildGlow" />
+
+            <span className="buildNetwork">
+              <i className="buildNode n1" />
+              <i className="buildNode n2" />
+              <i className="buildNode n3" />
+              <i className="buildNode n4" />
+
+              <span className="buildCenter">
+                U
+              </span>
+            </span>
+          </>
+        )}
+      </span>
 
       <span className="quickTint" />
 
@@ -348,7 +417,9 @@ function QuickCard({
           {icon}
         </span>
 
-        <strong>{title}</strong>
+        <strong>
+          {title}
+        </strong>
 
         <span className="quickArrow">
           ›
@@ -630,28 +701,28 @@ export default function DiscoverPage() {
       title: "Live",
       icon: "◉",
       vibe: "live",
-      item: uploads[1],
+      badge:
+        liveCount > 0
+          ? `${liveCount} LIVE`
+          : undefined,
     },
     {
       href: "/events",
       title: "Events",
       icon: "▣",
       vibe: "events",
-      item: uploads[2],
     },
     {
       href: "/casting",
       title: "Casting",
       icon: "🎬",
       vibe: "casting",
-      item: uploads[3],
     },
     {
       href: "/collabs/new",
       title: "Build",
-      icon: "🤝",
+      icon: "✦",
       vibe: "build",
-      item: uploads[4],
     },
   ];
 
@@ -5364,6 +5435,852 @@ export default function DiscoverPage() {
         }
       `}</style>
       {/* DISCOVER REAL LIVE STYLES END */}
+
+
+      {/* DISCOVER REAL FEATURE CARDS STYLES START */}
+      <style jsx global>{`
+
+        /*
+         * ==========================================
+         * UTV DISCOVER — REAL FEATURE ENTRANCES
+         *
+         * No user upload/photo/video is used here.
+         * These are permanent branded destinations.
+         * ==========================================
+         */
+
+        .discoverPage .quickVisual {
+          position: relative;
+
+          overflow: hidden;
+
+          isolation: isolate;
+
+          background:
+            #080c13 !important;
+
+          box-shadow:
+            inset 0 1px 0
+              rgba(255,255,255,.06),
+            0 10px 30px
+              rgba(0,0,0,.26);
+        }
+
+        .discoverPage .quickArt {
+          position: absolute;
+          z-index: 0;
+
+          inset: 0;
+
+          overflow: hidden;
+
+          pointer-events: none;
+        }
+
+        .discoverPage .quickTint {
+          z-index: 2 !important;
+
+          background:
+            linear-gradient(
+              0deg,
+              rgba(1,3,8,.94) 0%,
+              rgba(1,3,8,.48) 34%,
+              transparent 72%
+            ) !important;
+        }
+
+        .discoverPage .quickBottom {
+          z-index: 5 !important;
+        }
+
+        .discoverPage .quickBadge {
+          position: absolute;
+          z-index: 7;
+
+          top: 8px;
+          right: 8px;
+
+          padding: 5px 7px;
+
+          border-radius: 999px;
+
+          color: white;
+
+          background:
+            #ff315d;
+
+          font-size: 6px;
+          line-height: 1;
+          font-weight: 1000;
+          letter-spacing: .07em;
+
+          box-shadow:
+            0 0 18px
+            rgba(255,49,93,.45);
+        }
+
+
+        /*
+         * =====================
+         * LIVE
+         * =====================
+         */
+
+        .discoverPage
+        .quickVisual.live {
+          background:
+            radial-gradient(
+              circle at 50% 36%,
+              rgba(255,52,105,.26),
+              transparent 32%
+            ),
+            radial-gradient(
+              circle at 15% 10%,
+              rgba(82,247,200,.10),
+              transparent 38%
+            ),
+            linear-gradient(
+              145deg,
+              #160711,
+              #080b15 55%,
+              #02050a
+            ) !important;
+        }
+
+        .discoverPage .liveCore {
+          position: absolute;
+
+          top: 27px;
+          left: 50%;
+
+          width: 32px;
+          height: 32px;
+
+          display: grid;
+          place-items: center;
+
+          transform:
+            translateX(-50%);
+
+          border-radius: 50%;
+
+          background:
+            linear-gradient(
+              145deg,
+              #ff2e65,
+              #ff5f91
+            );
+
+          box-shadow:
+            0 0 17px
+              rgba(255,46,101,.8),
+            0 0 38px
+              rgba(255,46,101,.35);
+
+          animation:
+            liveCorePulse
+            1.5s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage .liveCore i {
+          width: 8px;
+          height: 8px;
+
+          border-radius: 50%;
+
+          background: white;
+
+          box-shadow:
+            0 0 8px white;
+        }
+
+        .discoverPage .liveWave {
+          position: absolute;
+
+          top: 20px;
+          left: 50%;
+
+          width: 46px;
+          height: 46px;
+
+          transform:
+            translateX(-50%);
+
+          border:
+            1px solid
+            rgba(255,75,123,.58);
+
+          border-radius: 50%;
+
+          opacity: 0;
+
+          animation:
+            liveWaveOut
+            2.2s
+            ease-out
+            infinite;
+        }
+
+        .discoverPage
+        .liveWave.waveTwo {
+          animation-delay: .55s;
+        }
+
+        .discoverPage
+        .liveWave.waveThree {
+          animation-delay: 1.1s;
+        }
+
+        .discoverPage .liveWord {
+          position: absolute;
+
+          top: 64px;
+          left: 50%;
+
+          transform:
+            translateX(-50%);
+
+          color:
+            rgba(255,255,255,.17);
+
+          font-size: 21px;
+          line-height: 1;
+          font-weight: 1000;
+          letter-spacing: -.08em;
+        }
+
+
+        /*
+         * =====================
+         * EVENTS
+         * =====================
+         */
+
+        .discoverPage
+        .quickVisual.events {
+          background:
+            radial-gradient(
+              circle at 70% 25%,
+              rgba(255,183,72,.22),
+              transparent 35%
+            ),
+            radial-gradient(
+              circle at 20% 72%,
+              rgba(100,86,255,.18),
+              transparent 40%
+            ),
+            linear-gradient(
+              145deg,
+              #161007,
+              #0b0d16 58%,
+              #030508
+            ) !important;
+        }
+
+        .discoverPage .eventHalo {
+          position: absolute;
+
+          width: 90px;
+          height: 90px;
+
+          top: -22px;
+          right: -25px;
+
+          border-radius: 50%;
+
+          background:
+            radial-gradient(
+              circle,
+              rgba(255,186,79,.30),
+              transparent 65%
+            );
+
+          filter:
+            blur(3px);
+
+          animation:
+            featureFloat
+            4s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage .eventGraphic {
+          position: absolute;
+
+          top: 20px;
+          left: 50%;
+
+          width: 59px;
+          height: 54px;
+
+          transform:
+            translateX(-50%)
+            rotate(-4deg);
+
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(255,255,255,.19);
+
+          border-radius: 11px;
+
+          background:
+            linear-gradient(
+              150deg,
+              rgba(255,255,255,.14),
+              rgba(255,255,255,.035)
+            );
+
+          box-shadow:
+            0 12px 28px
+            rgba(0,0,0,.32);
+
+          backdrop-filter:
+            blur(10px);
+        }
+
+        .discoverPage
+        .eventGraphic::before {
+          content: "";
+
+          position: absolute;
+
+          top: 0;
+          right: 0;
+          left: 0;
+
+          height: 9px;
+
+          background:
+            linear-gradient(
+              90deg,
+              #ffad45,
+              #ff5f71,
+              #8068ff
+            );
+        }
+
+        .discoverPage
+        .eventGraphic b {
+          position: absolute;
+
+          top: 17px;
+          left: 7px;
+
+          color:
+            rgba(255,255,255,.52);
+
+          font-size: 6px;
+          font-weight: 1000;
+        }
+
+        .discoverPage
+        .eventGraphic strong {
+          position: absolute;
+
+          top: 27px;
+          left: 7px;
+
+          color: white;
+
+          font-size: 9px;
+          font-weight: 1000;
+          letter-spacing: .04em;
+        }
+
+        .discoverPage
+        .eventGraphic i {
+          position: relative;
+
+          width: 5px;
+          height: 5px;
+
+          display: inline-block;
+
+          margin:
+            41px 0 0 7px;
+
+          border-radius: 50%;
+
+          background:
+            rgba(255,255,255,.32);
+        }
+
+
+        /*
+         * =====================
+         * CASTING
+         * =====================
+         */
+
+        .discoverPage
+        .quickVisual.casting {
+          background:
+            radial-gradient(
+              circle at 50% 20%,
+              rgba(213,61,255,.25),
+              transparent 38%
+            ),
+            radial-gradient(
+              circle at 95% 80%,
+              rgba(255,54,167,.12),
+              transparent 40%
+            ),
+            linear-gradient(
+              145deg,
+              #15071a,
+              #090b15 58%,
+              #030407
+            ) !important;
+        }
+
+        .discoverPage .castingGlow {
+          position: absolute;
+
+          width: 100px;
+          height: 70px;
+
+          top: -28px;
+          left: 50%;
+
+          transform:
+            translateX(-50%);
+
+          border-radius: 50%;
+
+          background:
+            rgba(215,58,255,.26);
+
+          filter:
+            blur(26px);
+
+          animation:
+            castingGlow
+            2.8s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage .castingBoard {
+          position: absolute;
+
+          top: 24px;
+          left: 50%;
+
+          width: 64px;
+          height: 49px;
+
+          transform:
+            translateX(-50%)
+            rotate(3deg);
+
+          border:
+            1px solid
+            rgba(255,255,255,.18);
+
+          border-radius: 6px;
+
+          color: white;
+
+          background:
+            linear-gradient(
+              145deg,
+              #242733,
+              #10121b
+            );
+
+          box-shadow:
+            0 10px 28px
+            rgba(0,0,0,.4);
+        }
+
+        .discoverPage .castingTop {
+          position: absolute;
+
+          top: -10px;
+          left: -1px;
+
+          width: calc(100% + 2px);
+          height: 11px;
+
+          border-radius:
+            4px 4px 1px 1px;
+
+          background:
+            repeating-linear-gradient(
+              -45deg,
+              #f2f2f2 0 7px,
+              #161922 7px 14px
+            );
+
+          transform-origin:
+            left bottom;
+
+          animation:
+            clapperMove
+            3s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage
+        .castingBoard b {
+          position: absolute;
+
+          top: 9px;
+          left: 7px;
+
+          color:
+            rgba(255,255,255,.45);
+
+          font-size: 5px;
+        }
+
+        .discoverPage
+        .castingBoard strong {
+          position: absolute;
+
+          top: 18px;
+          left: 7px;
+
+          font-size: 8px;
+          font-weight: 1000;
+        }
+
+        .discoverPage
+        .castingBoard small {
+          position: absolute;
+
+          bottom: 7px;
+          left: 7px;
+
+          color: #ef81ff;
+
+          font-size: 5px;
+          font-weight: 900;
+          letter-spacing: .08em;
+        }
+
+
+        /*
+         * =====================
+         * BUILD TOGETHER
+         * =====================
+         */
+
+        .discoverPage
+        .quickVisual.build {
+          background:
+            radial-gradient(
+              circle at 50% 37%,
+              rgba(82,247,200,.22),
+              transparent 34%
+            ),
+            radial-gradient(
+              circle at 90% 10%,
+              rgba(105,80,255,.22),
+              transparent 40%
+            ),
+            linear-gradient(
+              145deg,
+              #051511,
+              #080b16 55%,
+              #030407
+            ) !important;
+        }
+
+        .discoverPage .buildGlow {
+          position: absolute;
+
+          top: 15px;
+          left: 50%;
+
+          width: 80px;
+          height: 62px;
+
+          transform:
+            translateX(-50%);
+
+          border-radius: 50%;
+
+          background:
+            radial-gradient(
+              circle,
+              rgba(82,247,200,.20),
+              transparent 67%
+            );
+
+          animation:
+            featureFloat
+            4.5s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage .buildNetwork {
+          position: absolute;
+
+          top: 18px;
+          left: 50%;
+
+          width: 72px;
+          height: 62px;
+
+          transform:
+            translateX(-50%);
+        }
+
+        .discoverPage
+        .buildNetwork::before,
+        .discoverPage
+        .buildNetwork::after {
+          content: "";
+
+          position: absolute;
+
+          top: 29px;
+          left: 8px;
+
+          width: 56px;
+          height: 1px;
+
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              #52f7c8,
+              #7669ff,
+              transparent
+            );
+
+          opacity: .7;
+        }
+
+        .discoverPage
+        .buildNetwork::after {
+          transform:
+            rotate(58deg);
+        }
+
+        .discoverPage .buildNode {
+          position: absolute;
+
+          width: 9px;
+          height: 9px;
+
+          border:
+            2px solid
+            rgba(255,255,255,.72);
+
+          border-radius: 50%;
+
+          background: #101927;
+
+          box-shadow:
+            0 0 12px
+            rgba(82,247,200,.55);
+
+          animation:
+            nodePulse
+            2s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage
+        .buildNode.n1 {
+          top: 4px;
+          left: 31px;
+        }
+
+        .discoverPage
+        .buildNode.n2 {
+          top: 26px;
+          right: 2px;
+
+          animation-delay: .35s;
+        }
+
+        .discoverPage
+        .buildNode.n3 {
+          bottom: 1px;
+          left: 27px;
+
+          animation-delay: .7s;
+        }
+
+        .discoverPage
+        .buildNode.n4 {
+          top: 27px;
+          left: 1px;
+
+          animation-delay: 1.05s;
+        }
+
+        .discoverPage .buildCenter {
+          position: absolute;
+
+          top: 21px;
+          left: 50%;
+
+          width: 22px;
+          height: 22px;
+
+          display: grid;
+          place-items: center;
+
+          transform:
+            translateX(-50%);
+
+          border:
+            1px solid
+            rgba(82,247,200,.55);
+
+          border-radius: 8px;
+
+          color: #07150f;
+
+          background:
+            linear-gradient(
+              135deg,
+              #52f7c8,
+              #6dd9ff
+            );
+
+          box-shadow:
+            0 0 19px
+            rgba(82,247,200,.32);
+
+          font-size: 9px;
+          font-weight: 1000;
+        }
+
+
+        /*
+         * =====================
+         * ANIMATIONS
+         * =====================
+         */
+
+        @keyframes liveCorePulse {
+          0%,
+          100% {
+            transform:
+              translateX(-50%)
+              scale(1);
+          }
+
+          50% {
+            transform:
+              translateX(-50%)
+              scale(.88);
+          }
+        }
+
+        @keyframes liveWaveOut {
+          0% {
+            transform:
+              translateX(-50%)
+              scale(.55);
+
+            opacity: .75;
+          }
+
+          100% {
+            transform:
+              translateX(-50%)
+              scale(1.8);
+
+            opacity: 0;
+          }
+        }
+
+        @keyframes featureFloat {
+          0%,
+          100% {
+            transform:
+              translateY(0);
+          }
+
+          50% {
+            transform:
+              translateY(-5px);
+          }
+        }
+
+        @keyframes castingGlow {
+          0%,
+          100% {
+            opacity: .58;
+          }
+
+          50% {
+            opacity: 1;
+          }
+        }
+
+        @keyframes clapperMove {
+          0%,
+          78%,
+          100% {
+            transform:
+              rotate(0deg);
+          }
+
+          86% {
+            transform:
+              rotate(-17deg);
+          }
+
+          93% {
+            transform:
+              rotate(0deg);
+          }
+        }
+
+        @keyframes nodePulse {
+          0%,
+          100% {
+            transform:
+              scale(1);
+
+            opacity: .75;
+          }
+
+          50% {
+            transform:
+              scale(1.25);
+
+            opacity: 1;
+          }
+        }
+
+
+        /*
+         * Keep animation accessible
+         */
+
+        @media (
+          prefers-reduced-motion:
+          reduce
+        ) {
+          .discoverPage .liveCore,
+          .discoverPage .liveWave,
+          .discoverPage .eventHalo,
+          .discoverPage .castingGlow,
+          .discoverPage .castingTop,
+          .discoverPage .buildGlow,
+          .discoverPage .buildNode {
+            animation: none !important;
+          }
+        }
+
+      `}</style>
+      {/* DISCOVER REAL FEATURE CARDS STYLES END */}
 
 </main>
   );
