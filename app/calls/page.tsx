@@ -53,6 +53,10 @@ export default function CallsPage() {
   const [target, setTarget] =
     useState(initialTarget);
 
+  // UTV GROUP CALLS 2B1 — MULTI SELECT
+  const [selectedPeople, setSelectedPeople] =
+    useState<UTVPerson[]>([]);
+
   const [callType, setCallType] =
     useState<"audio" | "video">(
       initialType
@@ -114,6 +118,156 @@ export default function CallsPage() {
       );
     };
   }, [email]);
+
+  async function mergeGroupInvites(
+    currentEmail: string
+  ) {
+    const normalized =
+      currentEmail.trim().toLowerCase();
+
+    const {
+      data: memberships,
+      error: membershipError,
+    } = await supabase
+      .from("call_members")
+      .select("call_id")
+      .eq(
+        "member_email",
+        normalized
+      )
+      .eq(
+        "status",
+        "invited"
+      );
+
+    if (membershipError) {
+      console.error(
+        "UTV group invite lookup:",
+        membershipError
+      );
+      return;
+    }
+
+    const ids = Array.from(
+      new Set(
+        (memberships || [])
+          .map((row: any) =>
+            String(
+              row.call_id || ""
+            )
+          )
+          .filter(Boolean)
+      )
+    );
+
+    let groupRows: CallRow[] = [];
+
+    if (ids.length > 0) {
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("call_sessions")
+        .select("*")
+        .in("id", ids)
+        .in(
+          "status",
+          ["ringing", "accepted"]
+        );
+
+      if (error) {
+        console.error(
+          "UTV group call lookup:",
+          error
+        );
+      } else {
+        groupRows =
+          (data || []) as CallRow[];
+      }
+    }
+
+    setIncoming((current) => {
+      /*
+       * Keep normal caller/callee incoming calls,
+       * then merge current group invitations.
+       */
+      const direct =
+        current.filter((row) => {
+          const caller =
+            row.caller_email
+              ?.toLowerCase();
+
+          const callee =
+            row.callee_email
+              ?.toLowerCase();
+
+          return (
+            caller === normalized ||
+            callee === normalized
+          );
+        });
+
+      const map =
+        new Map<string, CallRow>();
+
+      [...direct, ...groupRows]
+        .forEach((row) => {
+          map.set(row.id, row);
+        });
+
+      return Array.from(
+        map.values()
+      );
+    });
+  }
+
+
+  useEffect(() => {
+    if (!email) return;
+
+    void mergeGroupInvites(email);
+
+    const channel = supabase
+      .channel(
+        `utv-group-call-invites-${email}`
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "call_members",
+          filter:
+            `member_email=eq.${email.toLowerCase()}`,
+        },
+        () => {
+          void mergeGroupInvites(
+            email
+          );
+        }
+      )
+      .subscribe();
+
+    const timer =
+      window.setInterval(
+        () => {
+          void mergeGroupInvites(
+            email
+          );
+        },
+        5000
+      );
+
+    return () => {
+      window.clearInterval(
+        timer
+      );
+
+      void supabase
+        .removeChannel(channel);
+    };
+  }, [email]);
+
 
   async function boot() {
     const {
@@ -473,78 +627,265 @@ export default function CallsPage() {
   async function acceptCall(
     call: CallRow
   ) {
-    setMessage("Connecting call…");
+    setMessage(
+      "Connecting call…"
+    );
 
     const {
-      data: acceptedRow,
       error,
-    } =
-      await supabase
-        .from("call_sessions")
-        .update({
-          status: "accepted",
-          answered_at:
-            call.answered_at ||
-            new Date().toISOString(),
-        })
-        .eq("id", call.id)
-        .eq("callee_email", email)
-        .in("status", ["ringing", "accepted"])
-        .select("*")
-        .maybeSingle();
-
-    if (error) {
-      setMessage(error.message);
-      return;
-    }
-
-    if (!acceptedRow) {
-      setMessage(
-        "This call is no longer available."
-      );
-      return;
-    }
-
-    // Route only after Supabase confirms the call is accepted.
-    router.push(
-      `/call/${call.id}`
+    } = await supabase.rpc(
+      "utv_accept_call_invite",
+      {
+        p_call_id: call.id,
+      }
     );
-  }
-
-  async function declineCall(
-    call: CallRow
-  ) {
-    const { error } =
-      await supabase
-        .from("call_sessions")
-        .update({
-          status:
-            "declined",
-          ended_at:
-            new Date()
-              .toISOString(),
-        })
-        .eq(
-          "id",
-          call.id
-        )
-        .eq(
-          "callee_email",
-          email
-        );
 
     if (error) {
       setMessage(
         error.message
       );
-
       return;
     }
 
-    await refreshCalls(
+    /*
+     * The secure token route will now
+     * recognize this joined membership.
+     */
+    router.push(
+      `/call/${call.id}`
+    );
+  }
+
+
+  async function declineCall(
+    call: CallRow
+  ) {
+    const {
+      error,
+    } = await supabase.rpc(
+      "utv_decline_call_invite",
+      {
+        p_call_id: call.id,
+      }
+    );
+
+    if (error) {
+      setMessage(
+        error.message
+      );
+      return;
+    }
+
+    await refreshCalls(email);
+    await mergeGroupInvites(
       email
     );
   }
+
+
+  function toggleGroupPerson(
+    person: UTVPerson
+  ) {
+    setMessage("");
+
+    setSelectedPeople(
+      (current) => {
+        const exists =
+          current.some(
+            (item) =>
+              item.email
+                .toLowerCase() ===
+              person.email
+                .toLowerCase()
+          );
+
+        if (exists) {
+          return current.filter(
+            (item) =>
+              item.email
+                .toLowerCase() !==
+              person.email
+                .toLowerCase()
+          );
+        }
+
+        if (
+          current.length >= 3
+        ) {
+          setMessage(
+            "UTV group calls support up to 4 people total."
+          );
+
+          return current;
+        }
+
+        return [
+          ...current,
+          person,
+        ];
+      }
+    );
+  }
+
+
+  async function startGroupCall(
+    type:
+      | "audio"
+      | "video"
+  ) {
+    if (
+      !email ||
+      calling ||
+      selectedPeople.length === 0
+    ) {
+      return;
+    }
+
+    const unique =
+      Array.from(
+        new Map(
+          selectedPeople
+            .filter(
+              (person) =>
+                person.email
+                  .toLowerCase() !==
+                email.toLowerCase()
+            )
+            .map(
+              (person) => [
+                person.email
+                  .toLowerCase(),
+                person,
+              ]
+            )
+        ).values()
+      ).slice(0, 3);
+
+    if (unique.length === 0) {
+      setMessage(
+        "Choose at least one UTV user."
+      );
+      return;
+    }
+
+    setCalling(true);
+    setMessage("");
+    setCallType(type);
+
+    const id =
+      crypto.randomUUID();
+
+    const roomName =
+      `utv-call-${id}`;
+
+    const primary =
+      unique[0];
+
+    try {
+      const {
+        error: callError,
+      } = await supabase
+        .from("call_sessions")
+        .insert({
+          id,
+          caller_email:
+            email,
+          callee_email:
+            primary.email,
+          call_type:
+            type,
+          room_name:
+            roomName,
+          status:
+            "ringing",
+          max_participants:
+            unique.length + 1,
+        });
+
+      if (callError) {
+        throw callError;
+      }
+
+      /*
+       * Primary callee is created automatically
+       * by the call_members trigger.
+       *
+       * Add invitees 3 and 4 here.
+       */
+      for (
+        const person
+        of unique.slice(1)
+      ) {
+        const {
+          error,
+        } = await supabase.rpc(
+          "utv_add_call_member",
+          {
+            p_call_id: id,
+            p_member_email:
+              person.email,
+          }
+        );
+
+        if (error) {
+          await supabase
+            .from("call_sessions")
+            .update({
+              status: "ended",
+              ended_at:
+                new Date()
+                  .toISOString(),
+            })
+            .eq("id", id);
+
+          throw error;
+        }
+      }
+
+      for (
+        const person
+        of unique
+      ) {
+        void sendUTVPush({
+          recipientEmail:
+            person.email,
+
+          event:
+            type === "video"
+              ? "video_call"
+              : "audio_call",
+
+          url:
+            `/calls?incoming=${encodeURIComponent(
+              id
+            )}`,
+
+          callId: id,
+        });
+      }
+
+      try {
+        navigator.vibrate?.(
+          [45, 40, 45]
+        );
+      } catch {}
+
+      router.push(
+        `/call/${id}`
+      );
+
+    } catch (
+      error: any
+    ) {
+      setMessage(
+        error?.message ||
+          "Could not start group call."
+      );
+
+      setCalling(false);
+    }
+  }
+
 
   function selectPerson(
     person: UTVPerson
@@ -982,7 +1323,8 @@ export default function CallsPage() {
                 </h2>
               </div>
 
-              {target && (
+              {(target ||
+                selectedPeople.length > 0) && (
                 <button
                   className="closePicker"
                   onClick={() =>
@@ -1029,6 +1371,104 @@ export default function CallsPage() {
                 </button>
               )}
             </div>
+
+            {selectedPeople.length > 0 && (
+              <div className="groupCallTray">
+                <div className="groupTrayTop">
+                  <div>
+                    <strong>
+                      Group Call
+                    </strong>
+
+                    <span>
+                      {selectedPeople.length + 1}/4 people
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedPeople(
+                        []
+                      )
+                    }
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="groupPeople">
+                  {selectedPeople.map(
+                    (person) => (
+                      <button
+                        type="button"
+                        key={
+                          person.email
+                        }
+                        onClick={() =>
+                          toggleGroupPerson(
+                            person
+                          )
+                        }
+                      >
+                        <span>
+                          {person.avatar ? (
+                            <img
+                              src={
+                                person.avatar
+                              }
+                              alt={
+                                person.name
+                              }
+                            />
+                          ) : (
+                            person.name
+                              .slice(0, 1)
+                              .toUpperCase()
+                          )}
+                        </span>
+
+                        <strong>
+                          {person.name}
+                        </strong>
+
+                        <b>×</b>
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <div className="groupCallActions">
+                  <button
+                    type="button"
+                    disabled={
+                      calling
+                    }
+                    onClick={() =>
+                      void startGroupCall(
+                        "audio"
+                      )
+                    }
+                  >
+                    📞 Group Audio
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      calling
+                    }
+                    onClick={() =>
+                      void startGroupCall(
+                        "video"
+                      )
+                    }
+                  >
+                    📹 Group Video
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="peopleList">
               {filteredPeople.length >
@@ -1096,6 +1536,37 @@ export default function CallsPage() {
                       </button>
 
                       <div className="quickCall">
+                        <button
+                          type="button"
+                          className={
+                            selectedPeople.some(
+                              (item) =>
+                                item.email
+                                  .toLowerCase() ===
+                                person.email
+                                  .toLowerCase()
+                            )
+                              ? "groupAdd selected"
+                              : "groupAdd"
+                          }
+                          aria-label="Add to group call"
+                          onClick={() =>
+                            toggleGroupPerson(
+                              person
+                            )
+                          }
+                        >
+                          {selectedPeople.some(
+                            (item) =>
+                              item.email
+                                .toLowerCase() ===
+                              person.email
+                                .toLowerCase()
+                          )
+                            ? "✓"
+                            : "＋"}
+                        </button>
+
                         <button
                           aria-label="Audio call"
                           onClick={() =>
@@ -1801,6 +2272,149 @@ export default function CallsPage() {
             height: 34px;
           }
         }
+
+        /* UTV GROUP CALLS 2B1 */
+
+        .groupCallTray {
+          margin: 14px 0 18px;
+          padding: 16px;
+          border-radius: 24px;
+          border: 1px solid rgba(255,255,255,.12);
+          background:
+            linear-gradient(
+              145deg,
+              rgba(80,245,198,.1),
+              rgba(119,80,255,.12)
+            ),
+            rgba(8,11,18,.92);
+          box-shadow:
+            0 20px 60px rgba(0,0,0,.3);
+        }
+
+        .groupTrayTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 13px;
+        }
+
+        .groupTrayTop > div {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .groupTrayTop strong {
+          font-size: 15px;
+        }
+
+        .groupTrayTop span {
+          color: #55f4ca;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .groupTrayTop button {
+          border: 0;
+          background: transparent;
+          color: #aab3c2;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .groupPeople {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 6px;
+        }
+
+        .groupPeople > button {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          min-height: 42px;
+          padding: 6px 10px 6px 6px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.12);
+          background: rgba(255,255,255,.07);
+          color: white;
+          font: inherit;
+        }
+
+        .groupPeople > button > span {
+          width: 30px;
+          height: 30px;
+          overflow: hidden;
+          border-radius: 11px;
+          display: grid;
+          place-items: center;
+          background: #20283a;
+          font-weight: 1000;
+        }
+
+        .groupPeople img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .groupPeople strong {
+          font-size: 11px;
+          max-width: 92px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .groupPeople b {
+          color: #9ca6b7;
+          font-size: 15px;
+        }
+
+        .groupCallActions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 9px;
+          margin-top: 12px;
+        }
+
+        .groupCallActions button {
+          min-height: 46px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,.12);
+          color: white;
+          background: rgba(255,255,255,.08);
+          font: inherit;
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .groupCallActions button:last-child {
+          background:
+            linear-gradient(
+              135deg,
+              rgba(98,76,220,.75),
+              rgba(56,181,159,.68)
+            );
+        }
+
+        .groupCallActions button:disabled {
+          opacity: .45;
+        }
+
+        .quickCall .groupAdd {
+          color: #55f4ca;
+        }
+
+        .quickCall .groupAdd.selected {
+          background: rgba(85,244,202,.16);
+          border-color: rgba(85,244,202,.45);
+        }
+
       `}</style>
     </main>
   );

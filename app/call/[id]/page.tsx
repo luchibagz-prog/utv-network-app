@@ -14,6 +14,7 @@ import {
 import {
   Room,
   RoomEvent,
+  RemoteParticipant,
   RemoteTrack,
   Track,
 } from "livekit-client";
@@ -29,8 +30,126 @@ type CallRow = {
   status: string;
   created_at?: string;
   answered_at?: string;
+  max_participants?: number;
 };
 
+type RemoteCallParticipant = {
+  identity: string;
+  name: string;
+  email: string;
+  videoTrack: RemoteTrack | null;
+};
+
+
+function participantInfo(
+  participant: RemoteParticipant
+) {
+  let email = "";
+
+  try {
+    const metadata =
+      JSON.parse(
+        participant.metadata || "{}"
+      );
+
+    email =
+      String(
+        metadata?.email || ""
+      );
+  } catch {}
+
+
+  const fallback =
+    email
+      ? email.split("@")[0]
+      : participant.name ||
+        participant.identity ||
+        "UTV User";
+
+
+  return {
+    email,
+    name: fallback,
+  };
+}
+
+
+function RemoteVideoTile({
+  participant,
+}: {
+  participant: RemoteCallParticipant;
+}) {
+  const videoRef =
+    useRef<HTMLVideoElement | null>(
+      null
+    );
+
+
+  useEffect(() => {
+    const video =
+      videoRef.current;
+
+    const track =
+      participant.videoTrack;
+
+    if (!video || !track) {
+      return;
+    }
+
+    track.attach(video);
+
+    video.playsInline = true;
+    video.autoplay = true;
+
+    void video
+      .play()
+      .catch(() => {});
+
+
+    return () => {
+      try {
+        track.detach(video);
+      } catch {}
+
+      video.srcObject = null;
+    };
+  }, [participant.videoTrack]);
+
+
+  return (
+    <div className="participantTile remoteTile">
+      {participant.videoTrack ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className="participantVideo"
+        />
+      ) : (
+        <div className="participantPlaceholder">
+          <strong>
+            {participant.name
+              .slice(0, 1)
+              .toUpperCase()}
+          </strong>
+
+          <span>
+            Camera off
+          </span>
+        </div>
+      )}
+
+      <div className="participantLabel">
+        <span>
+          {participant.name}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+
+// UTV GROUP CALLS 2B2 — PARTICIPANT GRID
 export default function UTVCallRoom() {
   const params = useParams();
   const router = useRouter();
@@ -43,9 +162,6 @@ export default function UTVCallRoom() {
 
   const audioContainerRef =
     useRef<HTMLDivElement | null>(null);
-
-  const remoteVideoRef =
-    useRef<HTMLVideoElement | null>(null);
 
   const localVideoRef =
     useRef<HTMLVideoElement | null>(null);
@@ -77,8 +193,13 @@ export default function UTVCallRoom() {
   const [facing, setFacing] =
     useState<"user" | "environment">("user");
 
-  const [remoteVideo, setRemoteVideo] =
-    useState(false);
+  const [
+    remoteParticipants,
+    setRemoteParticipants,
+  ] =
+    useState<
+      RemoteCallParticipant[]
+    >([]);
 
   const [seconds, setSeconds] =
     useState(0);
@@ -88,6 +209,15 @@ export default function UTVCallRoom() {
 
   const [quality, setQuality] =
     useState("Connecting");
+
+  // UTV GROUP CALLS 2B1 — ROOM MEMBERSHIP
+  const [callRole, setCallRole] =
+    useState<"host" | "member">(
+      "member"
+    );
+
+  const [maxParticipants, setMaxParticipants] =
+    useState(2);
 
   const isVideo =
     call?.call_type === "video";
@@ -267,6 +397,8 @@ export default function UTVCallRoom() {
       token: string;
       roomName: string;
       callType: "audio" | "video";
+      role: "host" | "member";
+      maxParticipants: number;
     };
   }
 
@@ -341,6 +473,100 @@ export default function UTVCallRoom() {
     }
   }
 
+  function upsertRemoteParticipant(
+    participant: RemoteParticipant,
+    videoTrack?:
+      | RemoteTrack
+      | null
+  ) {
+    const info =
+      participantInfo(
+        participant
+      );
+
+    setRemoteParticipants(
+      (current) => {
+        const existing =
+          current.find(
+            (item) =>
+              item.identity ===
+              participant.identity
+          );
+
+        const next:
+          RemoteCallParticipant = {
+            identity:
+              participant.identity,
+
+            name:
+              info.name,
+
+            email:
+              info.email,
+
+            videoTrack:
+              videoTrack === undefined
+                ? existing?.videoTrack ||
+                  null
+                : videoTrack,
+          };
+
+        if (!existing) {
+          return [
+            ...current,
+            next,
+          ].slice(0, 3);
+        }
+
+        return current.map(
+          (item) =>
+            item.identity ===
+            participant.identity
+              ? next
+              : item
+        );
+      }
+    );
+  }
+
+
+  function removeRemoteParticipant(
+    identity: string
+  ) {
+    setRemoteParticipants(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.identity !==
+            identity
+        )
+    );
+  }
+
+
+  function clearRemoteVideoTrack(
+    identity: string,
+    track: RemoteTrack
+  ) {
+    setRemoteParticipants(
+      (current) =>
+        current.map(
+          (item) =>
+            item.identity ===
+              identity &&
+            item.videoTrack ===
+              track
+              ? {
+                  ...item,
+                  videoTrack:
+                    null,
+                }
+              : item
+        )
+    );
+  }
+
+
   async function openCall() {
     try {
       const {
@@ -379,22 +605,33 @@ export default function UTVCallRoom() {
 
       setCall(current);
 
-      const participant =
-        current.caller_email
-          .toLowerCase() ===
-          user.email.toLowerCase() ||
-        current.callee_email
-          .toLowerCase() ===
-          user.email.toLowerCase();
-
-      if (!participant) {
-        throw new Error(
-          "You are not part of this call."
-        );
-      }
+      /*
+       * Group membership is verified by
+       * /api/call-token.
+       *
+       * Do not duplicate the old caller/callee-only
+       * authorization check here.
+       */
 
       const tokenData =
         await getToken();
+
+      setCallRole(
+        tokenData.role ||
+          (
+            current.caller_email
+              .toLowerCase() ===
+            user.email.toLowerCase()
+              ? "host"
+              : "member"
+          )
+      );
+
+      setMaxParticipants(
+        tokenData.maxParticipants ||
+          current.max_participants ||
+          2
+      );
 
       const serverUrl =
         process.env
@@ -426,7 +663,11 @@ export default function UTVCallRoom() {
 
       room.on(
         RoomEvent.ParticipantConnected,
-        () => {
+        (participant) => {
+          upsertRemoteParticipant(
+            participant
+          );
+
           setConnected(true);
           setMessage("Connected");
 
@@ -438,10 +679,15 @@ export default function UTVCallRoom() {
             .maybeSingle()
             .then(({ data }) => {
               if (data) {
-                const row = data as CallRow;
+                const row =
+                  data as CallRow;
+
                 setCall(row);
 
-                if (row.status === "accepted") {
+                if (
+                  row.status ===
+                  "accepted"
+                ) {
                   startTimer(row);
                 }
               }
@@ -451,16 +697,28 @@ export default function UTVCallRoom() {
 
       room.on(
         RoomEvent.ParticipantDisconnected,
-        () => {
-          if (!leavingRef.current) {
-            /*
-             * The UTV room itself may still be
-             * perfectly connected. The other
-             * participant leaving is different
-             * from our network reconnecting.
-             */
+        (participant) => {
+          removeRemoteParticipant(
+            participant.identity
+          );
+
+          if (
+            !leavingRef.current
+          ) {
+            const remaining =
+              Math.max(
+                0,
+                room
+                  .remoteParticipants
+                  .size - 1
+              );
+
             setMessage(
-              "Waiting for the other person…"
+              remaining > 0
+                ? "Connected"
+                : maxParticipants > 2
+                  ? "Waiting for others…"
+                  : "Waiting for the other person…"
             );
           }
         }
@@ -468,9 +726,14 @@ export default function UTVCallRoom() {
 
       room.on(
         RoomEvent.TrackSubscribed,
-        (track: RemoteTrack) => {
+        (
+          track: RemoteTrack,
+          _publication,
+          participant
+        ) => {
           if (
-            track.kind === Track.Kind.Audio &&
+            track.kind ===
+              Track.Kind.Audio &&
             audioContainerRef.current
           ) {
             const element =
@@ -480,47 +743,46 @@ export default function UTVCallRoom() {
             element.volume = 1;
             element.muted =
               speakerMuted;
+
             element.setAttribute(
               "playsinline",
               "true"
             );
 
             audioContainerRef.current
-              .appendChild(element);
-
-            void element.play().catch(() => {
-              setMessage(
-                "Tap Speaker once to enable audio."
+              .appendChild(
+                element
               );
-            });
+
+            void element
+              .play()
+              .catch(() => {
+                setMessage(
+                  "Tap Speaker once to enable audio."
+                );
+              });
           }
 
+
           if (
-            track.kind === Track.Kind.Video &&
-            remoteVideoRef.current
+            track.kind ===
+            Track.Kind.Video
           ) {
-            track.attach(
-              remoteVideoRef.current
+            upsertRemoteParticipant(
+              participant,
+              track
             );
-
-            remoteVideoRef.current
-              .setAttribute(
-                "playsinline",
-                "true"
-              );
-
-            void remoteVideoRef.current
-              .play()
-              .catch(() => {});
-
-            setRemoteVideo(true);
           }
         }
       );
 
       room.on(
         RoomEvent.TrackUnsubscribed,
-        (track: RemoteTrack) => {
+        (
+          track: RemoteTrack,
+          _publication,
+          participant
+        ) => {
           track
             .detach()
             .forEach(
@@ -528,10 +790,15 @@ export default function UTVCallRoom() {
                 element.remove()
             );
 
+
           if (
-            track.kind === Track.Kind.Video
+            track.kind ===
+            Track.Kind.Video
           ) {
-            setRemoteVideo(false);
+            clearRemoteVideoTrack(
+              participant.identity,
+              track
+            );
           }
         }
       );
@@ -671,6 +938,16 @@ export default function UTVCallRoom() {
           autoSubscribe: true,
         }
       );
+
+      room.remoteParticipants
+        .forEach(
+          (participant) => {
+            upsertRemoteParticipant(
+              participant
+            );
+          }
+        );
+
 
       await room.localParticipant
         .setMicrophoneEnabled(
@@ -889,6 +1166,49 @@ export default function UTVCallRoom() {
   async function endCall() {
     leavingRef.current = true;
 
+    const groupCall =
+      (
+        maxParticipants > 2 ||
+        (call?.max_participants || 2) > 2
+      );
+
+    /*
+     * In group calls only the host ends
+     * the whole room.
+     *
+     * Everyone else simply leaves.
+     */
+    if (
+      groupCall &&
+      callRole !== "host"
+    ) {
+      try {
+        const {
+          error,
+        } = await supabase.rpc(
+          "utv_leave_call",
+          {
+            p_call_id: callId,
+          }
+        );
+
+        if (error) {
+          console.error(
+            "UTV leave group call:",
+            error
+          );
+        }
+
+      } finally {
+        await cleanup();
+        router.replace(
+          "/calls"
+        );
+      }
+
+      return;
+    }
+
     try {
       await supabase
         .from("call_sessions")
@@ -898,11 +1218,15 @@ export default function UTVCallRoom() {
             new Date().toISOString(),
         })
         .eq("id", callId);
+
     } finally {
       await cleanup();
-      router.replace("/calls");
+      router.replace(
+        "/calls"
+      );
     }
   }
+
 
   async function cleanup() {
     if (timerRef.current) {
@@ -936,10 +1260,6 @@ export default function UTVCallRoom() {
         element.remove()
       );
 
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject =
-        null;
-    }
 
     if (localVideoRef.current) {
       localVideoRef.current.srcObject =
@@ -993,54 +1313,86 @@ export default function UTVCallRoom() {
 
       {isVideo && (
         <div className="videoStage">
-          <video
-            ref={remoteVideoRef}
-            className={
-              remoteVideo
-                ? "remoteVideo visible"
-                : "remoteVideo"
-            }
-            autoPlay
-            playsInline
-          />
+          <div
+            className={`participantGrid count${Math.min(
+              4,
+              Math.max(
+                1,
+                remoteParticipants.length + 1
+              )
+            )}`}
+          >
+            <div className="participantTile localTile">
+              {cameraOn ? (
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className={
+                    facing === "user"
+                      ? "participantVideo mirror"
+                      : "participantVideo"
+                  }
+                />
+              ) : (
+                <div className="participantPlaceholder">
+                  <strong>
+                    {email
+                      ? email
+                          .slice(0, 1)
+                          .toUpperCase()
+                      : "Y"}
+                  </strong>
 
-          {!remoteVideo && (
-            <div className="remotePlaceholder">
-              <div className="bigAvatar">
-                {otherPerson()
-                  .slice(0, 1)
-                  .toUpperCase()}
+                  <span>
+                    Camera off
+                  </span>
+                </div>
+              )}
+
+              <div className="participantLabel">
+                <span>You</span>
+
+                {micMuted && (
+                  <b>🔇</b>
+                )}
               </div>
+            </div>
+
+
+            {remoteParticipants
+              .slice(0, 3)
+              .map(
+                (participant) => (
+                  <RemoteVideoTile
+                    key={
+                      participant.identity
+                    }
+                    participant={
+                      participant
+                    }
+                  />
+                )
+              )}
+          </div>
+
+
+          {remoteParticipants.length === 0 && (
+            <div className="groupWaiting">
+              <span className="waitingPulse" />
 
               <strong>
-                {otherPerson()}
+                {maxParticipants > 2
+                  ? "Waiting for your group"
+                  : `Calling ${otherPerson()}`}
               </strong>
 
-              <span>
+              <small>
                 {message}
-              </span>
+              </small>
             </div>
           )}
-
-          <div className="localVideoShell">
-            {cameraOn ? (
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className={
-                  facing === "user"
-                    ? "localVideo mirror"
-                    : "localVideo"
-                }
-              />
-            ) : (
-              <div className="cameraOff">
-                📷
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -1074,8 +1426,19 @@ export default function UTVCallRoom() {
             </div>
 
             <h1>
-              {otherPerson()}
+              {maxParticipants > 2
+                ? `UTV Group Call`
+                : otherPerson()}
             </h1>
+
+            {maxParticipants > 2 && (
+              <small className="groupCount">
+                {Math.min(
+                  4,
+                  remoteParticipants.length + 1
+                )}/{maxParticipants} connected
+              </small>
+            )}
 
             <p>{message}</p>
           </>
@@ -1084,7 +1447,12 @@ export default function UTVCallRoom() {
         {isVideo && (
           <div className="videoStatus">
             <strong>
-              {otherPerson()}
+              {maxParticipants > 2
+                ? `UTV Group Call • ${Math.min(
+                    4,
+                    remoteParticipants.length + 1
+                  )}/${maxParticipants}`
+                : otherPerson()}
             </strong>
 
             <span>
@@ -1184,7 +1552,10 @@ export default function UTVCallRoom() {
         </button>
 
         <span className="endLabel">
-          End call
+          {maxParticipants > 2 &&
+          callRole !== "host"
+            ? "Leave call"
+            : "End call"}
         </span>
       </section>
 
@@ -1369,95 +1740,244 @@ export default function UTVCallRoom() {
             );
         }
 
-        .remoteVideo {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          opacity: 0;
-          transition:
-            opacity .2s ease;
-        }
+        /* UTV GROUP CALLS 2B2 — VIDEO GRID */
 
-        .remoteVideo.visible {
-          opacity: 1;
-        }
-
-        .remotePlaceholder {
+        .participantGrid {
           position: absolute;
           inset: 0;
+          display: grid;
+          gap: 6px;
+          padding:
+            max(
+              8px,
+              env(safe-area-inset-top)
+            )
+            8px
+            188px;
+          box-sizing: border-box;
+        }
+
+        .participantGrid.count1 {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr;
+        }
+
+        .participantGrid.count2 {
+          grid-template-columns: 1fr;
+          grid-template-rows:
+            repeat(
+              2,
+              minmax(0, 1fr)
+            );
+        }
+
+        .participantGrid.count3,
+        .participantGrid.count4 {
+          grid-template-columns:
+            repeat(
+              2,
+              minmax(0, 1fr)
+            );
+
+          grid-template-rows:
+            repeat(
+              2,
+              minmax(0, 1fr)
+            );
+        }
+
+        .participantGrid.count3
+        .participantTile:nth-child(3) {
+          grid-column: 1 / -1;
+        }
+
+        .participantTile {
+          position: relative;
+          min-width: 0;
+          min-height: 0;
+          overflow: hidden;
+          border-radius: 22px;
+          background:
+            radial-gradient(
+              circle at 50% 30%,
+              #202941,
+              #090d15 72%
+            );
+          border:
+            1px solid
+            rgba(255,255,255,.1);
+          box-shadow:
+            0 14px 38px
+            rgba(0,0,0,.28);
+        }
+
+        .participantVideo {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          background: #080b10;
+        }
+
+        .participantVideo.mirror {
+          transform:
+            scaleX(-1);
+        }
+
+        .participantPlaceholder {
+          width: 100%;
+          height: 100%;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 10px;
+          gap: 9px;
+          color: white;
+          background:
+            radial-gradient(
+              circle at center,
+              rgba(91,73,209,.32),
+              rgba(7,10,16,.95)
+            );
         }
 
-        .remotePlaceholder strong {
-          font-size: 28px;
-        }
-
-        .remotePlaceholder span {
-          color: #9ca7b8;
-        }
-
-        .bigAvatar {
-          width: 120px;
-          height: 120px;
-          border-radius: 42px;
+        .participantPlaceholder strong {
+          width: 74px;
+          height: 74px;
+          border-radius: 27px;
           display: grid;
           place-items: center;
-          font-size: 46px;
-          font-weight: 1000;
-          margin-bottom: 10px;
+          font-size: 30px;
           background:
             linear-gradient(
               145deg,
               #6040d6,
-              #172130
+              #192235
             );
           border:
             1px solid
-            rgba(255,255,255,.16);
+            rgba(255,255,255,.14);
         }
 
-        .localVideoShell {
+        .participantPlaceholder span {
+          font-size: 11px;
+          color: #aab3c2;
+          font-weight: 800;
+        }
+
+        .participantLabel {
           position: absolute;
-          right: 14px;
+          left: 9px;
+          right: 9px;
+          bottom: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          pointer-events: none;
+        }
+
+        .participantLabel span {
+          min-width: 0;
+          max-width: 80%;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          padding: 6px 9px;
+          border-radius: 999px;
+          color: white;
+          background:
+            rgba(4,7,12,.66);
+          backdrop-filter:
+            blur(12px);
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .participantLabel b {
+          font-size: 12px;
+          padding: 5px 7px;
+          border-radius: 999px;
+          background:
+            rgba(4,7,12,.68);
+        }
+
+        .groupWaiting {
+          position: fixed;
+          z-index: 9;
+          left: 50%;
           top:
             max(
-              18px,
+              22px,
               env(safe-area-inset-top)
             );
-          width: 110px;
-          height: 160px;
-          border-radius: 23px;
-          overflow: hidden;
-          z-index: 10;
-          background: #111722;
+          transform:
+            translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          max-width:
+            calc(100% - 36px);
+          padding: 9px 13px;
+          border-radius: 999px;
+          background:
+            rgba(5,8,14,.72);
           border:
             1px solid
-            rgba(255,255,255,.22);
+            rgba(255,255,255,.11);
+          backdrop-filter:
+            blur(16px);
           box-shadow:
-            0 16px 50px
-            rgba(0,0,0,.5);
+            0 12px 35px
+            rgba(0,0,0,.3);
         }
 
-        .localVideo {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
+        .groupWaiting strong {
+          font-size: 11px;
+          white-space: nowrap;
         }
 
-        .localVideo.mirror {
-          transform: scaleX(-1);
+        .groupWaiting small {
+          color: #9da7b7;
+          font-size: 10px;
+          white-space: nowrap;
         }
 
-        .cameraOff {
-          width: 100%;
-          height: 100%;
-          display: grid;
-          place-items: center;
-          font-size: 27px;
+        .waitingPulse {
+          width: 8px;
+          height: 8px;
+          flex: 0 0 auto;
+          border-radius: 50%;
+          background: #55f4ca;
+          box-shadow:
+            0 0 18px
+            rgba(85,244,202,.75);
+          animation:
+            utvCallPulse 1.15s
+            ease-in-out infinite;
+        }
+
+        @keyframes utvCallPulse {
+          0%,
+          100% {
+            opacity: .4;
+            transform:
+              scale(.82);
+          }
+
+          50% {
+            opacity: 1;
+            transform:
+              scale(1.15);
+          }
+        }
+
+        .groupCount {
+          display: block;
+          margin-top: 8px;
+          color: #55f4ca;
+          font-size: 11px;
+          font-weight: 900;
         }
 
         .videoControls {
@@ -1513,13 +2033,24 @@ export default function UTVCallRoom() {
         }
 
         @media (
+          orientation: landscape
+        ) and (
+          min-width: 650px
+        ) {
+          .participantGrid.count2 {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              );
+            grid-template-rows:
+              1fr;
+          }
+        }
+
+        @media (
           max-height: 700px
         ) {
-          .localVideoShell {
-            width: 90px;
-            height: 128px;
-          }
-
           .control {
             width: 64px;
             height: 64px;
