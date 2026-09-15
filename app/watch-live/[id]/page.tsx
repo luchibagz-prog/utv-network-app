@@ -161,6 +161,13 @@ export default function WatchLivePage() {
   const toastTimerRef =
     useRef<number | null>(null);
 
+  // UTV LIVE V5 GUEST STUDIO
+  const localGuestVideoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const localGuestIdentityRef =
+    useRef("");
+
 
   const [session, setSession] =
     useState<LiveSession | null>(null);
@@ -215,6 +222,15 @@ export default function WatchLivePage() {
   const [soundReady, setSoundReady] =
     useState(true);
 
+  const [guestMicOn, setGuestMicOn] =
+    useState(true);
+
+  const [guestCameraOn, setGuestCameraOn] =
+    useState(true);
+
+  const [guestFacing, setGuestFacing] =
+    useState<"user" | "environment">("user");
+
 
   const orderedPeople = useMemo(() => {
     const host =
@@ -223,19 +239,59 @@ export default function WatchLivePage() {
           person.role === "host"
       );
 
+    const guestLimit =
+      guestState === "guest"
+        ? 2
+        : 3;
+
     const guests =
       remotePeople
         .filter(
           (person) =>
-            person.role === "guest"
+            person.role === "guest" &&
+            person.identity !==
+              localGuestIdentityRef.current
         )
-        .slice(0, 3);
+        .slice(0, guestLimit);
+
+    const localGuest:
+      RemotePerson | null =
+      guestState === "guest" &&
+      localGuestIdentityRef.current
+        ? {
+            identity:
+              localGuestIdentityRef.current,
+
+            email:
+              userEmailRef.current ||
+              "You",
+
+            role: "guest",
+
+            hasVideo:
+              guestCameraOn,
+
+            hasAudio:
+              guestMicOn,
+
+            hasScreen:
+              false,
+          }
+        : null;
 
     return [
       ...(host ? [host] : []),
       ...guests,
-    ];
-  }, [remotePeople]);
+      ...(localGuest
+        ? [localGuest]
+        : []),
+    ].slice(0, 4);
+  }, [
+    remotePeople,
+    guestState,
+    guestCameraOn,
+    guestMicOn,
+  ]);
 
 
   useEffect(() => {
@@ -340,6 +396,49 @@ export default function WatchLivePage() {
       }
     );
   }, [orderedPeople]);
+
+
+  useEffect(() => {
+    if (
+      guestState !== "guest" ||
+      !localGuestVideoRef.current ||
+      !roomRef.current
+    ) {
+      return;
+    }
+
+    const localParticipant =
+      roomRef.current
+        .localParticipant as any;
+
+    const publication =
+      localParticipant
+        .getTrackPublication?.(
+          Track.Source.Camera
+        );
+
+    const track =
+      publication?.track;
+
+    if (!track) {
+      return;
+    }
+
+    try {
+      track.attach(
+        localGuestVideoRef.current
+      );
+
+      void localGuestVideoRef
+        .current
+        .play()
+        .catch(() => {});
+    } catch {}
+  }, [
+    guestState,
+    guestCameraOn,
+    guestFacing,
+  ]);
 
 
   useEffect(() => {
@@ -1348,9 +1447,46 @@ export default function WatchLivePage() {
         isGuestRef.current =
           true;
 
+        localGuestIdentityRef.current =
+          room.localParticipant.identity;
+
+        setGuestMicOn(true);
+        setGuestCameraOn(true);
+        setGuestFacing("user");
+
         setGuestState(
           "guest"
         );
+
+        window.setTimeout(() => {
+          const localParticipant =
+            room.localParticipant as any;
+
+          const publication =
+            localParticipant
+              .getTrackPublication?.(
+                Track.Source.Camera
+              );
+
+          const track =
+            publication?.track;
+
+          if (
+            track &&
+            localGuestVideoRef.current
+          ) {
+            try {
+              track.attach(
+                localGuestVideoRef.current
+              );
+
+              void localGuestVideoRef
+                .current
+                .play()
+                .catch(() => {});
+            } catch {}
+          }
+        }, 120);
 
         if (
           realtimeChannelRef
@@ -1423,8 +1559,36 @@ export default function WatchLivePage() {
       }
     } catch {}
 
+    if (room) {
+      const localParticipant =
+        room.localParticipant as any;
+
+      const publication =
+        localParticipant
+          .getTrackPublication?.(
+            Track.Source.Camera
+          );
+
+      try {
+        publication?.track?.detach(
+          localGuestVideoRef.current ||
+          undefined
+        );
+      } catch {}
+    }
+
+    localGuestIdentityRef.current =
+      "";
+
+    localGuestVideoRef.current =
+      null;
+
     isGuestRef.current =
       false;
+
+    setGuestMicOn(true);
+    setGuestCameraOn(true);
+    setGuestFacing("user");
 
     setGuestState(
       "viewer"
@@ -1468,6 +1632,219 @@ export default function WatchLivePage() {
     if (notifyHost) {
       flash(
         "You left the guest seat."
+      );
+    }
+  }
+
+
+  async function toggleGuestMic() {
+    const room =
+      roomRef.current;
+
+    if (
+      !room ||
+      guestState !== "guest"
+    ) {
+      return;
+    }
+
+    const next =
+      !guestMicOn;
+
+    try {
+      await room
+        .localParticipant
+        .setMicrophoneEnabled(
+          next
+        );
+
+      setGuestMicOn(
+        next
+      );
+
+      flash(
+        next
+          ? "Guest microphone on."
+          : "Guest microphone muted."
+      );
+
+    } catch {
+      flash(
+        "Could not change microphone."
+      );
+    }
+  }
+
+
+  async function toggleGuestCamera() {
+    const room =
+      roomRef.current;
+
+    if (
+      !room ||
+      guestState !== "guest"
+    ) {
+      return;
+    }
+
+    const next =
+      !guestCameraOn;
+
+    try {
+      await room
+        .localParticipant
+        .setCameraEnabled(
+          next
+        );
+
+      setGuestCameraOn(
+        next
+      );
+
+      if (next) {
+        window.setTimeout(() => {
+          const localParticipant =
+            room.localParticipant as any;
+
+          const publication =
+            localParticipant
+              .getTrackPublication?.(
+                Track.Source.Camera
+              );
+
+          const track =
+            publication?.track;
+
+          if (
+            track &&
+            localGuestVideoRef.current
+          ) {
+            try {
+              track.attach(
+                localGuestVideoRef.current
+              );
+            } catch {}
+          }
+        }, 120);
+      }
+
+      flash(
+        next
+          ? "Guest camera on."
+          : "Guest camera off."
+      );
+
+    } catch {
+      flash(
+        "Could not change camera."
+      );
+    }
+  }
+
+
+  async function flipGuestCamera() {
+    const room =
+      roomRef.current;
+
+    if (
+      !room ||
+      guestState !== "guest"
+    ) {
+      return;
+    }
+
+    if (!guestCameraOn) {
+      flash(
+        "Turn your camera on first."
+      );
+
+      return;
+    }
+
+    const next =
+      guestFacing === "user"
+        ? "environment"
+        : "user";
+
+    try {
+      const localParticipant =
+        room.localParticipant as any;
+
+      const publication =
+        localParticipant
+          .getTrackPublication?.(
+            Track.Source.Camera
+          );
+
+      const track =
+        publication?.track;
+
+      if (
+        track?.restartTrack
+      ) {
+        await track.restartTrack({
+          facingMode:
+            next,
+        });
+      } else {
+        await localParticipant
+          .setCameraEnabled(
+            false
+          );
+
+        await wait(120);
+
+        await localParticipant
+          .setCameraEnabled(
+            true,
+            {
+              facingMode:
+                next,
+            }
+          );
+      }
+
+      setGuestFacing(
+        next
+      );
+
+      window.setTimeout(() => {
+        const freshPublication =
+          localParticipant
+            .getTrackPublication?.(
+              Track.Source.Camera
+            );
+
+        const freshTrack =
+          freshPublication
+            ?.track;
+
+        if (
+          freshTrack &&
+          localGuestVideoRef.current
+        ) {
+          try {
+            freshTrack.attach(
+              localGuestVideoRef.current
+            );
+          } catch {}
+        }
+      }, 120);
+
+      flash(
+        next === "environment"
+          ? "Back camera"
+          : "Front camera"
+      );
+
+    } catch (error) {
+      console.error(
+        "UTV guest camera flip:",
+        error
+      );
+
+      flash(
+        "Could not flip camera."
       );
     }
   }
@@ -1853,6 +2230,11 @@ export default function WatchLivePage() {
           {orderedPeople.length ? (
             orderedPeople.map(
               (person, index) => {
+                const isLocalGuest =
+                  guestState === "guest" &&
+                  person.identity ===
+                    localGuestIdentityRef.current;
+
                 const spotlighted =
                   liveLayout ===
                     "spotlight" &&
@@ -1882,15 +2264,33 @@ export default function WatchLivePage() {
                       ref={(
                         element
                       ) => {
-                        remoteVideoElementsRef
-                          .current[
-                            person.identity
-                          ] =
-                          element;
+                        if (
+                          isLocalGuest
+                        ) {
+                          localGuestVideoRef.current =
+                            element;
+                        } else {
+                          remoteVideoElementsRef
+                            .current[
+                              person.identity
+                            ] =
+                            element;
+                        }
                       }}
                       autoPlay
                       playsInline
-                      className="personVideo"
+                      muted={
+                        isLocalGuest
+                      }
+                      className={
+                        isLocalGuest &&
+                        guestFacing ===
+                          "user"
+                          ? "personVideo localGuestVideo mirroredLocal"
+                          : isLocalGuest
+                          ? "personVideo localGuestVideo"
+                          : "personVideo"
+                      }
                     />
 
                     {!person.hasVideo &&
@@ -1910,8 +2310,10 @@ export default function WatchLivePage() {
 
                     <div className="personLabel">
                       <small>
-                        {person.role ===
-                        "host"
+                        {isLocalGuest
+                          ? "YOU"
+                          : person.role ===
+                            "host"
                           ? "HOST"
                           : `GUEST ${index}`}
                       </small>
@@ -2121,6 +2523,80 @@ export default function WatchLivePage() {
                 </button>
               </div>
             </section>
+          </div>
+        )}
+
+
+        {guestState === "guest" && (
+          <div className="guestStudioRail">
+            <div className="guestStudioBadge">
+              <span>●</span>
+              YOU'RE ON LIVE
+            </div>
+
+            <div className="guestStudioButtons">
+              <button
+                type="button"
+                className={
+                  guestMicOn
+                    ? "guestStudioButton active"
+                    : "guestStudioButton"
+                }
+                onClick={() =>
+                  void toggleGuestMic()
+                }
+              >
+                <b>
+                  {guestMicOn
+                    ? "🎙"
+                    : "🔇"}
+                </b>
+                <small>Mic</small>
+              </button>
+
+              <button
+                type="button"
+                className={
+                  guestCameraOn
+                    ? "guestStudioButton active"
+                    : "guestStudioButton"
+                }
+                onClick={() =>
+                  void toggleGuestCamera()
+                }
+              >
+                <b>
+                  {guestCameraOn
+                    ? "🎥"
+                    : "🚫"}
+                </b>
+                <small>Camera</small>
+              </button>
+
+              <button
+                type="button"
+                className="guestStudioButton"
+                onClick={() =>
+                  void flipGuestCamera()
+                }
+              >
+                <b>↻</b>
+                <small>Flip</small>
+              </button>
+
+              <button
+                type="button"
+                className="guestStudioButton leave"
+                onClick={() =>
+                  void stopGuestPublishing(
+                    true
+                  )
+                }
+              >
+                <b>×</b>
+                <small>Leave</small>
+              </button>
+            </div>
           </div>
         )}
 
@@ -2950,4 +3426,95 @@ const styles = `
       border-right:1px solid rgba(255,255,255,.07)
     }
   }
+
+
+  /* ========================================
+     UTV LIVE V5 GUEST STUDIO
+  ======================================== */
+
+  .mirroredLocal{
+    transform:scaleX(-1)
+  }
+
+  .guestStudioRail{
+    position:absolute;
+    left:11px;
+    right:11px;
+    bottom:158px;
+    z-index:55;
+    display:grid;
+    gap:6px;
+    padding:7px;
+    border:1px solid rgba(82,247,200,.2);
+    border-radius:20px;
+    background:rgba(5,10,9,.76);
+    box-shadow:0 14px 45px rgba(0,0,0,.32);
+    backdrop-filter:blur(22px)
+  }
+
+  .guestStudioBadge{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    color:#52f7c8;
+    font-size:7px;
+    font-weight:950;
+    letter-spacing:1.2px
+  }
+
+  .guestStudioBadge span{
+    color:#ff2d55;
+    font-size:10px
+  }
+
+  .guestStudioButtons{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:5px
+  }
+
+  .guestStudioButton{
+    min-height:46px;
+    display:grid;
+    place-items:center;
+    align-content:center;
+    gap:1px;
+    color:rgba(255,255,255,.62);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:13px;
+    background:rgba(255,255,255,.045)
+  }
+
+  .guestStudioButton b{
+    font-size:15px
+  }
+
+  .guestStudioButton small{
+    font-size:7px;
+    font-weight:900
+  }
+
+  .guestStudioButton.active{
+    color:#52f7c8;
+    border-color:rgba(82,247,200,.23);
+    background:rgba(82,247,200,.08)
+  }
+
+  .guestStudioButton.leave{
+    color:#ff9aac;
+    border-color:rgba(255,45,85,.2);
+    background:rgba(255,45,85,.08)
+  }
+
+  .watchStage:has(.guestStudioRail)
+  .viewerComments{
+    bottom:235px
+  }
+
+  .watchStage:has(.guestStudioRail)
+  .viewerToast{
+    bottom:238px
+  }
+
 `;
