@@ -308,7 +308,7 @@ export default function StudioPage() {
     "";
 
   return (
-    <main className="studioPage">
+    <main data-utv-pack3="studio" className="studioPage">
       <UTVNav />
 
       <style>{`

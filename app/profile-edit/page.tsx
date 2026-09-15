@@ -524,7 +524,7 @@ export default function ProfileEditPage() {
 
   if (loading) {
     return (
-      <main className="loadingPage">
+      <main data-utv-pack3="settings" className="loadingPage">
         <div className="loadingOrb">UTV</div>
 
         <style jsx>{`
@@ -573,7 +573,7 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <main className="page">
+    <main data-utv-pack3="settings" className="page">
       <UTVNav />
 
       <header className="topbar">

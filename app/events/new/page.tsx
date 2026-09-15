@@ -510,7 +510,7 @@ export default function NewEventPage() {
   }
 
   return (
-    <main className="eventPage">
+    <main data-utv-pack3="events" className="eventPage">
       <UTVNav />
 
       <section className="eventWrap">

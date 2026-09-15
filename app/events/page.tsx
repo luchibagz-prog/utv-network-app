@@ -33,7 +33,7 @@ export default function EventsPage() {
   }
 
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main data-utv-pack3="events" className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section style={{ marginTop: 20 }}>

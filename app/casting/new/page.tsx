@@ -64,7 +64,7 @@ export default function NewCastingPage() {
   }
 
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main data-utv-pack3="casting" className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>

@@ -37,7 +37,7 @@ export default function LegacyProfileRedirect() {
   }, [router]);
 
   return (
-    <main
+    <main data-utv-pack3="settings"
       className="profileRedirectShell"
       aria-hidden="true"
     >

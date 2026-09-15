@@ -1,0 +1,1598 @@
+/*
+ * ==========================================================
+ * UTV VISUAL SYSTEM — PACK #3
+ *
+ * Events
+ * Casting
+ * Build Together / Collabs
+ * Create / Upload
+ * Creator Studio
+ * Settings
+ * ==========================================================
+ */
+
+
+/* ==========================================================
+   THEME COLORS
+   ========================================================== */
+
+main[data-utv-pack3] {
+  --p3-accent:
+    #52f7c8;
+
+  --p3-accent-2:
+    #8068ff;
+
+  --p3-soft:
+    rgba(
+      82,
+      247,
+      200,
+      .10
+    );
+
+  position:
+    relative;
+
+  isolation:
+    isolate;
+
+  min-height:
+    100dvh;
+
+  overflow-x:
+    clip;
+
+  color:
+    #fff;
+
+  background:
+    radial-gradient(
+      circle at 8% -2%,
+      var(--p3-soft),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 94% 8%,
+      rgba(
+        128,
+        104,
+        255,
+        .10
+      ),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #05070b 0%,
+      #020305 48%,
+      #000 100%
+    ) !important;
+
+  padding-bottom:
+    calc(
+      105px +
+      env(
+        safe-area-inset-bottom
+      )
+    );
+}
+
+
+main[
+  data-utv-pack3="events"
+] {
+  --p3-accent:
+    #52f7c8;
+
+  --p3-accent-2:
+    #72e8ff;
+
+  --p3-soft:
+    rgba(
+      82,
+      247,
+      200,
+      .12
+    );
+}
+
+
+main[
+  data-utv-pack3="casting"
+] {
+  --p3-accent:
+    #ff62bf;
+
+  --p3-accent-2:
+    #8068ff;
+
+  --p3-soft:
+    rgba(
+      255,
+      98,
+      191,
+      .11
+    );
+}
+
+
+main[
+  data-utv-pack3="collabs"
+] {
+  --p3-accent:
+    #72e8ff;
+
+  --p3-accent-2:
+    #8c72ff;
+
+  --p3-soft:
+    rgba(
+      114,
+      232,
+      255,
+      .11
+    );
+}
+
+
+main[
+  data-utv-pack3="create"
+] {
+  --p3-accent:
+    #52f7c8;
+
+  --p3-accent-2:
+    #ff4f8b;
+
+  --p3-soft:
+    rgba(
+      82,
+      247,
+      200,
+      .09
+    );
+}
+
+
+main[
+  data-utv-pack3="studio"
+] {
+  --p3-accent:
+    #52f7c8;
+
+  --p3-accent-2:
+    #8068ff;
+
+  --p3-soft:
+    rgba(
+      128,
+      104,
+      255,
+      .11
+    );
+}
+
+
+main[
+  data-utv-pack3="settings"
+] {
+  --p3-accent:
+    #52f7c8;
+
+  --p3-accent-2:
+    #72e8ff;
+
+  --p3-soft:
+    rgba(
+      82,
+      247,
+      200,
+      .08
+    );
+}
+
+
+/* ==========================================================
+   BACKGROUND ATMOSPHERE
+   ========================================================== */
+
+main[data-utv-pack3]::before {
+  content:
+    "";
+
+  position:
+    fixed;
+
+  z-index:
+    -1;
+
+  top:
+    -170px;
+
+  left:
+    50%;
+
+  width:
+    min(
+      560px,
+      110vw
+    );
+
+  height:
+    430px;
+
+  transform:
+    translateX(-50%);
+
+  border-radius:
+    50%;
+
+  pointer-events:
+    none;
+
+  background:
+    radial-gradient(
+      circle,
+      var(--p3-soft),
+      transparent 68%
+    );
+
+  filter:
+    blur(15px);
+
+  animation:
+    p3GlowFloat
+    7s
+    ease-in-out
+    infinite;
+}
+
+
+/* ==========================================================
+   PREMIUM PAGE HEADERS
+   ========================================================== */
+
+main[data-utv-pack3]
+> header,
+
+main[data-utv-pack3]
+.hero,
+
+main[data-utv-pack3]
+.pageHeader,
+
+main[data-utv-pack3]
+.topHeader,
+
+main[data-utv-pack3]
+.studioTop {
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border-bottom:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .075
+    ) !important;
+
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      var(--p3-soft),
+      transparent 50%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(
+        7,
+        10,
+        15,
+        .96
+      ),
+      rgba(
+        4,
+        6,
+        10,
+        .77
+      )
+    ) !important;
+
+  box-shadow:
+    0 18px 50px
+    rgba(
+      0,
+      0,
+      0,
+      .22
+    );
+
+  backdrop-filter:
+    blur(26px)
+    saturate(155%);
+
+  -webkit-backdrop-filter:
+    blur(26px)
+    saturate(155%);
+}
+
+
+main[data-utv-pack3]
+> header::after,
+
+main[data-utv-pack3]
+.hero::after,
+
+main[data-utv-pack3]
+.studioTop::after {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  top:
+    -55px;
+
+  right:
+    -50px;
+
+  width:
+    145px;
+
+  height:
+    145px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .08
+    );
+
+  border-radius:
+    50%;
+
+  pointer-events:
+    none;
+
+  background:
+    radial-gradient(
+      circle,
+      var(--p3-soft),
+      transparent 68%
+    );
+
+  box-shadow:
+    0 0 50px
+    var(--p3-soft);
+}
+
+
+main[data-utv-pack3]
+h1 {
+  color:
+    #fff;
+
+  letter-spacing:
+    -.045em;
+}
+
+
+main[data-utv-pack3]
+h2,
+
+main[data-utv-pack3]
+h3 {
+  color:
+    #fff;
+}
+
+
+/* ==========================================================
+   GENERAL GLASS CARDS
+   ========================================================== */
+
+main[data-utv-pack3]
+.card,
+
+main[data-utv-pack3]
+article {
+  border-color:
+    rgba(
+      255,
+      255,
+      255,
+      .09
+    ) !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(
+        255,
+        255,
+        255,
+        .055
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        .018
+      )
+    ) !important;
+
+  box-shadow:
+    inset
+    0
+    1px
+    0
+    rgba(
+      255,
+      255,
+      255,
+      .035
+    ),
+    0
+    18px
+    48px
+    rgba(
+      0,
+      0,
+      0,
+      .17
+    );
+}
+
+
+/* ==========================================================
+   FORM CONTROLS
+   ========================================================== */
+
+main[data-utv-pack3]
+input,
+
+main[data-utv-pack3]
+textarea,
+
+main[data-utv-pack3]
+select {
+  color:
+    #fff !important;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .10
+    ) !important;
+
+  outline:
+    none;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .045
+    ) !important;
+
+  box-shadow:
+    inset
+    0
+    1px
+    0
+    rgba(
+      255,
+      255,
+      255,
+      .025
+    );
+
+  backdrop-filter:
+    blur(16px);
+}
+
+
+main[data-utv-pack3]
+input:focus,
+
+main[data-utv-pack3]
+textarea:focus,
+
+main[data-utv-pack3]
+select:focus {
+  border-color:
+    var(--p3-accent)
+    !important;
+
+  box-shadow:
+    0 0 0 3px
+    var(--p3-soft)
+    !important;
+}
+
+
+main[data-utv-pack3]
+input::placeholder,
+
+main[data-utv-pack3]
+textarea::placeholder {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .34
+    );
+}
+
+
+/* ==========================================================
+   EVENTS
+   ========================================================== */
+
+main[
+  data-utv-pack3="events"
+] article,
+
+main[
+  data-utv-pack3="events"
+] .eventCard {
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border-radius:
+    22px !important;
+}
+
+
+main[
+  data-utv-pack3="events"
+] article::before,
+
+main[
+  data-utv-pack3="events"
+] .eventCard::before {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  z-index:
+    0;
+
+  top:
+    -35px;
+
+  right:
+    -35px;
+
+  width:
+    95px;
+
+  height:
+    95px;
+
+  border-radius:
+    50%;
+
+  pointer-events:
+    none;
+
+  background:
+    rgba(
+      82,
+      247,
+      200,
+      .07
+    );
+
+  filter:
+    blur(5px);
+}
+
+
+main[
+  data-utv-pack3="events"
+] button {
+  border-radius:
+    15px !important;
+}
+
+
+/* ==========================================================
+   CASTING
+   ========================================================== */
+
+main[
+  data-utv-pack3="casting"
+] article,
+
+main[
+  data-utv-pack3="casting"
+] .castingCard {
+  overflow:
+    hidden;
+
+  border-radius:
+    22px !important;
+
+  box-shadow:
+    0 18px 48px
+    rgba(
+      0,
+      0,
+      0,
+      .19
+    ),
+    0 0 34px
+    rgba(
+      255,
+      98,
+      191,
+      .035
+    ) !important;
+}
+
+
+main[
+  data-utv-pack3="casting"
+] button {
+  border-radius:
+    15px !important;
+}
+
+
+/* ==========================================================
+   BUILD TOGETHER / COLLABS
+   ========================================================== */
+
+main[
+  data-utv-pack3="collabs"
+] article,
+
+main[
+  data-utv-pack3="collabs"
+] .collabCard {
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border-radius:
+    22px !important;
+
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(
+        114,
+        232,
+        255,
+        .09
+      ),
+      transparent 42%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(
+        255,
+        255,
+        255,
+        .05
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        .015
+      )
+    ) !important;
+}
+
+
+main[
+  data-utv-pack3="collabs"
+] button {
+  border-radius:
+    16px !important;
+}
+
+
+/* ==========================================================
+   CREATE / UPLOAD
+   ========================================================== */
+
+/*
+ * Keep Story/Camera behavior untouched.
+ * This only upgrades the surrounding
+ * surfaces and forms.
+ */
+
+main[
+  data-utv-pack3="create"
+] .uploadCard,
+
+main[
+  data-utv-pack3="create"
+] .createCard,
+
+main[
+  data-utv-pack3="create"
+] .submitCard,
+
+main[
+  data-utv-pack3="create"
+] form {
+  border-radius:
+    22px;
+
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(
+        82,
+        247,
+        200,
+        .07
+      ),
+      transparent 38%
+    ),
+    rgba(
+      255,
+      255,
+      255,
+      .025
+    );
+}
+
+
+main[
+  data-utv-pack3="create"
+] input[type="file"] {
+  padding:
+    14px;
+
+  border-style:
+    dashed !important;
+
+  border-color:
+    rgba(
+      82,
+      247,
+      200,
+      .30
+    ) !important;
+
+  background:
+    rgba(
+      82,
+      247,
+      200,
+      .045
+    ) !important;
+}
+
+
+/* ==========================================================
+   CREATOR STUDIO
+   ========================================================== */
+
+main[
+  data-utv-pack3="studio"
+] .studioShell {
+  position:
+    relative;
+
+  z-index:
+    1;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .studioTop {
+  border-radius:
+    0 0 26px 26px;
+
+  padding-bottom:
+    22px !important;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .studioTop .eyebrow {
+  color:
+    var(--p3-accent)
+    !important;
+
+  font-weight:
+    950;
+
+  letter-spacing:
+    1.6px;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .tabs {
+  position:
+    sticky;
+
+  z-index:
+    45;
+
+  top:
+    0;
+
+  display:
+    flex;
+
+  gap:
+    6px;
+
+  overflow-x:
+    auto;
+
+  padding:
+    9px
+    12px !important;
+
+  scrollbar-width:
+    none;
+
+  border-top:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .045
+    );
+
+  border-bottom:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+  background:
+    rgba(
+      3,
+      6,
+      9,
+      .86
+    ) !important;
+
+  backdrop-filter:
+    blur(22px);
+
+  -webkit-backdrop-filter:
+    blur(22px);
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .tabs::-webkit-scrollbar {
+  display:
+    none;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .tabs button {
+  flex:
+    0 0 auto;
+
+  min-height:
+    36px;
+
+  padding:
+    0 13px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .64
+    );
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .035
+    );
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .tabs button.active {
+  color:
+    #06110d !important;
+
+  border-color:
+    transparent !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--p3-accent),
+      #70e6ff
+    ) !important;
+
+  box-shadow:
+    0 8px 25px
+    rgba(
+      82,
+      247,
+      200,
+      .13
+    );
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .profileCard,
+
+main[
+  data-utv-pack3="studio"
+] .sectionCard {
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .085
+    ) !important;
+
+  border-radius:
+    23px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(
+        255,
+        255,
+        255,
+        .055
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        .018
+      )
+    ) !important;
+
+  box-shadow:
+    0 20px 55px
+    rgba(
+      0,
+      0,
+      0,
+      .20
+    ) !important;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .statCard,
+
+main[
+  data-utv-pack3="studio"
+] .analyticsBox {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .075
+    ) !important;
+
+  border-radius:
+    18px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .03
+    ) !important;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .quickButton {
+  min-height:
+    104px;
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  align-items:
+    flex-start;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  padding:
+    15px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .09
+    ) !important;
+
+  border-radius:
+    20px !important;
+
+  color:
+    #fff;
+
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(
+        82,
+        247,
+        200,
+        .11
+      ),
+      transparent 50%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(
+        128,
+        104,
+        255,
+        .07
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        .025
+      )
+    ) !important;
+
+  box-shadow:
+    inset
+    0
+    1px
+    0
+    rgba(
+      255,
+      255,
+      255,
+      .035
+    );
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .quickButton:active {
+  transform:
+    scale(.975);
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .contentCard {
+  border-radius:
+    21px !important;
+
+  background:
+    #080b11 !important;
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .statusBadge {
+  color:
+    #06110d !important;
+
+  background:
+    var(--p3-accent)
+    !important;
+
+  box-shadow:
+    0 6px 20px
+    rgba(
+      82,
+      247,
+      200,
+      .15
+    );
+}
+
+
+main[
+  data-utv-pack3="studio"
+] .progressFill,
+
+main[
+  data-utv-pack3="studio"
+] .barFill {
+  background:
+    linear-gradient(
+      90deg,
+      var(--p3-accent),
+      var(--p3-accent-2)
+    ) !important;
+}
+
+
+/* ==========================================================
+   SETTINGS
+   ========================================================== */
+
+main[
+  data-utv-pack3="settings"
+] .hero {
+  width:
+    min(
+      100%,
+      720px
+    );
+
+  margin:
+    0 auto;
+
+  padding:
+    max(
+      18px,
+      env(
+        safe-area-inset-top
+      )
+    )
+    18px
+    20px !important;
+
+  border-radius:
+    0 0 26px 26px;
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .hero p {
+  color:
+    var(--p3-accent)
+    !important;
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .accountEmail {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .55
+    ) !important;
+
+  padding:
+    7px 10px;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .07
+    );
+
+  border-radius:
+    999px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      .035
+    );
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .notificationPanel,
+
+main[
+  data-utv-pack3="settings"
+] .settingsGroup {
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      .085
+    ) !important;
+
+  border-radius:
+    22px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(
+        255,
+        255,
+        255,
+        .052
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        .018
+      )
+    ) !important;
+
+  box-shadow:
+    0 18px 45px
+    rgba(
+      0,
+      0,
+      0,
+      .17
+    ) !important;
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .notificationIcon {
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  width:
+    46px;
+
+  height:
+    46px;
+
+  border-radius:
+    15px;
+
+  background:
+    rgba(
+      82,
+      247,
+      200,
+      .085
+    ) !important;
+
+  box-shadow:
+    0 0 25px
+    rgba(
+      82,
+      247,
+      200,
+      .07
+    );
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .settingRow {
+  min-height:
+    68px;
+
+  border-color:
+    rgba(
+      255,
+      255,
+      255,
+      .06
+    ) !important;
+
+  background:
+    transparent !important;
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .primaryAction {
+  color:
+    #06110d !important;
+
+  border:
+    0 !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--p3-accent),
+      #70e7ff
+    ) !important;
+
+  font-weight:
+    950 !important;
+
+  box-shadow:
+    0 10px 26px
+    rgba(
+      82,
+      247,
+      200,
+      .14
+    );
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .switch.on {
+  background:
+    var(--p3-accent)
+    !important;
+
+  box-shadow:
+    0 0 20px
+    rgba(
+      82,
+      247,
+      200,
+      .13
+    );
+}
+
+
+main[
+  data-utv-pack3="settings"
+] .sectionLabel {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      .43
+    ) !important;
+
+  letter-spacing:
+    1.5px;
+}
+
+
+/* ==========================================================
+   INTERACTION POLISH
+   ========================================================== */
+
+main[data-utv-pack3]
+button,
+
+main[data-utv-pack3]
+a {
+  transition:
+    transform .16s ease,
+    opacity .16s ease,
+    border-color .18s ease,
+    background .18s ease,
+    box-shadow .18s ease;
+
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
+main[data-utv-pack3]
+button:active,
+
+main[data-utv-pack3]
+a:active {
+  transform:
+    scale(.975);
+}
+
+
+/* ==========================================================
+   ANIMATIONS
+   ========================================================== */
+
+@keyframes p3PageIn {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateY(7px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+@keyframes p3GlowFloat {
+  0%,
+  100% {
+    transform:
+      translateX(-50%)
+      translateY(0);
+  }
+
+  50% {
+    transform:
+      translateX(-50%)
+      translateY(16px);
+  }
+}
+
+
+main[data-utv-pack3]
+.studioShell,
+
+main[data-utv-pack3]
+.shell,
+
+main[data-utv-pack3]
+> section {
+  animation:
+    p3PageIn
+    .34s
+    ease
+    both;
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (
+  max-width: 640px
+) {
+
+  main[data-utv-pack3]
+  > header,
+
+  main[data-utv-pack3]
+  .hero,
+
+  main[data-utv-pack3]
+  .studioTop {
+    border-radius:
+      0 0 22px 22px;
+  }
+
+
+  main[
+    data-utv-pack3="studio"
+  ] .quickButton {
+    min-height:
+      92px;
+  }
+
+
+  main[
+    data-utv-pack3="studio"
+  ] .tabs {
+    top:
+      0;
+  }
+
+
+  main[
+    data-utv-pack3="settings"
+  ] .accountEmail {
+    max-width:
+      48vw;
+
+    overflow:
+      hidden;
+
+    white-space:
+      nowrap;
+
+    text-overflow:
+      ellipsis;
+  }
+}
+
+
+/* ==========================================================
+   ACCESSIBILITY
+   ========================================================== */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+
+  main[data-utv-pack3],
+  main[data-utv-pack3] *,
+  main[data-utv-pack3]::before {
+    animation:
+      none !important;
+
+    transition:
+      none !important;
+  }
+}
+
+
+/* UTV VISUAL SYSTEM — PACK #3 END */

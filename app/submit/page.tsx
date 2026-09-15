@@ -2214,7 +2214,7 @@ const selectedSticker = stickers.find(
   }
     if (mode === "hub") {
     return (
-      <main className="submitPage">
+      <main data-utv-pack3="create" className="submitPage">
         <UTVNav />
         <style>{styles}</style>
 
@@ -2297,7 +2297,7 @@ const selectedSticker = stickers.find(
 
   if (mode === "link") {
     return (
-      <main className="submitPage">
+      <main data-utv-pack3="create" className="submitPage">
         <UTVNav />
         <style>{styles}</style>
 
@@ -2648,7 +2648,7 @@ if (mode === "camera") {
   }
 
   return (
-    <main className="utvCameraPage">
+    <main data-utv-pack3="create" className="utvCameraPage">
       <style>{styles}</style>
       <UTVCameraHeader
         onClose={resetCreator}
@@ -2808,7 +2808,7 @@ if (mode === "camera") {
 
   if (isStory && mode === "share") {
     return (
-      <main className="storySharePage">
+      <main data-utv-pack3="create" className="storySharePage">
         <style>{styles}</style>
         <header className="storyTopBar">
           <button type="button" className="storyIconButton" onClick={() => setMode("editor")} aria-label="Back to editor">←</button>
@@ -2913,7 +2913,7 @@ if (mode === "camera") {
 
   if (isStory && mode === "editor") {
     return (
-      <main className="storyEditorPage">
+      <main data-utv-pack3="create" className="storyEditorPage">
         <style>{styles}</style>
         <section
           className="storyCanvas"
@@ -3264,7 +3264,7 @@ if (mode === "camera") {
   }
 
   return (
-    <main className="editorPage">
+    <main data-utv-pack3="create" className="editorPage">
       <style>{styles}</style>
 
       <header className="editorHeader">

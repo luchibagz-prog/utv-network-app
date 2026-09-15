@@ -578,7 +578,7 @@ export default function CreatorUploadV16Page() {
   }
 
   return (
-    <main className="page">
+    <main data-utv-pack3="create" className="page">
       <UTVNav />
 
       <div className="shell">

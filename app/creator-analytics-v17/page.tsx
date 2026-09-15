@@ -36,7 +36,7 @@ export default function CreatorAnalyticsV17Page(){
 
   const top=useMemo(()=>[...uploads].sort((a,b)=>Number(b.views||0)-Number(a.views||0)).slice(0,5),[uploads]);
 
-  return <main className="page">
+  return <main data-utv-pack3="studio" className="page">
     <UTVNav/>
     <header><div><p>UTV CREATOR ANALYTICS</p><h1>Performance</h1></div><button onClick={()=>router.push("/creator-upload-v16")}>Upload</button></header>
     <section className="stats">

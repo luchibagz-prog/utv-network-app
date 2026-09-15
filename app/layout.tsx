@@ -1,6 +1,7 @@
 import "./globals.css";
 import "./utv-discovery-system.css";
 import "./utv-pack2.css";
+import "./utv-pack3.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 

@@ -423,7 +423,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="settingsPage">
+    <main data-utv-pack3="settings" className="settingsPage">
       <UTVNav />
 
       <header className="hero">

@@ -321,7 +321,7 @@ export default function NewCollabPage() {
   }
 
   return (
-    <main className="buildPage">
+    <main data-utv-pack3="collabs" className="buildPage">
       <UTVNav />
 
       <section className="buildWrap">
