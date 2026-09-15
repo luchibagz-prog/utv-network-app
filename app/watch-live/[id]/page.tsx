@@ -955,10 +955,21 @@ export default function WatchLivePage() {
         );
       }
 
+      // UTV LIVE R2A — VIEWER RECONNECT
       const room =
         new Room({
           adaptiveStream: true,
           dynacast: true,
+
+          /*
+           * Let LiveKit survive temporary
+           * mobile browser backgrounding.
+           *
+           * React cleanup still disconnects
+           * when the viewer actually leaves
+           * the UTV Live page.
+           */
+          disconnectOnPageLeave: false,
         });
 
       roomRef.current =
@@ -1006,6 +1017,36 @@ export default function WatchLivePage() {
       );
 
       room.on(
+        RoomEvent.Reconnecting,
+        () => {
+          /*
+           * Keep the viewer on the Live page
+           * while LiveKit repairs Wi-Fi /
+           * cellular interruptions.
+           */
+          setConnected(false);
+        }
+      );
+
+      room.on(
+        RoomEvent.Reconnected,
+        () => {
+          setConnected(true);
+          setErrorMessage("");
+
+          /*
+           * Resume remote audio when possible.
+           * Some mobile browsers may still
+           * require a user tap after a long
+           * background period.
+           */
+          void room
+            .startAudio()
+            .catch(() => {});
+        }
+      );
+
+      room.on(
         RoomEvent.Disconnected,
         () => {
           setConnected(false);
@@ -1014,7 +1055,10 @@ export default function WatchLivePage() {
 
       await room.connect(
         serverUrl,
-        tokenData.token
+        tokenData.token,
+        {
+          autoSubscribe: true,
+        }
       );
 
       setConnected(true);

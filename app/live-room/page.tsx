@@ -202,6 +202,7 @@ export default function LiveRoomPage() {
   }, []);
 
   useEffect(() => {
+    // UTV LIVE R2A — MOBILE SESSION SURVIVAL
     const closeLiveOnExit = () => {
       const sessionId =
         liveSessionIdRef.current;
@@ -217,22 +218,24 @@ export default function LiveRoomPage() {
       );
     };
 
-    window.addEventListener(
-      "pagehide",
-      closeLiveOnExit
-    );
-
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT end a Live on pagehide.
+     *
+     * Mobile Safari / Chrome / PWAs can fire
+     * pagehide when the user temporarily
+     * backgrounds the browser or switches apps.
+     *
+     * LiveKit should be allowed to reconnect
+     * instead of UTV marking the broadcast ended.
+     */
     window.addEventListener(
       "beforeunload",
       closeLiveOnExit
     );
 
     return () => {
-      window.removeEventListener(
-        "pagehide",
-        closeLiveOnExit
-      );
-
       window.removeEventListener(
         "beforeunload",
         closeLiveOnExit
@@ -327,13 +330,51 @@ export default function LiveRoomPage() {
       await room.localParticipant
         .setScreenShareEnabled(next);
 
+      /*
+       * Keep UTV synchronized when the user
+       * presses the browser/system-level
+       * "Stop sharing" control instead of
+       * pressing our UTV button.
+       *
+       * Camera stays published separately.
+       */
+      if (next) {
+        const publication =
+          room.localParticipant
+            .getTrackPublication(
+              Track.Source.ScreenShare
+            );
+
+        const screenTrack =
+          publication?.track as any;
+
+        const mediaTrack =
+          screenTrack?.mediaStreamTrack;
+
+        if (mediaTrack) {
+          mediaTrack.addEventListener(
+            "ended",
+            () => {
+              setScreenSharing(false);
+
+              setInteractionMessage(
+                "Screen share stopped • camera still live."
+              );
+            },
+            {
+              once: true,
+            }
+          );
+        }
+      }
+
       setScreenSharing(next);
       setShowStreamTools(false);
 
       setInteractionMessage(
         next
           ? "Your screen is now live on UTV."
-          : "Screen share stopped."
+          : "Screen share stopped • camera still live."
       );
     } catch (error) {
       console.error(
