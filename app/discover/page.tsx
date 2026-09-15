@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import UTVNav from "../components/UTVNav";
@@ -11,51 +12,18 @@ import { supabase } from "../../lib/supabaseClient";
 
 type Row = Record<string, any>;
 
+type Coords = {
+  lat: number;
+  lng: number;
+} | null;
+
 const categories = [
   ["For You", "/discover"],
-  ["Reels", "/reels"],
-  ["Near Me", "/world"],
-  ["Watch", "/watch"],
-  ["Events", "/events"],
-  ["Casting", "/casting"],
-];
-
-const quickLinks = [
-  {
-    href: "/world",
-    icon: "◎",
-    title: "UTV World",
-    copy: "See what is moving around you.",
-    vibe: "mint",
-  },
-  {
-    href: "/watch",
-    icon: "▶",
-    title: "Watch",
-    copy: "Shows, movies, music and originals.",
-    vibe: "purple",
-  },
-  {
-    href: "/events",
-    icon: "✦",
-    title: "Events",
-    copy: "Find something worth pulling up to.",
-    vibe: "gold",
-  },
-  {
-    href: "/casting",
-    icon: "★",
-    title: "Casting",
-    copy: "Find opportunities and hidden gems.",
-    vibe: "pink",
-  },
-  {
-    href: "/collabs/new",
-    icon: "∞",
-    title: "Collab",
-    copy: "Build something with somebody new.",
-    vibe: "blue",
-  },
+  ["Movies", "/watch"],
+  ["Shows", "/watch"],
+  ["Originals", "/watch"],
+  ["Live", "/live"],
+  ["Creators", "/search"],
 ];
 
 function value(
@@ -104,7 +72,7 @@ function uploadTitle(row: Row) {
       "caption",
       "description",
     ],
-    "UTV"
+    "UTV Post"
   );
 }
 
@@ -117,9 +85,24 @@ function uploadCreator(row: Row) {
       "username",
       "creator_email",
       "email",
+      "user_email",
     ],
     "UTV Creator"
   ).replace(/^@/, "");
+}
+
+function uploadLocation(row: Row) {
+  return value(
+    row,
+    [
+      "city",
+      "location",
+      "event_city",
+      "location_name",
+      "venue_city",
+    ],
+    "UTV"
+  );
 }
 
 function profileName(row: Row) {
@@ -149,6 +132,232 @@ function looksLikeVideo(url: string) {
   );
 }
 
+function contentHref(row: Row) {
+  const video = uploadVideo(row);
+
+  if (
+    row?.id &&
+    video &&
+    looksLikeVideo(video)
+  ) {
+    return `/watch/${row.id}`;
+  }
+
+  return "/feed";
+}
+
+function numberValue(
+  row: Row,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const n = Number(row?.[key]);
+
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+
+  return null;
+}
+
+function rowCoords(row: Row) {
+  const lat = numberValue(row, [
+    "latitude",
+    "lat",
+  ]);
+
+  const lng = numberValue(row, [
+    "longitude",
+    "lng",
+    "lon",
+  ]);
+
+  if (lat === null || lng === null) {
+    return null;
+  }
+
+  return { lat, lng };
+}
+
+function distanceMiles(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) {
+  const R = 3958.8;
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.lat * rad) *
+      Math.cos(b.lat * rad) *
+      Math.sin(dLng / 2) ** 2;
+
+  return (
+    2 *
+    R *
+    Math.asin(Math.sqrt(x))
+  );
+}
+
+function shortNumber(value: any) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return "";
+  }
+
+  if (number >= 1000000) {
+    return `${(
+      number / 1000000
+    ).toFixed(1)}M`;
+  }
+
+  if (number >= 1000) {
+    return `${(
+      number / 1000
+    ).toFixed(1)}K`;
+  }
+
+  return String(number);
+}
+
+function viewCount(row: Row) {
+  return shortNumber(
+    value(row, [
+      "views",
+      "view_count",
+      "views_count",
+    ])
+  );
+}
+
+function mediaType(row: Row) {
+  return value(row, [
+    "content_type",
+    "type",
+    "category",
+    "media_type",
+  ]).toLowerCase();
+}
+
+function Media({
+  item,
+  autoplay = false,
+}: {
+  item?: Row;
+  autoplay?: boolean;
+}) {
+  if (!item) {
+    return (
+      <div className="mediaFallback">
+        <span>UTV</span>
+      </div>
+    );
+  }
+
+  const image = uploadImage(item);
+  const video = uploadVideo(item);
+
+  if (
+    autoplay &&
+    video &&
+    looksLikeVideo(video)
+  ) {
+    return (
+      <video
+        className="mediaVisual"
+        src={video}
+        poster={image || undefined}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+      />
+    );
+  }
+
+  if (image) {
+    return (
+      <img
+        className="mediaVisual"
+        src={image}
+        alt=""
+        loading="lazy"
+      />
+    );
+  }
+
+  if (
+    video &&
+    looksLikeVideo(video)
+  ) {
+    return (
+      <video
+        className="mediaVisual"
+        src={video}
+        muted
+        playsInline
+        preload="metadata"
+      />
+    );
+  }
+
+  return (
+    <div className="mediaFallback">
+      <span>UTV</span>
+    </div>
+  );
+}
+
+function QuickCard({
+  href,
+  title,
+  icon,
+  item,
+  vibe,
+  badge,
+}: {
+  href: string;
+  title: string;
+  icon: ReactNode;
+  item?: Row;
+  vibe: string;
+  badge?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`quickVisual ${vibe}`}
+    >
+      <Media item={item} />
+
+      <span className="quickTint" />
+
+      {badge && (
+        <span className="quickBadge">
+          {badge}
+        </span>
+      )}
+
+      <div className="quickBottom">
+        <span className="quickIcon">
+          {icon}
+        </span>
+
+        <strong>{title}</strong>
+
+        <span className="quickArrow">
+          ›
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export default function DiscoverPage() {
   const [uploads, setUploads] =
     useState<Row[]>([]);
@@ -159,35 +368,11 @@ export default function DiscoverPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [coords, setCoords] =
+    useState<Coords>(null);
+
   useEffect(() => {
     let alive = true;
-
-    // Always open Discover at the top instead of inheriting
-    // the Feed/Profile scroll position.
-    const resetDiscoverScroll = () => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-
-      const scrolling =
-        document.scrollingElement;
-
-      if (scrolling) {
-        scrolling.scrollTop = 0;
-      }
-    };
-
-    resetDiscoverScroll();
-
-    requestAnimationFrame(
-      resetDiscoverScroll
-    );
-
-    const scrollTimer =
-      window.setTimeout(
-        resetDiscoverScroll,
-        120
-      );
 
     async function loadDiscover() {
       try {
@@ -202,12 +387,12 @@ export default function DiscoverPage() {
             .order("created_at", {
               ascending: false,
             })
-            .limit(30),
+            .limit(40),
 
           supabase
             .from("creator_profiles")
             .select("*")
-            .limit(18),
+            .limit(24),
         ]);
 
         if (!alive) return;
@@ -221,7 +406,7 @@ export default function DiscoverPage() {
         );
       } catch (error) {
         console.info(
-          "Discover could not load everything.",
+          "Discover load issue:",
           error
         );
       } finally {
@@ -235,16 +420,39 @@ export default function DiscoverPage() {
 
     return () => {
       alive = false;
-      window.clearTimeout(
-        scrollTimer
-      );
     };
   }, []);
 
-  const tiles = useMemo(
-    () => uploads.slice(0, 12),
-    [uploads]
-  );
+  useEffect(() => {
+    if (
+      typeof navigator ===
+        "undefined" ||
+      !navigator.geolocation
+    ) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({
+          lat:
+            position.coords
+              .latitude,
+          lng:
+            position.coords
+              .longitude,
+        });
+      },
+      () => {
+        setCoords(null);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 5000,
+        maximumAge: 600000,
+      }
+    );
+  }, []);
 
   const creatorRail = useMemo(
     () =>
@@ -254,84 +462,143 @@ export default function DiscoverPage() {
             creator?.email ||
             creator?.username
         )
-        .slice(0, 12),
+        .slice(0, 10),
     [creators]
   );
 
+  const hero =
+    uploads.find(
+      (item) =>
+        uploadImage(item) ||
+        uploadVideo(item)
+    ) || uploads[0];
+
+  const nearby = useMemo(() => {
+    if (!coords) {
+      return uploads.slice(0, 10);
+    }
+
+    return [...uploads]
+      .sort((a, b) => {
+        const ac = rowCoords(a);
+        const bc = rowCoords(b);
+
+        if (!ac && !bc) return 0;
+        if (!ac) return 1;
+        if (!bc) return -1;
+
+        return (
+          distanceMiles(
+            coords,
+            ac
+          ) -
+          distanceMiles(
+            coords,
+            bc
+          )
+        );
+      })
+      .slice(0, 10);
+  }, [uploads, coords]);
+
+  const worldCreators =
+    creatorRail.slice(0, 5);
+
+  const liveCount =
+    uploads.filter((item) =>
+      mediaType(item).includes(
+        "live"
+      )
+    ).length;
+
+  const eventCount =
+    uploads.filter((item) =>
+      mediaType(item).includes(
+        "event"
+      )
+    ).length;
+
+  const quickItems = [
+    {
+      href: "/live",
+      title: "Live",
+      icon: "◉",
+      vibe: "live",
+      badge: "LIVE",
+      item: uploads[1],
+    },
+    {
+      href: "/events",
+      title: "Events",
+      icon: "▣",
+      vibe: "events",
+      item: uploads[2],
+    },
+    {
+      href: "/casting",
+      title: "Casting",
+      icon: "🎬",
+      vibe: "casting",
+      item: uploads[3],
+    },
+    {
+      href: "/collabs/new",
+      title: "Build",
+      icon: "🤝",
+      vibe: "build",
+      item: uploads[4],
+    },
+  ];
+
   return (
     <main className="discoverPage">
-      <UTVNav />
-
       <section className="discoverShell">
-        <header className="discoverHeader">
-          <div>
-            <span className="eyebrow">
-              UTV DISCOVER
+        {/* TOP */}
+        <header className="topBar">
+          <Link
+            href="/feed"
+            className="utvLogo"
+          >
+            UTV
+          </Link>
+
+          <Link
+            href="/search"
+            className="topSearch"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="6.5"
+              />
+              <path d="m16 16 4 4" />
+            </svg>
+
+            <span>
+              Search UTV
             </span>
+          </Link>
 
-            <h1>Discover</h1>
-
-            <p>
-              Find creators, culture,
-              opportunities and what&apos;s moving.
-            </p>
-          </div>
-
-
+          <Link
+            href="/activity"
+            className="bell"
+            aria-label="Activity"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+              <path d="M10 21h4" />
+            </svg>
+          </Link>
         </header>
 
-        <Link
-          href="/search"
-          className="searchBar"
-          style={{
-            minHeight: "47px",
-            marginTop: "18px",
-            display: "grid",
-            gridTemplateColumns: "22px minmax(0,1fr) auto",
-            alignItems: "center",
-            gap: "9px",
-            padding: "0 13px",
-            border: "1px solid rgba(255,255,255,.08)",
-            borderRadius: "15px",
-            color: "rgba(255,255,255,.58)",
-            background: "rgba(255,255,255,.045)",
-            textDecoration: "none",
-          }}
-        >
-          <span
-            aria-hidden="true"
-            style={{
-              width: "20px",
-              height: "20px",
-              display: "grid",
-              placeItems: "center",
-              fontSize: "18px",
-              lineHeight: 1,
-            }}
-          >
-            ⌕
-          </span>
-
-          <span
-            style={{
-              minWidth: 0,
-              fontSize: "11px",
-              fontWeight: 700,
-            }}
-          >
-            Search UTV
-          </span>
-
-          <b
-            style={{
-              color: "rgba(255,255,255,.25)",
-              fontSize: "14px",
-            }}
-          >
-            →
-          </b>
-        </Link>
-
+        {/* CATEGORY PILLS */}
         <nav
           className="categoryRail"
           aria-label="Discover categories"
@@ -346,27 +613,6 @@ export default function DiscoverPage() {
                     ? "categoryChip active"
                     : "categoryChip"
                 }
-                style={{
-                  flex: "0 0 auto",
-                  padding: "8px 12px",
-                  border:
-                    index === 0
-                      ? "1px solid #52f7c8"
-                      : "1px solid rgba(255,255,255,.07)",
-                  borderRadius: "999px",
-                  color:
-                    index === 0
-                      ? "#04110d"
-                      : "rgba(255,255,255,.62)",
-                  background:
-                    index === 0
-                      ? "#52f7c8"
-                      : "rgba(255,255,255,.03)",
-                  textDecoration: "none",
-                  fontSize: "9px",
-                  fontWeight: 850,
-                  whiteSpace: "nowrap",
-                }}
               >
                 {label}
               </Link>
@@ -374,334 +620,287 @@ export default function DiscoverPage() {
           )}
         </nav>
 
-        <section className="pulseBar">
-          <div className="pulseIdentity">
-            <i />
-            <strong>UTV PULSE</strong>
-          </div>
+        {/* WATCH HERO */}
+        <section className="watchHero">
+          <Link
+            href={
+              hero
+                ? contentHref(hero)
+                : "/watch"
+            }
+            className="watchMedia"
+          >
+            <Media
+              item={hero}
+              autoplay
+            />
 
-          <div className="pulseItems">
-            <span>🔥 Trending</span>
-            <span>◎ Near You</span>
-            <span>⚡ Rising</span>
-          </div>
-        </section>
+            <span className="watchShade" />
 
-        <section className="signatureSection">
-          <div className="discoverV2Top">
-            <div>
-              <small>DISCOVER V2</small>
+            <div className="watchTop">
+              <span className="originalTag">
+                UTV ORIGINAL
+              </span>
 
-              <h2>
-                The UTV command center
-              </h2>
-
-              <p>
-                Big motion. Fast access. Tap into
-                World, Watch, trending activity and
-                what&apos;s moving around you.
-              </p>
+              <span className="newBadge">
+                ● NEW
+              </span>
             </div>
 
-            <span className="discoverV2Label">
-              FIRST IMPRESSION
+            <div className="watchCopy">
+              <small>
+                NOW ON UTV
+              </small>
+
+              <h1>
+                {hero
+                  ? uploadTitle(hero)
+                  : "Watch UTV"}
+              </h1>
+
+              <p>
+                Shows • Movies • Originals
+              </p>
+
+              <span className="watchButton">
+                <b>▶</b>
+                Watch Now
+              </span>
+            </div>
+
+            <div className="heroDots">
+              <i className="active" />
+              <i />
+              <i />
+              <i />
+            </div>
+          </Link>
+        </section>
+
+        {/* UTV WORLD */}
+        <Link
+          href="/world"
+          className="worldCard"
+        >
+          <div className="worldGlow" />
+
+          <div className="worldSpace">
+            <span className="star s1" />
+            <span className="star s2" />
+            <span className="star s3" />
+            <span className="star s4" />
+            <span className="star s5" />
+            <span className="star s6" />
+          </div>
+
+          <div className="worldGlobe">
+            <span className="globeAura" />
+            <span className="globeLine l1" />
+            <span className="globeLine l2" />
+            <span className="globeLine l3" />
+            <span className="globeLine l4" />
+            <span className="globeLine l5" />
+
+            <span className="cityLight c1" />
+            <span className="cityLight c2" />
+            <span className="cityLight c3" />
+            <span className="cityLight c4" />
+            <span className="cityLight c5" />
+            <span className="cityLight c6" />
+            <span className="cityLight c7" />
+            <span className="cityLight c8" />
+
+            {worldCreators.map(
+              (creator, index) => {
+                const avatar =
+                  profileAvatar(
+                    creator
+                  );
+
+                const initials =
+                  profileName(
+                    creator
+                  )
+                    .slice(0, 1)
+                    .toUpperCase();
+
+                return (
+                  <span
+                    className={`worldPin pin${
+                      index + 1
+                    }`}
+                    key={
+                      creator.id ||
+                      creator.email ||
+                      index
+                    }
+                  >
+                    <span className="pinHead">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt=""
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </span>
+
+                    <i />
+                  </span>
+                );
+              }
+            )}
+          </div>
+
+          <div className="worldStats">
+            <span>
+              <i className="mintDot" />
+              {uploads.length} moving
+            </span>
+
+            <span>
+              <i className="pinkDot" />
+              {liveCount} live
+            </span>
+
+            <span>
+              <i className="purpleDot" />
+              {eventCount} events
             </span>
           </div>
 
-          <div className="heroDeckScroller">
-            <Link
-              href="/world"
-              className="megaHeroCard worldMegaCard"
-            >
-              <div className="megaHeroGlow" />
-              <div className="megaHeroGrid" />
+          <div className="worldCopy">
+            <small>
+              UTV SIGNATURE
+            </small>
 
-              <div className="megaHeroTop">
-                <span className="megaHeroBadge">
-                  <i />
-                  LIVE WORLD
-                </span>
+            <h2>
+              UTV WORLD
+            </h2>
 
-                <span className="megaHeroArrow">
-                  ↗
-                </span>
-              </div>
+            <p>
+              See what&apos;s moving
+              around you
+            </p>
 
-              <div className="megaHeroCenter">
-                <div className="megaHeroVisual worldVisual">
-                  <div className="radarCore" />
-                  <div className="radarRing ring1" />
-                  <div className="radarRing ring2" />
-                  <div className="radarRing ring3" />
-                  <div className="signalDot dot1" />
-                  <div className="signalDot dot2" />
-                  <div className="signalDot dot3" />
-                  <div className="signalDot dot4" />
-                </div>
+            <span className="worldButton">
+              Enter World
+              <b>›</b>
+            </span>
+          </div>
 
-                <div className="megaHeroCopy">
-                  <small>
-                    UTV SIGNATURE
-                  </small>
+          <span className="worldLocation">
+            ◉ Near You
+          </span>
+        </Link>
 
-                  <h3>
-                    See What&apos;s
-                    <br />
-                    Moving
-                  </h3>
+        {/* BIG VISUAL BUTTONS */}
+        <section className="quickGrid">
+          {quickItems.map(
+            (item) => (
+              <QuickCard
+                key={item.title}
+                {...item}
+              />
+            )
+          )}
+        </section>
 
-                  <p>
-                    Open UTV World and tap into lives,
-                    events, casting, build signals
-                    and local motion.
-                  </p>
-                </div>
-              </div>
+        {/* TRENDING */}
+        <section className="sectionBlock">
+          <div className="sectionHeading">
+            <h2>
+              🔥 Trending Near You
+            </h2>
 
-              <div className="megaHeroBottom">
-                <span className="megaHeroButton">
-                  Open World
-                </span>
-
-                <span className="megaHeroMeta">
-                  Nearby • cities • live motion
-                </span>
-              </div>
-            </Link>
-
-            <Link
-              href="/watch"
-              className="megaHeroCard watchMegaCard"
-            >
-              <div className="megaHeroGlow" />
-              <div className="megaHeroGrid" />
-
-              <div className="megaHeroTop">
-                <span className="megaHeroBadge">
-                  ▶ STREAM UTV
-                </span>
-
-                <span className="megaHeroArrow">
-                  ↗
-                </span>
-              </div>
-
-              <div className="megaHeroCenter">
-                <div className="megaHeroVisual watchVisual">
-                  <div className="watchPoster posterA" />
-                  <div className="watchPoster posterB" />
-                  <div className="watchPoster posterC" />
-                  <div className="playPulse">
-                    ▶
-                  </div>
-                </div>
-
-                <div className="megaHeroCopy">
-                  <small>
-                    WATCH NOW
-                  </small>
-
-                  <h3>
-                    Watch
-                    <br />
-                    Something Fire
-                  </h3>
-
-                  <p>
-                    Movies, shows, originals,
-                    performances and entertainment
-                    built for the UTV vibe.
-                  </p>
-                </div>
-              </div>
-
-              <div className="megaHeroBottom">
-                <span className="megaHeroButton">
-                  Start Watching
-                </span>
-
-                <span className="megaHeroMeta">
-                  Movies • shows • originals
-                </span>
-              </div>
+            <Link href="/world">
+              See all ›
             </Link>
           </div>
 
-          <section className="pulseZone">
-            <div className="pulseZoneTop">
-              <div>
-                <small>UTV PULSE</small>
-                <h3>
-                  What&apos;s moving around you?
-                </h3>
-              </div>
+          <div className="trendRail">
+            {loading ? (
+              <>
+                <div className="trendSkeleton" />
+                <div className="trendSkeleton" />
+                <div className="trendSkeleton" />
+              </>
+            ) : (
+              nearby.map(
+                (item, index) => {
+                  const views =
+                    viewCount(item);
 
-              <span>
-                NEAR YOU
-              </span>
-            </div>
+                  const location =
+                    uploadLocation(
+                      item
+                    );
 
-            <div className="pulseStatGrid">
-              <Link href="/live" className="pulseStatCard pulseLive">
-                <b>2</b>
-                <span>Live right now</span>
-              </Link>
+                  return (
+                    <Link
+                      href={contentHref(
+                        item
+                      )}
+                      className="trendCard"
+                      key={
+                        item.id ||
+                        index
+                      }
+                    >
+                      <Media
+                        item={item}
+                      />
 
-              <Link href="/events" className="pulseStatCard pulseEvents">
-                <b>1</b>
-                <span>Event tonight</span>
-              </Link>
+                      <span className="trendShade" />
 
-              <Link href="/world" className="pulseStatCard pulseBuild">
-                <b>3</b>
-                <span>Build signals</span>
-              </Link>
+                      {looksLikeVideo(
+                        uploadVideo(
+                          item
+                        )
+                      ) && (
+                        <span className="miniPlay">
+                          ▶
+                        </span>
+                      )}
 
-              <Link href="/discover" className="pulseStatCard pulseTrend">
-                <b>5</b>
-                <span>Trending posts</span>
-              </Link>
-            </div>
+                      <div className="trendCopy">
+                        {views && (
+                          <small>
+                            ◉ {views}
+                          </small>
+                        )}
 
-            <div className="pulseRangeRow">
-              <span className="activeRange">
-                📍 Near You
-              </span>
+                        <strong>
+                          {uploadTitle(
+                            item
+                          )}
+                        </strong>
 
-              <span>
-                🏙 Your City
-              </span>
-
-              <span>
-                🚗 25–50 Miles
-              </span>
-
-              <span>
-                🌎 Explore Cities
-              </span>
-            </div>
-
-            <div className="pulseCityRow">
-              <span className="cityChip activeCity">
-                Fresno
-              </span>
-
-              <span className="cityChip">
-                Sacramento
-              </span>
-
-              <span className="cityChip">
-                Oakland
-              </span>
-
-              <span className="cityChip">
-                Los Angeles
-              </span>
-
-              <span className="cityChip">
-                Las Vegas
-              </span>
-            </div>
-          </section>
-
-          <div className="launchPadGrid">
-            <Link href="/live" className="launchPadCard liveLaunch">
-              <div className="launchPadIcon">
-                🔴
-              </div>
-
-              <div className="launchPadCopy">
-                <strong>
-                  Who&apos;s Live
-                </strong>
-
-                <small>
-                  Jump in right now
-                </small>
-              </div>
-
-              <b>
-                ↗
-              </b>
-            </Link>
-
-            <Link href="/events" className="launchPadCard eventLaunch">
-              <div className="launchPadIcon">
-                🎉
-              </div>
-
-              <div className="launchPadCopy">
-                <strong>
-                  Events
-                </strong>
-
-                <small>
-                  Flyers, venues and motion
-                </small>
-              </div>
-
-              <b>
-                ↗
-              </b>
-            </Link>
-
-            <Link href="/casting" className="launchPadCard castingLaunch">
-              <div className="launchPadIcon">
-                🎭
-              </div>
-
-              <div className="launchPadCopy">
-                <strong>
-                  Casting
-                </strong>
-
-                <small>
-                  Auditions and opportunities
-                </small>
-              </div>
-
-              <b>
-                ↗
-              </b>
-            </Link>
-
-            <Link href="/collabs/new" className="launchPadCard buildLaunch">
-              <div className="launchPadIcon">
-                🤝
-              </div>
-
-              <div className="launchPadCopy">
-                <strong>
-                  Build
-                </strong>
-
-                <small>
-                  Find people to work with
-                </small>
-              </div>
-
-              <b>
-                ↗
-              </b>
-            </Link>
+                        <span>
+                          ◉{" "}
+                          {location}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                }
+              )
+            )}
           </div>
         </section>
 
-        {creatorRail.length > 0 && (
-          <section className="creatorSection">
+        {/* CREATORS */}
+        {creatorRail.length >
+          0 && (
+          <section className="sectionBlock creatorsBlock">
             <div className="sectionHeading">
-              <div>
-                <small>
-                  PEOPLE TO KNOW
-                </small>
-
-                <h2>
-                  Creators moving
-                </h2>
-              </div>
+              <h2>
+                Creators Moving
+              </h2>
 
               <Link href="/search">
-                See all
+                See all ›
               </Link>
             </div>
 
@@ -734,20 +933,10 @@ export default function DiscoverPage() {
                     <Link
                       href={href}
                       className="creatorBubble"
-                      style={{
-                        width: "76px",
-                        flex: "0 0 76px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        color: "white",
-                        textDecoration: "none",
-                        textAlign: "center",
-                      }}
                       key={
-                        email ||
                         creator.id ||
-                        `${name}-${index}`
+                        email ||
+                        index
                       }
                     >
                       <span className="creatorRing">
@@ -756,13 +945,6 @@ export default function DiscoverPage() {
                             <img
                               src={avatar}
                               alt=""
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                                objectPosition: "center",
-                                display: "block",
-                              }}
                             />
                           ) : (
                             name
@@ -770,1157 +952,1771 @@ export default function DiscoverPage() {
                               .toUpperCase()
                           )}
                         </span>
+
+                        {index === 0 && (
+                          <b className="creatorLive">
+                            LIVE
+                          </b>
+                        )}
                       </span>
 
-                      <strong
-                        style={{
-                          width: "100%",
-                          overflow: "hidden",
-                          marginTop: "6px",
-                          whiteSpace: "nowrap",
-                          textOverflow: "ellipsis",
-                          fontSize: "9px",
-                          display: "block",
-                        }}
-                      >
+                      <strong>
                         {name}
                       </strong>
-
-                      <small
-                        style={{
-                          width: "100%",
-                          overflow: "hidden",
-                          marginTop: "2px",
-                          color: "rgba(255,255,255,.35)",
-                          whiteSpace: "nowrap",
-                          textOverflow: "ellipsis",
-                          fontSize: "7px",
-                          display: "block",
-                        }}
-                      >
-                        {value(
-                          creator,
-                          ["category"],
-                          "Creator"
-                        )}
-                      </small>
                     </Link>
                   );
                 }
               )}
+
+              <Link
+                href="/search"
+                className="creatorBubble moreCreator"
+              >
+                <span className="creatorRing addRing">
+                  <span className="creatorAvatar">
+                    +
+                  </span>
+                </span>
+
+                <strong>
+                  More
+                </strong>
+              </Link>
             </div>
           </section>
         )}
 
-        <section className="contentSection">
-          <div className="sectionHeading">
-            <div>
-              <small>
-                FOR YOU
-              </small>
+        {/* WHAT'S MOVING */}
+        <section className="sectionBlock movingBlock">
+          <div className="movingHeader">
+            <h2>
+              What&apos;s Moving
+            </h2>
 
-              <h2>
-                What&apos;s moving
-              </h2>
+            <div className="movingFilters">
+              <span className="selected">
+                All
+              </span>
+              <Link href="/reels">
+                Reels
+              </Link>
+              <Link href="/live">
+                Live
+              </Link>
+              <Link href="/world">
+                Near Me
+              </Link>
             </div>
-
-            <Link href="/reels">
-              Reels →
-            </Link>
           </div>
 
-          {loading ? (
-            <div className="discoverMediaGrid loadingGrid">
-              {Array.from({
-                length: 6,
-              }).map((_, index) => (
-                <div
-                  className="skeletonTile"
-                  key={index}
-                />
-              ))}
-            </div>
-          ) : tiles.length > 0 ? (
-            <div
-              className="discoverMediaGrid"
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(3, minmax(0, 1fr))",
-                gap: "3px",
-                width: "100%",
-              }}
-            >
-              {tiles.map(
-                (item, index) => {
-                  const image =
-                    uploadImage(item);
-
-                  const video =
-                    uploadVideo(item);
-
-                  const creator =
-                    uploadCreator(item);
-
-                  const title =
-                    uploadTitle(item);
-
-                  const mediaIsVideo =
-                    Boolean(
-                      video &&
-                      looksLikeVideo(video)
-                    );
-
-                  const href =
-                    item?.id &&
-                    mediaIsVideo
-                      ? `/watch/${item.id}`
-                      : "/feed";
-
-                  return (
-                    <Link
-                      href={href}
-                      className="discoverMediaTile"
-                      style={{
-                        position: "relative",
-                        display: "block",
-                        width: "100%",
-                        minWidth: 0,
-                        aspectRatio: "4 / 5",
-                        overflow: "hidden",
-                        borderRadius: "9px",
-                        background: "#0b0f17",
-                      }}
-                      key={
-                        item?.id ||
-                        `${creator}-${index}`
-                      }
-                    >
-                      <div className="discoverMediaFrame">
-                        {image ? (
-                          <img
-                            src={image}
-                            alt=""
-                            loading="lazy"
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              display: "block",
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="discoverMediaFallback"
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                            }}
-                          >
-                            <span>
-                              UTV
-                            </span>
-                          </div>
+          <div className="movingGrid">
+            {loading
+              ? Array.from({
+                  length: 6,
+                }).map((_, index) => (
+                  <div
+                    className="movingSkeleton"
+                    key={index}
+                  />
+                ))
+              : uploads
+                  .slice(0, 12)
+                  .map(
+                    (
+                      item,
+                      index
+                    ) => (
+                      <Link
+                        href={contentHref(
+                          item
                         )}
+                        className="movingCard"
+                        key={
+                          item.id ||
+                          index
+                        }
+                      >
+                        <Media
+                          item={item}
+                        />
 
-                        {mediaIsVideo && (
-                          <span className="playBadge">
-                            ▶
+                        <span className="movingShade" />
+
+                        {viewCount(
+                          item
+                        ) && (
+                          <span className="movingViews">
+                            ♥{" "}
+                            {viewCount(
+                              item
+                            )}
                           </span>
                         )}
-                      </div>
-
-                      <div className="tileShade" />
-
-                      <div className="tileCopy">
-                        <small>
-                          @{creator}
-                        </small>
-
-                        <strong>
-                          {title}
-                        </strong>
-                      </div>
-                    </Link>
-                  );
-                }
-              )}
-            </div>
-          ) : (
-            <Link
-              href="/feed"
-              className="emptyDiscover"
-            >
-              <strong>
-                Your UTV feed is moving
-              </strong>
-
-              <span>
-                Tap to see the latest
-                creators and posts.
-              </span>
-            </Link>
-          )}
-        </section>
-
-        <section className="quickSection">
-          <div className="sectionHeading">
-            <div>
-              <small>
-                EXPLORE UTV
-              </small>
-
-              <h2>
-                More ways in
-              </h2>
-            </div>
-          </div>
-
-          <div className="quickRail">
-            {quickLinks.map(
-              (item) => (
-                <Link
-                  href={item.href}
-                  key={item.title}
-                  className={`quickCard ${item.vibe}`}
-                  style={{
-                    minHeight: "105px",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    gap: "13px",
-                    padding: "12px",
-                    border: "1px solid rgba(255,255,255,.07)",
-                    borderRadius: "18px",
-                    color: "white",
-                    background: "rgba(255,255,255,.035)",
-                    textDecoration: "none",
-                  }}
-                >
-                  <span className="quickIcon">
-                    {item.icon}
-                  </span>
-
-                  <div>
-                    <strong
-                      style={{
-                        display: "block",
-                        fontSize: "11px",
-                      }}
-                    >
-                      {item.title}
-                    </strong>
-
-                    <small
-                      style={{
-                        display: "block",
-                        marginTop: "3px",
-                        color: "rgba(255,255,255,.38)",
-                        fontSize: "8px",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {item.copy}
-                    </small>
-                  </div>
-                </Link>
-              )
-            )}
-          </div>
-        </section>
-
-        <section className="nextStrip">
-          <span>UTV NEXT</span>
-
-          <div>
-            <b>⚡ Motion</b>
-            <b>📡 Collab Radar</b>
-            <b>🔥 City Pulse</b>
+                      </Link>
+                    )
+                  )}
           </div>
         </section>
       </section>
 
+      <UTVNav />
+
       <style jsx>{`
+        :global(html) {
+          background: #02040a;
+        }
+
         .discoverPage {
           position: relative;
           min-height: 100svh;
           overflow-x: clip;
-          padding-bottom: 132px;
+          padding-bottom: 115px;
           color: white;
           background:
             radial-gradient(
-              circle at 12% 0%,
-              rgba(82,247,200,.09),
+              circle at 8% 4%,
+              rgba(0, 255, 216, 0.08),
               transparent 24%
             ),
             radial-gradient(
-              circle at 95% 18%,
-              rgba(119,83,255,.12),
-              transparent 30%
+              circle at 96% 18%,
+              rgba(118, 69, 255, 0.11),
+              transparent 28%
             ),
-            #03050b;
+            #02040a;
         }
 
         .discoverShell {
-          width: min(100%,760px);
+          width: min(100%, 760px);
           margin: 0 auto;
-          padding: 18px 14px 30px;
+          padding:
+            max(16px, env(safe-area-inset-top))
+            14px
+            28px;
         }
 
-        .discoverHeader {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
+        /* TOP HEADER */
+
+        .topBar {
+          display: grid;
+          grid-template-columns:
+            auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 13px;
         }
 
-        .eyebrow,
-        .sectionHeading small {
-          display: block;
-          color: #52f7c8;
-          font-size: 8px;
-          font-weight: 1000;
-          letter-spacing: .15em;
-        }
-
-        .discoverHeader h1 {
-          margin: 4px 0 0;
-          font-size: clamp(31px,8vw,46px);
+        .utvLogo {
+          color: #fff;
+          text-decoration: none;
+          font-size: clamp(
+            34px,
+            9vw,
+            46px
+          );
           line-height: 1;
-          letter-spacing: -.055em;
+          font-weight: 1000;
+          letter-spacing: -0.08em;
+          text-shadow:
+            0 0 24px
+            rgba(82, 247, 200, 0.08);
         }
 
-        .discoverHeader p {
-          max-width: 390px;
-          margin: 8px 0 0;
-          color: rgba(255,255,255,.5);
-          font-size: 11px;
-          line-height: 1.45;
+        .topSearch {
+          min-width: 0;
+          height: 47px;
+          display: flex;
+          align-items: center;
+          gap: 11px;
+          padding: 0 15px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.1
+            );
+          border-radius: 999px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.58
+            );
+          background:
+            linear-gradient(
+              180deg,
+              rgba(
+                20,
+                31,
+                45,
+                0.86
+              ),
+              rgba(
+                12,
+                19,
+                30,
+                0.86
+              )
+            );
+          box-shadow:
+            inset 0 1px 0
+              rgba(
+                255,
+                255,
+                255,
+                0.03
+              ),
+            0 8px 30px
+              rgba(
+                0,
+                0,
+                0,
+                0.18
+              );
+          text-decoration: none;
+          backdrop-filter: blur(14px);
         }
 
-        .roundSearch {
-          width: 42px;
-          height: 42px;
+        .topSearch svg {
+          width: 21px;
+          height: 21px;
           flex: 0 0 auto;
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 2;
+          stroke-linecap: round;
+        }
+
+        .topSearch span {
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .bell {
+          width: 40px;
+          height: 40px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(255,255,255,.09);
-          border-radius: 50%;
           color: white;
-          background: rgba(255,255,255,.045);
           text-decoration: none;
         }
 
-        .roundSearch svg,
-        .searchBar svg {
-          width: 20px;
-          height: 20px;
+        .bell svg {
+          width: 27px;
+          height: 27px;
           fill: none;
           stroke: currentColor;
           stroke-width: 1.8;
           stroke-linecap: round;
+          stroke-linejoin: round;
         }
 
-        .searchBar {
-          min-height: 47px;
-          margin-top: 18px;
-          display: grid;
-          grid-template-columns: 22px minmax(0,1fr) auto;
-          align-items: center;
-          gap: 9px;
-          padding: 0 13px;
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 15px;
-          color: rgba(255,255,255,.58);
-          background: rgba(255,255,255,.045);
-          text-decoration: none;
-        }
-
-        .searchBar span {
-          min-width: 0;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .searchBar b {
-          color: rgba(255,255,255,.25);
-          font-size: 16px;
-        }
+        /* CATEGORY PILLS */
 
         .categoryRail {
           display: flex;
-          gap: 7px;
+          gap: 8px;
           margin-top: 12px;
           overflow-x: auto;
-          padding-bottom: 3px;
+          padding: 1px 1px 4px;
           scrollbar-width: none;
         }
 
         .categoryRail::-webkit-scrollbar,
+        .trendRail::-webkit-scrollbar,
         .creatorRail::-webkit-scrollbar,
-        .quickRail::-webkit-scrollbar {
+        .movingFilters::-webkit-scrollbar {
           display: none;
         }
 
         .categoryChip {
           flex: 0 0 auto;
-          padding: 8px 12px;
-          border: 1px solid rgba(255,255,255,.07);
+          min-width: 72px;
+          padding: 10px 15px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.1
+            );
           border-radius: 999px;
-          color: rgba(255,255,255,.58);
-          background: rgba(255,255,255,.03);
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.74
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.035
+            );
+          text-align: center;
           text-decoration: none;
-          font-size: 9px;
+          font-size: 11px;
           font-weight: 850;
+          white-space: nowrap;
         }
 
         .categoryChip.active {
-          color: #04110d;
-          background: #52f7c8;
+          color: #00140f;
           border-color: #52f7c8;
-          box-shadow: 0 0 18px rgba(82,247,200,.14);
-        }
-
-        .pulseBar {
-          min-height: 44px;
-          margin-top: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 0 12px;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 14px;
           background:
             linear-gradient(
-              90deg,
-              rgba(82,247,200,.055),
-              rgba(120,83,255,.065),
-              rgba(255,70,181,.035)
+              135deg,
+              #50f7c8,
+              #54f1dc
+            );
+          box-shadow:
+            0 0 24px
+            rgba(
+              82,
+              247,
+              200,
+              0.3
             );
         }
 
-        .pulseIdentity {
-          flex: 0 0 auto;
-          display: flex;
-          align-items: center;
-          gap: 6px;
+        /* WATCH HERO */
+
+        .watchHero {
+          margin-top: 11px;
         }
 
-        .pulseIdentity i {
+        .watchMedia {
+          position: relative;
+          display: block;
+          height: 230px;
+          overflow: hidden;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.16
+            );
+          border-radius: 20px;
+          color: white;
+          background: #0a0d13;
+          text-decoration: none;
+          isolation: isolate;
+          box-shadow:
+            0 18px 55px
+              rgba(
+                0,
+                0,
+                0,
+                0.32
+              ),
+            inset 0 0 0 1px
+              rgba(
+                255,
+                255,
+                255,
+                0.02
+              );
+        }
+
+        :global(.mediaVisual),
+        :global(.mediaFallback) {
+          width: 100%;
+          height: 100%;
+        }
+
+        :global(.mediaVisual) {
+          object-fit: cover;
+          display: block;
+        }
+
+        :global(.mediaFallback) {
+          display: grid;
+          place-items: center;
+          background:
+            radial-gradient(
+              circle at 15% 25%,
+              rgba(
+                82,
+                247,
+                200,
+                0.2
+              ),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 85% 70%,
+              rgba(
+                123,
+                82,
+                255,
+                0.24
+              ),
+              transparent 38%
+            ),
+            linear-gradient(
+              135deg,
+              #07131a,
+              #090815,
+              #03050a
+            );
+        }
+
+        :global(.mediaFallback span) {
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.42
+            );
+          font-size: 42px;
+          font-weight: 1000;
+          letter-spacing: -0.07em;
+        }
+
+        .watchMedia
+          > :global(.mediaVisual),
+        .watchMedia
+          > :global(.mediaFallback) {
+          position: absolute;
+          inset: 0;
+          z-index: -3;
+        }
+
+        .watchShade {
+          position: absolute;
+          inset: 0;
+          z-index: -2;
+          background:
+            linear-gradient(
+              90deg,
+              rgba(
+                  1,
+                  3,
+                  9,
+                  0.92
+                )
+                0%,
+              rgba(
+                  1,
+                  3,
+                  9,
+                  0.62
+                )
+                38%,
+              rgba(
+                  1,
+                  3,
+                  9,
+                  0.12
+                )
+                73%
+            ),
+            linear-gradient(
+              0deg,
+              rgba(
+                  2,
+                  3,
+                  8,
+                  0.72
+                )
+                0%,
+              transparent 55%
+            );
+        }
+
+        .watchTop {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          left: 15px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .originalTag {
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.88
+            );
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.22em;
+        }
+
+        .newBadge {
+          padding: 6px 9px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.15
+            );
+          border-radius: 8px;
+          color: #fff;
+          background:
+            rgba(
+              4,
+              7,
+              12,
+              0.66
+            );
+          backdrop-filter: blur(12px);
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: 0.1em;
+        }
+
+        .newBadge::first-letter {
+          color: #ff3da3;
+        }
+
+        .watchCopy {
+          position: absolute;
+          left: 17px;
+          bottom: 22px;
+          width: min(70%, 370px);
+        }
+
+        .watchCopy small {
+          display: block;
+          margin-bottom: 5px;
+          color: #54f3d0;
+          font-size: 8px;
+          font-weight: 950;
+          letter-spacing: 0.18em;
+        }
+
+        .watchCopy h1 {
+          display: -webkit-box;
+          overflow: hidden;
+          margin: 0;
+          color: #fff;
+          font-size: clamp(
+            25px,
+            7vw,
+            42px
+          );
+          line-height: 0.94;
+          font-weight: 1000;
+          letter-spacing: -0.06em;
+          text-shadow:
+            0 4px 24px
+            rgba(0, 0, 0, 0.8);
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .watchCopy p {
+          margin: 7px 0 12px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.65
+            );
+          font-size: 9px;
+          font-weight: 750;
+        }
+
+        .watchButton {
+          width: max-content;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 16px;
+          border-radius: 999px;
+          color: #02100d;
+          background:
+            linear-gradient(
+              100deg,
+              #52f7c8 0%,
+              #59e7f4 50%,
+              #9368ff 100%
+            );
+          box-shadow:
+            0 0 26px
+            rgba(
+              82,
+              247,
+              200,
+              0.24
+            );
+          font-size: 11px;
+          font-weight: 950;
+        }
+
+        .watchButton b {
+          font-size: 10px;
+        }
+
+        .heroDots {
+          position: absolute;
+          right: 16px;
+          bottom: 13px;
+          display: flex;
+          gap: 5px;
+        }
+
+        .heroDots i {
           width: 6px;
           height: 6px;
           border-radius: 50%;
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.35
+            );
+        }
+
+        .heroDots i.active {
+          width: 17px;
+          border-radius: 10px;
           background: #52f7c8;
-          box-shadow: 0 0 10px #52f7c8;
-          animation: pulse 1.6s ease-in-out infinite;
+          box-shadow:
+            0 0 12px #52f7c8;
         }
 
-        .pulseIdentity strong {
-          font-size: 8px;
-          letter-spacing: .09em;
-        }
+        /* WORLD CARD */
 
-        .pulseItems {
-          min-width: 0;
-          display: flex;
-          gap: 12px;
-          overflow-x: auto;
-          color: rgba(255,255,255,.5);
-          font-size: 8px;
-          white-space: nowrap;
-          scrollbar-width: none;
-        }
-
-        .signatureSection {
-          margin-top: 22px;
-        }
-
-        .discoverV2Top {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 14px;
-          margin-bottom: 14px;
-        }
-
-        .discoverV2Top small {
-          color: #54f6cd;
-          font-size: 10px;
-          font-weight: 1000;
-          letter-spacing: .18em;
-        }
-
-        .discoverV2Top h2 {
-          max-width: 560px;
-          margin: 6px 0 8px;
-          font-size: clamp(30px, 8vw, 50px);
-          line-height: .92;
-          letter-spacing: -.07em;
-        }
-
-        .discoverV2Top p {
-          max-width: 530px;
-          margin: 0;
-          color: rgba(255,255,255,.48);
-          font-size: 13px;
-          line-height: 1.45;
-        }
-
-        .discoverV2Label {
-          color: rgba(255,255,255,.28);
-          font-size: 9px;
-          font-weight: 1000;
-          letter-spacing: .16em;
-          white-space: nowrap;
-        }
-
-        .heroDeckScroller {
-          display: grid;
-          gap: 16px;
-        }
-
-        .megaHeroCard {
+        .worldCard {
           position: relative;
+          height: 225px;
+          display: block;
           overflow: hidden;
-          min-height: 290px;
-          padding: 18px;
-          border: 1px solid rgba(255,255,255,.09);
-          border-radius: 28px;
+          margin-top: 12px;
+          border:
+            1px solid
+            rgba(
+              82,
+              247,
+              200,
+              0.48
+            );
+          border-radius: 20px;
           color: white;
+          background:
+            radial-gradient(
+              circle at 72% 65%,
+              rgba(
+                62,
+                97,
+                255,
+                0.18
+              ),
+              transparent 35%
+            ),
+            radial-gradient(
+              circle at 78% 30%,
+              rgba(
+                85,
+                247,
+                216,
+                0.13
+              ),
+              transparent 28%
+            ),
+            linear-gradient(
+              145deg,
+              #021017,
+              #05091b 53%,
+              #09051b
+            );
           text-decoration: none;
           isolation: isolate;
-          box-shadow: 0 24px 60px rgba(0,0,0,.28);
+          box-shadow:
+            0 20px 60px
+              rgba(
+                0,
+                0,
+                0,
+                0.3
+              ),
+            0 0 40px
+              rgba(
+                67,
+                226,
+                255,
+                0.045
+              );
         }
 
-        .worldMegaCard {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(82,247,200,.18), transparent 32%),
-            radial-gradient(circle at 100% 100%, rgba(85,120,255,.15), transparent 42%),
-            linear-gradient(145deg, #061111 0%, #081123 100%);
-        }
-
-        .watchMegaCard {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(155,124,255,.18), transparent 32%),
-            radial-gradient(circle at 100% 100%, rgba(255,76,165,.12), transparent 42%),
-            linear-gradient(145deg, #0c0812 0%, #091120 100%);
-        }
-
-        .megaHeroGlow {
+        .worldGlow {
           position: absolute;
-          right: -55px;
-          bottom: -70px;
-          width: 190px;
-          height: 190px;
+          width: 310px;
+          height: 310px;
+          right: -44px;
+          bottom: -165px;
           border-radius: 50%;
-          background: rgba(82,247,200,.13);
-          filter: blur(12px);
-          z-index: -2;
-          animation: discoverHeroGlow 4s ease-in-out infinite alternate;
+          background:
+            radial-gradient(
+              circle,
+              rgba(
+                  63,
+                  240,
+                  224,
+                  0.2
+                )
+                0 2%,
+              rgba(
+                  58,
+                  120,
+                  255,
+                  0.17
+                )
+                25%,
+              rgba(
+                  71,
+                  72,
+                  230,
+                  0.08
+                )
+                45%,
+              transparent 68%
+            );
+          filter: blur(2px);
+          animation:
+            worldGlow 4s
+            ease-in-out infinite;
         }
 
-        .watchMegaCard .megaHeroGlow {
-          background: rgba(155,124,255,.16);
-        }
-
-        .megaHeroGrid {
+        .worldSpace {
           position: absolute;
           inset: 0;
-          opacity: .18;
-          z-index: -1;
-          background-image:
-            linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-          background-size: 22px 22px;
-          mask-image: radial-gradient(circle at center, black 42%, transparent 100%);
-        }
-
-        .megaHeroTop {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .megaHeroBadge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 13px;
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 999px;
-          background: rgba(255,255,255,.05);
-          color: rgba(255,255,255,.82);
-          font-size: 10px;
-          font-weight: 1000;
-          letter-spacing: .15em;
-        }
-
-        .megaHeroBadge i {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #53f8ca;
-          box-shadow: 0 0 12px #53f8ca;
-          animation: badgePulse 1.5s infinite;
-        }
-
-        .watchMegaCard .megaHeroBadge i {
-          background: #a879ff;
-          box-shadow: 0 0 12px #a879ff;
-        }
-
-        .megaHeroArrow {
-          width: 44px;
-          height: 44px;
-          display: grid;
-          place-items: center;
-          border: 1px solid rgba(255,255,255,.11);
-          border-radius: 50%;
-          background: rgba(255,255,255,.05);
-          font-size: 16px;
-          font-weight: 1000;
-        }
-
-        .megaHeroCenter {
-          display: grid;
-          grid-template-columns: 106px 1fr;
-          gap: 16px;
-          align-items: center;
-          margin-top: 22px;
-        }
-
-        .megaHeroVisual {
-          position: relative;
-          width: 106px;
-          height: 106px;
-          border-radius: 28px;
-          border: 1px solid rgba(255,255,255,.08);
-          background: rgba(255,255,255,.045);
           overflow: hidden;
+          pointer-events: none;
         }
 
-        .worldVisual {
-          box-shadow: 0 0 36px rgba(82,247,200,.14);
-        }
-
-        .watchVisual {
-          box-shadow: 0 0 36px rgba(155,124,255,.18);
-        }
-
-        .megaHeroCopy small {
-          color: rgba(255,255,255,.34);
-          font-size: 10px;
-          font-weight: 1000;
-          letter-spacing: .15em;
-        }
-
-        .megaHeroCopy h3 {
-          margin: 6px 0 8px;
-          font-size: clamp(34px, 8vw, 52px);
-          line-height: .88;
-          letter-spacing: -.075em;
-        }
-
-        .megaHeroCopy p {
-          max-width: 380px;
-          margin: 0;
-          color: rgba(255,255,255,.58);
-          font-size: 14px;
-          line-height: 1.45;
-        }
-
-        .megaHeroBottom {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: 24px;
-          flex-wrap: wrap;
-        }
-
-        .megaHeroButton {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 52px;
-          padding: 0 20px;
-          border-radius: 999px;
-          background: linear-gradient(100deg, #52f7c8, #6adcf2 52%, #9c7cff);
-          color: #05110d;
-          font-size: 15px;
-          font-weight: 1000;
-          box-shadow: 0 15px 36px rgba(92,120,255,.18);
-        }
-
-        .megaHeroMeta {
-          color: rgba(255,255,255,.38);
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: .07em;
-        }
-
-        .radarCore {
+        .star {
           position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 18px;
-          height: 18px;
-          margin: -9px 0 0 -9px;
+          width: 3px;
+          height: 3px;
           border-radius: 50%;
-          background: #52f7c8;
-          box-shadow: 0 0 18px #52f7c8;
+          background: #74fff0;
+          box-shadow:
+            0 0 10px #4efde0;
+          animation:
+            starPulse 2.4s
+            ease-in-out infinite;
         }
 
-        .radarRing {
+        .s1 {
+          left: 52%;
+          top: 28%;
+        }
+
+        .s2 {
+          left: 67%;
+          top: 15%;
+          animation-delay: 0.4s;
+        }
+
+        .s3 {
+          left: 79%;
+          top: 38%;
+          animation-delay: 1s;
+        }
+
+        .s4 {
+          left: 45%;
+          top: 59%;
+          animation-delay: 1.4s;
+        }
+
+        .s5 {
+          left: 92%;
+          top: 60%;
+          animation-delay: 0.8s;
+        }
+
+        .s6 {
+          left: 61%;
+          top: 73%;
+          animation-delay: 1.8s;
+        }
+
+        .worldGlobe {
           position: absolute;
-          top: 50%;
-          left: 50%;
-          border: 1px solid rgba(82,247,200,.32);
+          width: 390px;
+          height: 260px;
+          right: -72px;
+          bottom: -117px;
+          overflow: visible;
           border-radius: 50%;
-          transform: translate(-50%, -50%);
-          animation: radarPulse 2.6s infinite;
-        }
-
-        .ring1 {
-          width: 34px;
-          height: 34px;
-        }
-
-        .ring2 {
-          width: 60px;
-          height: 60px;
-          animation-delay: .4s;
-        }
-
-        .ring3 {
-          width: 86px;
-          height: 86px;
-          animation-delay: .8s;
-        }
-
-        .signalDot {
-          position: absolute;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: #52f7c8;
-          box-shadow: 0 0 10px #52f7c8;
-          animation: dotBlink 1.8s infinite;
-        }
-
-        .dot1 { top: 16px; left: 58px; }
-        .dot2 { top: 34px; right: 12px; animation-delay: .4s; }
-        .dot3 { bottom: 18px; left: 14px; animation-delay: .8s; }
-        .dot4 { bottom: 10px; right: 26px; animation-delay: 1.2s; }
-
-        .watchPoster {
-          position: absolute;
-          width: 32px;
-          height: 58px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,.08);
           background:
-            linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05));
-          box-shadow: 0 6px 18px rgba(0,0,0,.20);
+            radial-gradient(
+              circle at 42% 22%,
+              rgba(
+                  97,
+                  255,
+                  225,
+                  0.3
+                )
+                0 1%,
+              transparent 2%
+            ),
+            radial-gradient(
+              circle at 55% 37%,
+              rgba(
+                  88,
+                  192,
+                  255,
+                  0.35
+                )
+                0 1.5%,
+              transparent 2.5%
+            ),
+            radial-gradient(
+              circle at 68% 31%,
+              rgba(
+                  255,
+                  210,
+                  77,
+                  0.45
+                )
+                0 1%,
+              transparent 2%
+            ),
+            radial-gradient(
+              circle at 34% 47%,
+              rgba(
+                  82,
+                  247,
+                  200,
+                  0.4
+                )
+                0 1%,
+              transparent 2%
+            ),
+            radial-gradient(
+              circle at 60% 52%,
+              rgba(
+                  255,
+                  210,
+                  80,
+                  0.38
+                )
+                0 1%,
+              transparent 2%
+            ),
+            radial-gradient(
+              ellipse at 50% 50%,
+              #071e42 0%,
+              #041326 50%,
+              #020815 72%
+            );
+          border:
+            1px solid
+            rgba(
+              109,
+              249,
+              236,
+              0.48
+            );
+          box-shadow:
+            inset 0 0 60px
+              rgba(
+                52,
+                164,
+                255,
+                0.22
+              ),
+            0 -10px 45px
+              rgba(
+                82,
+                247,
+                200,
+                0.18
+              );
+          transform:
+            perspective(700px)
+            rotateX(51deg)
+            rotateZ(-4deg);
+          animation:
+            globeFloat 6s
+            ease-in-out infinite;
         }
 
-        .posterA {
-          left: 12px;
-          top: 22px;
-          transform: rotate(-8deg);
+        .worldGlobe::before,
+        .worldGlobe::after {
+          content: "";
+          position: absolute;
+          inset: 6%;
+          border:
+            1px solid
+            rgba(
+              65,
+              213,
+              255,
+              0.2
+            );
+          border-radius: 50%;
         }
 
-        .posterB {
-          left: 36px;
-          top: 14px;
+        .worldGlobe::after {
+          inset: 17% 3%;
+          border-color:
+            rgba(
+              112,
+              91,
+              255,
+              0.2
+            );
+          transform: rotate(20deg);
         }
 
-        .posterC {
-          right: 12px;
-          top: 22px;
+        .globeAura {
+          position: absolute;
+          inset: -10px;
+          border:
+            1px solid
+            rgba(
+              82,
+              247,
+              200,
+              0.14
+            );
+          border-radius: 50%;
+          box-shadow:
+            0 0 40px
+            rgba(
+              82,
+              247,
+              200,
+              0.12
+            );
+        }
+
+        .globeLine {
+          position: absolute;
+          left: 8%;
+          right: 8%;
+          height: 1px;
+          border-radius: 50%;
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(
+                67,
+                204,
+                255,
+                0.38
+              ),
+              transparent
+            );
+        }
+
+        .l1 {
+          top: 25%;
+          transform: rotate(9deg);
+        }
+
+        .l2 {
+          top: 39%;
+          transform: rotate(-7deg);
+        }
+
+        .l3 {
+          top: 53%;
+          transform: rotate(12deg);
+        }
+
+        .l4 {
+          top: 67%;
+          transform: rotate(-4deg);
+        }
+
+        .l5 {
+          top: 79%;
           transform: rotate(8deg);
         }
 
-        .playPulse {
+        .cityLight {
           position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 38px;
-          height: 38px;
-          margin: -19px 0 0 -19px;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #ffe777;
+          box-shadow:
+            0 0 5px #ffdf5c,
+            0 0 15px
+              rgba(
+                255,
+                221,
+                72,
+                0.65
+              );
+          animation:
+            cityBlink 2s
+            ease-in-out infinite;
+        }
+
+        .c1 {
+          left: 22%;
+          top: 38%;
+        }
+
+        .c2 {
+          left: 31%;
+          top: 52%;
+          animation-delay: 0.3s;
+        }
+
+        .c3 {
+          left: 43%;
+          top: 29%;
+          animation-delay: 0.7s;
+        }
+
+        .c4 {
+          left: 54%;
+          top: 44%;
+          animation-delay: 1.1s;
+        }
+
+        .c5 {
+          left: 61%;
+          top: 62%;
+          animation-delay: 1.4s;
+        }
+
+        .c6 {
+          left: 73%;
+          top: 34%;
+          animation-delay: 0.5s;
+        }
+
+        .c7 {
+          left: 82%;
+          top: 54%;
+          animation-delay: 1.7s;
+        }
+
+        .c8 {
+          left: 47%;
+          top: 73%;
+          animation-delay: 0.9s;
+        }
+
+        .worldPin {
+          position: absolute;
+          z-index: 5;
+          width: 37px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform:
+            rotateZ(4deg)
+            rotateX(-51deg)
+            translateZ(28px);
+          animation:
+            pinBounce 3s
+            ease-in-out infinite;
+        }
+
+        .pin1 {
+          left: 18%;
+          top: -2%;
+        }
+
+        .pin2 {
+          left: 42%;
+          top: 8%;
+          animation-delay: 0.5s;
+        }
+
+        .pin3 {
+          left: 62%;
+          top: 16%;
+          animation-delay: 1s;
+        }
+
+        .pin4 {
+          left: 74%;
+          top: 36%;
+          animation-delay: 1.5s;
+        }
+
+        .pin5 {
+          left: 47%;
+          top: 42%;
+          animation-delay: 2s;
+        }
+
+        .pinHead {
+          width: 31px;
+          height: 31px;
           display: grid;
           place-items: center;
+          overflow: hidden;
+          border:
+            2px solid #9b69ff;
           border-radius: 50%;
-          background: rgba(255,255,255,.12);
-          border: 1px solid rgba(255,255,255,.12);
-          box-shadow: 0 0 24px rgba(155,124,255,.22);
-          font-size: 16px;
-          animation: playPulse 1.8s infinite;
-        }
-
-        .pulseZone {
-          margin-top: 16px;
-          padding: 16px;
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 24px;
-          background:
-            radial-gradient(circle at 0% 0%, rgba(82,247,200,.08), transparent 30%),
-            radial-gradient(circle at 100% 100%, rgba(155,124,255,.10), transparent 35%),
-            rgba(255,255,255,.025);
-          box-shadow: 0 18px 40px rgba(0,0,0,.18);
-        }
-
-        .pulseZoneTop {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 14px;
-          margin-bottom: 14px;
-        }
-
-        .pulseZoneTop small {
-          color: #53f8ca;
-          font-size: 10px;
-          font-weight: 1000;
-          letter-spacing: .16em;
-        }
-
-        .pulseZoneTop h3 {
-          margin: 6px 0 0;
-          font-size: clamp(24px, 6vw, 38px);
-          line-height: .95;
-          letter-spacing: -.06em;
-        }
-
-        .pulseZoneTop > span {
-          color: rgba(255,255,255,.34);
-          font-size: 9px;
-          font-weight: 1000;
-          letter-spacing: .15em;
-          white-space: nowrap;
-        }
-
-        .pulseStatGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
-        }
-
-        .pulseStatCard {
-          min-height: 92px;
-          padding: 14px;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 18px;
           color: white;
-          text-decoration: none;
-          background: rgba(255,255,255,.035);
-          box-shadow: 0 10px 24px rgba(0,0,0,.16);
+          background: #101523;
+          box-shadow:
+            0 0 15px
+            rgba(
+              167,
+              86,
+              255,
+              0.9
+            );
+          font-size: 10px;
+          font-weight: 950;
         }
 
-        .pulseStatCard b {
-          display: block;
-          margin-bottom: 6px;
-          font-size: 34px;
-          line-height: 1;
-          letter-spacing: -.06em;
+        .pinHead img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
-        .pulseStatCard span {
-          display: block;
-          color: rgba(255,255,255,.56);
-          font-size: 12px;
-          line-height: 1.35;
+        .worldPin > i {
+          width: 8px;
+          height: 13px;
+          margin-top: -2px;
+          background:
+            linear-gradient(
+              180deg,
+              #b269ff,
+              #ff4db3
+            );
+          clip-path:
+            polygon(
+              0 0,
+              100% 0,
+              50% 100%
+            );
+          filter:
+            drop-shadow(
+              0 0 5px
+              #c45cff
+            );
         }
 
-        .pulseLive b { color: #ff6977; }
-        .pulseEvents b { color: #ffc46b; }
-        .pulseBuild b { color: #6ff0d0; }
-        .pulseTrend b { color: #b894ff; }
-
-        .pulseRangeRow,
-        .pulseCityRow {
+        .worldStats {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          z-index: 10;
           display: flex;
           gap: 8px;
-          margin-top: 12px;
-          overflow-x: auto;
-          padding-bottom: 2px;
-          scrollbar-width: none;
+          padding: 7px 9px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.12
+            );
+          border-radius: 10px;
+          background:
+            rgba(
+              3,
+              8,
+              18,
+              0.68
+            );
+          backdrop-filter: blur(12px);
         }
 
-        .pulseRangeRow::-webkit-scrollbar,
-        .pulseCityRow::-webkit-scrollbar {
-          display: none;
-        }
-
-        .pulseRangeRow span,
-        .cityChip {
-          display: inline-flex;
+        .worldStats span {
+          display: flex;
           align-items: center;
-          min-height: 38px;
-          padding: 0 14px;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 999px;
-          background: rgba(255,255,255,.03);
-          color: rgba(255,255,255,.72);
-          white-space: nowrap;
-          font-size: 12px;
+          gap: 4px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.8
+            );
+          font-size: 7px;
           font-weight: 800;
+          white-space: nowrap;
         }
 
-        .activeRange,
-        .activeCity {
-          background: linear-gradient(100deg, rgba(82,247,200,.20), rgba(155,124,255,.16));
-          border-color: rgba(82,247,200,.20);
-          color: white;
+        .worldStats i {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
         }
 
-        .launchPadGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          margin-top: 16px;
+        .mintDot {
+          background: #52f7c8;
+          box-shadow:
+            0 0 8px #52f7c8;
         }
 
-        .launchPadCard {
-          position: relative;
-          min-height: 112px;
-          padding: 14px;
-          border: 1px solid rgba(255,255,255,.08);
-          border-radius: 22px;
-          overflow: hidden;
-          color: white;
-          text-decoration: none;
+        .pinkDot {
+          background: #ff3ba7;
+          box-shadow:
+            0 0 8px #ff3ba7;
+        }
+
+        .purpleDot {
+          background: #9568ff;
+          box-shadow:
+            0 0 8px #9568ff;
+        }
+
+        .worldCopy {
+          position: absolute;
+          z-index: 9;
+          top: 25px;
+          left: 17px;
+          width: 52%;
+        }
+
+        .worldCopy small {
+          color: #62f5dc;
+          font-size: 7px;
+          font-weight: 950;
+          letter-spacing: 0.18em;
+        }
+
+        .worldCopy h2 {
+          margin: 5px 0 3px;
+          font-size: clamp(
+            28px,
+            8vw,
+            43px
+          );
+          line-height: 0.9;
+          font-weight: 1000;
+          letter-spacing: -0.065em;
+          text-shadow:
+            0 4px 22px
+            rgba(0, 0, 0, 0.7);
+        }
+
+        .worldCopy p {
+          margin: 8px 0 13px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.72
+            );
+          font-size: 10px;
+          font-weight: 650;
+        }
+
+        .worldButton {
+          width: max-content;
+          min-width: 132px;
+          height: 43px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 17px;
+          padding: 0 15px;
+          border-radius: 999px;
+          color: #03120e;
           background:
-            linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-          box-shadow: 0 14px 34px rgba(0,0,0,.16);
+            linear-gradient(
+              105deg,
+              #53f7c8,
+              #56e9ef 55%,
+              #9667ff
+            );
+          box-shadow:
+            0 0 28px
+            rgba(
+              82,
+              247,
+              200,
+              0.24
+            );
+          font-size: 11px;
+          font-weight: 950;
         }
 
-        .liveLaunch {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(255,95,120,.13), transparent 30%),
-            rgba(255,255,255,.03);
-        }
-
-        .eventLaunch {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(255,190,92,.13), transparent 30%),
-            rgba(255,255,255,.03);
-        }
-
-        .castingLaunch {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(121,195,255,.13), transparent 30%),
-            rgba(255,255,255,.03);
-        }
-
-        .buildLaunch {
-          background:
-            radial-gradient(circle at 0% 0%, rgba(82,247,200,.13), transparent 30%),
-            rgba(255,255,255,.03);
-        }
-
-        .launchPadIcon {
-          display: grid;
-          place-items: center;
-          width: 46px;
-          height: 46px;
-          border-radius: 16px;
-          background: rgba(255,255,255,.06);
-          font-size: 24px;
-        }
-
-        .launchPadCopy {
-          margin-top: 12px;
-        }
-
-        .launchPadCopy strong {
-          display: block;
-          font-size: 18px;
+        .worldButton b {
+          font-size: 20px;
           line-height: 1;
         }
 
-        .launchPadCopy small {
-          display: block;
-          margin-top: 6px;
-          color: rgba(255,255,255,.48);
-          font-size: 11px;
-          line-height: 1.35;
-        }
-
-        .launchPadCard > b {
+        .worldLocation {
           position: absolute;
-          right: 14px;
-          top: 14px;
-          width: 34px;
-          height: 34px;
+          right: 13px;
+          bottom: 13px;
+          z-index: 9;
+          padding: 7px 10px;
+          border:
+            1px solid
+            rgba(
+              82,
+              247,
+              200,
+              0.32
+            );
+          border-radius: 999px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.88
+            );
+          background:
+            rgba(
+              2,
+              7,
+              15,
+              0.73
+            );
+          backdrop-filter: blur(11px);
+          font-size: 8px;
+          font-weight: 850;
+        }
+
+        /* FOUR GRAPHIC BUTTONS */
+
+        .quickGrid {
           display: grid;
-          place-items: center;
-          border-radius: 50%;
-          background: rgba(255,255,255,.05);
-          border: 1px solid rgba(255,255,255,.08);
-          font-size: 13px;
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
+          gap: 8px;
+          margin-top: 11px;
         }
 
-        @keyframes discoverHeroGlow {
-          to {
-            transform: translate(-18px, -10px) scale(1.08);
-          }
+        :global(.quickVisual) {
+          position: relative;
+          min-width: 0;
+          height: 139px;
+          overflow: hidden;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.14
+            );
+          border-radius: 17px;
+          color: white;
+          background: #0b0d14;
+          text-decoration: none;
+          isolation: isolate;
+          box-shadow:
+            0 12px 30px
+            rgba(
+              0,
+              0,
+              0,
+              0.22
+            );
+          transform: translateZ(0);
+          transition:
+            transform 0.2s ease,
+            border-color 0.2s ease;
         }
 
-        @keyframes badgePulse {
-          50% {
-            opacity: .35;
-            transform: scale(.72);
-          }
+        :global(.quickVisual:active) {
+          transform: scale(0.97);
         }
 
-        @keyframes radarPulse {
-          50% {
-            opacity: .20;
-            transform: translate(-50%, -50%) scale(.86);
-          }
+        :global(
+            .quickVisual
+              > .mediaVisual
+          ),
+        :global(
+            .quickVisual
+              > .mediaFallback
+          ) {
+          position: absolute;
+          inset: 0;
+          z-index: -3;
         }
 
-        @keyframes dotBlink {
-          50% {
-            opacity: .28;
-            transform: scale(.65);
-          }
+        :global(.quickTint) {
+          position: absolute;
+          inset: 0;
+          z-index: -2;
+          background:
+            linear-gradient(
+              0deg,
+              rgba(
+                  2,
+                  3,
+                  8,
+                  0.93
+                )
+                0%,
+              rgba(
+                  2,
+                  3,
+                  8,
+                  0.28
+                )
+                62%,
+              transparent 100%
+            );
         }
 
-        @keyframes playPulse {
-          50% {
-            transform: scale(.88);
-            opacity: .72;
-          }
+        :global(.quickVisual.live) {
+          box-shadow:
+            inset 0 0 35px
+              rgba(
+                255,
+                35,
+                100,
+                0.11
+              ),
+            0 12px 30px
+              rgba(
+                0,
+                0,
+                0,
+                0.2
+              );
         }
 
-        @media(max-width: 560px) {
-          .discoverV2Top {
-            display: block;
-          }
-
-          .discoverV2Label {
-            display: inline-block;
-            margin-top: 10px;
-          }
-
-          .megaHeroCenter {
-            grid-template-columns: 90px 1fr;
-            gap: 14px;
-          }
-
-          .megaHeroVisual {
-            width: 90px;
-            height: 90px;
-            border-radius: 24px;
-          }
-
-          .pulseStatGrid,
-          .launchPadGrid {
-            grid-template-columns: 1fr 1fr;
-          }
+        :global(.quickVisual.events) {
+          box-shadow:
+            inset 0 0 35px
+              rgba(
+                145,
+                76,
+                255,
+                0.13
+              ),
+            0 12px 30px
+              rgba(
+                0,
+                0,
+                0,
+                0.2
+              );
         }
 
-        @media(max-width: 420px) {
-          .megaHeroCard {
-            min-height: 270px;
-            padding: 15px;
-            border-radius: 24px;
-          }
-
-          .megaHeroCopy h3 {
-            font-size: 30px;
-          }
-
-          .megaHeroCopy p {
-            font-size: 13px;
-          }
-
-          .pulseZone {
-            padding: 14px;
-            border-radius: 20px;
-          }
-
-          .pulseStatCard {
-            min-height: 84px;
-            padding: 12px;
-          }
-
-          .pulseStatCard b {
-            font-size: 28px;
-          }
-
-          .launchPadCard {
-            min-height: 102px;
-            padding: 12px;
-          }
-
-          .launchPadCopy strong {
-            font-size: 16px;
-          }
+        :global(.quickVisual.casting) {
+          box-shadow:
+            inset 0 0 35px
+              rgba(
+                255,
+                155,
+                44,
+                0.1
+              ),
+            0 12px 30px
+              rgba(
+                0,
+                0,
+                0,
+                0.2
+              );
         }
 
-        .creatorSection,
-        .contentSection,
-        .quickSection {
-          margin-top: 25px;
+        :global(.quickVisual.build) {
+          box-shadow:
+            inset 0 0 35px
+              rgba(
+                82,
+                247,
+                200,
+                0.11
+              ),
+            0 12px 30px
+              rgba(
+                0,
+                0,
+                0,
+                0.2
+              );
+        }
+
+        :global(.quickBadge) {
+          position: absolute;
+          top: 8px;
+          right: 7px;
+          padding: 4px 6px;
+          border-radius: 6px;
+          color: white;
+          background: #ff2b69;
+          box-shadow:
+            0 0 14px
+            rgba(
+              255,
+              42,
+              103,
+              0.48
+            );
+          font-size: 7px;
+          font-weight: 950;
+        }
+
+        :global(.quickBottom) {
+          position: absolute;
+          right: 8px;
+          bottom: 9px;
+          left: 8px;
+          display: flex;
+          align-items: center;
+          min-width: 0;
+        }
+
+        :global(.quickIcon) {
+          margin-right: 5px;
+          font-size: 18px;
+          line-height: 1;
+          text-shadow:
+            0 0 14px
+            currentColor;
+        }
+
+        :global(.quickBottom strong) {
+          min-width: 0;
+          flex: 1;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 11px;
+          font-weight: 950;
+        }
+
+        :global(.quickArrow) {
+          margin-left: 4px;
+          font-size: 20px;
+          line-height: 1;
+        }
+
+        /* GENERAL SECTIONS */
+
+        .sectionBlock {
+          margin-top: 20px;
         }
 
         .sectionHeading {
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 11px;
+          gap: 15px;
+          margin-bottom: 10px;
         }
 
-        .sectionHeading small {
-          color: rgba(255,255,255,.36);
-        }
-
-        .sectionHeading h2 {
-          margin: 3px 0 0;
-          font-size: 20px;
-          letter-spacing: -.035em;
+        .sectionHeading h2,
+        .movingHeader h2 {
+          margin: 0;
+          color: white;
+          font-size: 18px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: -0.035em;
         }
 
         .sectionHeading > a {
-          color: rgba(255,255,255,.42);
+          flex: 0 0 auto;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.58
+            );
           text-decoration: none;
-          font-size: 9px;
+          font-size: 10px;
           font-weight: 750;
+        }
+
+        /* TRENDING */
+
+        .trendRail {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: 30%;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 3px;
+          scroll-snap-type: x proximity;
+          scrollbar-width: none;
+        }
+
+        .trendCard,
+        .trendSkeleton {
+          height: 205px;
+          border-radius: 15px;
+          scroll-snap-align: start;
+        }
+
+        .trendCard {
+          position: relative;
+          display: block;
+          overflow: hidden;
+          color: white;
+          background: #0b0e15;
+          text-decoration: none;
+          isolation: isolate;
+        }
+
+        .trendCard
+          > :global(.mediaVisual),
+        .trendCard
+          > :global(.mediaFallback) {
+          position: absolute;
+          inset: 0;
+          z-index: -3;
+        }
+
+        .trendShade {
+          position: absolute;
+          inset: 25% 0 0;
+          z-index: -2;
+          background:
+            linear-gradient(
+              transparent,
+              rgba(
+                0,
+                0,
+                0,
+                0.91
+              )
+            );
+        }
+
+        .miniPlay {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 25px;
+          height: 25px;
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: white;
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.68
+            );
+          backdrop-filter: blur(8px);
+          font-size: 9px;
+        }
+
+        .trendCopy {
+          position: absolute;
+          right: 9px;
+          bottom: 9px;
+          left: 9px;
+          min-width: 0;
+        }
+
+        .trendCopy small {
+          display: block;
+          margin-bottom: 3px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.78
+            );
+          font-size: 8px;
+          font-weight: 750;
+        }
+
+        .trendCopy strong {
+          display: -webkit-box;
+          overflow: hidden;
+          color: white;
+          font-size: 10px;
+          line-height: 1.15;
+          font-weight: 900;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .trendCopy span {
+          display: block;
+          overflow: hidden;
+          margin-top: 5px;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.56
+            );
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          font-size: 7px;
+        }
+
+        .trendSkeleton {
+          background:
+            linear-gradient(
+              110deg,
+              #0c1018 8%,
+              #141a24 18%,
+              #0c1018 33%
+            );
+          background-size:
+            200% 100%;
+          animation:
+            skeleton 1.3s
+            linear infinite;
+        }
+
+        /* CREATORS */
+
+        .creatorsBlock {
+          margin-top: 18px;
         }
 
         .creatorRail {
           display: flex;
           gap: 13px;
           overflow-x: auto;
-          padding-bottom: 4px;
+          padding: 2px 0 4px;
           scrollbar-width: none;
         }
 
         .creatorBubble {
-          width: 76px;
-          flex: 0 0 76px;
+          width: 68px;
+          flex: 0 0 68px;
           display: flex;
           flex-direction: column;
           align-items: center;
           color: white;
-          text-decoration: none;
           text-align: center;
+          text-decoration: none;
         }
 
         .creatorRing {
-          width: 61px;
-          height: 61px;
+          position: relative;
+          width: 58px;
+          height: 58px;
           display: grid;
           place-items: center;
           padding: 2px;
@@ -1929,22 +2725,33 @@ export default function DiscoverPage() {
             linear-gradient(
               145deg,
               #52f7c8,
-              #7d61ff,
-              #ff4db8
+              #5bd8ff,
+              #8e64ff,
+              #ff48bc
+            );
+          box-shadow:
+            0 0 16px
+            rgba(
+              82,
+              247,
+              200,
+              0.07
             );
         }
 
         .creatorAvatar {
           width: 100%;
           height: 100%;
-          overflow: hidden;
           display: grid;
           place-items: center;
-          border: 3px solid #05070d;
+          overflow: hidden;
+          border:
+            3px solid #02040a;
           border-radius: 50%;
-          background: #101521;
+          color: #fff;
+          background: #111723;
           font-size: 18px;
-          font-weight: 1000;
+          font-weight: 950;
         }
 
         .creatorAvatar img {
@@ -1953,356 +2760,434 @@ export default function DiscoverPage() {
           object-fit: cover;
         }
 
-        .creatorBubble strong {
+        .creatorLive {
+          position: absolute;
+          bottom: -3px;
+          left: 50%;
+          padding: 2px 5px;
+          border:
+            2px solid #02040a;
+          border-radius: 5px;
+          color: #fff;
+          background: #ff2b74;
+          transform:
+            translateX(-50%);
+          font-size: 6px;
+          line-height: 1.1;
+          font-weight: 1000;
+        }
+
+        .creatorBubble
+          > strong {
           width: 100%;
           overflow: hidden;
           margin-top: 6px;
           white-space: nowrap;
           text-overflow: ellipsis;
-          font-size: 9px;
+          font-size: 8px;
+          font-weight: 800;
         }
 
-        .creatorBubble small {
-          width: 100%;
-          overflow: hidden;
-          margin-top: 2px;
-          color: rgba(255,255,255,.35);
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          font-size: 7px;
-        }
-
-        .discoverMediaGrid {
-          display: grid;
-          grid-template-columns: repeat(3,minmax(0,1fr));
-          gap: 3px;
-          align-items: start;
-        }
-
-        .discoverMediaTile {
-          position: relative;
-          width: 100%;
-          min-width: 0;
-          min-height: 0;
-          aspect-ratio: 4 / 5;
-          overflow: hidden;
-          border-radius: 9px;
-          color: white;
-          background: #0b0f17;
-          text-decoration: none;
-          transform: translateZ(0);
-          contain: layout paint;
-        }
-
-        .discoverMediaTile.tall {
-          aspect-ratio: 4 / 5;
-        }
-
-        .discoverMediaFrame,
-        .discoverMediaFrame img,
-        .discoverMediaFrame video,
-        .discoverMediaFallback {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          max-width: 100% !important;
-          max-height: 100% !important;
-        }
-
-        .discoverMediaFrame {
-          overflow: hidden;
-        }
-
-        .discoverMediaFrame img,
-        .discoverMediaFrame video {
-          display: block;
-          object-fit: cover !important;
-        }
-
-        .discoverMediaFallback {
-          display: grid;
-          place-items: center;
-          background:
-            radial-gradient(
-              circle at 30% 20%,
-              rgba(82,247,200,.18),
-              transparent 35%
-            ),
-            radial-gradient(
-              circle at 85% 80%,
-              rgba(122,88,255,.22),
-              transparent 42%
-            ),
-            #0b0f17;
-        }
-
-        .mediaFallback span {
-          color: rgba(255,255,255,.18);
-          font-size: 27px;
-          font-weight: 1000;
-          letter-spacing: -.06em;
-        }
-
-        .tileShade {
-          position: absolute;
-          inset: 35% 0 0;
+        .addRing {
           background:
             linear-gradient(
-              transparent,
-              rgba(0,0,0,.82)
+              145deg,
+              #52f7c8,
+              #724dff,
+              #ff48bc
             );
         }
 
-        .tileCopy {
-          position: absolute;
-          right: 8px;
-          bottom: 8px;
-          left: 8px;
-          min-width: 0;
+        .moreCreator
+          .creatorAvatar {
+          background: #070c13;
+          font-size: 25px;
+          font-weight: 400;
         }
 
-        .tileCopy small {
-          display: block;
-          overflow: hidden;
-          color: #52f7c8;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          font-size: 7px;
-          font-weight: 900;
+        /* WHAT'S MOVING */
+
+        .movingBlock {
+          margin-top: 21px;
         }
 
-        .tileCopy strong {
-          display: -webkit-box;
-          overflow: hidden;
-          margin-top: 3px;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          font-size: 10px;
-          line-height: 1.25;
-        }
-
-        .playBadge {
-          position: absolute;
-          top: 9px;
-          right: 9px;
-          width: 27px;
-          height: 27px;
-          display: grid;
-          place-items: center;
-          border-radius: 50%;
-          color: white;
-          background: rgba(0,0,0,.48);
-          backdrop-filter: blur(8px);
-          font-size: 9px;
-        }
-
-        .loadingGrid {
-          pointer-events: none;
-        }
-
-        .skeletonTile {
-          min-height: 205px;
-          border-radius: 13px;
-          background:
-            linear-gradient(
-              110deg,
-              rgba(255,255,255,.035) 20%,
-              rgba(255,255,255,.08) 35%,
-              rgba(255,255,255,.035) 50%
-            );
-          background-size: 200% 100%;
-          animation: shimmer 1.3s linear infinite;
-        }
-
-        .skeletonTile:nth-child(3n+1) {
-          min-height: 280px;
-        }
-
-        .emptyDiscover {
+        .movingHeader {
           display: flex;
-          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+
+        .movingFilters {
+          min-width: 0;
+          display: flex;
           gap: 5px;
-          padding: 20px;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 18px;
-          color: white;
-          background: rgba(255,255,255,.035);
-          text-decoration: none;
-        }
-
-        .emptyDiscover strong {
-          font-size: 14px;
-        }
-
-        .emptyDiscover span {
-          color: rgba(255,255,255,.44);
-          font-size: 9px;
-        }
-
-        .quickRail {
-          display: grid;
-          grid-auto-flow: column;
-          grid-auto-columns: minmax(220px,78vw);
-          gap: 10px;
           overflow-x: auto;
-          overscroll-behavior-inline: contain;
-          scroll-snap-type: x mandatory;
-          scroll-padding-inline: 0;
-          padding: 0 18px 6px 0;
           scrollbar-width: none;
         }
 
-        .quickCard {
-          min-height: 105px;
-          scroll-snap-align: start;
-          scroll-snap-stop: always;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 13px;
-          padding: 12px;
-          border: 1px solid rgba(255,255,255,.07);
-          border-radius: 18px;
-          color: white;
-          background: rgba(255,255,255,.03);
-          text-decoration: none;
-        }
-
-        .quickCard.mint {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(82,247,200,.08),
-              rgba(255,255,255,.02)
+        .movingFilters a,
+        .movingFilters span {
+          flex: 0 0 auto;
+          padding: 6px 10px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
             );
-        }
-
-        .quickCard.purple {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(120,83,255,.11),
-              rgba(255,255,255,.02)
-            );
-        }
-
-        .quickCard.gold {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255,194,63,.08),
-              rgba(255,255,255,.02)
-            );
-        }
-
-        .quickCard.pink {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(255,70,181,.085),
-              rgba(255,255,255,.02)
-            );
-        }
-
-        .quickCard.blue {
-          background:
-            linear-gradient(
-              145deg,
-              rgba(64,178,255,.09),
-              rgba(255,255,255,.02)
-            );
-        }
-
-        .quickIcon {
-          width: 34px;
-          height: 34px;
-          display: grid;
-          place-items: center;
-          border-radius: 11px;
-          background: rgba(255,255,255,.065);
-          font-size: 16px;
-        }
-
-        .quickCard strong {
-          display: block;
-          font-size: 11px;
-        }
-
-        .quickCard small {
-          display: block;
-          margin-top: 3px;
-          color: rgba(255,255,255,.38);
-          font-size: 8px;
-          line-height: 1.35;
-        }
-
-        .nextStrip {
-          margin-top: 22px;
-          padding: 13px;
-          border: 1px solid rgba(124,90,255,.1);
-          border-radius: 15px;
-          background: rgba(119,83,255,.045);
-        }
-
-        .nextStrip > span {
-          color: #9b87ff;
-          font-size: 7px;
-          font-weight: 1000;
-          letter-spacing: .14em;
-        }
-
-        .nextStrip > div {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 8px;
-        }
-
-        .nextStrip b {
-          padding: 6px 8px;
-          border: 1px solid rgba(255,255,255,.06);
           border-radius: 999px;
-          color: rgba(255,255,255,.63);
-          background: rgba(255,255,255,.025);
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              0.63
+            );
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.025
+            );
+          text-decoration: none;
           font-size: 7px;
+          font-weight: 800;
         }
 
-        @keyframes pulse {
+        .movingFilters
+          .selected {
+          color: #03130f;
+          border-color: #52f7c8;
+          background:
+            linear-gradient(
+              105deg,
+              #52f7c8,
+              #67dafc,
+              #8d67ff
+            );
+        }
+
+        .movingGrid {
+          display: grid;
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0, 1fr)
+            );
+          gap: 4px;
+        }
+
+        .movingCard,
+        .movingSkeleton {
+          aspect-ratio: 0.82;
+          border-radius: 11px;
+        }
+
+        .movingCard {
+          position: relative;
+          display: block;
+          overflow: hidden;
+          color: white;
+          background: #0b0e15;
+          isolation: isolate;
+        }
+
+        .movingCard
+          > :global(.mediaVisual),
+        .movingCard
+          > :global(.mediaFallback) {
+          position: absolute;
+          inset: 0;
+          z-index: -3;
+        }
+
+        .movingShade {
+          position: absolute;
+          inset: 50% 0 0;
+          z-index: -2;
+          background:
+            linear-gradient(
+              transparent,
+              rgba(
+                0,
+                0,
+                0,
+                0.7
+              )
+            );
+        }
+
+        .movingViews {
+          position: absolute;
+          top: 7px;
+          right: 7px;
+          padding: 4px 6px;
+          border-radius: 999px;
+          color: white;
+          background:
+            rgba(
+              0,
+              0,
+              0,
+              0.6
+            );
+          backdrop-filter: blur(7px);
+          font-size: 7px;
+          font-weight: 850;
+        }
+
+        .movingSkeleton {
+          background:
+            linear-gradient(
+              110deg,
+              #0c1018 8%,
+              #141a24 18%,
+              #0c1018 33%
+            );
+          background-size:
+            200% 100%;
+          animation:
+            skeleton 1.3s
+            linear infinite;
+        }
+
+        /* ANIMATION */
+
+        @keyframes globeFloat {
+          0%,
+          100% {
+            transform:
+              perspective(700px)
+              rotateX(51deg)
+              rotateZ(-4deg)
+              translateY(0);
+          }
+
           50% {
-            opacity: .38;
-            transform: scale(.76);
+            transform:
+              perspective(700px)
+              rotateX(51deg)
+              rotateZ(-2deg)
+              translateY(-6px);
           }
         }
 
-        @keyframes shimmer {
+        @keyframes worldGlow {
+          0%,
+          100% {
+            opacity: 0.72;
+            transform:
+              scale(0.98);
+          }
+
+          50% {
+            opacity: 1;
+            transform:
+              scale(1.06);
+          }
+        }
+
+        @keyframes pinBounce {
+          0%,
+          100% {
+            margin-top: 0;
+          }
+
+          50% {
+            margin-top: -7px;
+          }
+        }
+
+        @keyframes cityBlink {
+          0%,
+          100% {
+            opacity: 0.45;
+          }
+
+          50% {
+            opacity: 1;
+          }
+        }
+
+        @keyframes starPulse {
+          0%,
+          100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+          }
+
+          50% {
+            opacity: 1;
+            transform: scale(1.5);
+          }
+        }
+
+        @keyframes skeleton {
           to {
-            background-position-x: -200%;
+            background-position-x:
+              -200%;
+          }
+        }
+
+        /* SMALL PHONES */
+
+        @media (
+          max-width: 430px
+        ) {
+          .discoverShell {
+            padding-right: 11px;
+            padding-left: 11px;
+          }
+
+          .topBar {
+            gap: 9px;
+          }
+
+          .topSearch {
+            height: 43px;
+            padding: 0 12px;
+          }
+
+          .topSearch span {
+            font-size: 12px;
+          }
+
+          .categoryChip {
+            min-width: 69px;
+            padding:
+              9px 13px;
+          }
+
+          .watchMedia {
+            height: 218px;
+            border-radius: 18px;
+          }
+
+          .worldCard {
+            height: 215px;
+            border-radius: 18px;
+          }
+
+          .worldStats {
+            gap: 6px;
+          }
+
+          .worldStats span {
+            font-size: 6px;
+          }
+
+          .quickGrid {
+            gap: 5px;
+          }
+
+          :global(
+              .quickVisual
+            ) {
+            height: 132px;
+            border-radius: 14px;
+          }
+
+          :global(
+              .quickBottom strong
+            ) {
+            font-size: 10px;
+          }
+
+          .trendRail {
+            grid-auto-columns:
+              31%;
+          }
+
+          .trendCard,
+          .trendSkeleton {
+            height: 195px;
+          }
+
+          .creatorRail {
+            gap: 10px;
+          }
+
+          .creatorBubble {
+            width: 63px;
+            flex-basis: 63px;
+          }
+
+          .creatorRing {
+            width: 54px;
+            height: 54px;
+          }
+        }
+
+        /* VERY SMALL */
+
+        @media (
+          max-width: 360px
+        ) {
+          .utvLogo {
+            font-size: 31px;
+          }
+
+          .topSearch {
+            height: 41px;
+          }
+
+          .bell {
+            width: 32px;
+          }
+
+          .watchMedia {
+            height: 205px;
+          }
+
+          .worldCard {
+            height: 205px;
+          }
+
+          .worldCopy h2 {
+            font-size: 27px;
+          }
+
+          .worldStats span:nth-child(
+              3
+            ) {
+            display: none;
+          }
+
+          :global(
+              .quickIcon
+            ) {
+            font-size: 15px;
+          }
+
+          :global(
+              .quickBottom strong
+            ) {
+            font-size: 9px;
+          }
+
+          .trendRail {
+            grid-auto-columns:
+              35%;
           }
         }
 
         @media (
-          prefers-reduced-motion: reduce
+          prefers-reduced-motion:
+            reduce
         ) {
-          .pulseIdentity i,
-          .skeletonTile {
-            animation: none;
-          }
-        }
-
-        @media (min-width:700px) {
-          .discoverShell {
-            padding-inline: 20px;
-          }
-
-          .discoverMediaGrid {
-            grid-template-columns:
-              repeat(4,minmax(0,1fr));
-          }
-
-          .quickRail {
-            grid-auto-columns:
-              minmax(180px,30%);
+          .worldGlobe,
+          .worldGlow,
+          .worldPin,
+          .star,
+          .cityLight,
+          .trendSkeleton,
+          .movingSkeleton {
+            animation: none !important;
           }
         }
       `}</style>
