@@ -406,9 +406,20 @@ export default function UTVCallRoom() {
         );
       }
 
+      // UTV REAL-TIME CORE R1 — CALL STABILITY
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
+
+        /*
+         * Do not kill an active call just
+         * because the mobile browser fires
+         * pagehide while app-switching.
+         *
+         * Normal UTV navigation still calls
+         * our cleanup manually.
+         */
+        disconnectOnPageLeave: false,
       });
 
       roomRef.current = room;
@@ -442,7 +453,15 @@ export default function UTVCallRoom() {
         RoomEvent.ParticipantDisconnected,
         () => {
           if (!leavingRef.current) {
-            setMessage("Reconnecting…");
+            /*
+             * The UTV room itself may still be
+             * perfectly connected. The other
+             * participant leaving is different
+             * from our network reconnecting.
+             */
+            setMessage(
+              "Waiting for the other person…"
+            );
           }
         }
       );
@@ -612,6 +631,23 @@ export default function UTVCallRoom() {
         () => {
           setConnected(true);
           setMessage("Connected");
+
+          /*
+           * Resume media after a temporary
+           * Wi-Fi / cellular interruption.
+           */
+          void room
+            .startAudio()
+            .catch(() => {});
+
+          if (
+            current.call_type === "video"
+          ) {
+            window.setTimeout(
+              attachLocalCamera,
+              100
+            );
+          }
         }
       );
 
@@ -630,7 +666,10 @@ export default function UTVCallRoom() {
 
       await room.connect(
         serverUrl,
-        tokenData.token
+        tokenData.token,
+        {
+          autoSubscribe: true,
+        }
       );
 
       await room.localParticipant
@@ -724,18 +763,76 @@ export default function UTVCallRoom() {
     setMicMuted(next);
   }
 
-  function toggleSpeaker() {
+  async function toggleSpeaker() {
+    const room =
+      roomRef.current;
+
+    if (!room) {
+      return;
+    }
+
+    /*
+     * iPhone Safari and some mobile browsers
+     * can block remote audio until a real user
+     * gesture occurs.
+     *
+     * If playback is currently blocked, this
+     * tap is treated as "enable speaker" rather
+     * than accidentally muting the call.
+     */
+    if (!room.canPlaybackAudio) {
+      try {
+        await room.startAudio();
+
+        setSpeakerMuted(false);
+
+        audioContainerRef.current
+          ?.querySelectorAll<
+            HTMLAudioElement
+          >("audio")
+          .forEach((element) => {
+            element.muted = false;
+            element.volume = 1;
+
+            void element
+              .play()
+              .catch(() => {});
+          });
+
+        setMessage(
+          room.remoteParticipants.size > 0
+            ? "Connected"
+            : "Speaker ready"
+        );
+
+        return;
+      } catch {
+        setMessage(
+          "Tap Speaker again to enable call audio."
+        );
+
+        return;
+      }
+    }
+
     const next =
       !speakerMuted;
 
     setSpeakerMuted(next);
 
     audioContainerRef.current
-      ?.querySelectorAll("audio")
+      ?.querySelectorAll<
+        HTMLAudioElement
+      >("audio")
       .forEach((element) => {
-        (
-          element as HTMLAudioElement
-        ).muted = next;
+        element.muted = next;
+        element.volume = 1;
+
+        if (!next) {
+          void element
+            .play()
+            .catch(() => {});
+        }
       });
   }
 

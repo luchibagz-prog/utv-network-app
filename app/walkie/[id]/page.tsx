@@ -314,7 +314,34 @@ export default function WalkieProRoomPage() {
         );
       }
 
-      await liveKitRef.current?.disconnect();
+      // UTV REAL-TIME CORE R1 — WALKIE STABILITY
+      const previousRoom =
+        liveKitRef.current;
+
+      /*
+       * openRoom() is also used by our manual
+       * reconnect loop. Prevent a deliberate
+       * cleanup of the previous socket from
+       * scheduling another reconnect on top
+       * of the one already running.
+       */
+      if (previousRoom) {
+        const previousLeavingState =
+          intentionallyLeavingRef.current;
+
+        intentionallyLeavingRef.current =
+          true;
+
+        liveKitRef.current =
+          null;
+
+        try {
+          await previousRoom.disconnect();
+        } catch {}
+
+        intentionallyLeavingRef.current =
+          previousLeavingState;
+      }
 
       const liveKitRoom = new Room({
         adaptiveStream: true,
@@ -866,8 +893,82 @@ export default function WalkieProRoomPage() {
     setTransmitting(false);
   }
 
-  function toggleIncomingMute() {
-    const next = !incomingMuted;
+  async function unlockWalkieAudio() {
+    const room =
+      liveKitRef.current;
+
+    if (!room) {
+      setMessage(
+        "Walkie signal is not ready."
+      );
+      return;
+    }
+
+    try {
+      /*
+       * Must happen from a real tap on
+       * restrictive mobile browsers.
+       */
+      await room.startAudio();
+
+      setIncomingMuted(false);
+
+      room.remoteParticipants
+        .forEach((participant) => {
+          participant
+            .audioTrackPublications
+            .forEach((publication) => {
+              const track =
+                publication.track;
+
+              track?.attachedElements
+                .forEach((element) => {
+                  const media =
+                    element as HTMLMediaElement;
+
+                  media.muted = false;
+                  media.volume = 1;
+
+                  void media
+                    .play()
+                    .catch(() => {});
+                });
+            });
+        });
+
+      setMessage(
+        transmitting
+          ? "TRANSMITTING"
+          : "Audio ready • hold to talk."
+      );
+    } catch {
+      setMessage(
+        "Tap Audio again to enable Walkie sound."
+      );
+    }
+  }
+
+
+  async function toggleIncomingMute() {
+    const next =
+      !incomingMuted;
+
+    /*
+     * Unmuting is also a valid user gesture
+     * for releasing browser audio restrictions.
+     */
+    if (!next) {
+      try {
+        await liveKitRef.current
+          ?.startAudio();
+      } catch {
+        setMessage(
+          "Tap again to enable Walkie sound."
+        );
+        return;
+      }
+    }
+
     setIncomingMuted(next);
 
     liveKitRef.current
@@ -880,9 +981,18 @@ export default function WalkieProRoomPage() {
 
             track?.attachedElements
               .forEach((element) => {
-                (
-                  element as HTMLMediaElement
-                ).muted = next;
+                const media =
+                  element as HTMLMediaElement;
+
+                media.muted = next;
+
+                if (!next) {
+                  media.volume = 1;
+
+                  void media
+                    .play()
+                    .catch(() => {});
+                }
               });
           });
       });
@@ -1096,37 +1206,9 @@ export default function WalkieProRoomPage() {
         </button>
 
         <button
-          onClick={() =>
-            navigator.mediaDevices
-              ?.getUserMedia({
-                audio: {
-                  echoCancellation:
-                    true,
-                  noiseSuppression:
-                    true,
-                  autoGainControl:
-                    true,
-                },
-              })
-              .then((stream) =>
-                stream
-                  .getTracks()
-                  .forEach(
-                    (track) =>
-                      track.stop()
-                  )
-              )
-              .then(() =>
-                setMessage(
-                  "Microphone is ready."
-                )
-              )
-              .catch(() =>
-                setMessage(
-                  "Allow microphone access."
-                )
-              )
-          }
+          onClick={() => {
+            void unlockWalkieAudio();
+          }}
         >
           🎚
           <span>Audio</span>
