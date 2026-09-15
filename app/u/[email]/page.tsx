@@ -1,5 +1,7 @@
 "use client";
 
+/* UTV PROFILE POLISH 1A1 */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
@@ -431,14 +433,14 @@ export default function PublicProfile() {
 
   const name = pick(
     profile,
-    ["display_name", "creator_name", "full_name", "username"],
-    email.split("@")[0] || "UTV Creator"
+    ["display_name", "creator_name", "username"],
+    "UTV Creator"
   );
 
   const username = pick(
     profile,
     ["username"],
-    email.split("@")[0] || "creator"
+    "creator"
   );
 
   const avatar = pick(profile, [
@@ -1375,7 +1377,7 @@ export default function PublicProfile() {
               }
             >
               <span>⚡</span>
-              <strong>Creator</strong>
+              <strong>⚡ Creator Dash</strong>
               <b>
                 {creatorDashboardOpen ? "⌃" : "⌄"}
               </b>
@@ -1396,7 +1398,7 @@ export default function PublicProfile() {
           <div className="dashboardHeader">
             <div>
               <p>YOUR UTV</p>
-              <h2>Creator Dashboard</h2>
+              <h2>⚡ Creator Dash</h2>
               <span>
                 Create, manage and grow without leaving your profile.
               </span>
@@ -1645,63 +1647,43 @@ export default function PublicProfile() {
         }}
         onTouchEnd={finishProfileSwipe}
       >
+        {/* UTV FEATURED CONTENT CLEANUP 1A2B */}
         {tab === "featured" && (
           <>
-            <section className="soundtrack">
-              <div className="soundIcon">♫</div>
-
-              <div className="soundInfo">
-                <p>PROFILE SOUNDTRACK</p>
-
-                <h2>
-                  {song
-                    ? songTitle
-                    : "No soundtrack yet"}
-                </h2>
-
-                <span>
-                  {song
-                    ? songArtist ||
-                      `Sound of @${username}`
-                    : `${name} hasn't added a profile song yet.`}
-                </span>
-              </div>
-
-              {song && (
-                <button onClick={toggleMusic}>
-                  {playing ? "❚❚" : "▶"}
-                </button>
-              )}
-            </section>
-
-            <section className="crewSection">
+            <section className="featuredContentSection">
               <div className="heading">
                 <div>
-                  <p>INNER CIRCLE</p>
-                  <h2>Top 8 Crew</h2>
-                </div>
-
-                <button onClick={() => setTab("crew")}>
-                  View all
-                </button>
-              </div>
-
-              <CrewGrid crew={crew} router={router} />
-            </section>
-
-            <section>
-              <div className="heading">
-                <div>
-                  <p>SPOTLIGHT</p>
-                  <h2>Featured</h2>
+                  <p>UTV SPOTLIGHT</p>
+                  <h2>Featured Content</h2>
                 </div>
 
                 <button onClick={() => setTab("posts")}>
-                  See all
+                  All posts
                 </button>
               </div>
 
-              <MediaGrid items={featured} router={router} />
+              <p className="featuredIntro">
+                Featured posts, videos, shows, movies, collabs and tagged content.
+              </p>
+
+              {featured.length > 0 ? (
+                <MediaGrid
+                  items={featured}
+                  router={router}
+                />
+              ) : (
+                <div className="featuredEmpty">
+                  <span>✦</span>
+
+                  <strong>
+                    Nothing featured yet
+                  </strong>
+
+                  <small>
+                    Featured UTV content will show here.
+                  </small>
+                </div>
+              )}
             </section>
           </>
         )}
@@ -5899,7 +5881,98 @@ function MediaGrid({
             }
           }
 
-        `}</style>
+  
+        /* =====================================================
+           UTV PROFILE POLISH 1A1
+           ===================================================== */
+
+        /*
+         * Public profile avatars should feel like
+         * social-profile avatars — round, not boxed.
+         */
+        .hero .avatar {
+          border-radius: 50% !important;
+          overflow: hidden !important;
+        }
+
+        .hero .avatar img,
+        .hero .avatar > span {
+          border-radius: inherit !important;
+        }
+
+        /*
+         * Make Creator Dash read more like a utility/control.
+         */
+        .ownerCreatorButton strong {
+          letter-spacing: -.01em;
+        }
+
+
+
+        /* =====================================================
+           UTV FEATURED CONTENT CLEANUP 1A2B
+           ===================================================== */
+
+        .featuredContentSection {
+          min-width: 0;
+        }
+
+        .featuredIntro {
+          margin: -2px 0 16px;
+          color: rgba(255,255,255,.48);
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .featuredEmpty {
+          min-height: 210px;
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 7px;
+          padding: 28px 18px;
+          border: 1px solid rgba(255,255,255,.08);
+          border-radius: 22px;
+          background:
+            radial-gradient(
+              circle at 50% 0%,
+              rgba(82,247,200,.08),
+              transparent 46%
+            ),
+            linear-gradient(
+              145deg,
+              rgba(123,97,255,.07),
+              rgba(255,255,255,.025)
+            );
+          text-align: center;
+        }
+
+        .featuredEmpty > span {
+          width: 48px;
+          height: 48px;
+          display: grid;
+          place-items: center;
+          margin-bottom: 4px;
+          border: 1px solid rgba(82,247,200,.2);
+          border-radius: 50%;
+          color: #52f7c8;
+          background: rgba(82,247,200,.07);
+          font-size: 20px;
+        }
+
+        .featuredEmpty strong {
+          color: #fff;
+          font-size: 14px;
+          font-weight: 950;
+        }
+
+        .featuredEmpty small {
+          color: rgba(255,255,255,.43);
+          font-size: 10px;
+        }
+
+
+      `}</style>
       </div>
     );
   }
