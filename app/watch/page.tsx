@@ -1357,7 +1357,7 @@ export default function WatchPage() {
     ];
 
   return (
-    <main className="watchPage">
+    <main data-utv-skin="watch" className="watchPage">
       <UTVNav />
 
       <style>

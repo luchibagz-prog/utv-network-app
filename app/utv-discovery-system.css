@@ -1,0 +1,1644 @@
+/*
+ * ==========================================================
+ * UTV DISCOVERY DESIGN SYSTEM — PACK 1
+ *
+ * Shared visual language:
+ * Feed • Watch • Activity • World • Main Navigation
+ *
+ * This file changes presentation only.
+ * ==========================================================
+ */
+
+:root {
+  --utv-black: #020305;
+  --utv-black-2: #05070b;
+  --utv-panel: rgba(10, 13, 19, 0.82);
+  --utv-panel-solid: #090c12;
+
+  --utv-mint: #52f7c8;
+  --utv-mint-soft: rgba(82, 247, 200, 0.16);
+
+  --utv-purple: #8068ff;
+  --utv-purple-soft: rgba(128, 104, 255, 0.16);
+
+  --utv-pink: #ff315d;
+  --utv-pink-soft: rgba(255, 49, 93, 0.15);
+
+  --utv-text: #f8f9fb;
+  --utv-muted: rgba(255, 255, 255, 0.56);
+
+  --utv-line: rgba(255, 255, 255, 0.09);
+  --utv-line-strong: rgba(255, 255, 255, 0.15);
+
+  --utv-radius: 22px;
+  --utv-radius-small: 15px;
+
+  --utv-glass:
+    blur(24px)
+    saturate(145%);
+}
+
+
+/* ==========================================================
+   GLOBAL UTV APP SURFACE
+   ========================================================== */
+
+html,
+body {
+  background:
+    #020305 !important;
+}
+
+body {
+  color:
+    var(--utv-text);
+}
+
+[data-utv-skin] {
+  position: relative;
+
+  isolation: isolate;
+
+  min-height: 100dvh;
+
+  color:
+    var(--utv-text);
+
+  background:
+    radial-gradient(
+      circle at 8% -5%,
+      rgba(82, 247, 200, 0.11),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 92% 6%,
+      rgba(128, 104, 255, 0.13),
+      transparent 29%
+    ),
+    radial-gradient(
+      circle at 50% 52%,
+      rgba(255, 49, 93, 0.035),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      #05070b 0%,
+      #020305 38%,
+      #000 100%
+    ) !important;
+
+  padding-bottom:
+    calc(
+      94px +
+      env(safe-area-inset-bottom)
+    );
+}
+
+
+/*
+ * Decorative UTV atmosphere.
+ * No interaction.
+ */
+
+[data-utv-skin]::before {
+  content: "";
+
+  position: fixed;
+  z-index: -1;
+
+  top: -170px;
+  left: 50%;
+
+  width: min(520px, 100vw);
+  height: 430px;
+
+  transform:
+    translateX(-50%);
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(82, 247, 200, 0.08),
+      transparent 66%
+    );
+
+  filter:
+    blur(14px);
+}
+
+
+[data-utv-skin] *,
+[data-utv-nav="premium"] * {
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+
+[data-utv-skin] button,
+[data-utv-skin] a,
+[data-utv-nav="premium"] a,
+[data-utv-nav="premium"] button {
+  transition:
+    transform 0.16s ease,
+    opacity 0.16s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+
+[data-utv-skin] button:active,
+[data-utv-skin] a:active,
+[data-utv-nav="premium"] a:active,
+[data-utv-nav="premium"] button:active {
+  transform:
+    scale(0.975);
+}
+
+
+/* ==========================================================
+   SHARED HEADERS
+   ========================================================== */
+
+[data-utv-skin] > header:first-child,
+[data-utv-skin] .topBar,
+[data-utv-skin] .feedHeader,
+[data-utv-skin] .watchHeader,
+[data-utv-skin] .activityHeader,
+[data-utv-skin] .worldHeader {
+  border-bottom:
+    1px solid
+    rgba(255, 255, 255, 0.055);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3, 5, 8, 0.96),
+      rgba(3, 5, 8, 0.72)
+    ) !important;
+
+  backdrop-filter:
+    var(--utv-glass);
+
+  -webkit-backdrop-filter:
+    var(--utv-glass);
+}
+
+
+[data-utv-skin] h1,
+[data-utv-skin] h2,
+[data-utv-skin] h3 {
+  color:
+    #fff;
+}
+
+
+[data-utv-skin] input,
+[data-utv-skin] textarea,
+[data-utv-skin] select {
+  color:
+    #fff !important;
+
+  border:
+    1px solid
+    var(--utv-line) !important;
+
+  outline:
+    none;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.045
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255,255,255,.025);
+
+  backdrop-filter:
+    blur(18px);
+}
+
+
+[data-utv-skin] input:focus,
+[data-utv-skin] textarea:focus,
+[data-utv-skin] select:focus {
+  border-color:
+    rgba(
+      82,
+      247,
+      200,
+      0.42
+    ) !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(
+      82,
+      247,
+      200,
+      0.055
+    );
+}
+
+
+[data-utv-skin] input::placeholder,
+[data-utv-skin] textarea::placeholder {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.35
+    );
+}
+
+
+/* ==========================================================
+   FEED
+   ========================================================== */
+
+[data-utv-skin="feed"] {
+  --feed-edge:
+    max(
+      10px,
+      calc(
+        (100vw - 620px) / 2
+      )
+    );
+}
+
+
+/*
+ * Give existing feed headers the
+ * Discover/native app treatment.
+ */
+
+[data-utv-skin="feed"]
+.feedHeader,
+[data-utv-skin="feed"]
+.feedTop,
+[data-utv-skin="feed"]
+.topBar {
+  position:
+    sticky !important;
+
+  z-index:
+    80;
+
+  top:
+    0;
+
+  padding-top:
+    max(
+      8px,
+      env(safe-area-inset-top)
+    );
+
+  border-bottom:
+    1px solid
+    rgba(255,255,255,.06);
+
+  background:
+    rgba(
+      3,
+      5,
+      8,
+      0.78
+    ) !important;
+
+  backdrop-filter:
+    blur(26px)
+    saturate(155%);
+}
+
+
+/*
+ * Story rail
+ */
+
+[data-utv-skin="feed"]
+.stories,
+[data-utv-skin="feed"]
+.storyRail,
+[data-utv-skin="feed"]
+.storiesRail,
+[data-utv-skin="feed"]
+.storyRow {
+  scrollbar-width:
+    none;
+
+  padding-top:
+    9px !important;
+
+  padding-bottom:
+    10px !important;
+}
+
+
+[data-utv-skin="feed"]
+.stories::-webkit-scrollbar,
+[data-utv-skin="feed"]
+.storyRail::-webkit-scrollbar,
+[data-utv-skin="feed"]
+.storiesRail::-webkit-scrollbar,
+[data-utv-skin="feed"]
+.storyRow::-webkit-scrollbar {
+  display:
+    none;
+}
+
+
+[data-utv-skin="feed"]
+.storyRing,
+[data-utv-skin="feed"]
+.storyAvatarWrap,
+[data-utv-skin="feed"]
+.storyCircle {
+  padding:
+    2px;
+
+  border:
+    0 !important;
+
+  border-radius:
+    50%;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #8068ff 52%,
+      #ff315d
+    ) !important;
+
+  box-shadow:
+    0 0 18px
+    rgba(
+      128,
+      104,
+      255,
+      0.13
+    );
+}
+
+
+/*
+ * Feed cards
+ */
+
+[data-utv-skin="feed"]
+article,
+[data-utv-skin="feed"]
+.feedPost,
+[data-utv-skin="feed"]
+.postCard,
+[data-utv-skin="feed"]
+.feedCard {
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.075
+    ) !important;
+
+  border-radius:
+    22px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(
+        13,
+        16,
+        23,
+        0.82
+      ),
+      rgba(
+        5,
+        7,
+        11,
+        0.92
+      )
+    ) !important;
+
+  box-shadow:
+    0 18px 55px
+    rgba(
+      0,
+      0,
+      0,
+      0.23
+    ),
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    );
+}
+
+
+/*
+ * Feed user media should feel like
+ * social content, not embedded web boxes.
+ */
+
+[data-utv-skin="feed"]
+article video,
+[data-utv-skin="feed"]
+article > img,
+[data-utv-skin="feed"]
+.feedPost video,
+[data-utv-skin="feed"]
+.feedPost img,
+[data-utv-skin="feed"]
+.postMedia video,
+[data-utv-skin="feed"]
+.postMedia img,
+[data-utv-skin="feed"]
+.feedMedia video,
+[data-utv-skin="feed"]
+.feedMedia img {
+  width:
+    100%;
+
+  object-fit:
+    cover;
+
+  background:
+    #050505;
+}
+
+
+/*
+ * Composer / create entrance
+ */
+
+[data-utv-skin="feed"]
+.postComposer,
+[data-utv-skin="feed"]
+.createPost,
+[data-utv-skin="feed"]
+.composer,
+[data-utv-skin="feed"]
+.createCard {
+  border:
+    1px solid
+    rgba(
+      82,
+      247,
+      200,
+      0.10
+    ) !important;
+
+  border-radius:
+    20px !important;
+
+  background:
+    radial-gradient(
+      circle at 10% 0%,
+      rgba(
+        82,
+        247,
+        200,
+        0.08
+      ),
+      transparent 38%
+    ),
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    );
+}
+
+
+[data-utv-skin="feed"]
+.postActions button,
+[data-utv-skin="feed"]
+.feedActions button,
+[data-utv-skin="feed"]
+.actionRow button,
+[data-utv-skin="feed"]
+.reactionRow button {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.07
+    ) !important;
+
+  border-radius:
+    999px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+}
+
+
+/* ==========================================================
+   WATCH
+   ========================================================== */
+
+[data-utv-skin="watch"] {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(
+        128,
+        104,
+        255,
+        0.16
+      ),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 0% 32%,
+      rgba(
+        82,
+        247,
+        200,
+        0.07
+      ),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #05060a,
+      #010204 58%,
+      #000
+    ) !important;
+}
+
+
+[data-utv-skin="watch"]
+.watchHero,
+[data-utv-skin="watch"]
+.hero,
+[data-utv-skin="watch"]
+.featuredHero,
+[data-utv-skin="watch"]
+.featured {
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    ) !important;
+
+  border-radius:
+    28px !important;
+
+  background:
+    #080a10 !important;
+
+  box-shadow:
+    0 24px 70px
+    rgba(
+      0,
+      0,
+      0,
+      0.36
+    ),
+    0 0 60px
+    rgba(
+      128,
+      104,
+      255,
+      0.055
+    );
+}
+
+
+[data-utv-skin="watch"]
+.watchHero::after,
+[data-utv-skin="watch"]
+.hero::after,
+[data-utv-skin="watch"]
+.featuredHero::after {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  z-index:
+    2;
+
+  inset:
+    40% 0 0;
+
+  pointer-events:
+    none;
+
+  background:
+    linear-gradient(
+      0deg,
+      rgba(
+        0,
+        0,
+        0,
+        0.92
+      ),
+      transparent
+    );
+}
+
+
+[data-utv-skin="watch"]
+.categoryRail,
+[data-utv-skin="watch"]
+.categories,
+[data-utv-skin="watch"]
+.chips,
+[data-utv-skin="watch"]
+.genreRail {
+  display:
+    flex;
+
+  gap:
+    7px;
+
+  overflow-x:
+    auto;
+
+  scrollbar-width:
+    none;
+}
+
+
+[data-utv-skin="watch"]
+.categoryRail::-webkit-scrollbar,
+[data-utv-skin="watch"]
+.categories::-webkit-scrollbar,
+[data-utv-skin="watch"]
+.chips::-webkit-scrollbar,
+[data-utv-skin="watch"]
+.genreRail::-webkit-scrollbar {
+  display:
+    none;
+}
+
+
+[data-utv-skin="watch"]
+.categoryRail a,
+[data-utv-skin="watch"]
+.categoryRail button,
+[data-utv-skin="watch"]
+.categories button,
+[data-utv-skin="watch"]
+.chip {
+  flex:
+    0 0 auto;
+
+  min-height:
+    35px;
+
+  padding:
+    0 13px;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.72
+    );
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.09
+    ) !important;
+
+  border-radius:
+    999px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+
+  backdrop-filter:
+    blur(14px);
+}
+
+
+[data-utv-skin="watch"]
+.watchCard,
+[data-utv-skin="watch"]
+.mediaCard,
+[data-utv-skin="watch"]
+.movieCard,
+[data-utv-skin="watch"]
+.showCard,
+[data-utv-skin="watch"]
+.contentCard {
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.07
+    ) !important;
+
+  border-radius:
+    18px !important;
+
+  background:
+    #090c12 !important;
+
+  box-shadow:
+    0 12px 34px
+    rgba(
+      0,
+      0,
+      0,
+      0.24
+    );
+}
+
+
+[data-utv-skin="watch"]
+.watchCard img,
+[data-utv-skin="watch"]
+.mediaCard img,
+[data-utv-skin="watch"]
+.movieCard img,
+[data-utv-skin="watch"]
+.showCard img,
+[data-utv-skin="watch"]
+.contentCard img,
+[data-utv-skin="watch"]
+.watchCard video,
+[data-utv-skin="watch"]
+.mediaCard video {
+  width:
+    100%;
+
+  height:
+    100%;
+
+  object-fit:
+    cover;
+}
+
+
+[data-utv-skin="watch"]
+section h2 {
+  font-weight:
+    900;
+
+  letter-spacing:
+    -0.025em;
+}
+
+
+/* ==========================================================
+   ACTIVITY
+   ========================================================== */
+
+[data-utv-skin="activity"] {
+  background:
+    radial-gradient(
+      circle at 88% 2%,
+      rgba(
+        255,
+        49,
+        93,
+        0.10
+      ),
+      transparent 25%
+    ),
+    radial-gradient(
+      circle at 10% 20%,
+      rgba(
+        82,
+        247,
+        200,
+        0.07
+      ),
+      transparent 30%
+    ),
+    linear-gradient(
+      180deg,
+      #05070a,
+      #010204
+    ) !important;
+}
+
+
+[data-utv-skin="activity"]
+.activityHeader,
+[data-utv-skin="activity"]
+header:first-child {
+  position:
+    sticky;
+
+  z-index:
+    70;
+
+  top:
+    0;
+
+  backdrop-filter:
+    blur(26px)
+    saturate(145%);
+}
+
+
+[data-utv-skin="activity"]
+.activityItem,
+[data-utv-skin="activity"]
+.notificationItem,
+[data-utv-skin="activity"]
+.notification,
+[data-utv-skin="activity"]
+.activityCard,
+[data-utv-skin="activity"]
+li {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.07
+    ) !important;
+
+  border-radius:
+    18px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(
+        255,
+        255,
+        255,
+        0.045
+      ),
+      rgba(
+        255,
+        255,
+        255,
+        0.018
+      )
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.025
+    );
+}
+
+
+[data-utv-skin="activity"]
+.activityItem:hover,
+[data-utv-skin="activity"]
+.notificationItem:hover,
+[data-utv-skin="activity"]
+.notification:hover {
+  border-color:
+    rgba(
+      82,
+      247,
+      200,
+      0.16
+    ) !important;
+
+  background:
+    rgba(
+      82,
+      247,
+      200,
+      0.035
+    ) !important;
+}
+
+
+[data-utv-skin="activity"]
+.unread,
+[data-utv-skin="activity"]
+.isUnread,
+[data-utv-skin="activity"]
+.notification.unread {
+  border-color:
+    rgba(
+      82,
+      247,
+      200,
+      0.20
+    ) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(
+        82,
+        247,
+        200,
+        0.075
+      ),
+      rgba(
+        128,
+        104,
+        255,
+        0.035
+      )
+    ) !important;
+
+  box-shadow:
+    0 0 28px
+    rgba(
+      82,
+      247,
+      200,
+      0.04
+    );
+}
+
+
+/* ==========================================================
+   UTV WORLD
+   ========================================================== */
+
+[data-utv-skin="world"] {
+  overflow:
+    hidden;
+
+  padding-bottom:
+    0 !important;
+
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      rgba(
+        82,
+        247,
+        200,
+        0.08
+      ),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 88% 12%,
+      rgba(
+        128,
+        104,
+        255,
+        0.14
+      ),
+      transparent 27%
+    ),
+    #020306 !important;
+}
+
+
+/*
+ * Keep World 6.0 as the star.
+ * These rules just align its chrome with
+ * Discover.
+ */
+
+[data-utv-skin="world"]
+.world5ModeDock,
+[data-utv-skin="world"]
+.world5Search,
+[data-utv-skin="world"]
+.world5Filters,
+[data-utv-skin="world"]
+.worldMapControls {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.10
+    ) !important;
+
+  background:
+    rgba(
+      7,
+      9,
+      14,
+      0.68
+    ) !important;
+
+  box-shadow:
+    0 14px 38px
+    rgba(
+      0,
+      0,
+      0,
+      0.28
+    ),
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+
+  backdrop-filter:
+    blur(24px)
+    saturate(155%) !important;
+
+  -webkit-backdrop-filter:
+    blur(24px)
+    saturate(155%) !important;
+}
+
+
+[data-utv-skin="world"]
+.world5Search input {
+  border:
+    0 !important;
+
+  background:
+    transparent !important;
+
+  box-shadow:
+    none !important;
+}
+
+
+[data-utv-skin="world"]
+.neonMapPin {
+  filter:
+    drop-shadow(
+      0 0 13px
+      rgba(
+        82,
+        247,
+        200,
+        0.14
+      )
+    );
+}
+
+
+[data-utv-skin="world"]
+.neonPinBody {
+  box-shadow:
+    0 0 18px
+    rgba(
+      82,
+      247,
+      200,
+      0.22
+    ),
+    0 0 35px
+    rgba(
+      128,
+      104,
+      255,
+      0.09
+    ) !important;
+}
+
+
+[data-utv-skin="world"]
+.world5Filters button,
+[data-utv-skin="world"]
+.world5Filters a {
+  border-radius:
+    999px !important;
+}
+
+
+[data-utv-skin="world"]
+.world5Filters
+.selected,
+[data-utv-skin="world"]
+.world5Filters
+.active {
+  color:
+    #07110e !important;
+
+  border-color:
+    var(--utv-mint) !important;
+
+  background:
+    var(--utv-mint) !important;
+
+  box-shadow:
+    0 0 20px
+    rgba(
+      82,
+      247,
+      200,
+      0.15
+    );
+}
+
+
+/* ==========================================================
+   MAIN UTV NAVIGATION
+   ========================================================== */
+
+[data-utv-nav="premium"] {
+  position:
+    fixed !important;
+
+  z-index:
+    1000 !important;
+
+  right:
+    8px !important;
+
+  bottom:
+    max(
+      8px,
+      env(safe-area-inset-bottom)
+    ) !important;
+
+  left:
+    8px !important;
+
+  width:
+    min(
+      calc(
+        100% - 16px
+      ),
+      610px
+    ) !important;
+
+  min-height:
+    70px;
+
+  margin:
+    0 auto !important;
+
+  display:
+    flex !important;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-around;
+
+  gap:
+    3px;
+
+  padding:
+    7px !important;
+
+  overflow:
+    visible;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.12
+    ) !important;
+
+  border-radius:
+    24px !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(
+        13,
+        16,
+        22,
+        0.82
+      ),
+      rgba(
+        5,
+        7,
+        10,
+        0.92
+      )
+    ) !important;
+
+  box-shadow:
+    0 24px 70px
+    rgba(
+      0,
+      0,
+      0,
+      0.50
+    ),
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.055
+    ) !important;
+
+  backdrop-filter:
+    blur(28px)
+    saturate(165%) !important;
+
+  -webkit-backdrop-filter:
+    blur(28px)
+    saturate(165%) !important;
+}
+
+
+[data-utv-nav="premium"] a,
+[data-utv-nav="premium"] button {
+  position:
+    relative;
+
+  min-width:
+    48px;
+
+  min-height:
+    54px;
+
+  flex:
+    1 1 0;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    center;
+
+  flex-direction:
+    column;
+
+  gap:
+    2px;
+
+  padding:
+    5px 4px !important;
+
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.57
+    ) !important;
+
+  border:
+    0 !important;
+
+  border-radius:
+    16px !important;
+
+  background:
+    transparent !important;
+
+  text-decoration:
+    none !important;
+}
+
+
+[data-utv-nav="premium"] a:hover,
+[data-utv-nav="premium"] button:hover {
+  color:
+    #fff !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.05
+    ) !important;
+}
+
+
+[data-utv-nav="premium"] a[aria-current="page"],
+[data-utv-nav="premium"] .active,
+[data-utv-nav="premium"] .selected {
+  color:
+    var(--utv-mint) !important;
+
+  background:
+    rgba(
+      82,
+      247,
+      200,
+      0.075
+    ) !important;
+}
+
+
+/*
+ * Create / center action.
+ */
+
+[data-utv-nav="premium"]
+a[href="/submit"],
+[data-utv-nav="premium"]
+a[href="/create"],
+[data-utv-nav="premium"]
+a[href="/camera"] {
+  min-width:
+    55px;
+
+  max-width:
+    62px;
+
+  height:
+    55px;
+
+  margin-top:
+    -16px;
+
+  color:
+    #07110e !important;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.25
+    ) !important;
+
+  border-radius:
+    19px !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #6ee4ff
+    ) !important;
+
+  box-shadow:
+    0 8px 28px
+    rgba(
+      82,
+      247,
+      200,
+      0.23
+    ),
+    0 0 35px
+    rgba(
+      128,
+      104,
+      255,
+      0.08
+    ) !important;
+}
+
+
+/* ==========================================================
+   SHARED CARD POLISH
+   ========================================================== */
+
+[data-utv-skin]
+.card {
+  border:
+    1px solid
+    var(--utv-line) !important;
+
+  border-radius:
+    20px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.035
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(
+      255,
+      255,
+      255,
+      0.03
+    );
+}
+
+
+[data-utv-skin]
+.btn {
+  color:
+    #fff !important;
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.10
+    ) !important;
+
+  border-radius:
+    14px !important;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.055
+    ) !important;
+}
+
+
+[data-utv-skin]
+.btn.primary,
+[data-utv-skin]
+.primary.btn {
+  color:
+    #06110d !important;
+
+  border-color:
+    rgba(
+      82,
+      247,
+      200,
+      0.65
+    ) !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #68e4ff
+    ) !important;
+
+  box-shadow:
+    0 9px 24px
+    rgba(
+      82,
+      247,
+      200,
+      0.13
+    );
+}
+
+
+/* ==========================================================
+   ENTRANCE ANIMATION
+   ========================================================== */
+
+@keyframes utvSurfaceIn {
+  from {
+    opacity:
+      0;
+
+    transform:
+      translateY(7px);
+  }
+
+  to {
+    opacity:
+      1;
+
+    transform:
+      translateY(0);
+  }
+}
+
+
+[data-utv-skin]
+article,
+[data-utv-skin]
+.sectionBlock,
+[data-utv-skin]
+.card {
+  animation:
+    utvSurfaceIn
+    0.32s
+    ease
+    both;
+}
+
+
+/* ==========================================================
+   MOBILE
+   ========================================================== */
+
+@media (
+  max-width: 640px
+) {
+
+  [data-utv-skin="feed"]
+  article,
+  [data-utv-skin="feed"]
+  .feedPost,
+  [data-utv-skin="feed"]
+  .postCard {
+    border-right-width:
+      0 !important;
+
+    border-left-width:
+      0 !important;
+
+    border-radius:
+      0 !important;
+  }
+
+
+  [data-utv-skin="watch"]
+  .watchHero,
+  [data-utv-skin="watch"]
+  .hero,
+  [data-utv-skin="watch"]
+  .featuredHero {
+    border-radius:
+      23px !important;
+  }
+
+
+  [data-utv-nav="premium"] {
+    min-height:
+      67px;
+  }
+}
+
+
+/* ==========================================================
+   ACCESSIBILITY
+   ========================================================== */
+
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+
+  [data-utv-skin] *,
+  [data-utv-nav="premium"] * {
+    scroll-behavior:
+      auto !important;
+
+    animation:
+      none !important;
+
+    transition:
+      none !important;
+  }
+}
+
+
+/* UTV DISCOVERY DESIGN SYSTEM — PACK 1 END */

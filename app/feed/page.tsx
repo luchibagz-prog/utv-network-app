@@ -2717,7 +2717,7 @@ export default function FeedPage() {
   ]);
 
   return (
-    <main
+    <main data-utv-skin="feed"
       className="feedPage"
       onTouchStart={handlePullStart}
       onTouchMove={handlePullMove}

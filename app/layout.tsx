@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./utv-discovery-system.css";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";

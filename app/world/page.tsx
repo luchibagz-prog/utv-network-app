@@ -1622,7 +1622,7 @@ export default function WorldPage() {
   }
 
     return (
-    <main className="worldPage">
+    <main data-utv-skin="world" className="worldPage">
       <UTVNav />
       <style>{styles}</style>
 

@@ -1682,7 +1682,7 @@ const messageChannelRef =
   );
 
   return (
-    <main className="activityPage">
+    <main data-utv-skin="activity" className="activityPage">
       <UTVNav />
 
       <nav className="utvSocialSwitch" aria-label="UTV social sections">

@@ -1005,7 +1005,7 @@ export default function UTVNav() {
         )}
 
       {pathname === "/feed" && (
-        <nav className="utvTopNav">
+        <nav data-utv-nav="premium" className="utvTopNav">
           <Link
             href="/feed"
             className="utvLogoLink"
