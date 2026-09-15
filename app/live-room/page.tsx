@@ -2035,4 +2035,1689 @@ const styles = `
   .replayPage{padding:max(20px,env(safe-area-inset-top)) 14px max(30px,env(safe-area-inset-bottom));background:radial-gradient(circle at 50% 15%,rgba(82,247,200,.1),transparent 28%),#050505}.replayWrap{width:min(100%,620px);margin:0 auto}.replayVideoShell{position:relative;width:100%;aspect-ratio:9/16;max-height:62dvh;overflow:hidden;margin-bottom:12px;border-radius:23px;background:#000}.replayVideo{width:100%;height:100%;object-fit:cover}.replayBadge{position:absolute;top:11px;left:11px;padding:6px 9px;border-radius:999px;background:rgba(0,0,0,.55);font-size:9px;font-weight:950}.metaRow{display:flex;gap:6px;margin:9px 0}.metaRow span{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.06);font-size:9px}.replayPrimary{width:100%;min-height:50px;color:#06110d;border:0;border-radius:15px;background:#52f7c8;font-weight:950}.replaySecondary button{min-height:44px;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.05)}
   @keyframes floatReaction{0%{opacity:0;transform:translateY(0) scale(.7)}20%{opacity:1}100%{opacity:0;transform:translateY(-180px) scale(1.3)}}
   @media(min-width:740px){.cameraStage{width:min(100%,580px);margin:0 auto;border-left:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06)}}
+
+
+  /* UTV LIVE V3 DISCOVERY THEME START */
+
+  /*
+   * ========================================
+   * UTV LIVE V3
+   * Same design family as UTV Discover.
+   *
+   * Visual-only upgrade.
+   * Existing LiveKit / comments / guests /
+   * sessions / replay logic remains intact.
+   * ========================================
+   */
+
+
+  html,
+  body {
+    background: #02040a !important;
+    overscroll-behavior: none;
+  }
+
+
+  /* ========================================
+     MAIN LIVE ENVIRONMENT
+  ======================================== */
+
+  .livePage,
+  .replayPage {
+    color: #fff;
+
+    background:
+      radial-gradient(
+        circle at 8% -5%,
+        rgba(82,247,200,.12),
+        transparent 27%
+      ),
+      radial-gradient(
+        circle at 100% 18%,
+        rgba(118,88,255,.16),
+        transparent 30%
+      ),
+      #02040a !important;
+  }
+
+
+  .cameraStage {
+    background:
+      radial-gradient(
+        circle at 50% 35%,
+        rgba(82,247,200,.055),
+        transparent 34%
+      ),
+      #030509 !important;
+
+    isolation: isolate;
+  }
+
+
+  .cameraStage::before {
+    content: "";
+
+    position: absolute;
+    z-index: 7;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+      radial-gradient(
+        circle at 5% 8%,
+        rgba(82,247,200,.09),
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 95% 14%,
+        rgba(125,88,255,.11),
+        transparent 28%
+      );
+
+    mix-blend-mode: screen;
+  }
+
+
+  .cameraStage::after {
+    content: "";
+
+    position: absolute;
+    z-index: 8;
+
+    inset: 0;
+
+    pointer-events: none;
+
+    box-shadow:
+      inset 0 0 80px
+      rgba(0,0,0,.22);
+  }
+
+
+  .cameraVideo {
+    filter:
+      saturate(1.04)
+      contrast(1.015);
+  }
+
+
+  /* ========================================
+     TOP / CAMERA HEADER
+  ======================================== */
+
+  .setupHeader,
+  .liveHeader {
+    z-index: 50 !important;
+  }
+
+
+  .circle {
+    width: 43px !important;
+    height: 43px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.13) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(20,27,38,.78),
+        rgba(5,8,14,.7)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.06),
+      0 10px 28px
+      rgba(0,0,0,.26);
+
+    backdrop-filter:
+      blur(18px)
+      saturate(140%) !important;
+
+    -webkit-backdrop-filter:
+      blur(18px)
+      saturate(140%) !important;
+  }
+
+
+  .brandPill {
+    min-height: 43px;
+
+    padding:
+      7px 18px !important;
+
+    border:
+      1px solid
+      rgba(82,247,200,.20) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(17,27,37,.82),
+        rgba(5,9,16,.76)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.05),
+      0 10px 32px
+      rgba(0,0,0,.28),
+      0 0 25px
+      rgba(82,247,200,.055);
+
+    backdrop-filter:
+      blur(20px)
+      saturate(145%) !important;
+  }
+
+
+  .brandPill span,
+  .eyebrow {
+    color: #57f0d2 !important;
+
+    font-weight: 1000 !important;
+
+    letter-spacing:
+      1.7px !important;
+  }
+
+
+  .brandPill strong {
+    color: white;
+
+    font-weight: 950;
+  }
+
+
+  .cameraStatus {
+    padding:
+      7px 11px !important;
+
+    border:
+      1px solid
+      rgba(82,247,200,.16);
+
+    color:
+      rgba(255,255,255,.78);
+
+    background:
+      rgba(4,9,15,.76) !important;
+
+    box-shadow:
+      0 8px 25px
+      rgba(0,0,0,.28);
+
+    backdrop-filter:
+      blur(16px);
+  }
+
+
+  /* ========================================
+     CAMERA SHADING
+  ======================================== */
+
+  .topShade {
+    height: 245px !important;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0,0,0,.86) 0%,
+        rgba(0,0,0,.48) 48%,
+        transparent 100%
+      ) !important;
+  }
+
+
+  .bottomShade {
+    height: 430px !important;
+
+    background:
+      linear-gradient(
+        0deg,
+        rgba(0,0,0,.96) 0%,
+        rgba(0,0,0,.65) 44%,
+        transparent 100%
+      ) !important;
+  }
+
+
+  /* ========================================
+     BEFORE GO LIVE — SETUP PANEL
+  ======================================== */
+
+  .setupSheet {
+    left: 11px !important;
+    right: 11px !important;
+
+    padding:
+      10px 13px 14px !important;
+
+    border:
+      1px solid
+      rgba(82,247,200,.16) !important;
+
+    border-radius:
+      27px !important;
+
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82,247,200,.095),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 95% 0%,
+        rgba(125,92,255,.10),
+        transparent 34%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(14,20,29,.91),
+        rgba(5,8,13,.95)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.055),
+      0 25px 80px
+      rgba(0,0,0,.48),
+      0 0 45px
+      rgba(82,247,200,.035);
+
+    backdrop-filter:
+      blur(32px)
+      saturate(150%) !important;
+
+    -webkit-backdrop-filter:
+      blur(32px)
+      saturate(150%) !important;
+  }
+
+
+  .handle {
+    width: 42px !important;
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(82,247,200,.55),
+        rgba(110,215,255,.58),
+        rgba(134,97,255,.54)
+      ) !important;
+
+    box-shadow:
+      0 0 12px
+      rgba(82,247,200,.18);
+  }
+
+
+  .setupIntro {
+    margin-bottom:
+      12px !important;
+  }
+
+
+  .setupIntro h1 {
+    margin-top:
+      4px !important;
+
+    font-size:
+      clamp(
+        27px,
+        8vw,
+        36px
+      ) !important;
+
+    line-height:
+      .94 !important;
+
+    font-weight:
+      1000 !important;
+
+    letter-spacing:
+      -1.7px !important;
+  }
+
+
+  .setupQuality {
+    position: relative;
+
+    overflow: hidden;
+
+    padding:
+      7px 10px !important;
+
+    color:
+      #06120e !important;
+
+    border:
+      1px solid
+      rgba(82,247,200,.9) !important;
+
+    background:
+      linear-gradient(
+        110deg,
+        #52f7c8,
+        #63dfff
+      ) !important;
+
+    box-shadow:
+      0 0 22px
+      rgba(82,247,200,.18);
+
+    font-weight:
+      1000 !important;
+  }
+
+
+  /* ========================================
+     FORM FIELDS
+  ======================================== */
+
+  .setupSheet label {
+    color:
+      rgba(255,255,255,.58) !important;
+  }
+
+
+  .field {
+    min-height:
+      48px !important;
+
+    padding:
+      11px 13px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.10) !important;
+
+    border-radius:
+      15px !important;
+
+    color: white !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.065),
+        rgba(255,255,255,.025)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.025);
+
+    transition:
+      border-color .18s,
+      box-shadow .18s,
+      background .18s;
+  }
+
+
+  .field::placeholder {
+    color:
+      rgba(255,255,255,.34);
+  }
+
+
+  .field:focus {
+    border-color:
+      rgba(82,247,200,.48) !important;
+
+    background:
+      rgba(82,247,200,.045) !important;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(82,247,200,.055),
+      0 0 22px
+      rgba(82,247,200,.05);
+
+    outline: none;
+  }
+
+
+  /* ========================================
+     CATEGORY CHIPS
+  ======================================== */
+
+  .chips {
+    gap: 6px !important;
+
+    margin-top:
+      10px !important;
+
+    padding-bottom: 2px;
+  }
+
+
+  .chip {
+    min-height:
+      35px !important;
+
+    padding:
+      0 13px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.10) !important;
+
+    color:
+      rgba(255,255,255,.67) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.055),
+        rgba(255,255,255,.02)
+      ) !important;
+
+    font-size:
+      9px !important;
+
+    font-weight:
+      900 !important;
+
+    backdrop-filter:
+      blur(12px);
+  }
+
+
+  .chip.selected {
+    color:
+      #06120e !important;
+
+    border-color:
+      rgba(82,247,200,.9) !important;
+
+    background:
+      linear-gradient(
+        105deg,
+        #52f7c8,
+        #61dfff,
+        #8a6dff
+      ) !important;
+
+    box-shadow:
+      0 7px 22px
+      rgba(82,247,200,.17) !important;
+  }
+
+
+  /* ========================================
+     MIC + CAMERA PRE-LIVE
+  ======================================== */
+
+  .deviceRow {
+    gap: 7px !important;
+
+    margin-top:
+      9px !important;
+  }
+
+
+  .device {
+    min-height:
+      47px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.09) !important;
+
+    border-radius:
+      15px !important;
+
+    color:
+      rgba(255,255,255,.60) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.05),
+        rgba(255,255,255,.02)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.025);
+
+    transition:
+      transform .16s,
+      border-color .16s,
+      background .16s;
+  }
+
+
+  .device.selected {
+    color:
+      white !important;
+
+    border-color:
+      rgba(82,247,200,.28) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(82,247,200,.13),
+        rgba(89,187,255,.055)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.035),
+      0 0 20px
+      rgba(82,247,200,.045);
+  }
+
+
+  .device:active {
+    transform:
+      scale(.985);
+  }
+
+
+  /* ========================================
+     MORE OPTIONS
+  ======================================== */
+
+  .liveMore {
+    margin-top:
+      9px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.085) !important;
+
+    border-radius:
+      17px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.045),
+        rgba(255,255,255,.018)
+      ) !important;
+  }
+
+
+  .liveMore summary {
+    min-height:
+      44px !important;
+
+    color:
+      rgba(255,255,255,.72) !important;
+  }
+
+
+  .liveMore[open] {
+    border-color:
+      rgba(82,247,200,.16) !important;
+  }
+
+
+  /* ========================================
+     UTV WORLD TOGGLE
+  ======================================== */
+
+  .worldToggle {
+    min-height:
+      63px;
+
+    border:
+      1px solid
+      rgba(255,255,255,.085) !important;
+
+    border-radius:
+      18px !important;
+
+    background:
+      radial-gradient(
+        circle at 5% 50%,
+        rgba(82,247,200,.055),
+        transparent 25%
+      ),
+      rgba(255,255,255,.026) !important;
+
+    transition:
+      border-color .18s,
+      background .18s;
+  }
+
+
+  .worldToggle.selected {
+    border-color:
+      rgba(82,247,200,.32) !important;
+
+    background:
+      radial-gradient(
+        circle at 8% 50%,
+        rgba(82,247,200,.16),
+        transparent 34%
+      ),
+      linear-gradient(
+        120deg,
+        rgba(82,247,200,.08),
+        rgba(124,92,255,.055)
+      ) !important;
+
+    box-shadow:
+      0 0 25px
+      rgba(82,247,200,.035);
+  }
+
+
+  .worldToggle.selected i {
+    background:
+      linear-gradient(
+        100deg,
+        #52f7c8,
+        #62ddff
+      ) !important;
+  }
+
+
+  /* ========================================
+     GO LIVE BUTTON
+  ======================================== */
+
+  .goLive {
+    position: relative;
+
+    min-height:
+      55px !important;
+
+    overflow: hidden;
+
+    border:
+      1px solid
+      rgba(255,255,255,.10) !important;
+
+    border-radius:
+      17px !important;
+
+    background:
+      linear-gradient(
+        105deg,
+        #ff315d 0%,
+        #ff477b 42%,
+        #9b60ff 100%
+      ) !important;
+
+    box-shadow:
+      0 14px 35px
+      rgba(255,49,93,.18),
+      0 0 30px
+      rgba(139,92,255,.08) !important;
+
+    font-size:
+      13px !important;
+
+    font-weight:
+      1000 !important;
+
+    letter-spacing:
+      .7px !important;
+
+    transition:
+      transform .16s,
+      filter .16s;
+  }
+
+
+  .goLive::before {
+    content: "";
+
+    position: absolute;
+
+    top: -100%;
+    left: -35%;
+
+    width: 35%;
+    height: 300%;
+
+    transform:
+      rotate(25deg);
+
+    background:
+      linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.22),
+        transparent
+      );
+
+    animation:
+      utvLiveShimmer
+      3.7s
+      ease-in-out
+      infinite;
+  }
+
+
+  .goLive:hover {
+    filter:
+      brightness(1.04);
+  }
+
+
+  .goLive:active {
+    transform:
+      scale(.985) !important;
+  }
+
+
+  /* ========================================
+     ACTIVE LIVE HUD
+  ======================================== */
+
+  .liveHeader {
+    top:
+      max(
+        13px,
+        env(safe-area-inset-top)
+      ) !important;
+
+    gap: 6px !important;
+
+    justify-content:
+      center !important;
+  }
+
+
+  .liveBadge,
+  .clock,
+  .viewers,
+  .shareLive {
+    min-height:
+      38px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.12) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(18,24,34,.74),
+        rgba(5,8,13,.70)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.04),
+      0 8px 25px
+      rgba(0,0,0,.25);
+
+    backdrop-filter:
+      blur(18px)
+      saturate(140%) !important;
+
+    -webkit-backdrop-filter:
+      blur(18px)
+      saturate(140%) !important;
+
+    font-weight:
+      950 !important;
+  }
+
+
+  .liveBadge {
+    border-color:
+      rgba(255,49,93,.45) !important;
+
+    background:
+      linear-gradient(
+        110deg,
+        #ff315d,
+        #ff4677
+      ) !important;
+
+    box-shadow:
+      0 8px 26px
+      rgba(255,49,93,.22) !important;
+  }
+
+
+  .clock {
+    color:
+      white !important;
+  }
+
+
+  .viewers {
+    color:
+      rgba(255,255,255,.92) !important;
+  }
+
+
+  .shareLive {
+    color:
+      #07130f !important;
+
+    border-color:
+      rgba(82,247,200,.48) !important;
+
+    background:
+      linear-gradient(
+        125deg,
+        #52f7c8,
+        #65dfff
+      ) !important;
+
+    box-shadow:
+      0 8px 25px
+      rgba(82,247,200,.13) !important;
+  }
+
+
+  /* ========================================
+     LIVE TITLE / META
+  ======================================== */
+
+  .liveInfo {
+    top:
+      max(
+        75px,
+        calc(
+          env(safe-area-inset-top)
+          + 61px
+        )
+      ) !important;
+
+    left:
+      17px !important;
+
+    gap:
+      4px !important;
+  }
+
+
+  .liveInfo > span {
+    color:
+      #5af0d4 !important;
+
+    font-size:
+      8px !important;
+
+    font-weight:
+      1000 !important;
+
+    letter-spacing:
+      1.6px !important;
+  }
+
+
+  .liveInfo h1 {
+    margin:
+      1px 0 0 !important;
+
+    font-size:
+      clamp(
+        28px,
+        8vw,
+        40px
+      ) !important;
+
+    line-height:
+      .95 !important;
+
+    font-weight:
+      1000 !important;
+
+    letter-spacing:
+      -1.6px !important;
+
+    text-shadow:
+      0 4px 25px
+      rgba(0,0,0,.6);
+  }
+
+
+  .liveInfo p {
+    color:
+      rgba(255,255,255,.69) !important;
+  }
+
+
+  .liveInfo small {
+    color:
+      rgba(255,255,255,.48) !important;
+  }
+
+
+  /* ========================================
+     COMMENTS
+  ======================================== */
+
+  .commentStack {
+    gap: 5px !important;
+  }
+
+
+  .commentBubble {
+    padding:
+      7px 10px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.065);
+
+    border-radius:
+      14px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(10,15,22,.64),
+        rgba(3,6,10,.54)
+      ) !important;
+
+    box-shadow:
+      0 6px 20px
+      rgba(0,0,0,.12);
+
+    backdrop-filter:
+      blur(15px)
+      saturate(130%) !important;
+  }
+
+
+  .commentBubble strong {
+    color:
+      #58efd2 !important;
+  }
+
+
+  .hostCommentBar {
+    left:
+      11px !important;
+
+    right:
+      11px !important;
+
+    padding:
+      5px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.12) !important;
+
+    border-radius:
+      999px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(12,18,25,.79),
+        rgba(4,7,11,.76)
+      ) !important;
+
+    box-shadow:
+      0 12px 35px
+      rgba(0,0,0,.23);
+
+    backdrop-filter:
+      blur(22px)
+      saturate(145%) !important;
+  }
+
+
+  .hostCommentBar input {
+    color: white !important;
+  }
+
+
+  .hostCommentBar input::placeholder {
+    color:
+      rgba(255,255,255,.37);
+  }
+
+
+  .hostCommentBar button {
+    min-width:
+      68px !important;
+
+    color:
+      #06120e !important;
+
+    background:
+      linear-gradient(
+        110deg,
+        #52f7c8,
+        #61dfff
+      ) !important;
+
+    box-shadow:
+      0 5px 18px
+      rgba(82,247,200,.11);
+  }
+
+
+  /* ========================================
+     ACTIVE LIVE CONTROL DOCK
+  ======================================== */
+
+  .controlDock {
+    left:
+      10px !important;
+
+    right:
+      10px !important;
+
+    gap:
+      5px !important;
+
+    padding:
+      7px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.115) !important;
+
+    border-radius:
+      27px !important;
+
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82,247,200,.05),
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 90% 0%,
+        rgba(124,91,255,.055),
+        transparent 25%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(10,15,22,.86),
+        rgba(4,7,11,.91)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.04),
+      0 18px 50px
+      rgba(0,0,0,.38);
+
+    backdrop-filter:
+      blur(25px)
+      saturate(150%) !important;
+
+    -webkit-backdrop-filter:
+      blur(25px)
+      saturate(150%) !important;
+  }
+
+
+  .controlDock button {
+    min-height:
+      61px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.045) !important;
+
+    border-radius:
+      17px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.065),
+        rgba(255,255,255,.025)
+      ) !important;
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.025);
+
+    transition:
+      transform .15s,
+      background .15s;
+  }
+
+
+  .controlDock button:active {
+    transform:
+      scale(.965);
+  }
+
+
+  .controlDock small {
+    color:
+      rgba(255,255,255,.76);
+
+    font-size:
+      7.5px !important;
+
+    font-weight:
+      900 !important;
+  }
+
+
+  .controlDock .endButton {
+    border:
+      1px solid
+      rgba(255,255,255,.09) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        #ff315d,
+        #ff3f70
+      ) !important;
+
+    box-shadow:
+      0 10px 26px
+      rgba(255,49,93,.17) !important;
+  }
+
+
+  .controlDock
+    .endButton small {
+    color:
+      white !important;
+  }
+
+
+  .guestControl.hasRequests {
+    color:
+      #06120e !important;
+
+    border-color:
+      rgba(82,247,200,.65) !important;
+
+    background:
+      linear-gradient(
+        120deg,
+        #52f7c8,
+        #63dcff
+      ) !important;
+
+    box-shadow:
+      0 8px 24px
+      rgba(82,247,200,.12) !important;
+  }
+
+
+  .guestControl.hasRequests small {
+    color:
+      #06120e !important;
+  }
+
+
+  /* ========================================
+     GUEST SPLIT SCREEN
+  ======================================== */
+
+  .guestPanel {
+    border-top:
+      1px solid
+      rgba(82,247,200,.55) !important;
+
+    background:
+      radial-gradient(
+        circle at 50% 0%,
+        rgba(82,247,200,.08),
+        transparent 28%
+      ),
+      #05070b !important;
+
+    box-shadow:
+      0 -10px 35px
+      rgba(0,0,0,.24);
+  }
+
+
+  .guestLabel {
+    border:
+      1px solid
+      rgba(82,247,200,.18);
+
+    background:
+      rgba(3,8,12,.67) !important;
+
+    box-shadow:
+      0 8px 25px
+      rgba(0,0,0,.24);
+
+    backdrop-filter:
+      blur(16px) !important;
+  }
+
+
+  .guestLabel span {
+    color:
+      #52f7c8 !important;
+  }
+
+
+  .removeGuestButton {
+    border:
+      1px solid
+      rgba(255,73,107,.28) !important;
+
+    background:
+      rgba(255,49,93,.80) !important;
+
+    box-shadow:
+      0 8px 24px
+      rgba(255,49,93,.13);
+  }
+
+
+  /* ========================================
+     VIEWERS / GUEST SHEETS
+  ======================================== */
+
+  .liveSheetBackdrop {
+    background:
+      rgba(0,0,0,.60) !important;
+
+    backdrop-filter:
+      blur(5px) !important;
+  }
+
+
+  .livePeopleSheet {
+    border:
+      1px solid
+      rgba(82,247,200,.13) !important;
+
+    background:
+      radial-gradient(
+        circle at 10% 0%,
+        rgba(82,247,200,.07),
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 90% 0%,
+        rgba(125,91,255,.075),
+        transparent 32%
+      ),
+      #070b11 !important;
+
+    box-shadow:
+      0 -25px 80px
+      rgba(0,0,0,.52) !important;
+  }
+
+
+  .liveSheetHeader span {
+    color:
+      #56efd2 !important;
+  }
+
+
+  .liveSheetHeader h2 {
+    font-weight:
+      1000;
+
+    letter-spacing:
+      -1px;
+  }
+
+
+  .liveSheetHeader button {
+    border:
+      1px solid
+      rgba(255,255,255,.10) !important;
+
+    background:
+      rgba(255,255,255,.045) !important;
+  }
+
+
+  .viewerRow {
+    border:
+      1px solid
+      rgba(255,255,255,.075) !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.045),
+        rgba(255,255,255,.018)
+      ) !important;
+  }
+
+
+  .viewerAvatar {
+    border:
+      1px solid
+      rgba(82,247,200,.35) !important;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(82,247,200,.22),
+        rgba(111,116,255,.24)
+      ) !important;
+
+    box-shadow:
+      0 0 19px
+      rgba(82,247,200,.055);
+  }
+
+
+  .approveRequest {
+    color:
+      #06120e !important;
+
+    background:
+      linear-gradient(
+        120deg,
+        #52f7c8,
+        #61dfff
+      ) !important;
+  }
+
+
+  /* ========================================
+     TOASTS / FEEDBACK
+  ======================================== */
+
+  .interactionToast {
+    border:
+      1px solid
+      rgba(82,247,200,.24) !important;
+
+    color:
+      #56efd2 !important;
+
+    background:
+      rgba(3,10,12,.90) !important;
+
+    box-shadow:
+      0 10px 35px
+      rgba(0,0,0,.30);
+  }
+
+
+  .error {
+    border:
+      1px solid
+      rgba(255,75,109,.22) !important;
+
+    color:
+      #ff98ab !important;
+
+    background:
+      rgba(255,49,93,.065) !important;
+  }
+
+
+  /* ========================================
+     CAMERA OFF
+  ======================================== */
+
+  .cameraOff {
+    background:
+      radial-gradient(
+        circle at 50% 40%,
+        rgba(82,247,200,.11),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 65% 50%,
+        rgba(124,91,255,.11),
+        transparent 34%
+      ),
+      #03060a !important;
+  }
+
+
+  .cameraOff span {
+    filter:
+      drop-shadow(
+        0 0 18px
+        rgba(82,247,200,.14)
+      );
+  }
+
+
+  /* ========================================
+     REPLAY SCREEN
+  ======================================== */
+
+  .replayPage {
+    padding:
+      max(
+        18px,
+        env(safe-area-inset-top)
+      )
+      13px
+      max(
+        28px,
+        env(safe-area-inset-bottom)
+      ) !important;
+  }
+
+
+  .replayVideoShell {
+    border:
+      1px solid
+      rgba(82,247,200,.15);
+
+    border-radius:
+      24px !important;
+
+    box-shadow:
+      0 20px 60px
+      rgba(0,0,0,.38),
+      0 0 35px
+      rgba(82,247,200,.035);
+  }
+
+
+  .replayBadge {
+    border:
+      1px solid
+      rgba(255,255,255,.10);
+
+    background:
+      rgba(3,8,13,.68) !important;
+
+    backdrop-filter:
+      blur(15px);
+  }
+
+
+  .metaRow span {
+    border:
+      1px solid
+      rgba(255,255,255,.075);
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.055),
+        rgba(255,255,255,.02)
+      ) !important;
+  }
+
+
+  .replayPrimary {
+    min-height:
+      53px !important;
+
+    border-radius:
+      16px !important;
+
+    color:
+      #06120e !important;
+
+    background:
+      linear-gradient(
+        105deg,
+        #52f7c8,
+        #61dfff,
+        #8a6dff
+      ) !important;
+
+    box-shadow:
+      0 12px 32px
+      rgba(82,247,200,.12);
+
+    font-size:
+      12px;
+
+    font-weight:
+      1000 !important;
+  }
+
+
+  .replaySecondary button {
+    min-height:
+      47px !important;
+
+    border:
+      1px solid
+      rgba(255,255,255,.09) !important;
+
+    border-radius:
+      15px !important;
+
+    background:
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.05),
+        rgba(255,255,255,.018)
+      ) !important;
+  }
+
+
+  /* ========================================
+     PHONE POLISH
+  ======================================== */
+
+  @media(max-width: 430px) {
+
+    .setupSheet {
+      max-height:
+        60dvh !important;
+    }
+
+    .liveInfo h1 {
+      font-size:
+        30px !important;
+    }
+
+    .liveHeader {
+      left:
+        9px !important;
+
+      right:
+        9px !important;
+    }
+
+    .liveBadge,
+    .clock,
+    .viewers {
+      padding:
+        0 10px !important;
+
+      font-size:
+        9px !important;
+    }
+
+    .shareLive {
+      width:
+        38px !important;
+    }
+
+    .hostCommentBar {
+      bottom:
+        92px !important;
+    }
+
+    .controlDock button {
+      min-height:
+        61px !important;
+    }
+
+  }
+
+
+  @media(max-width: 365px) {
+
+    .liveBadge,
+    .clock,
+    .viewers {
+      padding:
+        0 8px !important;
+
+      font-size:
+        8px !important;
+    }
+
+    .setupIntro h1 {
+      font-size:
+        27px !important;
+    }
+
+    .controlDock {
+      gap:
+        4px !important;
+    }
+
+    .controlDock button {
+      min-height:
+        57px !important;
+
+      font-size:
+        15px !important;
+    }
+
+  }
+
+
+  /* ========================================
+     MOTION
+  ======================================== */
+
+  @keyframes utvLiveShimmer {
+
+    0%,
+    65% {
+      left: -40%;
+      opacity: 0;
+    }
+
+    72% {
+      opacity: .85;
+    }
+
+    90% {
+      left: 125%;
+      opacity: 0;
+    }
+
+    100% {
+      left: 125%;
+      opacity: 0;
+    }
+
+  }
+
+
+  @media(
+    prefers-reduced-motion:
+    reduce
+  ) {
+
+    .goLive::before {
+      animation: none;
+    }
+
+  }
+
+  /* UTV LIVE V3 DISCOVERY THEME END */
+
 `;
