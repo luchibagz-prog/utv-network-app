@@ -65,6 +65,27 @@ type JoinRequest = {
   requested_at: string;
 };
 
+type LiveGuest = {
+  identity: string;
+  email: string;
+  hasVideo: boolean;
+  hasAudio: boolean;
+};
+
+type LiveLayout =
+  | "auto"
+  | "split"
+  | "grid"
+  | "spotlight";
+
+type GuestTrackBundle = {
+  video?: RemoteTrack;
+  audio?: RemoteTrack;
+  audioElement?: HTMLMediaElement;
+};
+
+// UTV LIVE V4 MULTI GUEST
+
 function formatTime(total: number) {
   const min = Math.floor(total / 60);
   const sec = total % 60;
@@ -104,10 +125,11 @@ export default function LiveRoomPage() {
   const worldPostIdRef = useRef("");
   const isLiveRef = useRef(false);
   const endingLiveRef = useRef(false);
-  const guestVideoRef = useRef<HTMLVideoElement | null>(null);
-  const guestAudioContainerRef = useRef<HTMLDivElement | null>(null);
-  const guestVideoTrackRef = useRef<RemoteTrack | null>(null);
-  const guestAudioTrackRef = useRef<RemoteTrack | null>(null);
+  const guestVideoElementsRef =
+    useRef<Record<string, HTMLVideoElement | null>>({});
+
+  const guestTracksRef =
+    useRef<Record<string, GuestTrackBundle>>({});
 
   const [cameraFacing, setCameraFacing] =
     useState<CameraFacing>("user");
@@ -150,6 +172,15 @@ export default function LiveRoomPage() {
   const [interactionMessage, setInteractionMessage] = useState("");
   const [activeGuestEmail, setActiveGuestEmail] = useState("");
   const [activeGuestIdentity, setActiveGuestIdentity] = useState("");
+
+  const [liveGuests, setLiveGuests] =
+    useState<LiveGuest[]>([]);
+
+  const [liveLayout, setLiveLayout] =
+    useState<LiveLayout>("auto");
+
+  const [spotlightIdentity, setSpotlightIdentity] =
+    useState("host");
 
   const canGoLive = useMemo(
     () =>
@@ -210,14 +241,55 @@ export default function LiveRoomPage() {
   }, []);
 
   useEffect(() => {
-    if (
-      activeGuestEmail &&
-      guestVideoTrackRef.current &&
-      guestVideoRef.current
-    ) {
-      guestVideoTrackRef.current.attach(guestVideoRef.current);
-    }
-  }, [activeGuestEmail]);
+    liveGuests.forEach((guest) => {
+      const bundle =
+        guestTracksRef.current[
+          guest.identity
+        ];
+
+      if (!bundle) return;
+
+      const videoElement =
+        guestVideoElementsRef.current[
+          guest.identity
+        ];
+
+      if (
+        bundle.video &&
+        videoElement
+      ) {
+        try {
+          bundle.video.attach(
+            videoElement
+          );
+        } catch {}
+      }
+
+      if (
+        bundle.audio &&
+        !bundle.audioElement
+      ) {
+        try {
+          const audioElement =
+            bundle.audio.attach();
+
+          audioElement.autoplay =
+            true;
+
+          audioElement.style.display =
+            "none";
+
+          document.body.appendChild(
+            audioElement
+          );
+
+          bundle.audioElement =
+            audioElement;
+
+        } catch {}
+      }
+    });
+  }, [liveGuests]);
 
 
   async function toggleScreenShare() {
@@ -319,8 +391,28 @@ export default function LiveRoomPage() {
     videoTrackRef.current = null;
     audioTrackRef.current = null;
 
-    guestVideoTrackRef.current = null;
-    guestAudioTrackRef.current = null;
+    Object.values(
+      guestTracksRef.current
+    ).forEach((bundle) => {
+      try {
+        bundle.video?.detach();
+      } catch {}
+
+      try {
+        bundle.audio?.detach();
+      } catch {}
+
+      try {
+        bundle.audioElement?.remove();
+      } catch {}
+    });
+
+    guestTracksRef.current = {};
+    guestVideoElementsRef.current = {};
+
+    setLiveGuests([]);
+    setSpotlightIdentity("host");
+
     setActiveGuestEmail("");
     setActiveGuestIdentity("");
 
@@ -968,28 +1060,82 @@ export default function LiveRoomPage() {
         "broadcast",
         { event: "guest-left" },
         ({ payload }) => {
-          const email = String(payload?.email || "");
+          const email =
+            String(payload?.email || "").trim();
 
-          if (
-            !email ||
-            email.toLowerCase() !== activeGuestEmail.toLowerCase()
-          ) {
+          if (!email) {
             return;
           }
 
-          guestVideoTrackRef.current?.detach();
-          guestAudioTrackRef.current?.detach();
+          setLiveGuests((current) => {
+            const leavingGuests =
+              current.filter(
+                (guest) =>
+                  guest.email.toLowerCase() ===
+                  email.toLowerCase()
+              );
 
-          guestVideoTrackRef.current = null;
-          guestAudioTrackRef.current = null;
+            leavingGuests.forEach(
+              (guest) => {
+                const bundle =
+                  guestTracksRef.current[
+                    guest.identity
+                  ];
 
-          setActiveGuestEmail("");
-          setActiveGuestIdentity("");
+                try {
+                  bundle?.video?.detach();
+                } catch {}
+
+                try {
+                  bundle?.audio?.detach();
+                } catch {}
+
+                try {
+                  bundle?.audioElement?.remove();
+                } catch {}
+
+                delete guestTracksRef.current[
+                  guest.identity
+                ];
+
+                delete guestVideoElementsRef.current[
+                  guest.identity
+                ];
+
+                setSpotlightIdentity(
+                  (currentSpotlight) =>
+                    currentSpotlight ===
+                    guest.identity
+                      ? "host"
+                      : currentSpotlight
+                );
+              }
+            );
+
+            return current.filter(
+              (guest) =>
+                guest.email.toLowerCase() !==
+                email.toLowerCase()
+            );
+          });
+
+          setActiveGuestEmail(
+            (current) =>
+              current.toLowerCase() ===
+              email.toLowerCase()
+                ? ""
+                : current
+          );
+
           setInteractionMessage(
             `${email.split("@")[0]} left the guest seat.`
           );
 
-          window.setTimeout(() => setInteractionMessage(""), 2200);
+          window.setTimeout(
+            () =>
+              setInteractionMessage(""),
+            2200
+          );
         }
       )
       .on(
@@ -1132,6 +1278,20 @@ export default function LiveRoomPage() {
     guestEmail: string,
     approved: boolean
   ) {
+    if (
+      approved &&
+      liveGuests.length >= 3 &&
+      !liveGuests.some(
+        (guest) =>
+          guest.email.toLowerCase() ===
+          guestEmail.toLowerCase()
+      )
+    ) {
+      throw new Error(
+        "UTV Live supports up to 3 guests at once."
+      );
+    }
+
     const { data } = await supabase.auth.getSession();
     const accessToken = data.session?.access_token;
 
@@ -1267,72 +1427,290 @@ export default function LiveRoomPage() {
           _publication,
           participant
         ) => {
-          const meta = participantMeta(participant.metadata);
+          const meta =
+            participantMeta(
+              participant.metadata
+            );
 
           if (meta.role !== "guest") {
             return;
           }
 
+          const identity =
+            participant.identity;
+
           const guestEmail =
-            String(meta.email || participant.name || "").trim();
+            String(
+              meta.email ||
+              participant.name ||
+              "UTV Guest"
+            ).trim();
 
-          setActiveGuestEmail(guestEmail);
-          setActiveGuestIdentity(participant.identity);
+          const existingBundle =
+            guestTracksRef.current[
+              identity
+            ];
 
-          if (track.kind === Track.Kind.Video) {
-            guestVideoTrackRef.current = track;
+          /*
+           * Maximum:
+           * host + 3 guests = 4 people.
+           */
+          if (
+            !existingBundle &&
+            Object.keys(
+              guestTracksRef.current
+            ).length >= 3
+          ) {
+            try {
+              track.detach();
+            } catch {}
 
-            window.setTimeout(() => {
-              if (guestVideoRef.current) {
-                track.attach(guestVideoRef.current);
-              }
-            }, 30);
+            setInteractionMessage(
+              "UTV Live is full — maximum 3 guests."
+            );
+
+            return;
           }
 
-          if (track.kind === Track.Kind.Audio) {
-            guestAudioTrackRef.current = track;
+          const bundle =
+            existingBundle || {};
 
-            if (guestAudioContainerRef.current) {
-              const element = track.attach();
-              element.autoplay = true;
-              guestAudioContainerRef.current.appendChild(element);
+          if (
+            track.kind ===
+            Track.Kind.Video
+          ) {
+            bundle.video =
+              track;
+          }
+
+          if (
+            track.kind ===
+            Track.Kind.Audio
+          ) {
+            bundle.audio =
+              track;
+          }
+
+          guestTracksRef.current[
+            identity
+          ] = bundle;
+
+          setLiveGuests((current) => {
+            const existing =
+              current.find(
+                (guest) =>
+                  guest.identity ===
+                  identity
+              );
+
+            if (existing) {
+              return current.map(
+                (guest) =>
+                  guest.identity ===
+                  identity
+                    ? {
+                        ...guest,
+
+                        hasVideo:
+                          track.kind ===
+                            Track.Kind.Video
+                            ? true
+                            : guest.hasVideo,
+
+                        hasAudio:
+                          track.kind ===
+                            Track.Kind.Audio
+                            ? true
+                            : guest.hasAudio,
+                      }
+                    : guest
+              );
             }
-          }
+
+            if (
+              current.length >= 3
+            ) {
+              return current;
+            }
+
+            return [
+              ...current,
+              {
+                identity,
+                email:
+                  guestEmail,
+                hasVideo:
+                  track.kind ===
+                  Track.Kind.Video,
+                hasAudio:
+                  track.kind ===
+                  Track.Kind.Audio,
+              },
+            ];
+          });
+
+          /*
+           * Keep old state alive for
+           * compatibility with existing
+           * guest approval code.
+           */
+          setActiveGuestEmail(
+            guestEmail
+          );
+
+          setActiveGuestIdentity(
+            identity
+          );
         }
       );
 
       room.on(
         RoomEvent.TrackUnsubscribed,
-        (track: RemoteTrack, _publication, participant) => {
-          if (participant.identity !== activeGuestIdentity) {
+        (
+          track: RemoteTrack,
+          _publication,
+          participant
+        ) => {
+          const identity =
+            participant.identity;
+
+          const bundle =
+            guestTracksRef.current[
+              identity
+            ];
+
+          if (!bundle) {
             return;
           }
 
-          track.detach();
+          try {
+            track.detach();
+          } catch {}
 
-          if (track.kind === Track.Kind.Video) {
-            guestVideoTrackRef.current = null;
+          if (
+            track.kind ===
+            Track.Kind.Video
+          ) {
+            delete bundle.video;
           }
 
-          if (track.kind === Track.Kind.Audio) {
-            guestAudioTrackRef.current = null;
+          if (
+            track.kind ===
+            Track.Kind.Audio
+          ) {
+            delete bundle.audio;
+
+            try {
+              bundle.audioElement
+                ?.remove();
+            } catch {}
+
+            delete bundle
+              .audioElement;
           }
+
+          guestTracksRef.current[
+            identity
+          ] = bundle;
+
+          setLiveGuests(
+            (current) =>
+              current.map(
+                (guest) =>
+                  guest.identity ===
+                  identity
+                    ? {
+                        ...guest,
+
+                        hasVideo:
+                          track.kind ===
+                            Track.Kind.Video
+                            ? false
+                            : guest.hasVideo,
+
+                        hasAudio:
+                          track.kind ===
+                            Track.Kind.Audio
+                            ? false
+                            : guest.hasAudio,
+                      }
+                    : guest
+              )
+          );
         }
       );
 
-      room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-        const meta = participantMeta(participant.metadata);
+      room.on(
+        RoomEvent.ParticipantDisconnected,
+        (participant) => {
+          const identity =
+            participant.identity;
 
-        if (
-          meta.role === "guest" ||
-          participant.identity === activeGuestIdentity
-        ) {
-          guestVideoTrackRef.current = null;
-          guestAudioTrackRef.current = null;
-          setActiveGuestEmail("");
-          setActiveGuestIdentity("");
+          const meta =
+            participantMeta(
+              participant.metadata
+            );
+
+          const bundle =
+            guestTracksRef.current[
+              identity
+            ];
+
+          if (
+            meta.role !== "guest" &&
+            !bundle
+          ) {
+            return;
+          }
+
+          try {
+            bundle?.video?.detach();
+          } catch {}
+
+          try {
+            bundle?.audio?.detach();
+          } catch {}
+
+          try {
+            bundle?.audioElement
+              ?.remove();
+          } catch {}
+
+          delete guestTracksRef
+            .current[
+              identity
+            ];
+
+          delete guestVideoElementsRef
+            .current[
+              identity
+            ];
+
+          setLiveGuests(
+            (current) =>
+              current.filter(
+                (guest) =>
+                  guest.identity !==
+                  identity
+              )
+          );
+
+          setSpotlightIdentity(
+            (current) =>
+              current === identity
+                ? "host"
+                : current
+          );
+
+          if (
+            activeGuestIdentity ===
+            identity
+          ) {
+            setActiveGuestEmail("");
+            setActiveGuestIdentity("");
+          }
         }
-      });
+      );
 
       room.on(RoomEvent.Disconnected, () => {
         if (
@@ -1542,36 +1920,92 @@ export default function LiveRoomPage() {
     }
   }
 
-  async function removeActiveGuest() {
-    if (!activeGuestEmail || !realtimeChannelRef.current) return;
+  async function removeGuest(
+    guestEmail: string,
+    guestIdentity: string
+  ) {
+    if (
+      !guestEmail ||
+      !realtimeChannelRef.current
+    ) {
+      return;
+    }
 
     try {
-      await updateGuestPermission(activeGuestEmail, false);
+      await updateGuestPermission(
+        guestEmail,
+        false
+      );
 
       await realtimeChannelRef.current.send({
         type: "broadcast",
         event: "guest-removed",
         payload: {
-          email: activeGuestEmail,
+          email:
+            guestEmail,
         },
       });
 
-      guestVideoTrackRef.current?.detach();
-      guestAudioTrackRef.current?.detach();
+      const bundle =
+        guestTracksRef.current[
+          guestIdentity
+        ];
 
-      guestVideoTrackRef.current = null;
-      guestAudioTrackRef.current = null;
+      try {
+        bundle?.video?.detach();
+      } catch {}
 
-      setInteractionMessage(
-        `${activeGuestEmail.split("@")[0]} was removed from the Live.`
+      try {
+        bundle?.audio?.detach();
+      } catch {}
+
+      try {
+        bundle?.audioElement
+          ?.remove();
+      } catch {}
+
+      delete guestTracksRef
+        .current[
+          guestIdentity
+        ];
+
+      delete guestVideoElementsRef
+        .current[
+          guestIdentity
+        ];
+
+      setLiveGuests(
+        (current) =>
+          current.filter(
+            (guest) =>
+              guest.identity !==
+              guestIdentity
+          )
       );
 
-      setActiveGuestEmail("");
-      setActiveGuestIdentity("");
+      setSpotlightIdentity(
+        (current) =>
+          current === guestIdentity
+            ? "host"
+            : current
+      );
+
+      if (
+        activeGuestIdentity ===
+        guestIdentity
+      ) {
+        setActiveGuestEmail("");
+        setActiveGuestIdentity("");
+      }
+
+      setInteractionMessage(
+        `${guestEmail.split("@")[0]} was removed from the Live.`
+      );
 
       window.setTimeout(() => {
         setInteractionMessage("");
       }, 2400);
+
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -1793,47 +2227,128 @@ export default function LiveRoomPage() {
             : "cameraStage"
         }
       >
-        <video
-          ref={videoRef}
-          onClick={handleLiveCameraDoubleTap}
-          autoPlay
-          playsInline
-          muted
-          className={
-            cameraFacing === "user"
-              ? "cameraVideo mirrored"
-              : "cameraVideo"
-          }
-        />
-
-        {activeGuestEmail && (
-          <div className="guestPanel">
+        <div
+          className={`liveVideoLayout layout-${liveLayout} people-${
+            liveGuests.length + 1
+          }`}
+        >
+          <div
+            className={
+              liveLayout === "spotlight" &&
+              spotlightIdentity === "host"
+                ? "hostVideoTile spotlighted"
+                : "hostVideoTile"
+            }
+          >
             <video
-              ref={guestVideoRef}
+              ref={videoRef}
+              onClick={() => {
+                if (
+                  liveLayout ===
+                  "spotlight"
+                ) {
+                  setSpotlightIdentity(
+                    "host"
+                  );
+                }
+
+                handleLiveCameraDoubleTap();
+              }}
               autoPlay
               playsInline
-              className="guestVideo"
+              muted
+              className={
+                cameraFacing === "user"
+                  ? "cameraVideo mirrored"
+                  : "cameraVideo"
+              }
             />
 
-            <div
-              ref={guestAudioContainerRef}
-              className="guestAudioTracks"
-            />
-
-            <div className="guestLabel">
-              <span>GUEST</span>
-              <strong>{activeGuestEmail.split("@")[0]}</strong>
+            <div className="hostTileLabel">
+              <span>HOST</span>
             </div>
-
-            <button
-              type="button"
-              className="removeGuestButton"
-              onClick={removeActiveGuest}
-            >
-              Remove
-            </button>
           </div>
-        )}
+
+          {liveGuests.map(
+            (guest, index) => (
+              <div
+                className={
+                  liveLayout ===
+                    "spotlight" &&
+                  spotlightIdentity ===
+                    guest.identity
+                    ? "guestPanel guestTile spotlighted"
+                    : "guestPanel guestTile"
+                }
+                key={
+                  guest.identity
+                }
+                onClick={() => {
+                  if (
+                    liveLayout ===
+                    "spotlight"
+                  ) {
+                    setSpotlightIdentity(
+                      guest.identity
+                    );
+                  }
+                }}
+              >
+                <video
+                  ref={(element) => {
+                    guestVideoElementsRef
+                      .current[
+                        guest.identity
+                      ] = element;
+                  }}
+                  autoPlay
+                  playsInline
+                  className="guestVideo"
+                />
+
+                {!guest.hasVideo && (
+                  <div className="guestWaiting">
+                    <span>
+                      {guest.email
+                        .slice(0, 1)
+                        .toUpperCase()}
+                    </span>
+
+                    <small>
+                      Camera connecting
+                    </small>
+                  </div>
+                )}
+
+                <div className="guestLabel">
+                  <span>
+                    GUEST {index + 1}
+                  </span>
+
+                  <strong>
+                    {guest.email
+                      .split("@")[0]}
+                  </strong>
+                </div>
+
+                <button
+                  type="button"
+                  className="removeGuestButton"
+                  onClick={(event) => {
+                    event.stopPropagation();
+
+                    void removeGuest(
+                      guest.email,
+                      guest.identity
+                    );
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )
+          )}
+        </div>
 
         {!cameraEnabled && (
           <div className="cameraOff">
@@ -2373,6 +2888,90 @@ export default function LiveRoomPage() {
                       </small>
                     </button>
 
+                  </div>
+
+                  <div className="liveLayoutControl">
+                    <div className="liveLayoutHeading">
+                      <div>
+                        <small>
+                          LIVE LAYOUT
+                        </small>
+
+                        <strong>
+                          {liveGuests.length + 1} on screen
+                        </strong>
+                      </div>
+
+                      <span>
+                        {liveGuests.length}/3 guests
+                      </span>
+                    </div>
+
+                    <div className="liveLayoutButtons">
+                      {(
+                        [
+                          [
+                            "auto",
+                            "Auto",
+                            "◫",
+                          ],
+                          [
+                            "split",
+                            "Split",
+                            "◧",
+                          ],
+                          [
+                            "grid",
+                            "Grid",
+                            "▦",
+                          ],
+                          [
+                            "spotlight",
+                            "Spotlight",
+                            "▣",
+                          ],
+                        ] as const
+                      ).map(
+                        ([
+                          value,
+                          label,
+                          icon,
+                        ]) => (
+                          <button
+                            type="button"
+                            key={value}
+                            className={
+                              liveLayout ===
+                              value
+                                ? "liveLayoutButton active"
+                                : "liveLayoutButton"
+                            }
+                            onClick={() => {
+                              setLiveLayout(
+                                value
+                              );
+
+                              if (
+                                value ===
+                                  "spotlight" &&
+                                !spotlightIdentity
+                              ) {
+                                setSpotlightIdentity(
+                                  "host"
+                                );
+                              }
+                            }}
+                          >
+                            <b>{icon}</b>
+                            <span>{label}</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <p className="liveLayoutTip">
+                      Spotlight mode: tap a person to make them the main screen.
+                    </p>
                   </div>
 
                   <div className="streamCapability">
@@ -4622,6 +5221,290 @@ const styles = `
     .screenShareStatus i {
       animation: none;
     }
+  }
+
+
+
+  /* ========================================
+     UTV LIVE V4 MULTI GUEST
+  ======================================== */
+
+  .liveVideoLayout{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    display:grid;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#050505;
+  }
+
+  .liveVideoLayout .hostVideoTile,
+  .liveVideoLayout .guestTile{
+    position:relative;
+    min-width:0;
+    min-height:0;
+    overflow:hidden;
+    background:#080808;
+  }
+
+  .liveVideoLayout .cameraVideo,
+  .liveVideoLayout .guestVideo{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    background:#080808;
+  }
+
+  .liveVideoLayout.people-1{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr;
+  }
+
+  .liveVideoLayout.layout-auto.people-2{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr 1fr;
+  }
+
+  .liveVideoLayout.layout-auto.people-3{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;
+  }
+
+  .liveVideoLayout.layout-auto.people-3
+  .hostVideoTile{
+    grid-column:1 / -1;
+  }
+
+  .liveVideoLayout.layout-auto.people-4{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;
+  }
+
+  .liveVideoLayout.layout-split{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-rows:minmax(0,1fr);
+  }
+
+  .liveVideoLayout.layout-split.people-2{
+    grid-template-rows:1fr;
+  }
+
+  .liveVideoLayout.layout-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-auto-rows:minmax(0,1fr);
+  }
+
+  .liveVideoLayout.layout-grid.people-2{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr 1fr;
+  }
+
+  .liveVideoLayout.layout-spotlight{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:minmax(0,2.6fr) minmax(110px,.85fr);
+    gap:2px;
+  }
+
+  .liveVideoLayout.layout-spotlight.people-1{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr;
+  }
+
+  .liveVideoLayout.layout-spotlight
+  .hostVideoTile,
+  .liveVideoLayout.layout-spotlight
+  .guestTile{
+    grid-row:2;
+  }
+
+  .liveVideoLayout.layout-spotlight
+  .spotlighted{
+    grid-column:1 / -1;
+    grid-row:1;
+  }
+
+  .liveVideoLayout.layout-spotlight.people-2
+  .hostVideoTile:not(.spotlighted),
+  .liveVideoLayout.layout-spotlight.people-2
+  .guestTile:not(.spotlighted){
+    grid-column:1 / -1;
+  }
+
+  .guestPanel.guestTile{
+    position:relative;
+    left:auto;
+    right:auto;
+    bottom:auto;
+    height:auto;
+    z-index:1;
+    border:0;
+    border-radius:0;
+  }
+
+  .liveVideoLayout > div{
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .liveVideoLayout .guestTile.spotlighted,
+  .liveVideoLayout .hostVideoTile.spotlighted{
+    border-color:rgba(82,247,200,.5);
+  }
+
+  .guestWaiting{
+    position:absolute;
+    inset:0;
+    z-index:2;
+    display:grid;
+    place-items:center;
+    align-content:center;
+    gap:8px;
+    background:
+      radial-gradient(
+        circle at 50% 35%,
+        rgba(82,247,200,.11),
+        transparent 28%
+      ),
+      #090909;
+  }
+
+  .guestWaiting span{
+    width:58px;
+    height:58px;
+    display:grid;
+    place-items:center;
+    border:1px solid rgba(82,247,200,.3);
+    border-radius:50%;
+    background:rgba(82,247,200,.08);
+    font-size:23px;
+    font-weight:950;
+  }
+
+  .guestWaiting small{
+    color:rgba(255,255,255,.55);
+    font-size:9px;
+    font-weight:850;
+  }
+
+  .hostTileLabel{
+    position:absolute;
+    left:10px;
+    bottom:92px;
+    z-index:5;
+    pointer-events:none;
+  }
+
+  .hostTileLabel span{
+    display:inline-flex;
+    padding:5px 8px;
+    border:1px solid rgba(82,247,200,.25);
+    border-radius:999px;
+    background:rgba(0,0,0,.48);
+    color:#52f7c8;
+    font-size:8px;
+    font-weight:950;
+    letter-spacing:1px;
+    backdrop-filter:blur(10px);
+  }
+
+  .liveVideoLayout .guestLabel{
+    left:9px;
+    bottom:86px;
+    z-index:5;
+  }
+
+  .liveVideoLayout .removeGuestButton{
+    right:9px;
+    bottom:86px;
+    z-index:6;
+  }
+
+  .liveLayoutControl{
+    display:grid;
+    gap:10px;
+    margin-top:14px;
+    padding:13px;
+    border:1px solid rgba(255,255,255,.09);
+    border-radius:19px;
+    background:rgba(255,255,255,.035);
+  }
+
+  .liveLayoutHeading{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .liveLayoutHeading>div{
+    display:grid;
+    gap:2px;
+  }
+
+  .liveLayoutHeading small{
+    color:#52f7c8;
+    font-size:8px;
+    font-weight:950;
+    letter-spacing:1.4px;
+  }
+
+  .liveLayoutHeading strong{
+    font-size:13px;
+  }
+
+  .liveLayoutHeading>span{
+    padding:6px 9px;
+    border-radius:999px;
+    background:rgba(82,247,200,.08);
+    color:#52f7c8;
+    font-size:8px;
+    font-weight:900;
+  }
+
+  .liveLayoutButtons{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+  }
+
+  .liveLayoutButton{
+    min-height:60px;
+    display:grid;
+    place-items:center;
+    align-content:center;
+    gap:4px;
+    padding:7px 3px;
+    color:rgba(255,255,255,.62);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:13px;
+    background:rgba(255,255,255,.035);
+  }
+
+  .liveLayoutButton b{
+    font-size:18px;
+  }
+
+  .liveLayoutButton span{
+    font-size:8px;
+    font-weight:900;
+  }
+
+  .liveLayoutButton.active{
+    color:#06110d;
+    border-color:#52f7c8;
+    background:#52f7c8;
+    box-shadow:
+      0 8px 24px rgba(82,247,200,.14);
+  }
+
+  .liveLayoutTip{
+    margin:0;
+    color:rgba(255,255,255,.45);
+    font-size:8px;
+    line-height:1.45;
   }
 
 
