@@ -454,16 +454,122 @@ export default function DiscoverPage() {
     );
   }, []);
 
+  // DISCOVER REAL LIVE ENGINE
+  const [activeLives, setActiveLives] =
+    useState<Row[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadActiveLives() {
+      const { data, error } =
+        await supabase
+          .from("live_sessions")
+          .select("*")
+          .eq("status", "live")
+          .limit(24);
+
+      if (error) {
+        console.info(
+          "Discover Live lookup:",
+          error.message
+        );
+        return;
+      }
+
+      if (mounted) {
+        setActiveLives(data || []);
+      }
+    }
+
+    void loadActiveLives();
+
+    /*
+     * Realtime makes Discover react quickly.
+     * Polling is also kept as a fallback in case
+     * realtime isn't enabled for this table.
+     */
+    const liveChannel = supabase
+      .channel("utv-discover-real-live")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "live_sessions",
+        },
+        () => {
+          void loadActiveLives();
+        }
+      )
+      .subscribe();
+
+    const poll = window.setInterval(
+      () => {
+        void loadActiveLives();
+      },
+      15000
+    );
+
+    return () => {
+      mounted = false;
+
+      window.clearInterval(poll);
+
+      void supabase.removeChannel(
+        liveChannel
+      );
+    };
+  }, []);
+
+  const liveEmails = useMemo(() => {
+    return new Set(
+      activeLives
+        .map((live) =>
+          String(
+            value(live, [
+              "host_email",
+              "creator_email",
+              "email",
+            ]) || ""
+          )
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    );
+  }, [activeLives]);
+
   const creatorRail = useMemo(
     () =>
-      creators
+      [...creators]
         .filter(
           (creator) =>
             creator?.email ||
             creator?.username
         )
+        .sort((a, b) => {
+          const aEmail = String(
+            value(a, ["email"]) || ""
+          ).toLowerCase();
+
+          const bEmail = String(
+            value(b, ["email"]) || ""
+          ).toLowerCase();
+
+          const aLive =
+            liveEmails.has(aEmail);
+
+          const bLive =
+            liveEmails.has(bEmail);
+
+          if (aLive && !bLive) return -1;
+          if (!aLive && bLive) return 1;
+
+          return 0;
+        })
         .slice(0, 10),
-    [creators]
+    [creators, liveEmails]
   );
 
   const hero =
@@ -806,6 +912,173 @@ export default function DiscoverPage() {
           )}
         </section>
 
+
+        {/* REAL LIVE NOW */}
+        {activeLives.length > 0 && (
+          <section className="sectionBlock realLiveBlock">
+            <div className="sectionHeading">
+              <h2 className="realLiveHeading">
+                <span className="realPulse" />
+                Live Now
+              </h2>
+
+              <Link href="/live">
+                See all ›
+              </Link>
+            </div>
+
+            <div className="realLiveRail">
+              {activeLives
+                .slice(0, 8)
+                .map((live, index) => {
+                  const hostEmail =
+                    String(
+                      value(live, [
+                        "host_email",
+                        "creator_email",
+                        "email",
+                      ]) || ""
+                    )
+                      .trim()
+                      .toLowerCase();
+
+                  const creator =
+                    creators.find(
+                      (profile) =>
+                        String(
+                          value(
+                            profile,
+                            ["email"]
+                          ) || ""
+                        )
+                          .trim()
+                          .toLowerCase() ===
+                        hostEmail
+                    );
+
+                  const creatorName =
+                    creator
+                      ? profileName(creator)
+                      : hostEmail
+                          .split("@")[0] ||
+                        "UTV Creator";
+
+                  const avatar =
+                    creator
+                      ? profileAvatar(creator)
+                      : "";
+
+                  const preview =
+                    String(
+                      value(live, [
+                        "thumbnail_url",
+                        "cover_url",
+                        "image_url",
+                        "preview_url",
+                      ]) ||
+                        avatar ||
+                        ""
+                    );
+
+                  const liveTitle =
+                    String(
+                      value(live, [
+                        "title",
+                        "name",
+                        "caption",
+                      ]) ||
+                        `${creatorName} is live`
+                    );
+
+                  const viewers =
+                    Number(
+                      value(live, [
+                        "viewer_count",
+                        "viewers",
+                      ]) || 0
+                    ) || 0;
+
+                  const city =
+                    String(
+                      value(live, [
+                        "city",
+                        "location_city",
+                      ]) || ""
+                    ).trim();
+
+                  const state =
+                    String(
+                      value(live, [
+                        "state",
+                        "state_name",
+                      ]) || ""
+                    ).trim();
+
+                  const place = [
+                    city,
+                    state,
+                  ]
+                    .filter(Boolean)
+                    .join(", ");
+
+                  return (
+                    <Link
+                      href={`/watch-live/${encodeURIComponent(
+                        String(live.id)
+                      )}`}
+                      className="realLiveCard"
+                      key={
+                        live.id ||
+                        `${hostEmail}-${index}`
+                      }
+                    >
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt=""
+                          className="realLiveImage"
+                        />
+                      ) : (
+                        <span className="realLiveFallback">
+                          {creatorName
+                            .slice(0, 1)
+                            .toUpperCase()}
+                        </span>
+                      )}
+
+                      <span className="realLiveShade" />
+
+                      <span className="realLiveBadge">
+                        <i />
+                        LIVE
+                      </span>
+
+                      <span className="realLiveViewers">
+                        ◉ {viewers}
+                      </span>
+
+                      <div className="realLiveCopy">
+                        <strong>
+                          {liveTitle}
+                        </strong>
+
+                        <span>
+                          {creatorName}
+                        </span>
+
+                        {place && (
+                          <small>
+                            ◉ {place}
+                          </small>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          </section>
+        )}
+
         {/* TRENDING */}
         <section className="sectionBlock">
           <div className="sectionHeading">
@@ -952,7 +1225,18 @@ export default function DiscoverPage() {
                           )}
                         </span>
 
-                        {/* LIVE badge will only render from real active live-session data. */}
+                        {liveEmails.has(
+                          String(
+                            value(
+                              creator,
+                              ["email"]
+                            ) || ""
+                          ).toLowerCase()
+                        ) && (
+                          <b className="creatorLive">
+                            LIVE
+                          </b>
+                        )}
                       </span>
 
                       <strong>
@@ -4780,6 +5064,306 @@ export default function DiscoverPage() {
         }
       `}</style>
       {/* DISCOVER V3.1 GLOBAL POLISH END */}
+
+
+      {/* DISCOVER REAL LIVE STYLES START */}
+      <style jsx global>{`
+        .discoverPage .realLiveBlock {
+          margin-top: 18px;
+        }
+
+        .discoverPage .realLiveHeading {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .discoverPage .realPulse {
+          width: 8px;
+          height: 8px;
+          flex: 0 0 auto;
+
+          border-radius: 50%;
+
+          background: #ff315d;
+
+          box-shadow:
+            0 0 0 5px
+              rgba(255, 49, 93, 0.12),
+            0 0 18px
+              rgba(255, 49, 93, 0.7);
+
+          animation:
+            realLivePulse
+            1.4s
+            ease-in-out
+            infinite;
+        }
+
+        .discoverPage .realLiveRail {
+          width: 100%;
+
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: 42%;
+
+          gap: 8px;
+
+          overflow-x: auto;
+
+          padding: 0 0 3px;
+
+          scrollbar-width: none;
+          scroll-snap-type: x proximity;
+        }
+
+        .discoverPage
+          .realLiveRail::-webkit-scrollbar {
+          display: none;
+        }
+
+        .discoverPage .realLiveCard {
+          position: relative;
+
+          width: 100%;
+          height: 200px;
+
+          display: block;
+          overflow: hidden;
+
+          border:
+            1px solid
+            rgba(255, 54, 96, 0.28);
+
+          border-radius: 16px;
+
+          color: #fff;
+          background: #0a0d14;
+
+          text-decoration: none;
+
+          isolation: isolate;
+          scroll-snap-align: start;
+
+          box-shadow:
+            0 10px 28px
+              rgba(0, 0, 0, 0.3),
+            inset 0 0 0 1px
+              rgba(255, 255, 255, 0.02);
+        }
+
+        .discoverPage .realLiveImage {
+          position: absolute;
+          z-index: 0;
+          inset: 0;
+
+          width: 100%;
+          height: 100%;
+
+          object-fit: cover;
+        }
+
+        .discoverPage .realLiveFallback {
+          position: absolute;
+          z-index: 0;
+          inset: 0;
+
+          display: grid;
+          place-items: center;
+
+          color: #fff;
+
+          background:
+            radial-gradient(
+              circle at 30% 20%,
+              rgba(255, 49, 93, 0.26),
+              transparent 35%
+            ),
+            radial-gradient(
+              circle at 80% 70%,
+              rgba(82, 247, 200, 0.18),
+              transparent 40%
+            ),
+            #090d15;
+
+          font-size: 46px;
+          font-weight: 1000;
+        }
+
+        .discoverPage .realLiveShade {
+          position: absolute;
+          z-index: 1;
+          inset: 0;
+
+          background:
+            linear-gradient(
+              180deg,
+              rgba(0, 0, 0, 0.04),
+              transparent 42%,
+              rgba(0, 0, 0, 0.92)
+            );
+        }
+
+        .discoverPage .realLiveBadge {
+          position: absolute;
+          z-index: 4;
+
+          top: 9px;
+          left: 9px;
+
+          display: flex;
+          align-items: center;
+          gap: 5px;
+
+          padding: 6px 8px;
+
+          border-radius: 8px;
+
+          color: #fff;
+          background: #ff315d;
+
+          font-size: 7px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: 0.08em;
+
+          box-shadow:
+            0 0 18px
+            rgba(255, 49, 93, 0.35);
+        }
+
+        .discoverPage
+          .realLiveBadge i {
+          width: 5px;
+          height: 5px;
+
+          border-radius: 50%;
+          background: #fff;
+
+          box-shadow:
+            0 0 8px #fff;
+        }
+
+        .discoverPage
+          .realLiveViewers {
+          position: absolute;
+          z-index: 4;
+
+          top: 9px;
+          right: 9px;
+
+          padding: 6px 8px;
+
+          border-radius: 999px;
+
+          color:
+            rgba(255, 255, 255, 0.88);
+
+          background:
+            rgba(0, 0, 0, 0.58);
+
+          font-size: 7px;
+          font-weight: 850;
+
+          backdrop-filter: blur(10px);
+        }
+
+        .discoverPage .realLiveCopy {
+          position: absolute;
+          z-index: 4;
+
+          right: 10px;
+          bottom: 10px;
+          left: 10px;
+
+          display: grid;
+          gap: 2px;
+        }
+
+        .discoverPage
+          .realLiveCopy strong {
+          display: -webkit-box;
+          overflow: hidden;
+
+          color: #fff;
+
+          font-size: 11px;
+          line-height: 1.1;
+          font-weight: 950;
+
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .discoverPage
+          .realLiveCopy span {
+          overflow: hidden;
+
+          color: #5cf1d4;
+
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          font-size: 8px;
+          font-weight: 850;
+        }
+
+        .discoverPage
+          .realLiveCopy small {
+          overflow: hidden;
+
+          color:
+            rgba(255, 255, 255, 0.55);
+
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          font-size: 7px;
+        }
+
+        @keyframes realLivePulse {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+
+          50% {
+            transform: scale(0.82);
+            opacity: 0.6;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .discoverPage .realLiveRail {
+            grid-auto-columns: 43%;
+          }
+
+          .discoverPage .realLiveCard {
+            height: 188px;
+          }
+        }
+
+        @media (max-width: 365px) {
+          .discoverPage .realLiveRail {
+            grid-auto-columns: 47%;
+          }
+
+          .discoverPage .realLiveCard {
+            height: 178px;
+          }
+        }
+
+        @media (
+          prefers-reduced-motion:
+            reduce
+        ) {
+          .discoverPage .realPulse {
+            animation: none;
+          }
+        }
+      `}</style>
+      {/* DISCOVER REAL LIVE STYLES END */}
 
 </main>
   );
