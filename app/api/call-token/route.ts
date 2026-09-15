@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     } = await supabase
       .from("call_sessions")
       .select(
-        "id,caller_email,callee_email,call_type,room_name,status"
+        "id,caller_email,callee_email,call_type,room_name,status,max_participants"
       )
       .eq("id", callId)
       .maybeSingle();
@@ -115,17 +115,51 @@ export async function POST(request: NextRequest) {
     const email =
       user.email.toLowerCase();
 
-    const isParticipant =
+    // UTV GROUP CALLS V1B
+    const isLegacyParticipant =
       call.caller_email
         .toLowerCase() === email ||
       call.callee_email
         .toLowerCase() === email;
 
+    /*
+     * Extra group-call members must have
+     * ACCEPTED the invite before they can
+     * receive a LiveKit room token.
+     */
+    const {
+      data: membership,
+      error: membershipError,
+    } = await supabase
+      .from("call_members")
+      .select(
+        "member_email,role,status"
+      )
+      .eq("call_id", callId)
+      .eq("member_email", email)
+      .maybeSingle();
+
+    if (membershipError) {
+      console.error(
+        "UTV call membership lookup:",
+        membershipError
+      );
+    }
+
+    const isAcceptedGroupMember =
+      membership?.status === "joined";
+
+    const isParticipant =
+      isLegacyParticipant ||
+      isAcceptedGroupMember;
+
     if (!isParticipant) {
       return NextResponse.json(
         {
           error:
-            "You are not part of this call.",
+            membership?.status === "invited"
+              ? "Accept the call invite before joining."
+              : "You are not part of this call.",
         },
         { status: 403 }
       );
@@ -159,6 +193,22 @@ export async function POST(request: NextRequest) {
           feature: "call",
           call_id: callId,
           call_type: call.call_type,
+
+          /*
+           * Used by the upcoming 4-person
+           * participant grid.
+           */
+          call_role:
+            membership?.role ||
+            (
+              call.caller_email
+                .toLowerCase() === email
+                ? "host"
+                : "member"
+            ),
+
+          max_participants:
+            call.max_participants || 2,
         }),
 
         ttl: "4h",
@@ -177,6 +227,18 @@ export async function POST(request: NextRequest) {
       token: await token.toJwt(),
       roomName: call.room_name,
       callType: call.call_type,
+
+      maxParticipants:
+        call.max_participants || 2,
+
+      role:
+        membership?.role ||
+        (
+          call.caller_email
+            .toLowerCase() === email
+            ? "host"
+            : "member"
+        ),
     });
   } catch (error) {
     console.error(
