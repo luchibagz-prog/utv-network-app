@@ -471,9 +471,8 @@ export default function UTVLiveTruthSync() {
           return;
         }
 
-        const payload =
-          (await response.json())
-          as TruthPayload;
+        const payload: TruthPayload =
+          await response.json();
 
         if (
           cancelled
