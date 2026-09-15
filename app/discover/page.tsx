@@ -524,7 +524,6 @@ export default function DiscoverPage() {
       title: "Live",
       icon: "◉",
       vibe: "live",
-      badge: "LIVE",
       item: uploads[1],
     },
     {
@@ -953,11 +952,7 @@ export default function DiscoverPage() {
                           )}
                         </span>
 
-                        {index === 0 && (
-                          <b className="creatorLive">
-                            LIVE
-                          </b>
-                        )}
+                        {/* LIVE badge will only render from real active live-session data. */}
                       </span>
 
                       <strong>
