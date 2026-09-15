@@ -438,7 +438,7 @@ setInvites(
   }
 
   return (
-    <main className="walkiePage">
+    <main data-utv-page="walkie" className="walkiePage">
       <style>{styles}</style>
       <UTVNav />
 

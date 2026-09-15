@@ -280,7 +280,7 @@ export default function WalletPage() {
     );
 
   return (
-    <main className="walletPage">
+    <main data-utv-page="wallet" className="walletPage">
       <UTVNav />
 
       <header className="walletHero">

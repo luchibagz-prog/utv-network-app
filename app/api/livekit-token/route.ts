@@ -1,8 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { AccessToken } from "livekit-server-sdk";
+import {
+  AccessToken,
+  RoomServiceClient,
+} from "livekit-server-sdk";
 
 export const runtime = "nodejs";
+
+// UTV LIVE TRUTH VIEWER CHECK V1
+function liveKitHttpUrl(value: string) {
+  return value
+    .replace(/^wss:\/\//i, "https://")
+    .replace(/^ws:\/\//i, "http://");
+}
+
+function liveParticipantMeta(value?: string) {
+  try {
+    return JSON.parse(value || "{}") as {
+      email?: string;
+      role?: string;
+    };
+  } catch {
+    return {};
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +41,9 @@ export async function POST(request: NextRequest) {
     const supabaseKey =
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    const livekitUrl =
+      process.env.NEXT_PUBLIC_LIVEKIT_URL;
+
     const livekitKey = process.env.LIVEKIT_API_KEY;
     const livekitSecret = process.env.LIVEKIT_API_SECRET;
 
@@ -87,6 +111,72 @@ export async function POST(request: NextRequest) {
 
     const isHost =
       liveSession.host_email.toLowerCase() === user.email.toLowerCase();
+
+    if (!isHost) {
+      if (
+        !livekitUrl ||
+        !livekitKey ||
+        !livekitSecret
+      ) {
+        return NextResponse.json(
+          { error: "Live verification is unavailable." },
+          { status: 503 }
+        );
+      }
+
+      try {
+        const service =
+          new RoomServiceClient(
+            liveKitHttpUrl(livekitUrl),
+            livekitKey,
+            livekitSecret
+          );
+
+        const participants =
+          await service.listParticipants(
+            liveSession.room_name
+          );
+
+        const hostConnected =
+          participants.some(
+            (participant) => {
+              const meta =
+                liveParticipantMeta(
+                  participant.metadata
+                );
+
+              return (
+                meta.role === "host" &&
+                String(meta.email || "")
+                  .trim()
+                  .toLowerCase() ===
+                liveSession.host_email
+                  .trim()
+                  .toLowerCase()
+              );
+            }
+          );
+
+        if (!hostConnected) {
+          return NextResponse.json(
+            {
+              error:
+                "This Live is no longer broadcasting.",
+            },
+            { status: 410 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          {
+            error:
+              "This Live is no longer broadcasting.",
+          },
+          { status: 410 }
+        );
+      }
+    }
+
 
     const identity = `${user.id}-${crypto.randomUUID().slice(0, 8)}`;
 

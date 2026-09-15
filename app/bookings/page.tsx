@@ -425,7 +425,7 @@ export default function BookingsPage() {
   }
 
   return (
-    <main className="page">
+    <main data-utv-page="bookings" className="page">
       <UTVNav />
       <style>{styles}</style>
 

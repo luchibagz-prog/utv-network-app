@@ -1,5 +1,7 @@
 import "./globals.css";
 import "./utv-discovery-system.css";
+import "./utv-pack2.css";
+import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -29,6 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <UTVLiveTruthSync />
           <UTVAppShell />
           <UTVRealtimeBridge />
         {children}

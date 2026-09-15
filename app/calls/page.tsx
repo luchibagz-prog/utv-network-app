@@ -648,7 +648,7 @@ export default function CallsPage() {
     ).length;
 
   return (
-    <main className="callsPage">
+    <main data-utv-page="calls" className="callsPage">
       <UTVNav />
 
       <section className="shell">

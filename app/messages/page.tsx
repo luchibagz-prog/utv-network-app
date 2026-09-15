@@ -203,7 +203,7 @@ export default function MessagesPage() {
 
   if (loading) {
     return (
-      <main className="messagesPage">
+      <main data-utv-page="messages" className="messagesPage">
         <UTVNav />
         <section className="loadingCard">
           <h1>Loading messages...</h1>
@@ -213,7 +213,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <main className="messagesPage">
+    <main data-utv-page="messages" className="messagesPage">
       <UTVNav />
 
       <style>{`

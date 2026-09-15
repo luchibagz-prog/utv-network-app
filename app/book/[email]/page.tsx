@@ -339,7 +339,7 @@ export default function BookCreatorPage() {
 
   if (loading) {
     return (
-      <main className="page">
+      <main data-utv-page="bookings" className="page">
         <UTVNav />
 
         <section className="loading">
@@ -352,7 +352,7 @@ export default function BookCreatorPage() {
   }
 
   return (
-    <main className="page">
+    <main data-utv-page="bookings" className="page">
       <UTVNav />
       <style>{styles}</style>
 

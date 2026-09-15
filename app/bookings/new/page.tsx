@@ -81,7 +81,7 @@ export default function NewBookingPage() {
   }
 
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main data-utv-page="bookings" className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>

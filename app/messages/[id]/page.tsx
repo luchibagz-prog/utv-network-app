@@ -760,7 +760,7 @@ const refreshTimerRef =
     }
   }
     return (
-    <main className="conversationPage">
+    <main data-utv-page="messages" className="conversationPage">
       <UTVNav />
 
       <style>{styles}</style>

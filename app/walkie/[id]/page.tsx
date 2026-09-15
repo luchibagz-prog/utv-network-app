@@ -903,7 +903,7 @@ export default function WalkieProRoomPage() {
       : "";
 
   return (
-    <main className="walkieRoom">
+    <main data-utv-page="walkie" className="walkieRoom">
       <div
         ref={audioRootRef}
         className="audioRoot"

@@ -1,0 +1,547 @@
+/*
+ * UTV VISUAL PACK #2
+ * Feed • Profiles • Messages • Bookings
+ * Calls • Walkie • Wallet • Support
+ */
+
+
+/* ================================
+   LIVE TRUTH
+================================ */
+
+[data-utv-stale-live="true"] {
+  display: none !important;
+}
+
+
+/* ================================
+   PREMIUM UTV FEED HEADER
+================================ */
+
+[data-utv-skin="feed"] .feedLegacyTop {
+  display: none !important;
+}
+
+[data-utv-skin="feed"] .utvFeedPremiumHeader {
+  position: sticky;
+  z-index: 160;
+  top: 0;
+
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding:
+    max(10px, env(safe-area-inset-top))
+    14px
+    10px;
+
+  border-bottom:
+    1px solid rgba(255,255,255,.07);
+
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(82,247,200,.10),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 85% 0%,
+      rgba(128,104,255,.10),
+      transparent 38%
+    ),
+    rgba(3,6,9,.91);
+
+  box-shadow:
+    0 15px 42px rgba(0,0,0,.25);
+
+  backdrop-filter:
+    blur(28px) saturate(165%);
+
+  -webkit-backdrop-filter:
+    blur(28px) saturate(165%);
+}
+
+[data-utv-skin="feed"] .utvFeedBrand {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  color: #fff;
+  text-decoration: none;
+}
+
+[data-utv-skin="feed"] .utvFeedMark {
+  width: 43px;
+  height: 43px;
+
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  color: #05110d;
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #66e8ff 55%,
+      #8b72ff
+    );
+
+  box-shadow:
+    0 0 25px rgba(82,247,200,.18);
+
+  font-size: 24px;
+  font-weight: 1000;
+  letter-spacing: -.08em;
+}
+
+[data-utv-skin="feed"] .utvFeedBrandCopy {
+  min-width: 0;
+
+  display: grid;
+  gap: 2px;
+}
+
+[data-utv-skin="feed"] .utvFeedBrandCopy small {
+  color: #52f7c8;
+
+  font-size: 7px;
+  font-weight: 950;
+  letter-spacing: 1.35px;
+}
+
+[data-utv-skin="feed"] .utvFeedBrandCopy strong {
+  color: white;
+
+  font-size: clamp(22px, 6vw, 28px);
+  line-height: 1;
+  font-weight: 820;
+  letter-spacing: -.055em;
+}
+
+[data-utv-skin="feed"] .utvFeedBrandCopy strong b {
+  font-weight: 1000;
+}
+
+[data-utv-skin="feed"] .utvFeedHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-utv-skin="feed"] .utvFeedHeaderButton {
+  width: 41px;
+  height: 41px;
+
+  display: grid;
+  place-items: center;
+
+  color: rgba(255,255,255,.88);
+
+  border:
+    1px solid rgba(255,255,255,.09);
+
+  border-radius: 14px;
+
+  background:
+    rgba(255,255,255,.045);
+
+  text-decoration: none;
+}
+
+[data-utv-skin="feed"] .utvFeedHeaderButton svg {
+  width: 22px;
+  height: 22px;
+
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+[data-utv-skin="feed"] .feedBellButton {
+  color: #52f7c8;
+
+  border-color:
+    rgba(82,247,200,.14);
+
+  background:
+    rgba(82,247,200,.055);
+}
+
+
+/* ================================
+   PACK #2 PAGE FOUNDATION
+================================ */
+
+main[data-utv-page] {
+  position: relative;
+
+  min-height: 100dvh;
+  overflow-x: clip;
+
+  color: white;
+
+  padding-bottom:
+    calc(
+      100px +
+      env(safe-area-inset-bottom)
+    );
+
+  background:
+    radial-gradient(
+      circle at 8% -3%,
+      rgba(82,247,200,.09),
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at 95% 6%,
+      rgba(128,104,255,.12),
+      transparent 28%
+    ),
+    linear-gradient(
+      180deg,
+      #05070b,
+      #020305 50%,
+      #000
+    );
+}
+
+
+/* ================================
+   HEADERS
+================================ */
+
+main[data-utv-page] > header,
+main[data-utv-page] .pageHeader,
+main[data-utv-page] .profileHeader,
+main[data-utv-page] .messagesHeader,
+main[data-utv-page] .bookingHeader,
+main[data-utv-page] .callsHeader,
+main[data-utv-page] .walkieHeader,
+main[data-utv-page] .walletHero {
+  border-bottom:
+    1px solid rgba(255,255,255,.065)
+    !important;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3,6,9,.96),
+      rgba(3,6,9,.72)
+    ) !important;
+
+  backdrop-filter:
+    blur(25px) saturate(155%);
+
+  -webkit-backdrop-filter:
+    blur(25px) saturate(155%);
+}
+
+
+/* ================================
+   CARDS
+================================ */
+
+main[data-utv-page] .card,
+main[data-utv-page] article {
+  border-color:
+    rgba(255,255,255,.085)
+    !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.018)
+    ) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.03),
+    0 18px 50px rgba(0,0,0,.18);
+}
+
+
+/* ================================
+   INPUTS
+================================ */
+
+main[data-utv-page] input,
+main[data-utv-page] textarea,
+main[data-utv-page] select {
+  color: white !important;
+
+  border:
+    1px solid rgba(255,255,255,.09)
+    !important;
+
+  outline: none;
+
+  background:
+    rgba(255,255,255,.045)
+    !important;
+}
+
+main[data-utv-page] input:focus,
+main[data-utv-page] textarea:focus,
+main[data-utv-page] select:focus {
+  border-color:
+    rgba(82,247,200,.38)
+    !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(82,247,200,.05)
+    !important;
+}
+
+
+/* ================================
+   PROFILE
+================================ */
+
+main[data-utv-page="profile"] {
+  background: #020305;
+}
+
+main[data-utv-page="profile"] .profileHero,
+main[data-utv-page="profile"] .profileCard {
+  overflow: hidden;
+
+  border-radius:
+    22px !important;
+}
+
+main[data-utv-page="profile"] button {
+  border-radius:
+    999px !important;
+}
+
+main[data-utv-page="profile"]
+a[href*="/book"] {
+  color: #05110d !important;
+
+  border-color:
+    transparent !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #67e8ff
+    ) !important;
+
+  box-shadow:
+    0 10px 28px
+    rgba(82,247,200,.14)
+    !important;
+}
+
+
+/* ================================
+   MESSAGES
+================================ */
+
+main[data-utv-page="messages"]
+.conversationRow,
+
+main[data-utv-page="messages"]
+.messageRow,
+
+main[data-utv-page="messages"]
+.threadRow {
+  border:
+    1px solid rgba(255,255,255,.07)
+    !important;
+
+  border-radius:
+    18px !important;
+
+  background:
+    rgba(255,255,255,.03)
+    !important;
+}
+
+
+/* ================================
+   BOOKINGS
+================================ */
+
+main[data-utv-page="bookings"]
+.bookingCard,
+
+main[data-utv-page="bookings"]
+.requestCard {
+  border-radius:
+    20px !important;
+}
+
+
+/* ================================
+   CALLS
+================================ */
+
+main[data-utv-page="calls"] {
+  background:
+    radial-gradient(
+      circle at 50% 18%,
+      rgba(128,104,255,.18),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 15% 78%,
+      rgba(82,247,200,.07),
+      transparent 30%
+    ),
+    #020305;
+}
+
+main[data-utv-page="calls"] button {
+  border-radius:
+    18px !important;
+}
+
+
+/* ================================
+   WALKIE TALKIE
+================================ */
+
+main[data-utv-page="walkie"] {
+  background:
+    radial-gradient(
+      circle at 50% 28%,
+      rgba(82,247,200,.13),
+      transparent 33%
+    ),
+    radial-gradient(
+      circle at 90% 5%,
+      rgba(128,104,255,.11),
+      transparent 28%
+    ),
+    #020305;
+}
+
+main[data-utv-page="walkie"] button {
+  border-radius:
+    18px !important;
+}
+
+
+/* ================================
+   WALLET
+================================ */
+
+main[data-utv-page="wallet"]
+.walletHero > span {
+  color: #52f7c8 !important;
+
+  font-weight: 950;
+  letter-spacing: 1.4px;
+}
+
+main[data-utv-page="wallet"]
+.balanceGrid article {
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(82,247,200,.11)
+    !important;
+
+  border-radius:
+    20px !important;
+}
+
+main[data-utv-page="wallet"]
+.connectButton {
+  color: #05110d !important;
+
+  border: 0 !important;
+
+  border-radius:
+    15px !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #52f7c8,
+      #69e7ff
+    ) !important;
+
+  font-weight:
+    950 !important;
+
+  box-shadow:
+    0 12px 30px
+    rgba(82,247,200,.14);
+}
+
+
+/* ================================
+   SUPPORT / GIFTS
+================================ */
+
+main[data-utv-page="support"] {
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      rgba(255,49,93,.10),
+      transparent 31%
+    ),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(128,104,255,.13),
+      transparent 27%
+    ),
+    #020305;
+}
+
+main[data-utv-page="support"] button {
+  border-radius:
+    17px !important;
+}
+
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 640px) {
+  [data-utv-skin="feed"]
+  .utvFeedPremiumHeader {
+    min-height: 68px;
+
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  [data-utv-skin="feed"]
+  .utvFeedMark {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 14px;
+  }
+
+  [data-utv-skin="feed"]
+  .utvFeedHeaderButton {
+    width: 39px;
+    height: 39px;
+
+    border-radius: 13px;
+  }
+}
+
+
+/* UTV VISUAL PACK #2 END */

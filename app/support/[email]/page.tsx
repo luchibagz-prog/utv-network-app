@@ -185,7 +185,7 @@ export default function SupportCreatorPage() {
     "Creator";
 
   return (
-    <main className="supportPage">
+    <main data-utv-page="support" className="supportPage">
       <UTVNav />
 
       <section className="supportHero">

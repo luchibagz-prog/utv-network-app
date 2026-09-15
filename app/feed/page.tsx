@@ -2724,6 +2724,67 @@ export default function FeedPage() {
       onTouchEnd={handlePullEnd}
       onTouchCancel={resetPullGesture}
     >
+      {/* UTV FEED PREMIUM HEADER V2 */}
+      <header className="utvFeedPremiumHeader">
+
+        <a
+          href="/feed"
+          className="utvFeedBrand"
+        >
+          <span className="utvFeedMark">
+            U
+          </span>
+
+          <span className="utvFeedBrandCopy">
+            <small>
+              YOUR WORLD • YOUR PEOPLE
+            </small>
+
+            <strong>
+              <b>UTV</b> Feed
+            </strong>
+          </span>
+        </a>
+
+        <div className="utvFeedHeaderActions">
+
+          <a
+            href="/search"
+            className="utvFeedHeaderButton"
+            aria-label="Search UTV"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="6.5"
+              />
+
+              <path d="m16 16 4 4" />
+            </svg>
+          </a>
+
+          <a
+            href="/activity"
+            className="utvFeedHeaderButton feedBellButton"
+            aria-label="UTV activity"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+              <path d="M10 21h4" />
+            </svg>
+          </a>
+
+        </div>
+
+      </header>
+
       <UTVNav />
 
       {feedMessage && <div className="feedToast">{feedMessage}</div>}

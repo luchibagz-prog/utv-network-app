@@ -194,7 +194,7 @@ function NewMessageForm() {
 
 export default function NewMessagePage() {
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main data-utv-page="messages" className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <Suspense fallback={<p>Loading message form...</p>}>

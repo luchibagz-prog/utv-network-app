@@ -733,7 +733,7 @@ export default function PublicProfile() {
 
   if (loading) {
     return (
-      <main
+      <main data-utv-page="profile"
         className="utvProfileSkeleton"
         aria-label="Loading profile"
       >
@@ -916,7 +916,7 @@ export default function PublicProfile() {
   }
 
   return (
-    <main className="page">
+    <main data-utv-page="profile" className="page">
       <UTVNav />
 
       {song && (

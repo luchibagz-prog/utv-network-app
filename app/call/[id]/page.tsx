@@ -882,7 +882,7 @@ export default function UTVCallRoom() {
     )}`;
 
   return (
-    <main
+    <main data-utv-page="calls"
       className={
         isVideo
           ? "callPage videoCall"
