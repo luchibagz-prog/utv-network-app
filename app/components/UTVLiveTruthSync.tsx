@@ -257,107 +257,120 @@ function updateLiveNowSections(
   active: Set<string>,
   count: number
 ) {
-  const sections =
+  /*
+   * IMPORTANT:
+   * Never scan parent sections for descendant
+   * "Live Now" headings.
+   *
+   * Discover contains nested sections. The old
+   * logic could mark a large parent section as
+   * empty and hide almost the entire page.
+   */
+
+  document
+    .querySelectorAll<HTMLElement>(
+      'section[data-utv-empty-live="true"]'
+    )
+    .forEach((section) => {
+      section.removeAttribute(
+        "data-utv-empty-live"
+      );
+    });
+
+
+  const headings =
     document.querySelectorAll<
       HTMLElement
     >(
-      "section"
+      "h1,h2,h3"
     );
 
 
-  sections.forEach(
-    (section) => {
-      const headings =
-        section.querySelectorAll<
-          HTMLElement
-        >(
-          "h1,h2,h3"
-        );
+  headings.forEach((heading) => {
+    const text =
+      (
+        heading.textContent ||
+        ""
+      )
+        .trim()
+        .toLowerCase();
 
-      const isLiveNowSection =
-        Array.from(
-          headings
-        ).some(
-          (heading) =>
-            (
-              heading.textContent ||
-              ""
-            )
-              .trim()
-              .toLowerCase() ===
-            "live now"
-        );
-
-
-      if (
-        !isLiveNowSection
-      ) {
-        return;
-      }
-
-
-      const sessionLinks =
-        Array.from(
-          section
-            .querySelectorAll<
-              HTMLAnchorElement
-            >(
-              [
-                'a[href*="/watch-live/"]',
-                'a[href^="/live/"]',
-              ].join(",")
-            )
-        );
-
-
-      /*
-       * Feed's UTV Pulse uses "Live Now"
-       * as a feature card, not a live-session
-       * rail. Keep that card and simply show
-       * the correct 0 broadcasting count.
-       */
-      if (
-        !sessionLinks.length
-      ) {
-        return;
-      }
-
-
-      const hasRealLive =
-        sessionLinks.some(
-          (link) => {
-            const id =
-              liveIdFromHref(
-                link.getAttribute(
-                  "href"
-                ) || ""
-              );
-
-            return (
-              id &&
-              active.has(id)
-            );
-          }
-        );
-
-
-      if (
-        count === 0 ||
-        !hasRealLive
-      ) {
-        section.setAttribute(
-          "data-utv-empty-live",
-          "true"
-        );
-      } else {
-        section.removeAttribute(
-          "data-utv-empty-live"
-        );
-      }
+    if (
+      text !== "live now"
+    ) {
+      return;
     }
-  );
-}
 
+
+    /*
+     * Closest section means ONLY the actual
+     * Live Now block gets considered.
+     */
+    const section =
+      heading.closest<HTMLElement>(
+        "section"
+      );
+
+    if (!section) {
+      return;
+    }
+
+
+    const sessionLinks =
+      Array.from(
+        section.querySelectorAll<
+          HTMLAnchorElement
+        >(
+          [
+            'a[href*="/watch-live/"]',
+            'a[href^="/live/"]',
+          ].join(",")
+        )
+      );
+
+
+    /*
+     * Feed UTV Pulse has a "Live Now"
+     * feature card but no session links.
+     * Keep that card visible and only
+     * update its count.
+     */
+    if (
+      !sessionLinks.length
+    ) {
+      return;
+    }
+
+
+    const hasRealLive =
+      sessionLinks.some(
+        (link) => {
+          const id =
+            liveIdFromHref(
+              link.getAttribute(
+                "href"
+              ) || ""
+            );
+
+          return Boolean(
+            id &&
+            active.has(id)
+          );
+        }
+      );
+
+
+    if (
+      count === 0 ||
+      !hasRealLive
+    ) {
+      section.setAttribute(
+        "data-utv-empty-live",
+        "true"
+      );
+    }
+  });
+}
 
 function applyTruth(
   payload: TruthPayload
