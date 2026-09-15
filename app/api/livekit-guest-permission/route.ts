@@ -165,6 +165,40 @@ export async function POST(request: NextRequest) {
         liveSession.room_name
       );
 
+    // UTV LIVE SERVER GUEST CAP V1
+    if (approved) {
+      const otherActiveGuests =
+        participants.filter((participant) => {
+          const metadata =
+            participantMetadata(
+              participant.metadata
+            );
+
+          const email =
+            String(
+              metadata.email || ""
+            ).toLowerCase();
+
+          return (
+            metadata.role === "guest" &&
+            email !==
+              guestEmail.toLowerCase()
+          );
+        });
+
+      if (
+        otherActiveGuests.length >= 3
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "UTV Live already has 3 guests on camera.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const guest =
       participants.find((participant) => {
         const metadata =
