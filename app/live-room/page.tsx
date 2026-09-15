@@ -578,19 +578,207 @@ export default function LiveRoomPage() {
 
 
   async function flipCamera() {
-    if (isLive) return;
-
     const next: CameraFacing =
-      cameraFacing === "user" ? "environment" : "user";
+      cameraFacing === "user"
+        ? "environment"
+        : "user";
 
-    await prepareLocalMedia(next);
-  }
-
-  function handleLiveCameraDoubleTap() {
-    if (isLive) {
+    /*
+     * BEFORE LIVE:
+     * normal camera preparation is fine.
+     */
+    if (!isLive) {
+      await prepareLocalMedia(next);
       return;
     }
 
+    /*
+     * WHILE LIVE:
+     * keep the existing LiveKit camera
+     * publication alive and switch its
+     * underlying camera instead.
+     */
+    const currentTrack =
+      videoTrackRef.current;
+
+    if (!currentTrack) {
+      setInteractionMessage(
+        "Camera is still starting."
+      );
+      return;
+    }
+
+    if (!cameraEnabled) {
+      setInteractionMessage(
+        "Turn your camera on before flipping."
+      );
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      setStatus("Flipping camera...");
+
+      /*
+       * Best path for LiveKit:
+       * restart the SAME LocalVideoTrack.
+       *
+       * Viewers remain subscribed to the
+       * existing publication.
+       */
+      await currentTrack.restartTrack({
+        facingMode: next,
+
+        resolution: {
+          width: 1280,
+          height: 720,
+          frameRate: 30,
+        },
+      });
+
+      videoTrackRef.current =
+        currentTrack;
+
+      setCameraFacing(next);
+      setIsCameraOn(true);
+      setCameraEnabled(true);
+
+      /*
+       * Refresh host preview.
+       */
+      if (videoRef.current) {
+        try {
+          currentTrack.detach(
+            videoRef.current
+          );
+        } catch {}
+
+        currentTrack.attach(
+          videoRef.current
+        );
+
+        await videoRef.current
+          .play()
+          .catch(() => {});
+      }
+
+      setStatus("Camera ready");
+
+      setInteractionMessage(
+        next === "environment"
+          ? "Back camera"
+          : "Front camera"
+      );
+
+    } catch (restartError) {
+      console.info(
+        "LiveKit restartTrack fallback:",
+        restartError
+      );
+
+      /*
+       * Mobile fallback.
+       *
+       * Android/iPhone browsers sometimes
+       * behave differently when changing
+       * facingMode on an active camera.
+       *
+       * Get the new physical camera and
+       * replace the media inside the SAME
+       * LiveKit LocalVideoTrack.
+       */
+      try {
+        const replacementStream =
+          await navigator.mediaDevices
+            .getUserMedia({
+              audio: false,
+
+              video: {
+                facingMode: {
+                  ideal: next,
+                },
+
+                width: {
+                  ideal: 1280,
+                },
+
+                height: {
+                  ideal: 720,
+                },
+
+                frameRate: {
+                  ideal: 30,
+                  max: 30,
+                },
+              },
+            });
+
+        const replacementTrack =
+          replacementStream
+            .getVideoTracks()[0];
+
+        if (!replacementTrack) {
+          throw new Error(
+            "No replacement camera was returned."
+          );
+        }
+
+        await currentTrack.replaceTrack(
+          replacementTrack,
+          true
+        );
+
+        videoTrackRef.current =
+          currentTrack;
+
+        setCameraFacing(next);
+        setIsCameraOn(true);
+        setCameraEnabled(true);
+
+        if (videoRef.current) {
+          try {
+            currentTrack.detach(
+              videoRef.current
+            );
+          } catch {}
+
+          currentTrack.attach(
+            videoRef.current
+          );
+
+          await videoRef.current
+            .play()
+            .catch(() => {});
+        }
+
+        setStatus("Camera ready");
+
+        setInteractionMessage(
+          next === "environment"
+            ? "Back camera"
+            : "Front camera"
+        );
+
+      } catch (fallbackError) {
+        console.error(
+          "UTV live camera flip failed:",
+          fallbackError
+        );
+
+        setStatus("Camera ready");
+
+        setErrorMessage(
+          "Could not switch cameras."
+        );
+
+        setInteractionMessage(
+          "Camera flip failed. Try again."
+        );
+      }
+    }
+  }
+
+  function handleLiveCameraDoubleTap() {
     const now = Date.now();
 
     const elapsed =
