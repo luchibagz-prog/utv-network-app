@@ -139,6 +139,14 @@ export default function LiveRoomPage() {
   const [showViewerSheet, setShowViewerSheet] = useState(false);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [showJoinSheet, setShowJoinSheet] = useState(false);
+
+  // UTV LIVE SCREEN TOOLS V1
+  const [showStreamTools, setShowStreamTools] =
+    useState(false);
+
+  const [screenSharing, setScreenSharing] =
+    useState(false);
+
   const [interactionMessage, setInteractionMessage] = useState("");
   const [activeGuestEmail, setActiveGuestEmail] = useState("");
   const [activeGuestIdentity, setActiveGuestIdentity] = useState("");
@@ -212,6 +220,66 @@ export default function LiveRoomPage() {
   }, [activeGuestEmail]);
 
 
+  async function toggleScreenShare() {
+    const room = roomRef.current;
+
+    if (!room || !isLiveRef.current) {
+      setInteractionMessage(
+        "Start your Live before sharing your screen."
+      );
+      return;
+    }
+
+    if (
+      typeof navigator === "undefined" ||
+      !navigator.mediaDevices ||
+      !("getDisplayMedia" in navigator.mediaDevices)
+    ) {
+      setInteractionMessage(
+        "Screen sharing is not supported on this device or browser."
+      );
+      return;
+    }
+
+    const next = !screenSharing;
+
+    try {
+      setErrorMessage("");
+
+      setInteractionMessage(
+        next
+          ? "Choose what you want to share."
+          : "Stopping screen share..."
+      );
+
+      await room.localParticipant
+        .setScreenShareEnabled(next);
+
+      setScreenSharing(next);
+      setShowStreamTools(false);
+
+      setInteractionMessage(
+        next
+          ? "Your screen is now live on UTV."
+          : "Screen share stopped."
+      );
+    } catch (error) {
+      console.error(
+        "UTV screen share:",
+        error
+      );
+
+      setScreenSharing(false);
+
+      setInteractionMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not start screen sharing."
+      );
+    }
+  }
+
+
   async function cleanupRoom() {
     if (
       isLiveRef.current &&
@@ -255,6 +323,9 @@ export default function LiveRoomPage() {
     guestAudioTrackRef.current = null;
     setActiveGuestEmail("");
     setActiveGuestIdentity("");
+
+    setScreenSharing(false);
+    setShowStreamTools(false);
   }
 
   async function closePreviousHostLives(
@@ -1770,6 +1841,13 @@ export default function LiveRoomPage() {
               </button>
             </header>
 
+            {screenSharing && (
+              <div className="screenShareStatus">
+                <i />
+                SCREEN LIVE
+              </div>
+            )}
+
             <div className="liveInfo">
               <span>{category}</span>
               <h1>{title}</h1>
@@ -1860,20 +1938,275 @@ export default function LiveRoomPage() {
                 </small>
               </button>
               <button
-                onClick={() => {
-                  document
-                    .querySelector(".hostCommentBar input")
-                    ?.dispatchEvent(new Event("focus"));
-                }}
+                type="button"
+                className={
+                  screenSharing
+                    ? "moreControl sharing"
+                    : "moreControl"
+                }
+                onClick={() =>
+                  setShowStreamTools(true)
+                }
               >
-                💬
-                <small>Chat</small>
+                {screenSharing ? "▣" : "•••"}
+
+                <small>
+                  {screenSharing
+                    ? "Sharing"
+                    : "More"}
+                </small>
               </button>
             </div>
 
             {interactionMessage && (
               <div className="interactionToast">
                 {interactionMessage}
+              </div>
+            )}
+
+            {showStreamTools && (
+              <div
+                className="liveSheetBackdrop"
+                onClick={() =>
+                  setShowStreamTools(false)
+                }
+              >
+                <section
+                  className="livePeopleSheet streamToolsSheet"
+                  onClick={(event) =>
+                    event.stopPropagation()
+                  }
+                >
+                  <div className="liveSheetHeader">
+                    <div>
+                      <span>
+                        UTV CREATOR
+                      </span>
+
+                      <h2>
+                        Stream Tools
+                      </h2>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowStreamTools(false)
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="streamToolsIntro">
+                    Control your broadcast without
+                    leaving your Live.
+                  </p>
+
+                  <div className="streamToolsGrid">
+
+                    <button
+                      type="button"
+                      className={
+                        screenSharing
+                          ? "streamTool active"
+                          : "streamTool"
+                      }
+                      onClick={() =>
+                        void toggleScreenShare()
+                      }
+                    >
+                      <span className="streamToolIcon">
+                        ▣
+                      </span>
+
+                      <strong>
+                        {screenSharing
+                          ? "Stop Screen"
+                          : "Share Screen"}
+                      </strong>
+
+                      <small>
+                        {screenSharing
+                          ? "Return to camera"
+                          : "Share an app or screen"}
+                      </small>
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="streamTool"
+                      onClick={() => {
+                        setShowStreamTools(false);
+                        void flipCamera();
+                      }}
+                    >
+                      <span className="streamToolIcon">
+                        ↻
+                      </span>
+
+                      <strong>
+                        Flip Camera
+                      </strong>
+
+                      <small>
+                        Front / back
+                      </small>
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="streamTool"
+                      onClick={async () => {
+                        if (!liveSessionId) return;
+
+                        const url =
+                          `${window.location.origin}/watch-live/${liveSessionId}`;
+
+                        try {
+                          if (navigator.share) {
+                            await navigator.share({
+                              title:
+                                title ||
+                                "UTV Live",
+
+                              text:
+                                "Watch me live on UTV.",
+
+                              url,
+                            });
+                          } else {
+                            await navigator.clipboard
+                              .writeText(url);
+
+                            setInteractionMessage(
+                              "Live link copied."
+                            );
+                          }
+                        } catch {}
+
+                        setShowStreamTools(false);
+                      }}
+                    >
+                      <span className="streamToolIcon">
+                        ↗
+                      </span>
+
+                      <strong>
+                        Share Live
+                      </strong>
+
+                      <small>
+                        Send your Live link
+                      </small>
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="streamTool"
+                      onClick={() => {
+                        setShowStreamTools(false);
+
+                        window.setTimeout(
+                          () => {
+                            document
+                              .querySelector<HTMLInputElement>(
+                                ".hostCommentBar input"
+                              )
+                              ?.focus();
+                          },
+                          120
+                        );
+                      }}
+                    >
+                      <span className="streamToolIcon">
+                        💬
+                      </span>
+
+                      <strong>
+                        Live Chat
+                      </strong>
+
+                      <small>
+                        Talk to viewers
+                      </small>
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="streamTool"
+                      onClick={() => {
+                        setShowStreamTools(false);
+                        setShowViewerSheet(true);
+                      }}
+                    >
+                      <span className="streamToolIcon">
+                        ◉
+                      </span>
+
+                      <strong>
+                        Viewers
+                      </strong>
+
+                      <small>
+                        {viewerCount} watching
+                      </small>
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className={
+                        joinRequests.length
+                          ? "streamTool attention"
+                          : "streamTool"
+                      }
+                      onClick={() => {
+                        setShowStreamTools(false);
+                        setShowJoinSheet(true);
+                      }}
+                    >
+                      <span className="streamToolIcon">
+                        👥
+                      </span>
+
+                      <strong>
+                        Guests
+                      </strong>
+
+                      <small>
+                        {joinRequests.length
+                          ? `${joinRequests.length} waiting`
+                          : "Invite / approve"}
+                      </small>
+                    </button>
+
+                  </div>
+
+                  <div className="streamCapability">
+                    <div>
+                      <small>
+                        BROADCAST MODE
+                      </small>
+
+                      <strong>
+                        Camera + Screen + Guests
+                      </strong>
+
+                      <p>
+                        Your UTV Live can publish
+                        multiple LiveKit tracks at once.
+                      </p>
+                    </div>
+
+                    <b>HD</b>
+                  </div>
+
+                </section>
               </div>
             )}
 
@@ -3717,6 +4050,392 @@ const styles = `
     }
 
   }
+
+
+
+  /* ========================================
+     UTV LIVE SCREEN TOOLS V1
+  ======================================== */
+
+  .moreControl.sharing {
+    color:
+      #06120e !important;
+
+    border-color:
+      rgba(82,247,200,.55) !important;
+
+    background:
+      linear-gradient(
+        120deg,
+        #52f7c8,
+        #61ddff,
+        #8b6dff
+      ) !important;
+
+    box-shadow:
+      0 8px 25px
+      rgba(82,247,200,.12) !important;
+  }
+
+  .moreControl.sharing small {
+    color:
+      #06120e !important;
+  }
+
+
+  .screenShareStatus {
+    position: absolute;
+
+    z-index: 65;
+
+    top:
+      max(
+        64px,
+        calc(
+          env(safe-area-inset-top)
+          + 52px
+        )
+      );
+
+    right: 13px;
+
+    min-height: 29px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 6px;
+
+    padding: 0 10px;
+
+    border:
+      1px solid
+      rgba(82,247,200,.40);
+
+    border-radius: 999px;
+
+    color: #06120e;
+
+    background:
+      linear-gradient(
+        110deg,
+        #52f7c8,
+        #65dfff
+      );
+
+    box-shadow:
+      0 8px 28px
+      rgba(82,247,200,.18);
+
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .08em;
+  }
+
+  .screenShareStatus i {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #06120e;
+
+    animation:
+      utvScreenPulse
+      1.15s
+      ease-in-out
+      infinite;
+  }
+
+
+  .streamToolsSheet {
+    padding-bottom:
+      max(
+        24px,
+        env(safe-area-inset-bottom)
+      ) !important;
+  }
+
+
+  .streamToolsIntro {
+    margin:
+      -3px 0 13px;
+
+    color:
+      rgba(255,255,255,.48);
+
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+
+  .streamToolsGrid {
+    display: grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0,1fr)
+      );
+
+    gap: 8px;
+  }
+
+
+  .streamTool {
+    position: relative;
+
+    min-height: 107px;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: flex-start;
+    justify-content: flex-end;
+
+    gap: 3px;
+
+    overflow: hidden;
+
+    padding: 13px;
+
+    color: white;
+    text-align: left;
+
+    border:
+      1px solid
+      rgba(255,255,255,.085);
+
+    border-radius: 18px;
+
+    background:
+      radial-gradient(
+        circle at 15% 5%,
+        rgba(82,247,200,.07),
+        transparent 40%
+      ),
+      linear-gradient(
+        145deg,
+        rgba(255,255,255,.055),
+        rgba(255,255,255,.018)
+      );
+
+    box-shadow:
+      inset 0 1px 0
+      rgba(255,255,255,.025);
+
+    transition:
+      transform .15s,
+      border-color .15s;
+  }
+
+
+  .streamTool:active {
+    transform:
+      scale(.975);
+  }
+
+
+  .streamToolIcon {
+    position: absolute;
+
+    top: 12px;
+    left: 12px;
+
+    width: 35px;
+    height: 35px;
+
+    display: grid;
+    place-items: center;
+
+    border:
+      1px solid
+      rgba(82,247,200,.20);
+
+    border-radius: 11px;
+
+    color: #5af0d5;
+
+    background:
+      rgba(82,247,200,.075);
+
+    font-size: 17px;
+
+    box-shadow:
+      0 0 20px
+      rgba(82,247,200,.04);
+  }
+
+
+  .streamTool strong {
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+
+  .streamTool small {
+    color:
+      rgba(255,255,255,.44);
+
+    font-size: 8px;
+  }
+
+
+  .streamTool.active {
+    border-color:
+      rgba(82,247,200,.42);
+
+    background:
+      radial-gradient(
+        circle at 15% 5%,
+        rgba(82,247,200,.17),
+        transparent 45%
+      ),
+      linear-gradient(
+        145deg,
+        rgba(82,247,200,.10),
+        rgba(99,103,255,.06)
+      );
+  }
+
+
+  .streamTool.attention {
+    border-color:
+      rgba(82,247,200,.42);
+  }
+
+
+  .streamTool.attention::after {
+    content: "";
+
+    position: absolute;
+
+    top: 10px;
+    right: 10px;
+
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #52f7c8;
+
+    box-shadow:
+      0 0 12px
+      rgba(82,247,200,.65);
+  }
+
+
+  .streamCapability {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-top: 10px;
+
+    padding: 13px 14px;
+
+    border:
+      1px solid
+      rgba(82,247,200,.13);
+
+    border-radius: 18px;
+
+    background:
+      radial-gradient(
+        circle at 0% 50%,
+        rgba(82,247,200,.10),
+        transparent 36%
+      ),
+      radial-gradient(
+        circle at 100% 50%,
+        rgba(130,93,255,.10),
+        transparent 36%
+      ),
+      rgba(255,255,255,.025);
+  }
+
+
+  .streamCapability > div {
+    display: grid;
+    gap: 2px;
+  }
+
+
+  .streamCapability small {
+    color: #56efd2;
+
+    font-size: 7px;
+    font-weight: 1000;
+
+    letter-spacing: .12em;
+  }
+
+
+  .streamCapability strong {
+    font-size: 11px;
+  }
+
+
+  .streamCapability p {
+    max-width: 230px;
+
+    margin: 1px 0 0;
+
+    color:
+      rgba(255,255,255,.39);
+
+    font-size: 8px;
+    line-height: 1.35;
+  }
+
+
+  .streamCapability > b {
+    flex: 0 0 auto;
+
+    padding: 7px 9px;
+
+    border-radius: 999px;
+
+    color: #06120e;
+
+    background:
+      linear-gradient(
+        110deg,
+        #52f7c8,
+        #65dfff
+      );
+
+    font-size: 8px;
+    font-weight: 1000;
+  }
+
+
+  @keyframes utvScreenPulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    50% {
+      opacity: .52;
+      transform: scale(.72);
+    }
+  }
+
+
+  @media(
+    prefers-reduced-motion:
+    reduce
+  ) {
+    .screenShareStatus i {
+      animation: none;
+    }
+  }
+
 
   /* UTV LIVE V3 DISCOVERY THEME END */
 
