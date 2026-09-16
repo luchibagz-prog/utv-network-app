@@ -136,7 +136,11 @@ export default function WatchPlayerPage() {
   const [isCeo, setIsCeo] =
     useState(false);
 
+  // UTV WATCH AUTOPLAY V2
   const [playing, setPlaying] =
+    useState(true);
+
+  const [autoplayMuted, setAutoplayMuted] =
     useState(false);
 
   useEffect(() => {
@@ -145,10 +149,76 @@ export default function WatchPlayerPage() {
     }
   }, [id]);
 
+  async function beginVideoAutoplay(
+    video: HTMLVideoElement
+  ) {
+    /*
+     * First try normal playback WITH audio.
+     *
+     * Because the viewer normally entered this
+     * screen by tapping a UTV post, many browsers
+     * will allow it.
+     */
+    try {
+      video.muted = false;
+      video.volume = 1;
+
+      await video.play();
+
+      setAutoplayMuted(false);
+
+      return;
+    } catch {}
+
+    /*
+     * Mobile Safari / Chrome can still reject
+     * audible autoplay after navigation.
+     *
+     * Instead of leaving a dead player requiring
+     * another Play tap, immediately fall back to
+     * muted playback and show one clear sound
+     * unlock button.
+     */
+    try {
+      video.muted = true;
+
+      await video.play();
+
+      setAutoplayMuted(true);
+    } catch (error) {
+      console.info(
+        "UTV autoplay blocked:",
+        error
+      );
+    }
+  }
+
+  async function enableWatchSound() {
+    const video =
+      videoRef.current;
+
+    if (!video) return;
+
+    try {
+      video.muted = false;
+      video.volume = 1;
+
+      await video.play();
+
+      setAutoplayMuted(false);
+    } catch (error) {
+      console.info(
+        "UTV sound unlock:",
+        error
+      );
+    }
+  }
+
   async function load() {
     setLoading(true);
     setError("");
-    setPlaying(false);
+    setPlaying(true);
+    setAutoplayMuted(false);
 
     try {
       const {
@@ -469,7 +539,13 @@ export default function WatchPlayerPage() {
                   controls
                   autoPlay
                   playsInline
-                  preload="metadata"
+                  preload="auto"
+                  muted={autoplayMuted}
+                  onLoadedData={(event) =>
+                    void beginVideoAutoplay(
+                      event.currentTarget
+                    )
+                  }
                 />
               )
             ) : (
@@ -498,6 +574,37 @@ export default function WatchPlayerPage() {
               }
             >
               <span>▶</span>
+            </button>
+          )}
+
+          {playing && autoplayMuted && (
+            <button
+              type="button"
+              onClick={() =>
+                void enableWatchSound()
+              }
+              style={{
+                position: "absolute",
+                left: "50%",
+                bottom: 18,
+                zIndex: 30,
+                transform:
+                  "translateX(-50%)",
+                minHeight: 40,
+                padding: "0 15px",
+                border:
+                  "1px solid rgba(255,255,255,.16)",
+                borderRadius: 999,
+                color: "#fff",
+                background:
+                  "rgba(4,7,10,.78)",
+                backdropFilter:
+                  "blur(14px)",
+                fontSize: 11,
+                fontWeight: 900,
+              }}
+            >
+              🔊 Tap for sound
             </button>
           )}
 

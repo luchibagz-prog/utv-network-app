@@ -780,6 +780,44 @@ const selectedSticker = stickers.find(
       return;
     }
 
+    // UTV RECORDING AUDIO V2
+    //
+    // Never create a camera recording unless
+    // BOTH the camera and microphone tracks
+    // actually made it into the capture stream.
+    const sourceStream =
+      streamRef.current;
+
+    const videoTracks =
+      sourceStream.getVideoTracks();
+
+    const audioTracks =
+      sourceStream.getAudioTracks();
+
+    if (!videoTracks.length) {
+      setMessage(
+        "UTV could not find the camera track. Reopen the camera and try again."
+      );
+      return;
+    }
+
+    if (!audioTracks.length) {
+      setMessage(
+        "Microphone audio is not available. Allow Camera & Microphone access, then try recording again."
+      );
+      return;
+    }
+
+    audioTracks.forEach((track) => {
+      track.enabled = true;
+    });
+
+    const recordingStream =
+      new MediaStream([
+        ...videoTracks,
+        ...audioTracks,
+      ]);
+
     chunksRef.current = [];
 
     const preferredType =
@@ -791,7 +829,7 @@ const selectedSticker = stickers.find(
 
     try {
       const recorder = new MediaRecorder(
-        streamRef.current,
+        recordingStream,
         preferredType
           ? {
               mimeType: preferredType,
