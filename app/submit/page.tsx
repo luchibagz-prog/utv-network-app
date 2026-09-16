@@ -283,6 +283,13 @@ export default function SubmitPage() {
   const [taggedPeople, setTaggedPeople] = useState<any[]>([]);
   const [tagSearchLoading, setTagSearchLoading] = useState(false);
 
+  // UTV SOCIAL COLLABS V1
+  const [collabPanelOpen, setCollabPanelOpen] = useState(false);
+  const [collabQuery, setCollabQuery] = useState("");
+  const [collabResults, setCollabResults] = useState<any[]>([]);
+  const [collabPeople, setCollabPeople] = useState<any[]>([]);
+  const [collabSearchLoading, setCollabSearchLoading] = useState(false);
+
   const [category, setCategory] = useState("Feed");
 
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
@@ -370,6 +377,11 @@ const selectedSticker = stickers.find(
     setTagResults([]);
     setTaggedPeople([]);
     setTagSearchLoading(false);
+    setCollabPanelOpen(false);
+    setCollabQuery("");
+    setCollabResults([]);
+    setCollabPeople([]);
+    setCollabSearchLoading(false);
     stopCamera();
 
     if (preview.startsWith("blob:")) {
@@ -1869,6 +1881,468 @@ const selectedSticker = stickers.find(
     }
   }
 
+  async function searchCollabPeople(value: string) {
+    setCollabQuery(value);
+
+    const clean =
+      value.replace(/^@+/, "").trim();
+
+    if (!clean) {
+      setCollabResults([]);
+      setCollabSearchLoading(false);
+      return;
+    }
+
+    setCollabSearchLoading(true);
+
+    try {
+      const { data, error } =
+        await supabase.rpc(
+          "utv_search_tag_users",
+          {
+            p_query: clean,
+            p_limit: 8,
+          }
+        );
+
+      if (error) throw error;
+
+      const selected =
+        new Set(
+          collabPeople.map(
+            (person: any) =>
+              String(
+                person?.username || ""
+              ).toLowerCase()
+          )
+        );
+
+      setCollabResults(
+        (data || []).filter(
+          (person: any) =>
+            !selected.has(
+              String(
+                person?.username || ""
+              ).toLowerCase()
+            )
+        )
+      );
+    } catch (error) {
+      console.error(
+        "UTV collab search error:",
+        error
+      );
+
+      setCollabResults([]);
+    } finally {
+      setCollabSearchLoading(false);
+    }
+  }
+
+  function addCollaborator(
+    person: any
+  ) {
+    const username =
+      String(
+        person?.username || ""
+      ).trim();
+
+    if (!username) return;
+
+    setCollabPeople((current) => {
+      if (
+        current.some(
+          (item: any) =>
+            String(
+              item?.username || ""
+            ).toLowerCase() ===
+            username.toLowerCase()
+        )
+      ) {
+        return current;
+      }
+
+      if (current.length >= 3) {
+        setMessage(
+          "You can invite up to 3 collaborators."
+        );
+
+        return current;
+      }
+
+      return [...current, person];
+    });
+
+    setCollabQuery("");
+    setCollabResults([]);
+    setCollabPanelOpen(false);
+  }
+
+  function removeCollaborator(
+    username: string
+  ) {
+    setCollabPeople((current) =>
+      current.filter(
+        (person: any) =>
+          String(
+            person?.username || ""
+          ).toLowerCase() !==
+          username.toLowerCase()
+      )
+    );
+  }
+
+  async function saveContentCollaborators(
+    contentKind: "upload" | "story",
+    contentId: string
+  ) {
+    if (
+      !contentId ||
+      !collabPeople.length
+    ) {
+      return;
+    }
+
+    for (
+      const person
+      of collabPeople
+    ) {
+      const username =
+        String(
+          person?.username || ""
+        ).trim();
+
+      if (!username) continue;
+
+      const { error } =
+        await supabase.rpc(
+          "utv_invite_collaborator",
+          {
+            p_content_kind:
+              contentKind,
+
+            p_content_id:
+              contentId,
+
+            p_collaborator_username:
+              username,
+          }
+        );
+
+      if (error) {
+        console.error(
+          "UTV collab invite failed:",
+          username,
+          error
+        );
+      }
+    }
+  }
+
+  function renderCollabPeople() {
+    return (
+      <section
+        style={{
+          marginTop: 10,
+          padding: 12,
+          border:
+            "1px solid rgba(151,112,255,.18)",
+          borderRadius: 18,
+          background:
+            "linear-gradient(145deg,rgba(123,97,255,.09),rgba(82,247,200,.04),rgba(255,255,255,.02))",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setCollabPanelOpen(
+              (current) => !current
+            )
+          }
+          style={{
+            width: "100%",
+            minHeight: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "space-between",
+            gap: 12,
+            padding: "0 4px",
+            border: 0,
+            color: "#fff",
+            background: "transparent",
+            textAlign: "left",
+          }}
+        >
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <span
+              style={{
+                width: 36,
+                height: 36,
+                display: "grid",
+                placeItems: "center",
+                border:
+                  "1px solid rgba(151,112,255,.3)",
+                borderRadius: "50%",
+                color: "#c5b5ff",
+                background:
+                  "rgba(123,97,255,.12)",
+                fontSize: 17,
+              }}
+            >
+              🤝
+            </span>
+
+            <span
+              style={{
+                display: "grid",
+                gap: 2,
+              }}
+            >
+              <strong
+                style={{
+                  fontSize: 13,
+                  fontWeight: 950,
+                }}
+              >
+                Invite Collaborator
+              </strong>
+
+              <small
+                style={{
+                  color:
+                    "rgba(255,255,255,.48)",
+                  fontSize: 10,
+                }}
+              >
+                Co-create this content
+              </small>
+            </span>
+          </span>
+
+          <b
+            style={{
+              color: "#bca8ff",
+              fontSize: 18,
+            }}
+          >
+            {collabPanelOpen
+              ? "−"
+              : "+"}
+          </b>
+        </button>
+
+        {collabPeople.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 7,
+              paddingTop: 9,
+            }}
+          >
+            {collabPeople.map(
+              (person: any) => (
+                <button
+                  key={person.username}
+                  type="button"
+                  onClick={() =>
+                    removeCollaborator(
+                      String(
+                        person.username
+                      )
+                    )
+                  }
+                  style={{
+                    minHeight: 32,
+                    padding:
+                      "5px 9px",
+                    border:
+                      "1px solid rgba(151,112,255,.25)",
+                    borderRadius: 999,
+                    color: "#fff",
+                    background:
+                      "rgba(123,97,255,.11)",
+                  }}
+                >
+                  <strong
+                    style={{
+                      color:
+                        "#cbbdff",
+                      fontSize: 11,
+                    }}
+                  >
+                    @{person.username}
+                  </strong>
+                  {" ×"}
+                </button>
+              )
+            )}
+          </div>
+        )}
+
+        {collabPanelOpen && (
+          <div
+            style={{
+              marginTop: 10,
+              overflow: "hidden",
+              border:
+                "1px solid rgba(255,255,255,.09)",
+              borderRadius: 15,
+              background:
+                "rgba(4,7,12,.94)",
+            }}
+          >
+            <input
+              type="text"
+              value={collabQuery}
+              placeholder="@username"
+              autoComplete="off"
+              onChange={(event) =>
+                void searchCollabPeople(
+                  event.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                height: 46,
+                padding: "0 13px",
+                boxSizing:
+                  "border-box",
+                border: 0,
+                outline: 0,
+                color: "#fff",
+                background:
+                  "rgba(255,255,255,.035)",
+              }}
+            />
+
+            {collabSearchLoading && (
+              <div
+                style={{
+                  padding: 13,
+                  color:
+                    "rgba(255,255,255,.48)",
+                  fontSize: 11,
+                }}
+              >
+                Searching UTV…
+              </div>
+            )}
+
+            {!collabSearchLoading &&
+              collabResults.map(
+                (person: any) => (
+                  <button
+                    key={
+                      person.username
+                    }
+                    type="button"
+                    onClick={() =>
+                      addCollaborator(
+                        person
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      minHeight: 56,
+                      display: "flex",
+                      alignItems:
+                        "center",
+                      gap: 10,
+                      padding:
+                        "8px 12px",
+                      border: 0,
+                      borderTop:
+                        "1px solid rgba(255,255,255,.055)",
+                      color: "#fff",
+                      background:
+                        "transparent",
+                      textAlign: "left",
+                    }}
+                  >
+                    {person.avatar_url ? (
+                      <img
+                        src={
+                          person.avatar_url
+                        }
+                        alt=""
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius:
+                            "50%",
+                          objectFit:
+                            "cover",
+                        }}
+                      />
+                    ) : (
+                      <span
+                        style={{
+                          width: 38,
+                          height: 38,
+                          display:
+                            "grid",
+                          placeItems:
+                            "center",
+                          borderRadius:
+                            "50%",
+                          background:
+                            "rgba(123,97,255,.12)",
+                        }}
+                      >
+                        🤝
+                      </span>
+                    )}
+
+                    <span
+                      style={{
+                        display:
+                          "grid",
+                        gap: 2,
+                      }}
+                    >
+                      <strong>
+                        {person.display_name ||
+                          person.username ||
+                          "UTV Creator"}
+                      </strong>
+
+                      <small
+                        style={{
+                          color:
+                            "rgba(255,255,255,.46)",
+                        }}
+                      >
+                        @{person.username}
+                      </small>
+                    </span>
+
+                    <b
+                      style={{
+                        marginLeft:
+                          "auto",
+                        color:
+                          "#c7b8ff",
+                      }}
+                    >
+                      Invite
+                    </b>
+                  </button>
+                )
+              )}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   function renderTagPeople() {
     return (
       <section
@@ -2257,6 +2731,11 @@ const selectedSticker = stickers.find(
           String(storyRow.id)
         );
 
+        await saveContentCollaborators(
+          "story",
+          String(storyRow.id)
+        );
+
         router.push(`/stories/${storyRow.id}`);
       } else {
         router.push("/feed");
@@ -2357,6 +2836,11 @@ const selectedSticker = stickers.find(
 
         if (uploadId) {
           await saveContentTags(
+            "upload",
+            String(uploadId)
+          );
+
+          await saveContentCollaborators(
             "upload",
             String(uploadId)
           );
@@ -2827,6 +3311,7 @@ const selectedSticker = stickers.find(
           />
 
           {renderTagPeople()}
+          {renderCollabPeople()}
 
           <select
             className="formField"
@@ -3370,6 +3855,7 @@ if (mode === "camera") {
           </div>
 
           {renderTagPeople()}
+          {renderCollabPeople()}
 
           {(musicFile || musicUrl.trim()) && (
             <div className="storyShareMusic">🎵 {musicTitle || musicFile?.name || "Story music"}</div>

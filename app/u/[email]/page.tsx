@@ -7,6 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 import { sendUTVPush } from "../../../lib/sendUTVPush";
+import ProfileSocialFeatured from "../../components/ProfileSocialFeatured";
 
 type Tab = "posts" | "featured" | "crew" | "about";
 
@@ -1685,6 +1686,10 @@ export default function PublicProfile() {
                 </div>
               )}
             </section>
+
+            <ProfileSocialFeatured
+              username={username}
+            />
           </>
         )}
 
