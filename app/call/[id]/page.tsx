@@ -163,6 +163,17 @@ export default function UTVCallRoom() {
   const audioContainerRef =
     useRef<HTMLDivElement | null>(null);
 
+  // UTV CALL QUALITY V2
+  //
+  // Keep exactly ONE remote audio element per
+  // participant. This prevents reconnect /
+  // resubscribe events from leaving multiple
+  // copies of the same voice playing at once.
+  const remoteAudioElementsRef =
+    useRef<
+      Map<string, HTMLAudioElement>
+    >(new Map());
+
   const localVideoRef =
     useRef<HTMLVideoElement | null>(null);
 
@@ -446,9 +457,15 @@ export default function UTVCallRoom() {
           {
             facingMode: nextFacing,
             resolution: {
+              /*
+               * Preserve 720p sharpness while
+               * dropping a little motion load.
+               * 24fps is substantially easier on
+               * mobile group calls than 30fps.
+               */
               width: 1280,
               height: 720,
-              frameRate: 30,
+              frameRate: 24,
             },
           }
         );
@@ -564,6 +581,252 @@ export default function UTVCallRoom() {
               : item
         )
     );
+  }
+
+
+  function removeRemoteAudio(
+    identity: string
+  ) {
+    const element =
+      remoteAudioElementsRef.current.get(
+        identity
+      );
+
+    if (element) {
+      try {
+        element.pause();
+      } catch {}
+
+      try {
+        element.srcObject = null;
+      } catch {}
+
+      element.remove();
+
+      remoteAudioElementsRef.current.delete(
+        identity
+      );
+    }
+  }
+
+
+  function clearAllRemoteAudio() {
+    remoteAudioElementsRef.current.forEach(
+      (element) => {
+        try {
+          element.pause();
+        } catch {}
+
+        try {
+          element.srcObject = null;
+        } catch {}
+
+        element.remove();
+      }
+    );
+
+    remoteAudioElementsRef.current.clear();
+
+    audioContainerRef.current
+      ?.querySelectorAll("audio")
+      .forEach((element) => {
+        try {
+          element.pause();
+        } catch {}
+
+        try {
+          element.srcObject = null;
+        } catch {}
+
+        element.remove();
+      });
+  }
+
+
+  async function attachRemoteAudio(
+    track: RemoteTrack,
+    participant: RemoteParticipant
+  ) {
+    /*
+     * A participant can resubscribe after a
+     * network change. Remove the old browser
+     * audio element BEFORE attaching the new
+     * remote track.
+     */
+    removeRemoteAudio(
+      participant.identity
+    );
+
+    if (!audioContainerRef.current) {
+      return;
+    }
+
+    const element =
+      track.attach() as HTMLAudioElement;
+
+    element.autoplay = true;
+    element.muted = false;
+
+    /*
+     * Full browser volume can make acoustic
+     * feedback worse when two phones are using
+     * their built-in speakers.
+     *
+     * Keep voices strong without driving the
+     * phone speaker at maximum software gain.
+     */
+    element.volume = 0.88;
+
+    element.setAttribute(
+      "playsinline",
+      "true"
+    );
+
+    element.dataset.utvParticipant =
+      participant.identity;
+
+    audioContainerRef.current.appendChild(
+      element
+    );
+
+    remoteAudioElementsRef.current.set(
+      participant.identity,
+      element
+    );
+
+    try {
+      await element.play();
+
+      setSpeakerMuted(false);
+    } catch {
+      /*
+       * iPhone / Android browsers can require
+       * another real tap before remote WebRTC
+       * audio is allowed to play.
+       */
+      setSpeakerMuted(true);
+
+      setMessage(
+        "Tap Speaker to enable call audio."
+      );
+    }
+  }
+
+
+  async function enableCallAudio() {
+    const room =
+      roomRef.current;
+
+    if (!room) return;
+
+    /*
+     * This button is now an AUDIO-ENABLE action.
+     *
+     * It must NEVER toggle remote voices off.
+     * The old Speaker button could accidentally
+     * mute every remote audio element.
+     */
+    try {
+      await room.startAudio();
+    } catch {}
+
+    let playedAudio = false;
+
+    for (
+      const element of Array.from(
+        remoteAudioElementsRef.current.values()
+      )
+    ) {
+      try {
+        element.muted = false;
+        element.volume = 0.88;
+
+        await element.play();
+
+        playedAudio = true;
+      } catch {}
+    }
+
+    setSpeakerMuted(false);
+
+    if (
+      playedAudio ||
+      room.remoteParticipants.size > 0
+    ) {
+      setMessage("Connected");
+    } else {
+      setMessage("Audio ready");
+    }
+  }
+
+
+  async function tuneMicrophone() {
+    const room =
+      roomRef.current;
+
+    if (!room) return;
+
+    try {
+      const publication =
+        room.localParticipant
+          .getTrackPublication(
+            Track.Source.Microphone
+          );
+
+      const localTrack =
+        publication?.track as any;
+
+      const mediaTrack =
+        localTrack?.mediaStreamTrack as
+          | MediaStreamTrack
+          | undefined;
+
+      if (
+        !mediaTrack ||
+        typeof mediaTrack.applyConstraints !==
+          "function"
+      ) {
+        return;
+      }
+
+      const supported =
+        navigator.mediaDevices
+          ?.getSupportedConstraints?.() || {};
+
+      const constraints:
+        MediaTrackConstraints = {};
+
+      if (supported.echoCancellation) {
+        constraints.echoCancellation = true;
+      }
+
+      if (supported.noiseSuppression) {
+        constraints.noiseSuppression = true;
+      }
+
+      if (supported.autoGainControl) {
+        constraints.autoGainControl = true;
+      }
+
+      /*
+       * Calls are voice-first. Mono microphone
+       * capture reduces unnecessary bandwidth
+       * and generally gives mobile echo
+       * cancellation an easier signal to clean.
+       */
+      if (supported.channelCount) {
+        constraints.channelCount = 1;
+      }
+
+      await mediaTrack.applyConstraints(
+        constraints
+      );
+    } catch (error) {
+      console.info(
+        "UTV microphone tuning skipped:",
+        error
+      );
+    }
   }
 
 
@@ -698,6 +961,10 @@ export default function UTVCallRoom() {
       room.on(
         RoomEvent.ParticipantDisconnected,
         (participant) => {
+          removeRemoteAudio(
+            participant.identity
+          );
+
           removeRemoteParticipant(
             participant.identity
           );
@@ -733,34 +1000,12 @@ export default function UTVCallRoom() {
         ) => {
           if (
             track.kind ===
-              Track.Kind.Audio &&
-            audioContainerRef.current
+            Track.Kind.Audio
           ) {
-            const element =
-              track.attach();
-
-            element.autoplay = true;
-            element.volume = 1;
-            element.muted =
-              speakerMuted;
-
-            element.setAttribute(
-              "playsinline",
-              "true"
+            void attachRemoteAudio(
+              track,
+              participant
             );
-
-            audioContainerRef.current
-              .appendChild(
-                element
-              );
-
-            void element
-              .play()
-              .catch(() => {
-                setMessage(
-                  "Tap Speaker once to enable audio."
-                );
-              });
           }
 
 
@@ -783,6 +1028,15 @@ export default function UTVCallRoom() {
           _publication,
           participant
         ) => {
+          if (
+            track.kind ===
+            Track.Kind.Audio
+          ) {
+            removeRemoteAudio(
+              participant.identity
+            );
+          }
+
           track
             .detach()
             .forEach(
@@ -921,6 +1175,7 @@ export default function UTVCallRoom() {
       room.on(
         RoomEvent.Disconnected,
         () => {
+          clearAllRemoteAudio();
           setConnected(false);
 
           if (!leavingRef.current) {
@@ -958,6 +1213,8 @@ export default function UTVCallRoom() {
             autoGainControl: true,
           }
         );
+
+      await tuneMicrophone();
 
       setConnected(true);
 
@@ -1037,80 +1294,22 @@ export default function UTVCallRoom() {
         }
       );
 
+    if (!next) {
+      await tuneMicrophone();
+    }
+
     setMicMuted(next);
   }
 
   async function toggleSpeaker() {
-    const room =
-      roomRef.current;
-
-    if (!room) {
-      return;
-    }
-
     /*
-     * iPhone Safari and some mobile browsers
-     * can block remote audio until a real user
-     * gesture occurs.
+     * Browser/PWA code cannot reliably force
+     * iPhone's physical earpiece vs loudspeaker.
      *
-     * If playback is currently blocked, this
-     * tap is treated as "enable speaker" rather
-     * than accidentally muting the call.
+     * This control now safely unlocks/resumes
+     * remote call audio instead of muting it.
      */
-    if (!room.canPlaybackAudio) {
-      try {
-        await room.startAudio();
-
-        setSpeakerMuted(false);
-
-        audioContainerRef.current
-          ?.querySelectorAll<
-            HTMLAudioElement
-          >("audio")
-          .forEach((element) => {
-            element.muted = false;
-            element.volume = 1;
-
-            void element
-              .play()
-              .catch(() => {});
-          });
-
-        setMessage(
-          room.remoteParticipants.size > 0
-            ? "Connected"
-            : "Speaker ready"
-        );
-
-        return;
-      } catch {
-        setMessage(
-          "Tap Speaker again to enable call audio."
-        );
-
-        return;
-      }
-    }
-
-    const next =
-      !speakerMuted;
-
-    setSpeakerMuted(next);
-
-    audioContainerRef.current
-      ?.querySelectorAll<
-        HTMLAudioElement
-      >("audio")
-      .forEach((element) => {
-        element.muted = next;
-        element.volume = 1;
-
-        if (!next) {
-          void element
-            .play()
-            .catch(() => {});
-        }
-      });
+    await enableCallAudio();
   }
 
   async function toggleCamera() {
