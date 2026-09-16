@@ -3945,7 +3945,60 @@ export default function UTVNav() {
             scale(.60)
             !important;
         }
-      `}</style>
+      
+
+        /*
+         * UTV WALKIE SIDE DOCK FINAL
+         *
+         * Keep Walkie special and visible,
+         * but never cover bottom-page controls.
+         */
+        .utvWalkieDock {
+          position:
+            fixed !important;
+
+          top:
+                                  50p                                                                 50p         nt                 t:
+                                  50p                       auto !important;
+
+          z-index:
+            880 !important;
+
+          transform:
+            scale(.62)
+            !important;
+
+          transform-origin:
+            center right
+            !important;
+        }
+
+        .utvWalkieDock:active {
+          transform:
+            scale(.56)
+            !important;
+        }
+
+        @media (
+          max-width: 420px
+        ) {
+          .utvWalkieDock {
+            right:
+              -10px !important;
+
+            transform:
+              scale(.58)
+              !important;
+          }
+
+          .utvWalkieDock:active {
+            transform:
+              scale(.53)
+              !important;
+          }
+        }
+
+`}</style>
 
     </>
   );
