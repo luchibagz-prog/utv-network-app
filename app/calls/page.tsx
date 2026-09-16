@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -46,6 +47,14 @@ export default function CallsPage() {
     searchParams.get("type") === "video"
       ? "video"
       : "audio";
+
+  // UTV MESSAGES V2 — CHAT CALL AUTOSTART
+  const autoStart =
+    searchParams.get("autostart") ===
+    "1";
+
+  const autoStartRef =
+    useRef(false);
 
   const [email, setEmail] =
     useState("");
@@ -91,6 +100,30 @@ export default function CallsPage() {
   useEffect(() => {
     void boot();
   }, []);
+
+  useEffect(() => {
+    if (
+      !email ||
+      !autoStart ||
+      !initialTarget ||
+      autoStartRef.current
+    ) {
+      return;
+    }
+
+    autoStartRef.current =
+      true;
+
+    void startCall(
+      initialType,
+      initialTarget
+    );
+  }, [
+    email,
+    autoStart,
+    initialTarget,
+    initialType,
+  ]);
 
   useEffect(() => {
     if (!email) return;

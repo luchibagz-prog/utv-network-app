@@ -801,12 +801,47 @@ const refreshTimerRef =
           </div>
         </button>
 
-        <button
+        {/* UTV MESSAGES V2 CALL SHORTCUTS */}
+          <div className="headerActions">
+            <button
+              type="button"
+              className="callShortcut"
+              aria-label="Audio call"
+              title="Audio call"
+              onClick={() =>
+                router.push(
+                  `/calls?to=${encodeURIComponent(
+                    otherEmail
+                  )}&type=audio&autostart=1`
+                )
+              }
+            >
+              📞
+            </button>
+
+            <button
+              type="button"
+              className="callShortcut videoCallShortcut"
+              aria-label="Video call"
+              title="Video call"
+              onClick={() =>
+                router.push(
+                  `/calls?to=${encodeURIComponent(
+                    otherEmail
+                  )}&type=video&autostart=1`
+                )
+              }
+            >
+              🎥
+            </button>
+
+            <button
           className="profileButton"
           onClick={openOtherProfile}
         >
           Profile
         </button>
+          </div>
       </header>
 
       {status && (
@@ -1104,6 +1139,57 @@ const styles = `
     font-size: 11px;
   }
 
+  /*
+   * UTV MESSAGES V2 CALL SHORTCUTS
+   */
+  .headerActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+  }
+
+  .callShortcut {
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    padding: 0;
+    color: #fff;
+    border:
+      1px solid
+      rgba(82,247,200,.17);
+    border-radius: 50%;
+    background:
+      radial-gradient(
+        circle at 30% 20%,
+        rgba(82,247,200,.15),
+        transparent 65%
+      ),
+      rgba(255,255,255,.055);
+    box-shadow:
+      0 8px 22px
+      rgba(0,0,0,.20);
+    font-size: 15px;
+  }
+
+  .videoCallShortcut {
+    border-color:
+      rgba(128,104,255,.21);
+    background:
+      radial-gradient(
+        circle at 30% 20%,
+        rgba(128,104,255,.19),
+        transparent 65%
+      ),
+      rgba(255,255,255,.055);
+  }
+
+  .callShortcut:active {
+    transform: scale(.94);
+  }
+
   .profileButton {
     padding: 8px 11px;
     color: white;
@@ -1388,4 +1474,42 @@ const styles = `
       margin: 0 auto;
     }
   }
+
+  @media(max-width:600px) {
+    .chatHeader {
+      grid-template-columns:
+        41px
+        minmax(0,1fr)
+        auto;
+      gap: 7px;
+      padding:
+        9px 9px;
+    }
+
+    .headerActions {
+      gap: 5px;
+    }
+
+    .callShortcut {
+      width: 36px;
+      height: 36px;
+      font-size: 14px;
+    }
+
+    .profileButton {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: 0;
+      font-size: 0;
+    }
+
+    .profileButton::after {
+      content: "👤";
+      font-size: 13px;
+    }
+  }
+
 `;
