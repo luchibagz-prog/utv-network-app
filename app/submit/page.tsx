@@ -275,6 +275,14 @@ export default function SubmitPage() {
 
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
+
+  // UTV SOCIAL PACK 1A — TAG PEOPLE
+  const [tagPanelOpen, setTagPanelOpen] = useState(false);
+  const [tagQuery, setTagQuery] = useState("");
+  const [tagResults, setTagResults] = useState<any[]>([]);
+  const [taggedPeople, setTaggedPeople] = useState<any[]>([]);
+  const [tagSearchLoading, setTagSearchLoading] = useState(false);
+
   const [category, setCategory] = useState("Feed");
 
   const [textLayers, setTextLayers] = useState<TextLayer[]>([]);
@@ -357,6 +365,11 @@ const selectedSticker = stickers.find(
   }, [preview]);
 
   function resetCreator() {
+    setTagPanelOpen(false);
+    setTagQuery("");
+    setTagResults([]);
+    setTaggedPeople([]);
+    setTagSearchLoading(false);
     stopCamera();
 
     if (preview.startsWith("blob:")) {
@@ -1722,6 +1735,459 @@ const selectedSticker = stickers.find(
     return musicUrl.trim();
   }
 
+  async function searchTagPeople(value: string) {
+    setTagQuery(value);
+
+    const cleanQuery = value
+      .replace(/^@+/, "")
+      .trim();
+
+    if (!cleanQuery) {
+      setTagResults([]);
+      setTagSearchLoading(false);
+      return;
+    }
+
+    setTagSearchLoading(true);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "utv_search_tag_users",
+        {
+          p_query: cleanQuery,
+          p_limit: 8,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      const selectedUsernames = new Set(
+        taggedPeople.map((person: any) =>
+          String(person?.username || "").toLowerCase()
+        )
+      );
+
+      setTagResults(
+        (data || []).filter(
+          (person: any) =>
+            !selectedUsernames.has(
+              String(person?.username || "").toLowerCase()
+            )
+        )
+      );
+    } catch (error) {
+      console.error("UTV tag search error:", error);
+      setTagResults([]);
+    } finally {
+      setTagSearchLoading(false);
+    }
+  }
+
+  function addTaggedPerson(person: any) {
+    const username =
+      String(person?.username || "").trim();
+
+    if (!username) return;
+
+    setTaggedPeople((current) => {
+      const exists = current.some(
+        (item: any) =>
+          String(item?.username || "").toLowerCase() ===
+          username.toLowerCase()
+      );
+
+      if (exists) {
+        return current;
+      }
+
+      if (current.length >= 8) {
+        setMessage("You can tag up to 8 people.");
+        return current;
+      }
+
+      return [...current, person];
+    });
+
+    setTagQuery("");
+    setTagResults([]);
+    setTagPanelOpen(false);
+  }
+
+  function removeTaggedPerson(username: string) {
+    setTaggedPeople((current) =>
+      current.filter(
+        (person: any) =>
+          String(person?.username || "").toLowerCase() !==
+          username.toLowerCase()
+      )
+    );
+  }
+
+  async function saveContentTags(
+    contentKind: "upload" | "story",
+    contentId: string
+  ) {
+    if (!contentId || !taggedPeople.length) {
+      return;
+    }
+
+    const failures: string[] = [];
+
+    for (const person of taggedPeople) {
+      const username =
+        String(person?.username || "").trim();
+
+      if (!username) continue;
+
+      const { error } = await supabase.rpc(
+        "utv_tag_content",
+        {
+          p_content_kind: contentKind,
+          p_content_id: contentId,
+          p_tagged_username: username,
+        }
+      );
+
+      if (error) {
+        console.error(
+          "UTV tag save error:",
+          username,
+          error
+        );
+
+        failures.push(username);
+      }
+    }
+
+    if (failures.length) {
+      console.warn(
+        "Some UTV tags did not save:",
+        failures
+      );
+    }
+  }
+
+  function renderTagPeople() {
+    return (
+      <section
+        style={{
+          marginTop: 12,
+          padding: 12,
+          border: "1px solid rgba(255,255,255,.10)",
+          borderRadius: 18,
+          background:
+            "linear-gradient(145deg,rgba(82,247,200,.055),rgba(123,97,255,.07),rgba(255,255,255,.025))",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setTagPanelOpen((current) => !current)
+          }
+          style={{
+            width: "100%",
+            minHeight: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "0 4px",
+            border: 0,
+            color: "#fff",
+            background: "transparent",
+            textAlign: "left",
+            cursor: "pointer",
+          }}
+        >
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <span
+              style={{
+                width: 36,
+                height: 36,
+                display: "grid",
+                placeItems: "center",
+                border: "1px solid rgba(82,247,200,.25)",
+                borderRadius: "50%",
+                color: "#52f7c8",
+                background: "rgba(82,247,200,.08)",
+                fontSize: 18,
+                fontWeight: 1000,
+              }}
+            >
+              @
+            </span>
+
+            <span
+              style={{
+                display: "grid",
+                gap: 2,
+              }}
+            >
+              <strong
+                style={{
+                  fontSize: 13,
+                  fontWeight: 950,
+                }}
+              >
+                Tag People
+              </strong>
+
+              <small
+                style={{
+                  color: "rgba(255,255,255,.48)",
+                  fontSize: 10,
+                }}
+              >
+                Add UTV creators to this post
+              </small>
+            </span>
+          </span>
+
+          <b
+            style={{
+              color: "#52f7c8",
+              fontSize: 18,
+            }}
+          >
+            {tagPanelOpen ? "−" : "+"}
+          </b>
+        </button>
+
+        {taggedPeople.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 7,
+              paddingTop: 9,
+            }}
+          >
+            {taggedPeople.map((person: any) => (
+              <button
+                key={person.username}
+                type="button"
+                onClick={() =>
+                  removeTaggedPerson(
+                    String(person.username)
+                  )
+                }
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minHeight: 32,
+                  padding: "5px 9px",
+                  border:
+                    "1px solid rgba(82,247,200,.22)",
+                  borderRadius: 999,
+                  color: "#fff",
+                  background:
+                    "rgba(82,247,200,.09)",
+                  cursor: "pointer",
+                }}
+              >
+                <strong
+                  style={{
+                    color: "#77f8d3",
+                    fontSize: 11,
+                  }}
+                >
+                  @{person.username}
+                </strong>
+
+                <span
+                  style={{
+                    color:
+                      "rgba(255,255,255,.46)",
+                    fontSize: 12,
+                  }}
+                >
+                  ×
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tagPanelOpen && (
+          <div
+            style={{
+              marginTop: 10,
+              overflow: "hidden",
+              border:
+                "1px solid rgba(255,255,255,.09)",
+              borderRadius: 15,
+              background:
+                "rgba(4,7,12,.92)",
+            }}
+          >
+            <input
+              type="text"
+              value={tagQuery}
+              placeholder="@username"
+              autoComplete="off"
+              onChange={(event) =>
+                void searchTagPeople(
+                  event.target.value
+                )
+              }
+              style={{
+                width: "100%",
+                height: 46,
+                padding: "0 13px",
+                border: 0,
+                borderBottom:
+                  "1px solid rgba(255,255,255,.07)",
+                outline: 0,
+                color: "#fff",
+                background:
+                  "rgba(255,255,255,.035)",
+                fontSize: 14,
+                boxSizing: "border-box",
+              }}
+            />
+
+            {tagSearchLoading && (
+              <div
+                style={{
+                  padding: 13,
+                  color:
+                    "rgba(255,255,255,.48)",
+                  fontSize: 11,
+                }}
+              >
+                Searching UTV…
+              </div>
+            )}
+
+            {!tagSearchLoading &&
+              tagQuery.trim() &&
+              tagResults.length === 0 && (
+                <div
+                  style={{
+                    padding: 13,
+                    color:
+                      "rgba(255,255,255,.42)",
+                    fontSize: 11,
+                  }}
+                >
+                  No matching UTV users.
+                </div>
+              )}
+
+            {!tagSearchLoading &&
+              tagResults.map((person: any) => (
+                <button
+                  key={person.username}
+                  type="button"
+                  onClick={() =>
+                    addTaggedPerson(person)
+                  }
+                  style={{
+                    width: "100%",
+                    minHeight: 56,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 12px",
+                    border: 0,
+                    borderBottom:
+                      "1px solid rgba(255,255,255,.055)",
+                    color: "#fff",
+                    background:
+                      "transparent",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  {person.avatar_url ? (
+                    <img
+                      src={person.avatar_url}
+                      alt=""
+                      style={{
+                        width: 38,
+                        height: 38,
+                        flex: "0 0 38px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        width: 38,
+                        height: 38,
+                        flex: "0 0 38px",
+                        display: "grid",
+                        placeItems: "center",
+                        borderRadius: "50%",
+                        color: "#52f7c8",
+                        background:
+                          "rgba(82,247,200,.09)",
+                        fontWeight: 1000,
+                      }}
+                    >
+                      @
+                    </span>
+                  )}
+
+                  <span
+                    style={{
+                      minWidth: 0,
+                      display: "grid",
+                      gap: 2,
+                    }}
+                  >
+                    <strong
+                      style={{
+                        overflow: "hidden",
+                        textOverflow:
+                          "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: 12,
+                      }}
+                    >
+                      {person.display_name ||
+                        person.username ||
+                        "UTV Creator"}
+                    </strong>
+
+                    <small
+                      style={{
+                        color:
+                          "rgba(255,255,255,.46)",
+                        fontSize: 10,
+                      }}
+                    >
+                      @{person.username}
+                    </small>
+                  </span>
+
+                  <b
+                    style={{
+                      marginLeft: "auto",
+                      color: "#52f7c8",
+                      fontSize: 18,
+                    }}
+                  >
+                    +
+                  </b>
+                </button>
+              ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   async function shareStory() {
     if (!file && !linkUrl.trim()) {
       setMessage("Choose a photo or video first.");
@@ -1786,6 +2252,11 @@ const selectedSticker = stickers.find(
       }
 
       if (storyRow?.id) {
+        await saveContentTags(
+          "story",
+          String(storyRow.id)
+        );
+
         router.push(`/stories/${storyRow.id}`);
       } else {
         router.push("/feed");
@@ -1883,6 +2354,13 @@ const selectedSticker = stickers.find(
         }
 
         uploadId = uploadRow?.id || "";
+
+        if (uploadId) {
+          await saveContentTags(
+            "upload",
+            String(uploadId)
+          );
+        }
       }
 
       if (destinations.world) {
@@ -2347,6 +2825,8 @@ const selectedSticker = stickers.find(
               setCaption(event.target.value)
             }
           />
+
+          {renderTagPeople()}
 
           <select
             className="formField"
@@ -2888,6 +3368,8 @@ if (mode === "camera") {
             />
             <span>{caption.length}/500</span>
           </div>
+
+          {renderTagPeople()}
 
           {(musicFile || musicUrl.trim()) && (
             <div className="storyShareMusic">🎵 {musicTitle || musicFile?.name || "Story music"}</div>

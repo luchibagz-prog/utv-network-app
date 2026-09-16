@@ -90,6 +90,80 @@ function markStoryWatched(id: string, email = "") {
   }
 }
 
+
+function FeedTaggedPeople({
+  uploadId,
+  router,
+}: {
+  uploadId: string;
+  router: any;
+}) {
+  const [people, setPeople] =
+    useState<any[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadTags() {
+      const { data, error } =
+        await supabase.rpc(
+          "utv_get_content_tags",
+          {
+            p_content_kind: "upload",
+            p_content_id:
+              String(uploadId),
+          }
+        );
+
+      if (
+        !error &&
+        alive
+      ) {
+        setPeople(data || []);
+      }
+    }
+
+    void loadTags();
+
+    return () => {
+      alive = false;
+    };
+  }, [uploadId]);
+
+  if (!people.length) {
+    return null;
+  }
+
+  return (
+    <div className="utvTaggedPeople">
+      <span>with</span>
+
+      {people.map((person: any) => (
+        <button
+          key={person.username}
+          type="button"
+          onClick={() => {
+            const username =
+              String(
+                person.username || ""
+              );
+
+            if (!username) return;
+
+            router.push(
+              `/search?q=${encodeURIComponent(
+                `@${username}`
+              )}`
+            );
+          }}
+        >
+          @{person.username}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function FeedPage() {
   const router = useRouter();
 
@@ -2061,30 +2135,291 @@ export default function FeedPage() {
     await loadComments(uploadId);
   }
 
+  // UTV SOCIAL SHARE SHEET V1
+  const [shareSheetItem, setShareSheetItem] =
+    useState<any | null>(null);
+
+  const [shareCaption, setShareCaption] =
+    useState("");
+
+  const [shareUserSearch, setShareUserSearch] =
+    useState("");
+
+  const [shareUserResults, setShareUserResults] =
+    useState<any[]>([]);
+
+  const [shareWorking, setShareWorking] =
+    useState(false);
+
   async function sharePost(item: any) {
-    const url = `${window.location.origin}/watch/${item.id}`;
+    setShareSheetItem(item);
+    setShareCaption("");
+    setShareUserSearch("");
+    setShareUserResults([]);
+  }
+
+  function closeShareSheet() {
+    if (shareWorking) return;
+
+    setShareSheetItem(null);
+    setShareCaption("");
+    setShareUserSearch("");
+    setShareUserResults([]);
+  }
+
+  async function searchShareUsers(value: string) {
+    setShareUserSearch(value);
+
+    const clean =
+      value.replace(/^@+/, "").trim();
+
+    if (!clean) {
+      setShareUserResults([]);
+      return;
+    }
+
+    const { data, error } =
+      await supabase.rpc(
+        "utv_search_tag_users",
+        {
+          p_query: clean,
+          p_limit: 8,
+        }
+      );
+
+    if (error) {
+      console.error(
+        "UTV share people search:",
+        error
+      );
+
+      setShareUserResults([]);
+      return;
+    }
+
+    setShareUserResults(data || []);
+  }
+
+  async function sharePostToStory() {
+    if (!shareSheetItem?.id) return;
+
+    setShareWorking(true);
+
+    try {
+      const { data, error } =
+        await supabase.rpc(
+          "utv_share_upload_to_story",
+          {
+            p_source_id:
+              String(shareSheetItem.id),
+
+            p_caption:
+              shareCaption.trim() || null,
+          }
+        );
+
+      if (error) throw error;
+
+      closeShareSheet();
+
+      showFeedMessage(
+        "🔥 Added to your Story"
+      );
+
+      if (data) {
+        window.setTimeout(() => {
+          router.push(
+            `/stories/${String(data)}`
+          );
+        }, 500);
+      }
+    } catch (error: any) {
+      console.error(error);
+
+      showFeedMessage(
+        error?.message ||
+          "Could not add this post to your Story."
+      );
+    } finally {
+      setShareWorking(false);
+    }
+  }
+
+  async function repostPostToFeed() {
+    if (!shareSheetItem?.id) return;
+
+    setShareWorking(true);
+
+    try {
+      const { error } =
+        await supabase.rpc(
+          "utv_repost_upload_to_feed",
+          {
+            p_source_id:
+              String(shareSheetItem.id),
+
+            p_caption:
+              shareCaption.trim() || null,
+          }
+        );
+
+      if (error) throw error;
+
+      setShareSheetItem(null);
+      setShareCaption("");
+      setShareUserSearch("");
+      setShareUserResults([]);
+
+      showFeedMessage(
+        "🔥 Reposted to your Feed"
+      );
+
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 550);
+    } catch (error: any) {
+      console.error(error);
+
+      showFeedMessage(
+        error?.message ||
+          "Could not repost this UTV post."
+      );
+    } finally {
+      setShareWorking(false);
+    }
+  }
+
+  async function sendPostInUTV(
+    username: string
+  ) {
+    if (
+      !shareSheetItem?.id ||
+      !username
+    ) {
+      return;
+    }
+
+    setShareWorking(true);
+
+    try {
+      const { error } =
+        await supabase.rpc(
+          "utv_send_upload_to_user",
+          {
+            p_source_id:
+              String(shareSheetItem.id),
+
+            p_recipient_username:
+              username,
+          }
+        );
+
+      if (error) throw error;
+
+      setShareSheetItem(null);
+      setShareCaption("");
+      setShareUserSearch("");
+      setShareUserResults([]);
+
+      showFeedMessage(
+        `Sent to @${username} 🔥`
+      );
+    } catch (error: any) {
+      console.error(error);
+
+      showFeedMessage(
+        error?.message ||
+          "Could not send this post."
+      );
+    } finally {
+      setShareWorking(false);
+    }
+  }
+
+  async function copyPostLink() {
+    if (!shareSheetItem?.id) return;
+
+    const url =
+      `${window.location.origin}/watch/${shareSheetItem.id}`;
+
+    try {
+      await navigator.clipboard.writeText(
+        url
+      );
+
+      void supabase.rpc(
+        "utv_record_share",
+        {
+          p_source_kind: "upload",
+          p_source_id:
+            String(shareSheetItem.id),
+          p_destination: "copy",
+          p_destination_content_id:
+            null,
+          p_caption: null,
+        }
+      );
+
+      showFeedMessage(
+        "UTV link copied."
+      );
+
+      closeShareSheet();
+    } catch {
+      showFeedMessage(
+        "Could not copy the link."
+      );
+    }
+  }
+
+  async function externalSharePost() {
+    if (!shareSheetItem?.id) return;
+
+    const url =
+      `${window.location.origin}/watch/${shareSheetItem.id}`;
+
     const shareData = {
-      title: item.title || "UTV",
-      text: item.description || "Check this out on UTV",
+      title:
+        shareSheetItem.title || "UTV",
+
+      text:
+        shareSheetItem.description ||
+        "Check this out on UTV",
+
       url,
     };
 
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share(
+          shareData
+        );
+
+        void supabase.rpc(
+          "utv_record_share",
+          {
+            p_source_kind: "upload",
+            p_source_id:
+              String(shareSheetItem.id),
+            p_destination: "external",
+            p_destination_content_id:
+              null,
+            p_caption: null,
+          }
+        );
+
+        closeShareSheet();
         return;
       }
 
-      await navigator.clipboard.writeText(url);
-      showFeedMessage("UTV link copied.");
+      await copyPostLink();
     } catch (error: any) {
-      if (error?.name !== "AbortError") {
-        try {
-          await navigator.clipboard.writeText(url);
-          showFeedMessage("UTV link copied.");
-        } catch {
-          showFeedMessage("Could not share this post.");
-        }
+      if (
+        error?.name !== "AbortError"
+      ) {
+        showFeedMessage(
+          "Could not share this post."
+        );
       }
     }
   }
@@ -2789,7 +3124,264 @@ export default function FeedPage() {
 
       {feedMessage && <div className="feedToast">{feedMessage}</div>}
 
-      <style>{styles}</style>
+      <style>{styles}
+{`
+/* =========================================================
+   UTV SOCIAL SHARE SHEET V1
+   ========================================================= */
+
+.utvTaggedPeople {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0 9px;
+  font-size: 11px;
+}
+
+.utvTaggedPeople > span {
+  color: rgba(255,255,255,.42);
+}
+
+.utvTaggedPeople button {
+  border: 0;
+  padding: 0;
+  color: #63f5cf;
+  background: transparent;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.utvShareBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(0,0,0,.66);
+  backdrop-filter: blur(12px);
+}
+
+.utvShareSheet {
+  width: min(100%, 520px);
+  max-height: min(82vh, 720px);
+  overflow-y: auto;
+  padding: 10px 14px 22px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 28px 28px 20px 20px;
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(82,247,200,.10),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 86% 0%,
+      rgba(123,97,255,.12),
+      transparent 38%
+    ),
+    #070a10;
+  box-shadow:
+    0 -22px 70px rgba(0,0,0,.55);
+}
+
+.utvShareHandle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 13px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.19);
+}
+
+.utvShareSheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.utvShareSheet header p,
+.utvSendSection > div > p {
+  margin: 0 0 3px;
+  color: #59f4ce;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: 1.4px;
+}
+
+.utvShareSheet header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 21px;
+  letter-spacing: -.03em;
+}
+
+.utvShareSheet header > button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(255,255,255,.05);
+  font-size: 22px;
+}
+
+.utvShareSheet > textarea {
+  width: 100%;
+  min-height: 70px;
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  resize: none;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 15px;
+  outline: 0;
+  color: #fff;
+  background: rgba(255,255,255,.035);
+  font: inherit;
+}
+
+.utvShareActions {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 9px;
+}
+
+.utvShareActions > button {
+  min-height: 105px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 4px;
+  padding: 13px;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 18px;
+  color: #fff;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(82,247,200,.055),
+      rgba(123,97,255,.055),
+      rgba(255,255,255,.018)
+    );
+  text-align: left;
+}
+
+.utvShareActions > button > span {
+  margin-bottom: 3px;
+  color: #61f5cf;
+  font-size: 20px;
+}
+
+.utvShareActions strong {
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.utvShareActions small,
+.utvSendSection small {
+  color: rgba(255,255,255,.43);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.utvSendSection {
+  margin-top: 15px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.utvSendSection > input {
+  width: 100%;
+  height: 44px;
+  margin-top: 9px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 14px;
+  outline: 0;
+  color: #fff;
+  background: rgba(255,255,255,.035);
+}
+
+.utvSharePeople {
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+}
+
+.utvSharePeople > button {
+  width: 100%;
+  min-height: 55px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+  color: #fff;
+  background: rgba(255,255,255,.02);
+  text-align: left;
+}
+
+.utvSharePeople img,
+.utvSharePeople > button > span {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #56f4cd;
+  background: rgba(82,247,200,.08);
+  font-weight: 950;
+}
+
+.utvSharePeople div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.utvSharePeople strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.utvSharePeople b {
+  margin-left: auto;
+  color: #5bf2cc;
+  font-size: 10px;
+}
+
+.utvShareWorking {
+  margin-top: 10px;
+  color: #60f5cf;
+  font-size: 10px;
+  font-weight: 850;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .utvShareActions {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .utvShareSheet {
+    padding-bottom:
+      calc(22px + env(safe-area-inset-bottom));
+  }
+}
+`}
+</style>
 
       <div
         className={pullReady ? "pullRefresh ready" : "pullRefresh"}
@@ -3572,10 +4164,190 @@ export default function FeedPage() {
                     </button>
                   </div>
 
+                  {shareSheetItem?.id === item.id && (
+                    <div
+                      className="utvShareBackdrop"
+                      onClick={closeShareSheet}
+                    >
+                      <section
+                        className="utvShareSheet"
+                        onClick={(event) =>
+                          event.stopPropagation()
+                        }
+                      >
+                        <div className="utvShareHandle" />
+
+                        <header>
+                          <div>
+                            <p>UTV SHARE</p>
+                            <h2>Share this post</h2>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={closeShareSheet}
+                          >
+                            ×
+                          </button>
+                        </header>
+
+                        <textarea
+                          value={shareCaption}
+                          maxLength={300}
+                          placeholder="Add your thoughts — optional"
+                          onChange={(event) =>
+                            setShareCaption(
+                              event.target.value
+                            )
+                          }
+                        />
+
+                        <div className="utvShareActions">
+                          <button
+                            type="button"
+                            disabled={shareWorking}
+                            onClick={() =>
+                              void sharePostToStory()
+                            }
+                          >
+                            <span>◉</span>
+                            <strong>Add to Story</strong>
+                            <small>
+                              Share it for 24 hours
+                            </small>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={shareWorking}
+                            onClick={() =>
+                              void repostPostToFeed()
+                            }
+                          >
+                            <span>↻</span>
+                            <strong>
+                              Repost to Feed
+                            </strong>
+                            <small>
+                              Keep the original creator credited
+                            </small>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={shareWorking}
+                            onClick={() =>
+                              void copyPostLink()
+                            }
+                          >
+                            <span>🔗</span>
+                            <strong>Copy Link</strong>
+                            <small>
+                              Copy the UTV post link
+                            </small>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={shareWorking}
+                            onClick={() =>
+                              void externalSharePost()
+                            }
+                          >
+                            <span>↗</span>
+                            <strong>
+                              More Sharing
+                            </strong>
+                            <small>
+                              Text, apps and phone sharing
+                            </small>
+                          </button>
+                        </div>
+
+                        <div className="utvSendSection">
+                          <div>
+                            <p>SEND IN UTV</p>
+                            <small>
+                              Search by @username
+                            </small>
+                          </div>
+
+                          <input
+                            value={shareUserSearch}
+                            placeholder="@username"
+                            autoComplete="off"
+                            onChange={(event) =>
+                              void searchShareUsers(
+                                event.target.value
+                              )
+                            }
+                          />
+
+                          {shareUserResults.length > 0 && (
+                            <div className="utvSharePeople">
+                              {shareUserResults.map(
+                                (person: any) => (
+                                  <button
+                                    type="button"
+                                    key={person.username}
+                                    disabled={shareWorking}
+                                    onClick={() =>
+                                      void sendPostInUTV(
+                                        String(
+                                          person.username
+                                        )
+                                      )
+                                    }
+                                  >
+                                    {person.avatar_url ? (
+                                      <img
+                                        src={
+                                          person.avatar_url
+                                        }
+                                        alt=""
+                                      />
+                                    ) : (
+                                      <span>@</span>
+                                    )}
+
+                                    <div>
+                                      <strong>
+                                        {person.display_name ||
+                                          person.username ||
+                                          "UTV Creator"}
+                                      </strong>
+
+                                      <small>
+                                        @{person.username}
+                                      </small>
+                                    </div>
+
+                                    <b>Send</b>
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {shareWorking && (
+                          <div className="utvShareWorking">
+                            Sharing on UTV…
+                          </div>
+                        )}
+                      </section>
+                    </div>
+                  )}
+
                   <p className="actionMeta">
                     {likes[item.id] || 0} likes · {postComments.length} comments
                     · {Number(item.views || 0)} views
                   </p>
+
+                  <FeedTaggedPeople
+                    uploadId={String(item.id)}
+                    router={router}
+                  />
 
                   {item.title && <h2 className="postTitle">{item.title}</h2>}
 
