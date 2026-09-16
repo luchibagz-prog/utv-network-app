@@ -45,6 +45,7 @@ function participantInfo(
   participant: RemoteParticipant
 ) {
   let email = "";
+  let metadataName = "";
 
   try {
     const metadata =
@@ -56,20 +57,45 @@ function participantInfo(
       String(
         metadata?.email || ""
       );
+
+    metadataName =
+      String(
+        metadata?.display_name ||
+        metadata?.displayName ||
+        metadata?.username ||
+        metadata?.name ||
+        ""
+      )
+        .replace(/^@+/, "")
+        .trim();
+
   } catch {}
 
+  /*
+   * UTV CALL QUALITY V3
+   *
+   * Never turn somebody's private email
+   * address into their public call name.
+   */
+  const participantName =
+    String(
+      participant.name || ""
+    ).trim();
 
-  const fallback =
-    email
-      ? email.split("@")[0]
-      : participant.name ||
-        participant.identity ||
-        "UTV User";
-
+  const safeParticipantName =
+    participantName &&
+    !participantName.includes("@")
+      ? participantName
+          .replace(/^@+/, "")
+          .trim()
+      : "";
 
   return {
     email,
-    name: fallback,
+    name:
+      metadataName ||
+      safeParticipantName ||
+      "UTV User",
   };
 }
 
@@ -174,6 +200,10 @@ export default function UTVCallRoom() {
       Map<string, HTMLAudioElement>
     >(new Map());
 
+  // UTV CALL QUALITY V3
+  const audioOutputIdRef =
+    useRef("");
+
   const localVideoRef =
     useRef<HTMLVideoElement | null>(null);
 
@@ -232,6 +262,36 @@ export default function UTVCallRoom() {
 
   const isVideo =
     call?.call_type === "video";
+
+  /*
+   * UTV CALL QUALITY V3
+   *
+   * LiveKit creates/restarts microphone tracks
+   * during connect and network recovery.
+   *
+   * Re-apply the voice constraints after the
+   * active microphone exists.
+   */
+  useEffect(() => {
+    if (
+      !connected ||
+      micMuted
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setTimeout(
+        () => {
+          void tuneMicrophone();
+        },
+        280
+      );
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [connected, micMuted]);
 
   useEffect(() => {
     void openCall();
@@ -434,6 +494,19 @@ export default function UTVCallRoom() {
     ) {
       track.attach(video);
 
+      try {
+        const mediaTrack =
+          (track as any)
+            ?.mediaStreamTrack as
+            | MediaStreamTrack
+            | undefined;
+
+        if (mediaTrack) {
+          mediaTrack.contentHint =
+            "motion";
+        }
+      } catch {}
+
       video.muted = true;
       video.playsInline = true;
 
@@ -465,7 +538,7 @@ export default function UTVCallRoom() {
                */
               width: 1280,
               height: 720,
-              frameRate: 24,
+              frameRate: 30,
             },
           }
         );
@@ -675,7 +748,7 @@ export default function UTVCallRoom() {
      * Keep voices strong without driving the
      * phone speaker at maximum software gain.
      */
-    element.volume = 0.88;
+    element.volume = 0.95;
 
     element.setAttribute(
       "playsinline",
@@ -695,6 +768,25 @@ export default function UTVCallRoom() {
     );
 
     try {
+      const sinkElement =
+        element as HTMLAudioElement & {
+          setSinkId?: (
+            deviceId: string
+          ) => Promise<void>;
+        };
+
+      if (
+        audioOutputIdRef.current &&
+        typeof sinkElement
+          .setSinkId === "function"
+      ) {
+        try {
+          await sinkElement.setSinkId(
+            audioOutputIdRef.current
+          );
+        } catch {}
+      }
+
       await element.play();
 
       setSpeakerMuted(false);
@@ -730,6 +822,45 @@ export default function UTVCallRoom() {
       await room.startAudio();
     } catch {}
 
+    /*
+     * UTV CALL QUALITY V3
+     *
+     * A web app cannot force the phone's physical
+     * earpiece/speaker on every browser.
+     *
+     * Where the browser exposes real audio-output
+     * selection, use the user's Speaker tap to
+     * choose the actual output device.
+     */
+    const mediaDevices =
+      navigator.mediaDevices as
+        MediaDevices & {
+          selectAudioOutput?: () =>
+            Promise<MediaDeviceInfo>;
+        };
+
+    if (
+      typeof mediaDevices
+        ?.selectAudioOutput ===
+      "function"
+    ) {
+      try {
+        const device =
+          await mediaDevices
+            .selectAudioOutput();
+
+        audioOutputIdRef.current =
+          String(
+            device?.deviceId || ""
+          );
+      } catch {
+        /*
+         * User cancelled or browser rejected
+         * selection. Keep normal system routing.
+         */
+      }
+    }
+
     let playedAudio = false;
 
     for (
@@ -739,7 +870,26 @@ export default function UTVCallRoom() {
     ) {
       try {
         element.muted = false;
-        element.volume = 0.88;
+        element.volume = 0.95;
+
+        const sinkElement =
+          element as HTMLAudioElement & {
+            setSinkId?: (
+              deviceId: string
+            ) => Promise<void>;
+          };
+
+        if (
+          audioOutputIdRef.current &&
+          typeof sinkElement
+            .setSinkId === "function"
+        ) {
+          try {
+            await sinkElement.setSinkId(
+              audioOutputIdRef.current
+            );
+          } catch {}
+        }
 
         await element.play();
 
@@ -818,8 +968,65 @@ export default function UTVCallRoom() {
         constraints.channelCount = 1;
       }
 
+      if (supported.sampleRate) {
+        constraints.sampleRate = {
+          ideal: 48000,
+        };
+      }
+
+      if (supported.sampleSize) {
+        constraints.sampleSize = {
+          ideal: 16,
+        };
+      }
+
+      if ((supported as any).latency) {
+        (constraints as any).latency = {
+          ideal: 0.02,
+          max: 0.08,
+        };
+      }
+
+      /*
+       * Chromium and newer compatible browsers
+       * can provide stronger speech isolation.
+       */
+      if (
+        (supported as any)
+          .voiceIsolation
+      ) {
+        (constraints as any)
+          .voiceIsolation = true;
+      }
+
+      try {
+        mediaTrack.contentHint =
+          "speech";
+      } catch {}
+
+      mediaTrack.enabled = true;
+
       await mediaTrack.applyConstraints(
         constraints
+      );
+
+      const actual =
+        mediaTrack.getSettings();
+
+      console.info(
+        "UTV call microphone:",
+        {
+          echoCancellation:
+            actual.echoCancellation,
+          noiseSuppression:
+            actual.noiseSuppression,
+          autoGainControl:
+            actual.autoGainControl,
+          channelCount:
+            actual.channelCount,
+          sampleRate:
+            actual.sampleRate,
+        }
       );
     } catch (error) {
       console.info(
@@ -910,6 +1117,39 @@ export default function UTVCallRoom() {
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
+
+        /*
+         * UTV CALL QUALITY V3
+         *
+         * Apply voice processing at CAPTURE time,
+         * before the microphone is published.
+         */
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+          sampleSize: 16,
+          latency: {
+            ideal: 0.02,
+            max: 0.08,
+          },
+
+          /*
+           * Stronger browser voice cleanup.
+           * Unsupported browsers simply ignore it.
+           */
+          voiceIsolation: true,
+        } as any,
+
+        videoCaptureDefaults: {
+          resolution: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+          },
+        } as any,
 
         /*
          * Do not kill an active call just
