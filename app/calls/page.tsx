@@ -114,6 +114,35 @@ export default function CallsPage() {
     autoStartRef.current =
       true;
 
+    /*
+     * UTV CHAT CALL ONE-SHOT V1
+     *
+     * Remember where this call came from,
+     * then immediately remove autostart
+     * from browser history.
+     *
+     * This prevents Hang Up / Back from
+     * starting the exact same call again.
+     */
+    const returnTo =
+      searchParams.get("returnTo") ||
+      `/messages/${encodeURIComponent(
+        initialTarget
+      )}`;
+
+    try {
+      sessionStorage.setItem(
+        "utv-call-return-to",
+        returnTo
+      );
+
+      window.history.replaceState(
+        {},
+        "",
+        "/calls"
+      );
+    } catch {}
+
     void startCall(
       initialType,
       initialTarget

@@ -213,6 +213,9 @@ export default function UTVCallRoom() {
   const leavingRef =
     useRef(false);
 
+  const endingRef =
+    useRef(false);
+
   const [email, setEmail] =
     useState("");
 
@@ -262,6 +265,42 @@ export default function UTVCallRoom() {
 
   const isVideo =
     call?.call_type === "video";
+
+  // UTV CHAT CALL RETURN V1
+  const callReturnPathRef =
+    useRef<string | null>(null);
+
+  function getCallExitPath() {
+    if (callReturnPathRef.current) {
+      return callReturnPathRef.current;
+    }
+
+    let next = "/calls";
+
+    try {
+      const saved =
+        sessionStorage.getItem(
+          "utv-call-return-to"
+        );
+
+      if (
+        saved &&
+        saved.startsWith("/") &&
+        !saved.startsWith("//")
+      ) {
+        next = saved;
+      }
+
+      sessionStorage.removeItem(
+        "utv-call-return-to"
+      );
+    } catch {}
+
+    callReturnPathRef.current =
+      next;
+
+    return next;
+  }
 
   /*
    * UTV CALL QUALITY V3
@@ -349,7 +388,7 @@ export default function UTVCallRoom() {
             void cleanup();
 
             window.setTimeout(() => {
-              router.replace("/calls");
+              router.replace(getCallExitPath());
             }, 800);
           }
         }
@@ -1603,6 +1642,11 @@ export default function UTVCallRoom() {
   }
 
   async function endCall() {
+    if (endingRef.current) {
+      return;
+    }
+
+    endingRef.current = true;
     leavingRef.current = true;
 
     const groupCall =

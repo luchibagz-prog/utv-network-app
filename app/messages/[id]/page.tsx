@@ -812,7 +812,9 @@ const refreshTimerRef =
                 router.push(
                   `/calls?to=${encodeURIComponent(
                     otherEmail
-                  )}&type=audio&autostart=1`
+                  )}&type=audio&autostart=1&returnTo=${encodeURIComponent(
+                    `/messages/${encodeURIComponent(otherEmail)}`
+                  )}`
                 )
               }
             >
@@ -828,7 +830,9 @@ const refreshTimerRef =
                 router.push(
                   `/calls?to=${encodeURIComponent(
                     otherEmail
-                  )}&type=video&autostart=1`
+                  )}&type=video&autostart=1&returnTo=${encodeURIComponent(
+                    `/messages/${encodeURIComponent(otherEmail)}`
+                  )}`
                 )
               }
             >
@@ -1063,9 +1067,9 @@ const styles = `
   }
 
   .chatHeader {
-    position: sticky;
-    top: 79px;
-    z-index: 80;
+    position: relative;
+    top: auto;
+    z-index: 10;
     display: grid;
     grid-template-columns:
       45px
