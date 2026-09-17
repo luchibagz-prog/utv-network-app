@@ -157,26 +157,57 @@ export default function CallsPage() {
   useEffect(() => {
     if (!email) return;
 
-    const channel = supabase
-      .channel(
-        `utv-calls-${email}`
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "call_sessions",
-        },
-        () => {
-          void refreshCalls(email);
-        }
-      )
-      .subscribe();
+    // UTV CALLS V3 — USER-SCOPED REALTIME
+    const normalized =
+      email.toLowerCase();
+
+    const refresh = () => {
+      void refreshCalls(email);
+    };
+
+    const callerChannel =
+      supabase
+        .channel(
+          `utv-calls-caller-${normalized}`
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "call_sessions",
+            filter:
+              `caller_email=eq.${normalized}`,
+          },
+          refresh
+        )
+        .subscribe();
+
+    const calleeChannel =
+      supabase
+        .channel(
+          `utv-calls-callee-${normalized}`
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "call_sessions",
+            filter:
+              `callee_email=eq.${normalized}`,
+          },
+          refresh
+        )
+        .subscribe();
 
     return () => {
       void supabase.removeChannel(
-        channel
+        callerChannel
+      );
+
+      void supabase.removeChannel(
+        calleeChannel
       );
     };
   }, [email]);
@@ -623,48 +654,51 @@ export default function CallsPage() {
     setTarget(cleanTarget);
 
     try {
-      const id =
-        crypto.randomUUID();
-
-      const roomName =
-        `utv-call-${id}`;
-
-      const { error } =
-        await supabase
-          .from("call_sessions")
-          .insert({
-            id,
-            caller_email:
-              email,
-            callee_email:
-              cleanTarget,
-            call_type:
-              type,
-            room_name:
-              roomName,
-            status:
-              "ringing",
-          });
+      /*
+       * UTV CALLS V3 — SERVER AUTHORITY
+       *
+       * Supabase closes any stale outgoing
+       * ringing/accepted call before creating
+       * the next call session.
+       */
+      const {
+        data: started,
+        error,
+      } = await supabase.rpc(
+        "utv_begin_call_v3",
+        {
+          p_callee_email:
+            cleanTarget,
+          p_call_type:
+            type,
+          p_max_participants:
+            2,
+        }
+      );
 
       if (error) {
         throw error;
       }
 
-      void sendUTVPush({
-        recipientEmail:
-          cleanTarget,
-        event:
-          type === "video"
-            ? "video_call"
-            : "audio_call",
-        // Incoming calls must open the Calls hub first so
-        // the receiver gets a real Accept / Decline choice.
-        // Do not drop a ringing callee directly into LiveKit.
-        url:
-          `/calls?incoming=${encodeURIComponent(id)}`,
-        callId: id,
-      });
+      const id =
+        String(
+          (started as any)
+            ?.call_id || ""
+        ).trim();
 
+      if (!id) {
+        throw new Error(
+          "UTV could not create the call."
+        );
+      }
+
+      /*
+       * Do NOT manually send another push here.
+       *
+       * The call_sessions webhook is the one
+       * authoritative push source for the
+       * primary receiver.
+       */
       try {
         navigator.vibrate?.(
           [45, 40, 45]
@@ -674,9 +708,15 @@ export default function CallsPage() {
       router.push(
         `/call/${id}`
       );
+
     } catch (
       error: any
     ) {
+      console.error(
+        "UTV start call:",
+        error
+      );
+
       setMessage(
         error?.message ||
           "Could not start call."
@@ -685,6 +725,7 @@ export default function CallsPage() {
       setCalling(false);
     }
   }
+
 
   async function acceptCall(
     call: CallRow
@@ -834,45 +875,47 @@ export default function CallsPage() {
     setMessage("");
     setCallType(type);
 
-    const id =
-      crypto.randomUUID();
-
-    const roomName =
-      `utv-call-${id}`;
-
     const primary =
       unique[0];
 
     try {
+      // UTV CALLS V3 — GROUP SERVER AUTHORITY
       const {
+        data: started,
         error: callError,
-      } = await supabase
-        .from("call_sessions")
-        .insert({
-          id,
-          caller_email:
-            email,
-          callee_email:
+      } = await supabase.rpc(
+        "utv_begin_call_v3",
+        {
+          p_callee_email:
             primary.email,
-          call_type:
+          p_call_type:
             type,
-          room_name:
-            roomName,
-          status:
-            "ringing",
-          max_participants:
+          p_max_participants:
             unique.length + 1,
-        });
+        }
+      );
 
       if (callError) {
         throw callError;
       }
 
+      const id =
+        String(
+          (started as any)
+            ?.call_id || ""
+        ).trim();
+
+      if (!id) {
+        throw new Error(
+          "UTV could not create the group call."
+        );
+      }
+
       /*
-       * Primary callee is created automatically
-       * by the call_members trigger.
+       * Primary callee is handled by the
+       * existing call-members trigger.
        *
-       * Add invitees 3 and 4 here.
+       * Add seats 3 and 4.
        */
       for (
         const person
@@ -890,23 +933,27 @@ export default function CallsPage() {
         );
 
         if (error) {
-          await supabase
-            .from("call_sessions")
-            .update({
-              status: "ended",
-              ended_at:
-                new Date()
-                  .toISOString(),
-            })
-            .eq("id", id);
+          await supabase.rpc(
+            "utv_end_call_v3",
+            {
+              p_call_id: id,
+            }
+          );
 
           throw error;
         }
       }
 
+      /*
+       * The call_sessions webhook sends the
+       * primary receiver exactly one push.
+       *
+       * Extra group seats need their own push
+       * because they are stored in call_members.
+       */
       for (
         const person
-        of unique
+        of unique.slice(1)
       ) {
         void sendUTVPush({
           recipientEmail:
@@ -939,6 +986,11 @@ export default function CallsPage() {
     } catch (
       error: any
     ) {
+      console.error(
+        "UTV start group call:",
+        error
+      );
+
       setMessage(
         error?.message ||
           "Could not start group call."

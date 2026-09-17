@@ -147,8 +147,16 @@ async function copyFromWebhook(
         ? "📹 Incoming UTV Video Call"
         : "📞 Incoming UTV Call",
       body: `${actor} is calling you.`,
+      /*
+       * UTV CALLS V3
+       *
+       * Incoming users always land on the
+       * Accept / Decline screen first.
+       * Never deep-link a ringing receiver
+       * straight into LiveKit.
+       */
       link: record.id
-        ? `/call/${encodeURIComponent(record.id)}`
+        ? `/calls?incoming=${encodeURIComponent(record.id)}`
         : "/calls",
       tag: `call-${record.id || Date.now()}`,
     };

@@ -115,18 +115,31 @@ export async function POST(request: NextRequest) {
     const email =
       user.email.toLowerCase();
 
-    // UTV GROUP CALLS V1B
-    const isLegacyParticipant =
+    /*
+     * UTV CALLS V3
+     *
+     * A terminal call can never issue another
+     * LiveKit token.
+     */
+    if (
+      call.status === "ended" ||
+      call.status === "declined" ||
+      call.status === "missed"
+    ) {
+      return NextResponse.json(
+        { error: "This call has ended." },
+        { status: 410 }
+      );
+    }
+
+    const isCaller =
       call.caller_email
-        .toLowerCase() === email ||
+        .toLowerCase() === email;
+
+    const isPrimaryCallee =
       call.callee_email
         .toLowerCase() === email;
 
-    /*
-     * Extra group-call members must have
-     * ACCEPTED the invite before they can
-     * receive a LiveKit room token.
-     */
     const {
       data: membership,
       error: membershipError,
@@ -146,17 +159,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isAcceptedGroupMember =
+    const isJoinedGroupMember =
       membership?.status === "joined";
 
-    const isParticipant =
-      isLegacyParticipant ||
-      isAcceptedGroupMember;
+    /*
+     * Caller may enter while ringing.
+     *
+     * Receiver must Accept first.
+     *
+     * Additional group members must each
+     * have joined membership.
+     */
+    const canJoin =
+      isCaller ||
+      (
+        isPrimaryCallee &&
+        call.status === "accepted"
+      ) ||
+      isJoinedGroupMember;
 
-    if (!isParticipant) {
+    if (!canJoin) {
       return NextResponse.json(
         {
           error:
+            isPrimaryCallee ||
             membership?.status === "invited"
               ? "Accept the call invite before joining."
               : "You are not part of this call.",
@@ -165,16 +191,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (
-      call.status === "ended" ||
-      call.status === "declined" ||
-      call.status === "missed"
-    ) {
-      return NextResponse.json(
-        { error: "This call has ended." },
-        { status: 410 }
-      );
-    }
+    /*
+     * Use chosen UTV identity in LiveKit.
+     * Do not expose email prefixes as names.
+     */
+    const {
+      data: profile,
+    } = await supabase
+      .from("creator_profiles")
+      .select(
+        "display_name,username"
+      )
+      .eq("email", user.email)
+      .maybeSingle();
+
+    const publicName =
+      String(
+        profile?.display_name ||
+        profile?.username ||
+        "UTV User"
+      )
+        .replace(/^@+/, "")
+        .trim() ||
+      "UTV User";
 
     const token = new AccessToken(
       livekitKey,
@@ -186,10 +225,12 @@ export async function POST(request: NextRequest) {
             .slice(0, 8)}`,
 
         name:
-          user.email.split("@")[0],
+          publicName,
 
         metadata: JSON.stringify({
           email: user.email,
+          display_name:
+            publicName,
           feature: "call",
           call_id: callId,
           call_type: call.call_type,

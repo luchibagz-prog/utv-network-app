@@ -216,6 +216,10 @@ export default function UTVCallRoom() {
   const endingRef =
     useRef(false);
 
+  // UTV CALLS V3 — terminal navigation guard
+  const terminalExitRef =
+    useRef(false);
+
   const [email, setEmail] =
     useState("");
 
@@ -302,6 +306,41 @@ export default function UTVCallRoom() {
     return next;
   }
 
+  async function finishTerminalExit(
+    status: string
+  ) {
+    /*
+     * Local Hang Up owns its verified exit.
+     *
+     * Realtime and polling only perform this
+     * exit when the OTHER side ended the call.
+     */
+    if (
+      endingRef.current ||
+      terminalExitRef.current
+    ) {
+      return;
+    }
+
+    terminalExitRef.current = true;
+    leavingRef.current = true;
+
+    setMessage(
+      status === "declined"
+        ? "Call declined"
+        : "Call ended"
+    );
+
+    await cleanup();
+
+    window.setTimeout(() => {
+      router.replace(
+        getCallExitPath()
+      );
+    }, 350);
+  }
+
+
   /*
    * UTV CALL QUALITY V3
    *
@@ -379,17 +418,9 @@ export default function UTVCallRoom() {
             row.status === "declined" ||
             row.status === "missed"
           ) {
-            setMessage(
-              row.status === "declined"
-                ? "Call declined"
-                : "Call ended"
+            void finishTerminalExit(
+              row.status
             );
-
-            void cleanup();
-
-            window.setTimeout(() => {
-              router.replace(getCallExitPath());
-            }, 800);
           }
         }
       )
@@ -443,11 +474,10 @@ export default function UTVCallRoom() {
         row.status === "ended" ||
         row.status === "missed"
       ) {
-        setMessage(
-          row.status === "declined"
-            ? "Call declined"
-            : "Call ended"
+        void finishTerminalExit(
+          row.status
         );
+        return;
       }
     }
 
@@ -1114,6 +1144,17 @@ export default function UTVCallRoom() {
 
       setCall(current);
 
+      if (
+        current.status === "ended" ||
+        current.status === "declined" ||
+        current.status === "missed"
+      ) {
+        void finishTerminalExit(
+          current.status
+        );
+        return;
+      }
+
       /*
        * Group membership is verified by
        * /api/call-token.
@@ -1648,6 +1689,7 @@ export default function UTVCallRoom() {
 
     endingRef.current = true;
     leavingRef.current = true;
+    setMessage("Ending call…");
 
     const groupCall =
       (
@@ -1656,57 +1698,105 @@ export default function UTVCallRoom() {
       );
 
     /*
-     * In group calls only the host ends
-     * the whole room.
+     * Group members leave only their seat.
      *
-     * Everyone else simply leaves.
+     * Group host + both people in a direct
+     * call use the authoritative V3 end RPC.
      */
     if (
       groupCall &&
       callRole !== "host"
     ) {
-      try {
-        const {
-          error,
-        } = await supabase.rpc(
-          "utv_leave_call",
-          {
-            p_call_id: callId,
-          }
-        );
-
-        if (error) {
-          console.error(
-            "UTV leave group call:",
-            error
-          );
+      const {
+        error,
+      } = await supabase.rpc(
+        "utv_leave_call",
+        {
+          p_call_id: callId,
         }
+      );
 
-      } finally {
-        await cleanup();
-        router.replace(
-          "/calls"
+      if (error) {
+        console.error(
+          "UTV leave group call:",
+          error
         );
+
+        setMessage(
+          error.message ||
+            "Could not leave call."
+        );
+
+        endingRef.current = false;
+        leavingRef.current = false;
+        return;
       }
+
+      await cleanup();
+
+      router.replace(
+        getCallExitPath()
+      );
 
       return;
     }
 
     try {
-      await supabase
-        .from("call_sessions")
-        .update({
-          status: "ended",
-          ended_at:
-            new Date().toISOString(),
-        })
-        .eq("id", callId);
-
-    } finally {
-      await cleanup();
-      router.replace(
-        "/calls"
+      const {
+        data: ended,
+        error,
+      } = await supabase.rpc(
+        "utv_end_call_v3",
+        {
+          p_call_id: callId,
+        }
       );
+
+      if (error) {
+        throw error;
+      }
+
+      const status =
+        String(
+          (ended as any)
+            ?.status || ""
+        ).toLowerCase();
+
+      if (
+        status !== "ended" &&
+        status !== "declined" &&
+        status !== "missed"
+      ) {
+        throw new Error(
+          "UTV could not confirm the call ended."
+        );
+      }
+
+      await cleanup();
+
+      router.replace(
+        getCallExitPath()
+      );
+
+    } catch (
+      error: any
+    ) {
+      console.error(
+        "UTV end call:",
+        error
+      );
+
+      setMessage(
+        error?.message ||
+          "Could not end call. Try again."
+      );
+
+      /*
+       * Critical V3 behavior:
+       * never fake a successful Hang Up.
+       */
+      endingRef.current = false;
+      leavingRef.current = false;
     }
   }
 
