@@ -90,31 +90,58 @@ export default function SearchPage() {
     setFollowing((prev) => ({ ...prev, [email]: true }));
   }
 
+  function publicCreatorName(
+    email = ""
+  ) {
+    const normalized =
+      email
+        .trim()
+        .toLowerCase();
+
+    const creator =
+      creators.find(
+        (profile) =>
+          String(
+            profile?.email || ""
+          )
+            .trim()
+            .toLowerCase() ===
+          normalized
+      );
+
+    return (
+      creator?.display_name ||
+      creator?.username ||
+      "UTV Creator"
+    );
+  }
+
+
   function match(text: string) {
     return text.toLowerCase().includes(q.toLowerCase());
   }
 
   const creatorResults = useMemo(() => {
     return creators.filter((x) =>
-      match(`${x.display_name || ""} ${x.username || ""} ${x.email || ""} ${x.category || ""} ${x.bio || ""}`)
+      match(`${x.display_name || ""} ${x.username || ""} ${x.category || ""} ${x.bio || ""}`)
     );
   }, [creators, q]);
 
   const uploadResults = useMemo(() => {
     return uploads.filter((x) =>
-      match(`${x.title || ""} ${x.category || ""} ${x.description || ""} ${x.creator_email || ""}`)
+      match(`${x.title || ""} ${x.category || ""} ${x.description || ""}`)
     );
   }, [uploads, q]);
 
   const eventResults = useMemo(() => {
     return events.filter((x) =>
-      match(`${x.title || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""} ${x.creator_email || ""}`)
+      match(`${x.title || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""}`)
     );
   }, [events, q]);
 
   const worldResults = useMemo(() => {
     return world.filter((x) =>
-      match(`${x.title || ""} ${x.world_type || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""} ${x.creator_email || ""}`)
+      match(`${x.title || ""} ${x.world_type || ""} ${x.city || ""} ${x.state || ""} ${x.description || ""}`)
     );
   }, [world, q]);
 
@@ -229,7 +256,7 @@ export default function SearchPage() {
 
                   <div className="info" onClick={() => router.push(`/u/${encodeURIComponent(p.email)}`)}>
                     <h3>{name}</h3>
-                    <p>@{p.username || p.email?.split("@")[0]} • {p.category || "Creator"}</p>
+                    <p>@{p.username || "creator"} • {p.category || "Creator"}</p>
                   </div>
 
                   <button
@@ -248,7 +275,7 @@ export default function SearchPage() {
                 <div className="avatar">🎬</div>
                 <div className="info">
                   <h3>{x.title || "Untitled"}</h3>
-                  <p>{x.category || "UTV"} • {x.creator_email}</p>
+                  <p>{x.category || "UTV"} • {publicCreatorName(x.creator_email)}</p>
                 </div>
               </div>
             ))}

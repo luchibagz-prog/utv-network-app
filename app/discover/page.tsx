@@ -105,6 +105,54 @@ function uploadLocation(row: Row) {
   );
 }
 
+
+function contentKey(row: Row) {
+  return String(
+    row?.id ||
+    uploadVideo(row) ||
+    uploadImage(row) ||
+    `${uploadTitle(row)}::${value(
+      row,
+      [
+        "creator_email",
+        "user_email",
+        "email",
+      ]
+    )}`
+  )
+    .trim()
+    .toLowerCase();
+}
+
+
+function isWatchContent(row: Row) {
+  const bucket = [
+    value(row, ["category"]),
+    value(row, ["content_type"]),
+    value(row, ["type"]),
+    value(row, ["media_type"]),
+    value(row, ["visibility"]),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return [
+    "watch",
+    "movie",
+    "film",
+    "show",
+    "series",
+    "episode",
+    "original",
+    "documentary",
+    "doc",
+    "tv",
+  ].some((word) =>
+    bucket.includes(word)
+  );
+}
+
+
 function profileName(row: Row) {
   return value(
     row,
@@ -112,7 +160,6 @@ function profileName(row: Row) {
       "display_name",
       "creator_name",
       "username",
-      "email",
     ],
     "UTV Creator"
   ).replace(/^@/, "");
@@ -643,19 +690,74 @@ export default function DiscoverPage() {
     [creators, liveEmails]
   );
 
+  /*
+   * UTV PREMIUM DISCOVER V1
+   *
+   * Watch gets Watch-class content first.
+   * Trending and What's Moving get separate pools.
+   * One post cannot dominate the whole Discover page.
+   */
   const hero =
+    uploads.find(
+      (item) =>
+        isWatchContent(item) &&
+        (
+          uploadImage(item) ||
+          uploadVideo(item)
+        )
+    ) ||
     uploads.find(
       (item) =>
         uploadImage(item) ||
         uploadVideo(item)
-    ) || uploads[0];
+    ) ||
+    uploads[0];
+
+  const heroKey =
+    hero
+      ? contentKey(hero)
+      : "";
+
+  const heroHeadline =
+    hero
+      ? (
+          uploadTitle(hero) ===
+          "UTV Post"
+            ? "Watch UTV"
+            : uploadTitle(hero)
+        )
+      : "Watch UTV";
+
+  const heroCategory =
+    hero
+      ? value(
+          hero,
+          [
+            "category",
+            "content_type",
+            "type",
+          ],
+          "Shows • Movies • Originals"
+        )
+      : "Shows • Movies • Originals";
 
   const nearby = useMemo(() => {
+    const available =
+      uploads.filter(
+        (item) =>
+          contentKey(item) &&
+          contentKey(item) !==
+            heroKey
+      );
+
     if (!coords) {
-      return uploads.slice(0, 10);
+      return available.slice(
+        0,
+        6
+      );
     }
 
-    return [...uploads]
+    return [...available]
       .sort((a, b) => {
         const ac = rowCoords(a);
         const bc = rowCoords(b);
@@ -675,8 +777,51 @@ export default function DiscoverPage() {
           )
         );
       })
-      .slice(0, 10);
-  }, [uploads, coords]);
+      .slice(0, 6);
+  }, [
+    uploads,
+    coords,
+    heroKey,
+  ]);
+
+  const trendingItems =
+    nearby;
+
+  const trendingKeys =
+    useMemo(
+      () =>
+        new Set(
+          trendingItems.map(
+            (item) =>
+              contentKey(item)
+          )
+        ),
+      [trendingItems]
+    );
+
+  const movingItems =
+    useMemo(
+      () =>
+        uploads
+          .filter((item) => {
+            const key =
+              contentKey(item);
+
+            return (
+              key &&
+              key !== heroKey &&
+              !trendingKeys.has(
+                key
+              )
+            );
+          })
+          .slice(0, 12),
+      [
+        uploads,
+        heroKey,
+        trendingKeys,
+      ]
+    );
 
   const worldCreators =
     creatorRail.slice(0, 5);
@@ -799,11 +944,7 @@ export default function DiscoverPage() {
         {/* WATCH HERO */}
         <section className="watchHero">
           <Link
-            href={
-              hero
-                ? contentHref(hero)
-                : "/watch"
-            }
+            href={hero ? contentHref(hero) : "/watch"}
             className="watchMedia"
           >
             <Media
@@ -829,13 +970,11 @@ export default function DiscoverPage() {
               </small>
 
               <h1>
-                {hero
-                  ? uploadTitle(hero)
-                  : "Watch UTV"}
+                {heroHeadline}
               </h1>
 
               <p>
-                Shows • Movies • Originals
+                {heroCategory}
               </p>
 
               <span className="watchButton">
@@ -1030,9 +1169,7 @@ export default function DiscoverPage() {
                   const creatorName =
                     creator
                       ? profileName(creator)
-                      : hostEmail
-                          .split("@")[0] ||
-                        "UTV Creator";
+                      : "UTV Creator";
 
                   const avatar =
                     creator
@@ -1170,7 +1307,7 @@ export default function DiscoverPage() {
                 <div className="trendSkeleton" />
               </>
             ) : (
-              nearby.map(
+              trendingItems.map(
                 (item, index) => {
                   const views =
                     viewCount(item);
@@ -1369,9 +1506,7 @@ export default function DiscoverPage() {
                     key={index}
                   />
                 ))
-              : uploads
-                  .slice(0, 12)
-                  .map(
+              : movingItems.map(
                     (
                       item,
                       index

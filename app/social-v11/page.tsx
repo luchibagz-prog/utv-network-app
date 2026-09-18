@@ -170,7 +170,7 @@ export default function SocialV11Page() {
 
   function actorName(email: string) {
     const profile = profiles[email.toLowerCase()];
-    return profile?.display_name || profile?.creator_name || profile?.username || email.split("@")[0] || "UTV Creator";
+    return profile?.display_name || profile?.creator_name || profile?.username || "UTV Creator";
   }
 
   function actorAvatar(email: string) {

@@ -92,7 +92,7 @@ export default function LivePage() {
 
   function nameFor(email: string) {
     const profile = profiles[email] || {};
-    return profile.display_name || profile.username || email.split("@")[0] || "UTV Creator";
+    return profile.display_name || profile.username || "UTV Creator";
   }
 
   function avatarFor(email: string) {

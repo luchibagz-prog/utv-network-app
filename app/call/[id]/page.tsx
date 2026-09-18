@@ -1845,18 +1845,27 @@ export default function UTVCallRoom() {
       return "UTV User";
     }
 
-    const other =
+    const otherEmail =
       call.caller_email
         .toLowerCase() ===
         email.toLowerCase()
         ? call.callee_email
         : call.caller_email;
 
+    const connectedPerson =
+      remoteParticipants.find(
+        (participant) =>
+          participant.email
+            .toLowerCase() ===
+          otherEmail.toLowerCase()
+      );
+
     return (
-      other.split("@")[0] ||
+      connectedPerson?.name ||
       "UTV User"
     );
   }
+
 
   const timer =
     `${String(

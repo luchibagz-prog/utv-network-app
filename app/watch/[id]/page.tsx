@@ -662,11 +662,7 @@ export default function WatchPlayerPage() {
 
             <div>
               <b>
-                {item.creator_name ||
-                  item.creator_email?.split(
-                    "@"
-                  )[0] ||
-                  "UTV Creator"}
+                {item.creator_name || "UTV Creator"}
               </b>
 
               <span>

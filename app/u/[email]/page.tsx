@@ -20,6 +20,503 @@ function pick(row: any, keys: string[], fallback = "") {
   return fallback;
 }
 
+
+/* =========================================================
+   UTV PREMIUM PROFILE V1
+   ========================================================= */
+
+function PremiumOGBadge({
+  number,
+}: {
+  number: number;
+}) {
+  const badgeNumber =
+    String(number).padStart(
+      3,
+      "0"
+    );
+
+  return (
+    <span
+      className="premiumOgCredential"
+      aria-label={`UTV Original 100 member #${badgeNumber}`}
+      title={`UTV OG #${badgeNumber}`}
+    >
+      <span className="premiumOgShine" />
+
+      <span className="premiumOgCrown">
+        ♛
+      </span>
+
+      <small>
+        ORIGINAL
+      </small>
+
+      <strong>
+        UTV OG
+      </strong>
+
+      <b>
+        #{badgeNumber}
+      </b>
+
+      <style jsx>{`
+        .premiumOgCredential {
+          position: relative;
+          width: 78px;
+          height: 88px;
+          flex: 0 0 78px;
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1px;
+          overflow: hidden;
+          isolation: isolate;
+          color: #fff2a8;
+          background:
+            radial-gradient(
+              circle at 50% 10%,
+              rgba(255,246,177,.98),
+              rgba(255,199,61,.36) 20%,
+              transparent 39%
+            ),
+            linear-gradient(
+              145deg,
+              #fff4a2 0%,
+              #bd7910 12%,
+              #382006 30%,
+              #100b04 54%,
+              #5e390a 74%,
+              #f4c454 90%,
+              #fff0a0 100%
+            );
+          clip-path:
+            polygon(
+              50% 0%,
+              89% 13%,
+              100% 55%,
+              84% 82%,
+              50% 100%,
+              16% 82%,
+              0% 55%,
+              11% 13%
+            );
+          filter:
+            drop-shadow(
+              0 10px 16px
+              rgba(0,0,0,.55)
+            )
+            drop-shadow(
+              0 0 12px
+              rgba(255,190,44,.23)
+            );
+          text-align: center;
+        }
+
+        .premiumOgCredential::before {
+          content: "";
+          position: absolute;
+          inset: 4px;
+          z-index: -1;
+          clip-path: inherit;
+          background:
+            radial-gradient(
+              circle at 50% 14%,
+              rgba(255,230,123,.19),
+              transparent 35%
+            ),
+            linear-gradient(
+              180deg,
+              #16120a,
+              #050504 70%,
+              #1d1305
+            );
+        }
+
+        .premiumOgShine {
+          position: absolute;
+          width: 120%;
+          height: 18px;
+          top: 2px;
+          left: -45%;
+          transform:
+            rotate(-28deg);
+          background:
+            linear-gradient(
+              90deg,
+              transparent,
+              rgba(255,255,255,.58),
+              transparent
+            );
+          opacity: .5;
+        }
+
+        .premiumOgCrown {
+          position: relative;
+          z-index: 2;
+          display: block;
+          margin-bottom: 1px;
+          color: #ffd85c;
+          font-size: 22px;
+          line-height: 1;
+          text-shadow:
+            0 0 10px
+            rgba(255,205,69,.62);
+        }
+
+        small,
+        strong,
+        b {
+          position: relative;
+          z-index: 2;
+          display: block;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        small {
+          color:
+            rgba(
+              255,
+              236,
+              166,
+              .72
+            );
+          font-size: 5.5px;
+          font-weight: 1000;
+          letter-spacing: 1.25px;
+        }
+
+        strong {
+          margin-top: 3px;
+          color: #fff6cb;
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .5px;
+        }
+
+        b {
+          margin-top: 4px;
+          color: #f4c552;
+          font-size: 9px;
+          font-weight: 1000;
+          letter-spacing: .8px;
+        }
+
+        @media (
+          max-width: 430px
+        ) {
+          .premiumOgCredential {
+            width: 72px;
+            height: 82px;
+            flex-basis: 72px;
+          }
+        }
+      `}</style>
+    </span>
+  );
+}
+
+
+function PremiumProfileMediaGrid({
+  items,
+  router,
+}: {
+  items: any[];
+  router: any;
+}) {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <div className="premiumProfileGrid">
+      {items.map(
+        (item, index) => {
+          const image =
+            item.thumbnail_url ||
+            item.cover_url ||
+            item.poster_url ||
+            item.image_url ||
+            "";
+
+          const video =
+            item.video_url ||
+            item.file_url ||
+            (
+              String(
+                item.media_url || ""
+              ).match(
+                /\.(mp4|mov|webm|m4v)(\?|$)/i
+              )
+                ? item.media_url
+                : ""
+            );
+
+          const category =
+            String(
+              item.content_type ||
+              item.category ||
+              (
+                video
+                  ? "Video"
+                  : "Post"
+              )
+            )
+              .replace(
+                /[_-]+/g,
+                " "
+              )
+              .trim()
+              .toUpperCase();
+
+          const title =
+            String(
+              item.title ||
+              item.caption ||
+              item.description ||
+              "UTV Post"
+            ).trim();
+
+          const itemId =
+            String(
+              item.id || ""
+            );
+
+          return (
+            <button
+              type="button"
+              className="premiumMediaCard"
+              key={
+                itemId ||
+                `profile-media-${index}`
+              }
+              onClick={() => {
+                if (!itemId) return;
+
+                router.push(
+                  `/watch/${encodeURIComponent(
+                    itemId
+                  )}`
+                );
+              }}
+            >
+              <span className="premiumMediaVisual">
+                {image ? (
+                  <img
+                    src={image}
+                    alt=""
+                    loading="lazy"
+                  />
+                ) : video ? (
+                  <video
+                    src={video}
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <span className="premiumMediaFallback">
+                    U
+                  </span>
+                )}
+              </span>
+
+              <span className="premiumMediaShade" />
+
+              <span className="premiumMediaCategory">
+                {category.slice(
+                  0,
+                  18
+                )}
+              </span>
+
+              {video && (
+                <span className="premiumMediaPlay">
+                  ▶
+                </span>
+              )}
+
+              <span className="premiumMediaTitle">
+                {title}
+              </span>
+            </button>
+          );
+        }
+      )}
+
+      <style jsx>{`
+        .premiumProfileGrid {
+          width: 100%;
+          display: grid;
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0,1fr)
+            );
+          gap: 7px;
+          margin: 0 auto;
+        }
+
+        .premiumMediaCard {
+          position: relative;
+          min-width: 0;
+          aspect-ratio: 4 / 5;
+          display: block;
+          overflow: hidden;
+          padding: 0;
+          border:
+            1px solid
+            rgba(255,255,255,.1);
+          border-radius: 16px;
+          color: white;
+          background: #080c13;
+          box-shadow:
+            0 8px 24px
+            rgba(0,0,0,.24);
+          text-align: left;
+        }
+
+        .premiumMediaVisual,
+        .premiumMediaVisual img,
+        .premiumMediaVisual video,
+        .premiumMediaFallback {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .premiumMediaVisual img,
+        .premiumMediaVisual video {
+          object-fit: cover;
+        }
+
+        .premiumMediaFallback {
+          display: grid;
+          place-items: center;
+          color:
+            rgba(
+              255,
+              255,
+              255,
+              .26
+            );
+          background:
+            radial-gradient(
+              circle at 25% 20%,
+              rgba(82,247,200,.19),
+              transparent 35%
+            ),
+            radial-gradient(
+              circle at 80% 80%,
+              rgba(138,99,255,.24),
+              transparent 40%
+            ),
+            #080c13;
+          font-size: 42px;
+          font-weight: 1000;
+        }
+
+        .premiumMediaShade {
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(
+              180deg,
+              rgba(0,0,0,.04) 35%,
+              rgba(0,0,0,.8)
+              100%
+            );
+        }
+
+        .premiumMediaCategory {
+          position: absolute;
+          top: 8px;
+          left: 8px;
+          max-width:
+            calc(100% - 16px);
+          overflow: hidden;
+          padding: 5px 7px;
+          border:
+            1px solid
+            rgba(255,255,255,.14);
+          border-radius: 999px;
+          color: #08130f;
+          background:
+            rgba(
+              82,
+              247,
+              200,
+              .92
+            );
+          font-size: 7px;
+          font-weight: 1000;
+          letter-spacing: .65px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          backdrop-filter:
+            blur(12px);
+        }
+
+        .premiumMediaPlay {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 28px;
+          height: 28px;
+          display: grid;
+          place-items: center;
+          border:
+            1px solid
+            rgba(255,255,255,.18);
+          border-radius: 50%;
+          background:
+            rgba(0,0,0,.55);
+          font-size: 9px;
+          backdrop-filter:
+            blur(12px);
+        }
+
+        .premiumMediaTitle {
+          position: absolute;
+          right: 9px;
+          bottom: 10px;
+          left: 9px;
+          display:
+            -webkit-box;
+          overflow: hidden;
+          color: #fff;
+          font-size: 10px;
+          font-weight: 900;
+          line-height: 1.15;
+          -webkit-box-orient:
+            vertical;
+          -webkit-line-clamp: 2;
+          text-shadow:
+            0 2px 8px
+            rgba(0,0,0,.8);
+        }
+
+        @media (
+          min-width: 720px
+        ) {
+          .premiumProfileGrid {
+            grid-template-columns:
+              repeat(
+                4,
+                minmax(0,1fr)
+              );
+            gap: 10px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+
 export default function PublicProfile() {
   const params = useParams();
   const router = useRouter();
@@ -140,7 +637,7 @@ export default function PublicProfile() {
             actor_email: viewerEmail,
             type: "follow",
             title: "New Follower",
-            message: `${viewerEmail.split("@")[0]} followed you.`,
+            message: "A UTV creator followed you.",
             link: `/u/${encodeURIComponent(viewerEmail)}`,
             is_read: false,
           });
@@ -402,16 +899,15 @@ export default function PublicProfile() {
             [
               "display_name",
               "creator_name",
-              "full_name",
               "username",
             ],
-            crewEmail.split("@")[0]
+            "UTV Creator"
           ),
 
           username: pick(
             member,
             ["username"],
-            crewEmail.split("@")[0]
+            "creator"
           ),
 
           avatar: pick(member, [
@@ -1042,95 +1538,11 @@ export default function PublicProfile() {
                 {utvBadge.og_number &&
                   utvBadge.og_number >= 1 &&
                   utvBadge.og_number <= 100 && (
-                    <span
-                      className="utvOgStatusPro"
-                      aria-label={`UTV OG #${String(
+                    <PremiumOGBadge
+                      number={
                         utvBadge.og_number
-                      ).padStart(3, "0")}`}
-                      title={`UTV Original 100 Member #${String(
-                        utvBadge.og_number
-                      ).padStart(3, "0")}`}
-                    >
-                      <span className="utvOgStatusIcon">
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 38 32"
-                          width="20"
-                          height="17"
-                        >
-                          <defs>
-                            <linearGradient
-                              id="utvOgPremiumCrown"
-                              x1="3"
-                              y1="3"
-                              x2="34"
-                              y2="28"
-                              gradientUnits="userSpaceOnUse"
-                            >
-                              <stop offset="0%" stopColor="#fff7c1" />
-                              <stop offset="25%" stopColor="#ffd75d" />
-                              <stop offset="55%" stopColor="#a96508" />
-                              <stop offset="78%" stopColor="#f6c84b" />
-                              <stop offset="100%" stopColor="#fff0a3" />
-                            </linearGradient>
-
-                            <filter
-                              id="utvOgCrownGlow"
-                              x="-40%"
-                              y="-40%"
-                              width="180%"
-                              height="180%"
-                            >
-                              <feGaussianBlur
-                                stdDeviation="1.1"
-                                result="blur"
-                              />
-                              <feMerge>
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="SourceGraphic" />
-                              </feMerge>
-                            </filter>
-                          </defs>
-
-                          <path
-                            d="M3 8.5 10.8 13 19 2.8 27.2 13 35 8.5 31.3 25H6.7Z"
-                            fill="url(#utvOgPremiumCrown)"
-                            stroke="#fff0a4"
-                            strokeWidth="1.25"
-                            strokeLinejoin="round"
-                            filter="url(#utvOgCrownGlow)"
-                          />
-
-                          <path
-                            d="M8.3 21.3H29.7"
-                            stroke="#fff3b1"
-                            strokeWidth="1.15"
-                            strokeLinecap="round"
-                            opacity=".88"
-                          />
-
-                          <circle cx="3" cy="8.2" r="1.7" fill="#ffe36e" />
-                          <circle cx="19" cy="2.7" r="1.8" fill="#fff6c1" />
-                          <circle cx="35" cy="8.2" r="1.7" fill="#ffe36e" />
-                        </svg>
-                      </span>
-
-                      <span className="utvOgStatusCopy">
-                        <small>ORIGINAL 100</small>
-
-                        <strong>
-                          UTV OG #
-                          {String(
-                            utvBadge.og_number
-                          ).padStart(3, "0")}
-                        </strong>
-                      </span>
-
-                      <span
-                        className="utvOgStatusDot"
-                        aria-hidden="true"
-                      />
-                    </span>
+                      }
+                    />
                   )}
               </div>
             )}
@@ -1668,10 +2080,12 @@ export default function PublicProfile() {
               </p>
 
               {featured.length > 0 ? (
-                <MediaGrid
-                  items={featured}
-                  router={router}
-                />
+                <div className="utvProfileGridStage">
+                  <PremiumProfileMediaGrid
+                    items={featured}
+                    router={router}
+                  />
+                </div>
               ) : (
                 <div className="featuredEmpty">
                   <span>✦</span>
@@ -1702,7 +2116,12 @@ export default function PublicProfile() {
               </div>
             </div>
 
-            <MediaGrid items={posts} router={router} />
+            <div className="utvProfileGridStage">
+              <PremiumProfileMediaGrid
+                items={posts}
+                router={router}
+              />
+            </div>
           </>
         )}
 
@@ -1982,6 +2401,101 @@ export default function PublicProfile() {
       )}
 
       <style jsx>{`
+
+        /*
+         * UTV PREMIUM PROFILE V1
+         * Clean lower profile + centered content.
+         */
+        .page {
+          padding-bottom:
+            calc(
+              155px +
+              env(
+                safe-area-inset-bottom
+              )
+            ) !important;
+        }
+
+        .tabs {
+          width:
+            min(
+              calc(100% - 24px),
+              760px
+            ) !important;
+          display: grid !important;
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0,1fr)
+            ) !important;
+          gap: 5px !important;
+          margin:
+            20px auto 0 !important;
+          padding: 5px !important;
+          border:
+            1px solid
+            rgba(255,255,255,.09) !important;
+          border-radius:
+            18px !important;
+          background:
+            rgba(
+              6,
+              10,
+              17,
+              .92
+            ) !important;
+          backdrop-filter:
+            blur(18px) !important;
+        }
+
+        .tabs button {
+          min-width: 0 !important;
+          min-height: 40px !important;
+          border-radius:
+            13px !important;
+          text-align:
+            center !important;
+        }
+
+        .content {
+          width:
+            min(
+              calc(100% - 24px),
+              760px
+            ) !important;
+          margin:
+            0 auto !important;
+          padding:
+            15px 0 76px !important;
+        }
+
+        .swipeHint {
+          width:
+            min(
+              calc(100% - 30px),
+              730px
+            ) !important;
+          margin:
+            8px auto 0 !important;
+          text-align:
+            center !important;
+        }
+
+        .heading {
+          width: 100% !important;
+          margin-bottom:
+            12px !important;
+        }
+
+        .utvProfileGridStage {
+          width: 100%;
+          max-width: 760px;
+          margin: 0 auto;
+        }
+
+        .featuredContentSection {
+          width: 100%;
+        }
 
 
         .creatorDashboardButton {
