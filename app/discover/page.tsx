@@ -489,6 +489,11 @@ export default function DiscoverPage() {
   const [coords, setCoords] =
     useState<Coords>(null);
 
+  const [
+    watchHeroIndex,
+    setWatchHeroIndex,
+  ] = useState(0);
+
   useEffect(() => {
     let alive = true;
 
@@ -697,20 +702,73 @@ export default function DiscoverPage() {
    * Trending and What's Moving get separate pools.
    * One post cannot dominate the whole Discover page.
    */
+  /*
+   * UTV WATCH FEATURE ROTATION V2
+   *
+   * Build a real rotating Watch pool from
+   * Movies / Shows / Originals first.
+   */
+  const watchHeroes =
+    useMemo(() => {
+      const seen =
+        new Set<string>();
+
+      const primary =
+        uploads.filter(
+          (item) =>
+            isWatchContent(item) &&
+            (
+              uploadImage(item) ||
+              uploadVideo(item)
+            )
+        );
+
+      const fallback =
+        uploads.filter(
+          (item) =>
+            uploadImage(item) ||
+            uploadVideo(item)
+        );
+
+      const combined = [
+        ...primary,
+        ...fallback,
+      ];
+
+      const unique: Row[] = [];
+
+      for (
+        const item
+        of combined
+      ) {
+        const key =
+          contentKey(item);
+
+        if (
+          !key ||
+          seen.has(key)
+        ) {
+          continue;
+        }
+
+        seen.add(key);
+        unique.push(item);
+
+        if (
+          unique.length >= 4
+        ) {
+          break;
+        }
+      }
+
+      return unique;
+    }, [uploads]);
+
   const hero =
-    uploads.find(
-      (item) =>
-        isWatchContent(item) &&
-        (
-          uploadImage(item) ||
-          uploadVideo(item)
-        )
-    ) ||
-    uploads.find(
-      (item) =>
-        uploadImage(item) ||
-        uploadVideo(item)
-    ) ||
+    watchHeroes[
+      watchHeroIndex
+    ] ||
+    watchHeroes[0] ||
     uploads[0];
 
   const heroKey =
@@ -740,6 +798,48 @@ export default function DiscoverPage() {
           "Shows • Movies • Originals"
         )
       : "Shows • Movies • Originals";
+
+  useEffect(() => {
+    if (
+      watchHeroes.length <= 1
+    ) {
+      return;
+    }
+
+    const timer =
+      window.setInterval(
+        () => {
+          setWatchHeroIndex(
+            (current) =>
+              (
+                current + 1
+              ) %
+              watchHeroes.length
+          );
+        },
+        7000
+      );
+
+    return () => {
+      window.clearInterval(
+        timer
+      );
+    };
+  }, [
+    watchHeroes.length,
+  ]);
+
+  useEffect(() => {
+    if (
+      watchHeroIndex >=
+      watchHeroes.length
+    ) {
+      setWatchHeroIndex(0);
+    }
+  }, [
+    watchHeroIndex,
+    watchHeroes.length,
+  ]);
 
   const nearby = useMemo(() => {
     const available =
@@ -943,11 +1043,15 @@ export default function DiscoverPage() {
 
         {/* WATCH HERO */}
         <section className="watchHero">
-          <Link
-            href={hero ? contentHref(hero) : "/watch"}
+          <div
             className="watchMedia"
           >
             <Media
+              key={
+                hero
+                  ? contentKey(hero)
+                  : "watch-hero"
+              }
               item={hero}
               autoplay
             />
@@ -956,11 +1060,11 @@ export default function DiscoverPage() {
 
             <div className="watchTop">
               <span className="originalTag">
-                UTV ORIGINAL
+                UTV FEATURED
               </span>
 
               <span className="newBadge">
-                ● NEW
+                ● NOW
               </span>
             </div>
 
@@ -977,19 +1081,64 @@ export default function DiscoverPage() {
                 {heroCategory}
               </p>
 
-              <span className="watchButton">
-                <b>▶</b>
-                Watch Now
-              </span>
+              <div className="watchActions">
+                <Link
+                  href={
+                    hero
+                      ? contentHref(hero)
+                      : "/watch"
+                  }
+                  className="watchButton"
+                >
+                  <b>▶</b>
+                  Watch Now
+                </Link>
+
+                <Link
+                  href="/watch"
+                  className="browseWatchButton"
+                >
+                  Browse Watch
+                  <b>›</b>
+                </Link>
+              </div>
             </div>
 
-            <div className="heroDots">
-              <i className="active" />
-              <i />
-              <i />
-              <i />
-            </div>
-          </Link>
+            {watchHeroes.length > 1 && (
+              <div
+                className="heroDots"
+                aria-label="Featured Watch titles"
+              >
+                {watchHeroes.map(
+                  (item, index) => (
+                    <button
+                      key={
+                        contentKey(
+                          item
+                        ) ||
+                        index
+                      }
+                      type="button"
+                      className={
+                        index ===
+                        watchHeroIndex
+                          ? "active"
+                          : ""
+                      }
+                      aria-label={`Show featured title ${
+                        index + 1
+                      }`}
+                      onClick={() =>
+                        setWatchHeroIndex(
+                          index
+                        )
+                      }
+                    />
+                  )
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* UTV WORLD */}
@@ -2054,6 +2203,63 @@ export default function DiscoverPage() {
           font-size: 10px;
         }
 
+        .watchActions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 2px;
+        }
+
+        .watchButton,
+        .browseWatchButton {
+          text-decoration: none;
+        }
+
+        .browseWatchButton {
+          min-height: 40px;
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          padding: 0 15px;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .18
+            );
+          border-radius: 999px;
+          color: #fff;
+          background:
+            rgba(
+              8,
+              12,
+              20,
+              .7
+            );
+          box-shadow:
+            inset 0 1px 0
+            rgba(
+              255,
+              255,
+              255,
+              .06
+            );
+          backdrop-filter:
+            blur(16px);
+          font-size: 10px;
+          font-weight: 950;
+          white-space: nowrap;
+        }
+
+        .browseWatchButton b {
+          color: #52f7c8;
+          font-size: 16px;
+          line-height: 1;
+        }
+
         .heroDots {
           position: absolute;
           right: 16px;
@@ -2062,27 +2268,39 @@ export default function DiscoverPage() {
           gap: 5px;
         }
 
-        .heroDots i {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
+        .heroDots button {
+          width: 7px;
+          height: 7px;
+          padding: 0;
+          border: 0;
+          border-radius: 999px;
           background:
             rgba(
               255,
               255,
               255,
-              0.35
+              .34
+            );
+          transition:
+            width .2s ease,
+            background .2s ease,
+            box-shadow .2s ease;
+        }
+
+        .heroDots button.active {
+          width: 22px;
+          background: #52f7c8;
+          box-shadow:
+            0 0 12px
+            rgba(
+              82,
+              247,
+              200,
+              .8
             );
         }
 
-        .heroDots i.active {
-          width: 17px;
-          border-radius: 10px;
-          background: #52f7c8;
-          box-shadow:
-            0 0 12px #52f7c8;
-        }
-
+        /* WORLD CARD */
         /* WORLD CARD */
 
         .worldCard {

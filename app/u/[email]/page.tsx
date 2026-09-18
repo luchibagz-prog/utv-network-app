@@ -38,179 +38,385 @@ function PremiumOGBadge({
 
   return (
     <span
-      className="premiumOgCredential"
+      className="premiumOgSvgBadge"
       aria-label={`UTV Original 100 member #${badgeNumber}`}
       title={`UTV OG #${badgeNumber}`}
     >
-      <span className="premiumOgShine" />
+      <svg
+        viewBox="0 0 124 144"
+        role="img"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient
+            id="utvOgOuterGold"
+            x1="18"
+            y1="7"
+            x2="105"
+            y2="136"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#fff3a3"
+            />
+            <stop
+              offset=".16"
+              stopColor="#d79b22"
+            />
+            <stop
+              offset=".36"
+              stopColor="#6e430a"
+            />
+            <stop
+              offset=".57"
+              stopColor="#2c1903"
+            />
+            <stop
+              offset=".76"
+              stopColor="#aa7214"
+            />
+            <stop
+              offset=".9"
+              stopColor="#ffd85c"
+            />
+            <stop
+              offset="1"
+              stopColor="#7e500d"
+            />
+          </linearGradient>
 
-      <span className="premiumOgCrown">
-        ♛
-      </span>
+          <linearGradient
+            id="utvOgInner"
+            x1="35"
+            y1="22"
+            x2="88"
+            y2="124"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#191610"
+            />
+            <stop
+              offset=".52"
+              stopColor="#070706"
+            />
+            <stop
+              offset="1"
+              stopColor="#171006"
+            />
+          </linearGradient>
 
-      <small>
-        ORIGINAL
-      </small>
+          <linearGradient
+            id="utvOgCrown"
+            x1="40"
+            y1="23"
+            x2="84"
+            y2="58"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#fff7c1"
+            />
+            <stop
+              offset=".28"
+              stopColor="#ffd454"
+            />
+            <stop
+              offset=".58"
+              stopColor="#a86708"
+            />
+            <stop
+              offset=".82"
+              stopColor="#f5c54d"
+            />
+            <stop
+              offset="1"
+              stopColor="#fff2a0"
+            />
+          </linearGradient>
 
-      <strong>
-        UTV OG
-      </strong>
+          <radialGradient
+            id="utvOgGlow"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientTransform="translate(62 30) rotate(90) scale(72 58)"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              stopColor="#ffd75a"
+              stopOpacity=".22"
+            />
+            <stop
+              offset=".64"
+              stopColor="#ffd75a"
+              stopOpacity=".035"
+            />
+            <stop
+              offset="1"
+              stopColor="#ffd75a"
+              stopOpacity="0"
+            />
+          </radialGradient>
 
-      <b>
-        #{badgeNumber}
-      </b>
+          <filter
+            id="utvOgShadow"
+            x="-25%"
+            y="-20%"
+            width="150%"
+            height="160%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="7"
+              stdDeviation="6"
+              floodColor="#000"
+              floodOpacity=".6"
+            />
+          </filter>
+
+          <filter
+            id="utvOgMetalGlow"
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="160%"
+          >
+            <feGaussianBlur
+              stdDeviation="1.2"
+              result="blur"
+            />
+
+            <feMerge>
+              <feMergeNode
+                in="blur"
+              />
+              <feMergeNode
+                in="SourceGraphic"
+              />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g
+          filter="url(#utvOgShadow)"
+        >
+          <path
+            d="
+              M62 3
+              L108 18
+              L118 58
+              C116 94 95 123 62 140
+              C29 123 8 94 6 58
+              L16 18
+              Z
+            "
+            fill="url(#utvOgOuterGold)"
+          />
+
+          <path
+            d="
+              M62 10
+              L102 23
+              L111 60
+              C108 90 91 114 62 131
+              C33 114 16 90 13 60
+              L22 23
+              Z
+            "
+            fill="#0a0906"
+            stroke="#f0bb42"
+            strokeWidth="1.4"
+          />
+
+          <path
+            d="
+              M62 15
+              L97 27
+              L104 61
+              C102 85 87 107 62 122
+              C37 107 22 85 20 61
+              L27 27
+              Z
+            "
+            fill="url(#utvOgInner)"
+            stroke="#6e4710"
+            strokeWidth="1"
+          />
+
+          <path
+            d="
+              M62 15
+              L97 27
+              L104 61
+              C102 85 87 107 62 122
+              C37 107 22 85 20 61
+              L27 27
+              Z
+            "
+            fill="url(#utvOgGlow)"
+          />
+
+          <path
+            d="
+              M39 37
+              L47 42
+              L53 28
+              L62 39
+              L71 28
+              L77 42
+              L85 37
+              L81 55
+              H43
+              Z
+            "
+            fill="url(#utvOgCrown)"
+            stroke="#fff0a0"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+            filter="url(#utvOgMetalGlow)"
+          />
+
+          <circle
+            cx="53"
+            cy="27"
+            r="2.2"
+            fill="#fff2a3"
+          />
+
+          <circle
+            cx="71"
+            cy="27"
+            r="2.2"
+            fill="#fff2a3"
+          />
+
+          <circle
+            cx="39"
+            cy="36"
+            r="2"
+            fill="#ffd65a"
+          />
+
+          <circle
+            cx="85"
+            cy="36"
+            r="2"
+            fill="#ffd65a"
+          />
+
+          <path
+            d="M43 50H81"
+            stroke="#fff4b5"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            opacity=".7"
+          />
+
+          <text
+            x="62"
+            y="72"
+            textAnchor="middle"
+            fill="#d3aa53"
+            fontSize="6.4"
+            fontWeight="800"
+            letterSpacing="2.2"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            ORIGINAL 100
+          </text>
+
+          <text
+            x="62"
+            y="91"
+            textAnchor="middle"
+            fill="#fff7d1"
+            fontSize="17"
+            fontWeight="900"
+            letterSpacing=".8"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            UTV OG
+          </text>
+
+          <path
+            d="M37 99H87"
+            stroke="#8f651b"
+            strokeWidth=".8"
+            opacity=".75"
+          />
+
+          <text
+            x="62"
+            y="114"
+            textAnchor="middle"
+            fill="#f5c951"
+            fontSize="10"
+            fontWeight="900"
+            letterSpacing="1.5"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            #{badgeNumber}
+          </text>
+
+          <path
+            d="
+              M30 31
+              C48 16 77 14 95 28
+            "
+            fill="none"
+            stroke="#fff8c7"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            opacity=".28"
+          />
+
+          <path
+            d="
+              M25 66
+              C30 93 44 110 62 120
+            "
+            fill="none"
+            stroke="#fff0a1"
+            strokeWidth="1"
+            strokeLinecap="round"
+            opacity=".15"
+          />
+        </g>
+      </svg>
 
       <style jsx>{`
-        .premiumOgCredential {
-          position: relative;
-          width: 78px;
-          height: 88px;
-          flex: 0 0 78px;
+        .premiumOgSvgBadge {
+          width: 92px;
+          height: 106px;
+          flex: 0 0 92px;
           display: inline-flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 1px;
-          overflow: hidden;
-          isolation: isolate;
-          color: #fff2a8;
-          background:
-            radial-gradient(
-              circle at 50% 10%,
-              rgba(255,246,177,.98),
-              rgba(255,199,61,.36) 20%,
-              transparent 39%
-            ),
-            linear-gradient(
-              145deg,
-              #fff4a2 0%,
-              #bd7910 12%,
-              #382006 30%,
-              #100b04 54%,
-              #5e390a 74%,
-              #f4c454 90%,
-              #fff0a0 100%
-            );
-          clip-path:
-            polygon(
-              50% 0%,
-              89% 13%,
-              100% 55%,
-              84% 82%,
-              50% 100%,
-              16% 82%,
-              0% 55%,
-              11% 13%
-            );
           filter:
             drop-shadow(
-              0 10px 16px
-              rgba(0,0,0,.55)
-            )
-            drop-shadow(
-              0 0 12px
-              rgba(255,190,44,.23)
-            );
-          text-align: center;
-        }
-
-        .premiumOgCredential::before {
-          content: "";
-          position: absolute;
-          inset: 4px;
-          z-index: -1;
-          clip-path: inherit;
-          background:
-            radial-gradient(
-              circle at 50% 14%,
-              rgba(255,230,123,.19),
-              transparent 35%
-            ),
-            linear-gradient(
-              180deg,
-              #16120a,
-              #050504 70%,
-              #1d1305
+              0 10px 18px
+              rgba(0,0,0,.5)
             );
         }
 
-        .premiumOgShine {
-          position: absolute;
-          width: 120%;
-          height: 18px;
-          top: 2px;
-          left: -45%;
-          transform:
-            rotate(-28deg);
-          background:
-            linear-gradient(
-              90deg,
-              transparent,
-              rgba(255,255,255,.58),
-              transparent
-            );
-          opacity: .5;
-        }
-
-        .premiumOgCrown {
-          position: relative;
-          z-index: 2;
+        .premiumOgSvgBadge svg {
+          width: 100%;
+          height: 100%;
           display: block;
-          margin-bottom: 1px;
-          color: #ffd85c;
-          font-size: 22px;
-          line-height: 1;
-          text-shadow:
-            0 0 10px
-            rgba(255,205,69,.62);
-        }
-
-        small,
-        strong,
-        b {
-          position: relative;
-          z-index: 2;
-          display: block;
-          line-height: 1;
-          white-space: nowrap;
-        }
-
-        small {
-          color:
-            rgba(
-              255,
-              236,
-              166,
-              .72
-            );
-          font-size: 5.5px;
-          font-weight: 1000;
-          letter-spacing: 1.25px;
-        }
-
-        strong {
-          margin-top: 3px;
-          color: #fff6cb;
-          font-size: 10px;
-          font-weight: 1000;
-          letter-spacing: .5px;
-        }
-
-        b {
-          margin-top: 4px;
-          color: #f4c552;
-          font-size: 9px;
-          font-weight: 1000;
-          letter-spacing: .8px;
+          overflow: visible;
         }
 
         @media (
           max-width: 430px
         ) {
-          .premiumOgCredential {
-            width: 72px;
-            height: 82px;
-            flex-basis: 72px;
+          .premiumOgSvgBadge {
+            width: 86px;
+            height: 99px;
+            flex-basis: 86px;
           }
         }
       `}</style>
@@ -511,6 +717,117 @@ function PremiumProfileMediaGrid({
             gap: 10px;
           }
         }
+        /*
+         * UTV PROFILE MEDIA FINAL V2
+         *
+         * Strong selectors intentionally beat
+         * old legacy profile-grid rules.
+         */
+        .premiumProfileGrid {
+          width: 100% !important;
+          display: grid !important;
+          grid-template-columns:
+            repeat(
+              3,
+              minmax(0,1fr)
+            ) !important;
+          align-items: stretch !important;
+          gap: 7px !important;
+        }
+
+        .premiumProfileGrid
+        .premiumMediaCard {
+          position: relative !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          height: auto !important;
+          aspect-ratio: 3 / 4 !important;
+          overflow: hidden !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border:
+            1px solid
+            rgba(
+              255,
+              255,
+              255,
+              .11
+            ) !important;
+          border-radius:
+            14px !important;
+          clip-path: none !important;
+          appearance: none !important;
+          -webkit-appearance:
+            none !important;
+          background:
+            #080c13 !important;
+          box-shadow:
+            0 8px 24px
+            rgba(
+              0,
+              0,
+              0,
+              .28
+            ) !important;
+          transform: none !important;
+        }
+
+        .premiumProfileGrid
+        .premiumMediaVisual,
+        .premiumProfileGrid
+        .premiumMediaVisual img,
+        .premiumProfileGrid
+        .premiumMediaVisual video,
+        .premiumProfileGrid
+        .premiumMediaFallback {
+          border-radius:
+            0 !important;
+          clip-path:
+            none !important;
+        }
+
+        .premiumProfileGrid
+        .premiumMediaVisual img,
+        .premiumProfileGrid
+        .premiumMediaVisual video {
+          object-fit:
+            cover !important;
+        }
+
+        .premiumProfileGrid
+        .premiumMediaCategory {
+          top: 7px !important;
+          left: 7px !important;
+          max-width:
+            calc(
+              100% - 14px
+            ) !important;
+          border-radius:
+            7px !important;
+        }
+
+        .premiumProfileGrid
+        .premiumMediaTitle {
+          right: 8px !important;
+          bottom: 9px !important;
+          left: 8px !important;
+          font-size:
+            10px !important;
+        }
+
+        @media (
+          min-width: 720px
+        ) {
+          .premiumProfileGrid {
+            grid-template-columns:
+              repeat(
+                4,
+                minmax(0,1fr)
+              ) !important;
+            gap: 10px !important;
+          }
+        }
+
       `}</style>
     </div>
   );
@@ -6401,6 +6718,40 @@ function MediaGrid({
           }
 
   
+        /*
+         * UTV PROFILE LOWER LAYOUT FINAL V2
+         */
+        .page {
+          padding-bottom:
+            calc(
+              230px +
+              env(
+                safe-area-inset-bottom
+              )
+            ) !important;
+        }
+
+        .content {
+          padding-bottom:
+            calc(
+              210px +
+              env(
+                safe-area-inset-bottom
+              )
+            ) !important;
+        }
+
+        .utvProfileGridStage {
+          width: 100% !important;
+          max-width: 760px !important;
+          margin:
+            0 auto !important;
+          padding:
+            0 2px !important;
+          box-sizing:
+            border-box !important;
+        }
+
         /* =====================================================
            UTV PROFILE POLISH 1A1
            ===================================================== */
