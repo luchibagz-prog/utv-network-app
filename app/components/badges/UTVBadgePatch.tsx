@@ -11,59 +11,67 @@ type Props = {
   size?: "sm" | "md" | "lg";
 };
 
-function serial(
+function padSerial(
   number?: number | null
 ) {
   if (number == null) return "";
   return String(number).padStart(3, "0");
 }
 
-function badgeMark(
+function getMark(
   key: string
 ) {
   switch (key) {
     case "og_first_100":
       return "OG";
-
     case "ceo":
       return "CEO";
-
     case "verified_creator":
       return "✓";
-
     case "top8_elite":
       return "8";
-
     case "live_host":
       return "LIVE";
-
     case "booking_ready":
-      return "BK";
-
+      return "BOOK";
     case "trendsetter":
       return "↑";
-
     case "support_magnet":
-      return "SUP";
-
+      return "$";
     case "city_leader":
       return "CITY";
-
     case "story_runner":
-      return "ST";
-
+      return "STORY";
     case "utv_pioneer":
-      return "PNR";
-
+      return "PIONEER";
     case "watch_featured":
       return "▶";
-
     case "event_motion":
-      return "EVT";
-
+      return "EVENT";
     default:
       return "UTV";
   }
+}
+
+function getMetal(
+  key: string
+) {
+  if (
+    key === "og_first_100" ||
+    key === "ceo" ||
+    key === "trendsetter"
+  ) {
+    return "gold";
+  }
+
+  if (
+    key === "verified_creator" ||
+    key === "watch_featured"
+  ) {
+    return "silver";
+  }
+
+  return "dark";
 }
 
 export default function UTVBadgePatch({
@@ -77,23 +85,28 @@ export default function UTVBadgePatch({
       badgeKey
     );
 
-  const number =
-    serial(serialNumber);
-
   const mark =
-    badgeMark(badgeKey);
+    getMark(badgeKey);
+
+  const metal =
+    getMetal(badgeKey);
+
+  const number =
+    padSerial(serialNumber);
 
   return (
     <div
       className={[
-        "badge",
-        `badge--${size}`,
+        "utvShieldBadge",
+        `utvShieldBadge--${size}`,
+        `utvShieldBadge--${metal}`,
         featured
-          ? "badge--featured"
+          ? "utvShieldBadge--featured"
           : "",
       ]
         .filter(Boolean)
         .join(" ")}
+      title={badge.description}
       aria-label={
         `${badge.label}${
           number
@@ -101,322 +114,427 @@ export default function UTVBadgePatch({
             : ""
         }`
       }
-      title={badge.description}
     >
-      <div className="metal">
-        <div className="enamel">
+      <svg
+        viewBox="0 0 100 112"
+        role="img"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient
+            id={`rim-${badgeKey}`}
+            x1="10"
+            y1="4"
+            x2="88"
+            y2="104"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor={
+                metal === "silver"
+                  ? "#ffffff"
+                  : metal === "dark"
+                  ? "#8d98a9"
+                  : "#fff0a5"
+              }
+            />
 
-          <div className="shine" />
+            <stop
+              offset=".18"
+              stopColor={
+                metal === "silver"
+                  ? "#9aa7b8"
+                  : metal === "dark"
+                  ? "#303846"
+                  : "#d39b2f"
+              }
+            />
 
-          <div className="brand">
-            UTV
-          </div>
+            <stop
+              offset=".38"
+              stopColor={
+                metal === "silver"
+                  ? "#f3f6fa"
+                  : metal === "dark"
+                  ? "#a6b2c0"
+                  : "#fff0a1"
+              }
+            />
 
-          <div className="mark">
-            {mark}
-          </div>
+            <stop
+              offset=".61"
+              stopColor={
+                metal === "silver"
+                  ? "#737f8e"
+                  : metal === "dark"
+                  ? "#252b36"
+                  : "#8c5c14"
+              }
+            />
 
-          {badgeKey ===
-          "og_first_100" ? (
-            <div className="edition">
-              FIRST 100
-            </div>
-          ) : (
-            <div className="edition">
-              {badge.kicker}
-            </div>
-          )}
+            <stop
+              offset=".82"
+              stopColor={
+                metal === "silver"
+                  ? "#e7edf3"
+                  : metal === "dark"
+                  ? "#8693a5"
+                  : "#f5ce69"
+              }
+            />
 
-        </div>
-      </div>
+            <stop
+              offset="1"
+              stopColor={
+                metal === "silver"
+                  ? "#747f8d"
+                  : metal === "dark"
+                  ? "#242a35"
+                  : "#7f5010"
+              }
+            />
+          </linearGradient>
 
-      {number ? (
-        <div className="serial">
-          {number}
-        </div>
-      ) : null}
+          <linearGradient
+            id={`face-${badgeKey}`}
+            x1="18"
+            y1="10"
+            x2="81"
+            y2="101"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#16283a"
+            />
+            <stop
+              offset=".32"
+              stopColor="#09121d"
+            />
+            <stop
+              offset=".67"
+              stopColor="#05080d"
+            />
+            <stop
+              offset="1"
+              stopColor="#0b0712"
+            />
+          </linearGradient>
+
+          <linearGradient
+            id={`letter-${badgeKey}`}
+            x1="30"
+            y1="38"
+            x2="72"
+            y2="78"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#fff6c7"
+            />
+            <stop
+              offset=".22"
+              stopColor="#f6cf64"
+            />
+            <stop
+              offset=".50"
+              stopColor="#b9791c"
+            />
+            <stop
+              offset=".72"
+              stopColor="#f7dc86"
+            />
+            <stop
+              offset="1"
+              stopColor="#8a5917"
+            />
+          </linearGradient>
+
+          <linearGradient
+            id={`glass-${badgeKey}`}
+            x1="22"
+            y1="8"
+            x2="62"
+            y2="67"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop
+              offset="0"
+              stopColor="#ffffff"
+              stopOpacity=".20"
+            />
+
+            <stop
+              offset=".45"
+              stopColor="#ffffff"
+              stopOpacity=".03"
+            />
+
+            <stop
+              offset="1"
+              stopColor="#ffffff"
+              stopOpacity="0"
+            />
+          </linearGradient>
+
+          <filter
+            id={`shadow-${badgeKey}`}
+            x="-30%"
+            y="-30%"
+            width="160%"
+            height="180%"
+          >
+            <feDropShadow
+              dx="0"
+              dy="4"
+              stdDeviation="4"
+              floodColor="#000000"
+              floodOpacity=".62"
+            />
+          </filter>
+        </defs>
+
+        {/* Premium metal outer shield */}
+        <path
+          d="
+            M50 3
+            L85 13
+            Q94 16 96 27
+            L92 67
+            Q89 89 50 108
+            Q11 89 8 67
+            L4 27
+            Q6 16 15 13
+            Z
+          "
+          fill={`url(#rim-${badgeKey})`}
+          filter={`url(#shadow-${badgeKey})`}
+        />
+
+        {/* Black inner bevel */}
+        <path
+          d="
+            M50 9
+            L82 18
+            Q88 20 89 28
+            L86 65
+            Q83 84 50 101
+            Q17 84 14 65
+            L11 28
+            Q12 20 18 18
+            Z
+          "
+          fill="#020406"
+        />
+
+        {/* Glossy enamel face */}
+        <path
+          d="
+            M50 13
+            L79 21
+            Q85 23 85 30
+            L82 63
+            Q80 79 50 95
+            Q20 79 18 63
+            L15 30
+            Q15 23 21 21
+            Z
+          "
+          fill={`url(#face-${badgeKey})`}
+        />
+
+        {/* UTV cyan/purple identity accent */}
+        <path
+          d="M22 29 Q50 17 78 29"
+          stroke="#54efd0"
+          strokeWidth="1.2"
+          opacity=".65"
+        />
+
+        <path
+          d="M27 82 Q50 92 73 82"
+          stroke="#8367ff"
+          strokeWidth="1.1"
+          opacity=".48"
+        />
+
+        {/* Glass reflection */}
+        <path
+          d="
+            M20 28
+            Q22 20 30 18
+            L50 13
+            L50 64
+            Q34 58 20 28
+          "
+          fill={`url(#glass-${badgeKey})`}
+        />
+
+        {/* Small UTV brand */}
+        <text
+          x="50"
+          y="35"
+          textAnchor="middle"
+          fill="#65f1d4"
+          fontSize="7"
+          fontWeight="900"
+          letterSpacing="2"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          UTV
+        </text>
+
+        {/* Main badge mark */}
+        <text
+          x="50"
+          y={
+            mark.length > 4
+              ? "63"
+              : "68"
+          }
+          textAnchor="middle"
+          fill={`url(#letter-${badgeKey})`}
+          fontSize={
+            mark.length >= 7
+              ? "10"
+              : mark.length >= 5
+              ? "12"
+              : mark.length >= 3
+              ? "18"
+              : "27"
+          }
+          fontWeight="1000"
+          letterSpacing={
+            mark.length > 4
+              ? ".3"
+              : ".5"
+          }
+          fontFamily="Georgia, Times New Roman, serif"
+        >
+          {mark}
+        </text>
+
+        {/* OG-specific limited status */}
+        {badgeKey ===
+        "og_first_100" ? (
+          <text
+            x="50"
+            y="79"
+            textAnchor="middle"
+            fill="#d7bf76"
+            fontSize="4.6"
+            fontWeight="800"
+            letterSpacing="1.4"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            FIRST 100
+          </text>
+        ) : null}
+
+        {/* Serial */}
+        {number ? (
+          <text
+            x="50"
+            y="88"
+            textAnchor="middle"
+            fill="#f3d371"
+            fontSize="6"
+            fontWeight="900"
+            letterSpacing="1"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            {number}
+          </text>
+        ) : null}
+
+        {/* Tiny center shine */}
+        <circle
+          cx="79"
+          cy="27"
+          r="1.4"
+          fill="#ffffff"
+          opacity=".7"
+        />
+      </svg>
+
+      <span className="utvShieldSweep" />
 
       <style jsx>{`
-        .badge {
+        .utvShieldBadge {
           position: relative;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-
           flex: 0 0 auto;
-
           overflow: visible;
+          isolation: isolate;
+          transition:
+            transform .22s ease,
+            filter .22s ease;
+        }
 
-          transform-style:
-            preserve-3d;
+        /*
+         * PROFILE STAMP
+         */
+        .utvShieldBadge--md {
+          width: 56px;
+          height: 63px;
+        }
 
+        /*
+         * COLLECTION MINI PATCH
+         */
+        .utvShieldBadge--sm {
+          width: 43px;
+          height: 49px;
+        }
+
+        /*
+         * DETAIL / COLLECTION HERO
+         */
+        .utvShieldBadge--lg {
+          width: 92px;
+          height: 103px;
+        }
+
+        .utvShieldBadge svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+          overflow: visible;
+        }
+
+        .utvShieldBadge--featured {
           filter:
             drop-shadow(
-              0 5px 7px
+              0 6px 8px
               rgba(0,0,0,.48)
+            )
+            drop-shadow(
+              0 0 4px
+              rgba(84,239,208,.16)
             );
-
-          transition:
-            transform .2s ease,
-            filter .2s ease;
         }
 
-        /*
-         * PROFILE SIZE
-         */
-        .badge--md {
-          width: 58px;
-          height: 64px;
-        }
-
-        /*
-         * SMALL PATCH RACK
-         */
-        .badge--sm {
-          width: 46px;
-          height: 51px;
-        }
-
-        /*
-         * ONLY FOR COLLECTION /
-         * DETAIL VIEW
-         */
-        .badge--lg {
-          width: 94px;
-          height: 104px;
-        }
-
-        .metal {
-          position: absolute;
-          inset: 0;
-
-          padding: 2px;
-
-          border-radius:
-            17px 17px 19px 19px;
-
-          clip-path:
-            polygon(
-              50% 0%,
-              87% 9%,
-              100% 27%,
-              94% 70%,
-              76% 88%,
-              50% 100%,
-              24% 88%,
-              6% 70%,
-              0% 27%,
-              13% 9%
-            );
-
-          background:
-            linear-gradient(
-              145deg,
-              #fff1ba 0%,
-              #c99432 12%,
-              #684316 27%,
-              #f4da91 43%,
-              #8c6127 58%,
-              #eed184 76%,
-              #684414 100%
-            );
-
-          box-shadow:
-            inset 0 1px 1px
-              rgba(
-                255,
-                255,
-                255,
-                .75
-              ),
-            inset 0 -4px 7px
-              rgba(
-                37,
-                20,
-                2,
-                .5
-              );
-        }
-
-        .enamel {
-          position: absolute;
-          inset: 3px;
-
-          clip-path: inherit;
-
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-
-          background:
-            radial-gradient(
-              circle
-              at 34% 18%,
-              rgba(
-                255,
-                255,
-                255,
-                .10
-              ),
-              transparent
-              35%
-            ),
-            linear-gradient(
-              160deg,
-              #10161a 0%,
-              #06080b 47%,
-              #12101b 100%
-            );
-
-          box-shadow:
-            inset 0 0 0 1px
-              rgba(
-                255,
-                220,
-                145,
-                .20
-              ),
-            inset 0 0 12px
-              rgba(
-                85,
-                240,
-                205,
-                .07
-              );
-        }
-
-        .brand {
-          position: absolute;
-          top: 10px;
-
-          color: #77f0d5;
-
-          font-size: 6px;
-          font-weight: 1000;
-          letter-spacing: .22em;
-
-          text-shadow:
-            0 0 5px
-              rgba(
-                83,
-                240,
-                205,
-                .34
-              );
-        }
-
-        .mark {
-          margin-top: 1px;
-
-          color: #f8f8f5;
-
-          font-size: 21px;
-          line-height: 1;
-          font-weight: 1000;
-          letter-spacing: -.04em;
-
-          text-shadow:
-            0 1px 0
-              rgba(
-                255,
-                255,
-                255,
-                .12
-              ),
-            0 3px 6px
-              rgba(
-                0,
-                0,
-                0,
-                .65
-              );
-        }
-
-        .edition {
-          position: absolute;
-          bottom: 10px;
-
-          max-width: 80%;
-
-          overflow: hidden;
-          white-space: nowrap;
-
-          color:
-            rgba(
-              255,
-              255,
-              255,
-              .63
-            );
-
-          font-size: 4.5px;
-          font-weight: 900;
-          letter-spacing: .14em;
-        }
-
-        .serial {
-          position: absolute;
-          left: 50%;
-          bottom: -4px;
-
+        .utvShieldBadge:hover {
           transform:
-            translateX(-50%);
+            translateY(-2px)
+            scale(1.035);
+        }
 
-          min-width: 27px;
-
-          padding:
-            3px 5px 2px;
-
+        .utvShieldSweep {
+          position: absolute;
+          top: 5%;
+          left: -35%;
+          width: 18%;
+          height: 88%;
+          transform:
+            rotate(17deg);
           border-radius: 999px;
-
-          border:
-            1px solid
-            rgba(
-              238,
-              201,
-              116,
-              .50
-            );
-
-          background:
-            linear-gradient(
-              180deg,
-              #17130b,
-              #070706
-            );
-
-          color: #efd27c;
-
-          font-size: 6px;
-          line-height: 1;
-          font-weight: 1000;
-          letter-spacing: .12em;
-
-          text-align: center;
-
-          box-shadow:
-            0 2px 6px
-              rgba(
-                0,
-                0,
-                0,
-                .55
-              );
-        }
-
-        .shine {
-          position: absolute;
-
-          width: 15%;
-          height: 150%;
-
-          top: -24%;
-          left: -40%;
-
-          transform:
-            rotate(20deg);
-
+          pointer-events: none;
+          opacity: 0;
           background:
             linear-gradient(
               90deg,
@@ -425,121 +543,34 @@ export default function UTVBadgePatch({
                 255,
                 255,
                 255,
-                .65
+                .78
               ),
               transparent
             );
-
-          opacity: 0;
-
           animation:
-            badgeShine
-            5.5s
-            ease-in-out
+            utvShieldShine
+            6s ease-in-out
             infinite;
         }
 
-        .badge--featured {
-          filter:
-            drop-shadow(
-              0 5px 7px
-              rgba(
-                0,
-                0,
-                0,
-                .55
-              )
-            )
-            drop-shadow(
-              0 0 4px
-              rgba(
-                83,
-                240,
-                205,
-                .22
-              )
-            )
-            drop-shadow(
-              0 0 4px
-              rgba(
-                137,
-                103,
-                255,
-                .16
-              )
-            );
-        }
-
-        .badge:hover {
-          transform:
-            translateY(-2px)
-            scale(1.04);
-        }
-
-        /*
-         * Larger detail version
-         * gets more typography.
-         */
-
-        .badge--lg .brand {
-          top: 16px;
-          font-size: 8px;
-        }
-
-        .badge--lg .mark {
-          font-size: 34px;
-        }
-
-        .badge--lg .edition {
-          bottom: 16px;
-          font-size: 6px;
-        }
-
-        .badge--lg .serial {
-          bottom: -5px;
-          min-width: 36px;
-          font-size: 8px;
-          padding: 4px 7px 3px;
-        }
-
-        .badge--sm .brand {
-          top: 8px;
-          font-size: 5px;
-        }
-
-        .badge--sm .mark {
-          font-size: 16px;
-        }
-
-        .badge--sm .edition {
-          bottom: 8px;
-          font-size: 3.6px;
-        }
-
-        .badge--sm .serial {
-          bottom: -3px;
-          min-width: 23px;
-          font-size: 5px;
-          padding: 2px 4px;
-        }
-
-        @keyframes badgeShine {
-          0%, 62% {
-            left: -40%;
+        @keyframes
+        utvShieldShine {
+          0%, 68% {
+            left: -35%;
             opacity: 0;
           }
 
-          70% {
-            opacity: .60;
+          73% {
+            opacity: .55;
           }
 
-          84% {
-            left: 135%;
-            opacity: .15;
+          88% {
+            left: 118%;
+            opacity: .14;
           }
 
           100% {
-            left: 135%;
+            left: 118%;
             opacity: 0;
           }
         }
@@ -548,7 +579,7 @@ export default function UTVBadgePatch({
           prefers-reduced-motion:
           reduce
         ) {
-          .shine {
+          .utvShieldSweep {
             animation: none;
           }
         }
