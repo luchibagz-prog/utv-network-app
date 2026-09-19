@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import UTVCommandRoom from "../components/UTVCommandRoom";
 import { supabase } from "../../lib/supabaseClient";
 
 type StudioRow = Record<string, any>;
@@ -552,6 +553,7 @@ export default function CreatorStudioPage() {
   return (
     <main className="studioPage">
       <UTVNav />
+        <UTVCommandRoom mode="creator" />
 
       <section className="studioHero">
         <div className="heroIdentity">

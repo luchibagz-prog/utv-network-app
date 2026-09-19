@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import UTVCommandRoom from "../components/UTVCommandRoom";
 import { supabase } from "../../lib/supabaseClient";
 
 const FOUNDER_EMAIL = "luchibagz@gmail.com";
@@ -123,6 +124,7 @@ export default function FounderPage() {
   return (
     <main className="founderPage">
       <UTVNav />
+        <UTVCommandRoom mode="owner" />
 
       <style>{`
         .founderPage {
