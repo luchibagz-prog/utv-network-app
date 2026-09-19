@@ -73,6 +73,17 @@ const refreshTimerRef =
   const [deletingId, setDeletingId] =
     useState("");
 
+  const [actionMessage, setActionMessage] =
+    useState<MessageRow | null>(null);
+
+  const [deleteConfirm, setDeleteConfirm] =
+    useState(false);
+
+  const longPressTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+
+
+
   const [status, setStatus] =
     useState("");
 
@@ -596,9 +607,7 @@ const refreshTimerRef =
             "New Message",
 
           message:
-            `${viewerEmail.split(
-              "@"
-            )[0]} sent you a message.`,
+            "A UTV creator sent you a message.",
 
           is_read: false,
 
@@ -625,9 +634,7 @@ const refreshTimerRef =
             "New Message",
 
           message:
-            `${viewerEmail.split(
-              "@"
-            )[0]} sent you a message.`,
+            "A UTV creator sent you a message.",
 
           link:
             notificationLink,
@@ -653,6 +660,64 @@ const refreshTimerRef =
     );
   }
 
+  function openMessageActions(
+    message: MessageRow
+  ) {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    setDeleteConfirm(false);
+    setActionMessage(message);
+
+    try {
+      navigator.vibrate?.(18);
+    } catch {}
+  }
+
+
+  function startMessageLongPress(
+    message: MessageRow
+  ) {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+
+    longPressTimerRef.current =
+      setTimeout(() => {
+        openMessageActions(message);
+      }, 480);
+  }
+
+
+  function cancelMessageLongPress() {
+    if (!longPressTimerRef.current) {
+      return;
+    }
+
+    clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }
+
+
+  async function copyActionMessage() {
+    if (!actionMessage) return;
+
+    const body =
+      messageBody(actionMessage);
+
+    try {
+      await navigator.clipboard.writeText(body);
+      showStatus("Message copied.");
+      setActionMessage(null);
+      setDeleteConfirm(false);
+    } catch {
+      showStatus("Could not copy message.");
+    }
+  }
+
+
   async function deleteMessage(
     message: MessageRow
   ) {
@@ -666,17 +731,7 @@ const refreshTimerRef =
     ) {
       return;
     }
-
-    const confirmed =
-      window.confirm(
-        "Delete this message?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingId(
+setDeletingId(
       message.id
     );
 
@@ -720,6 +775,8 @@ const refreshTimerRef =
     }
 
     setDeletingId("");
+    setActionMessage(null);
+    setDeleteConfirm(false);
   }
 
   function openOtherProfile() {
@@ -796,7 +853,7 @@ const refreshTimerRef =
             <span>
               @
               {otherProfile?.username ||
-                otherEmail.split("@")[0]}
+                "creator"}
             </span>
           </div>
         </button>
@@ -937,6 +994,16 @@ const refreshTimerRef =
                           ? "messageBubble mineBubble"
                           : "messageBubble theirBubble"
                       }
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        openMessageActions(message);
+                      }}
+                      onPointerDown={() =>
+                        startMessageLongPress(message)
+                      }
+                      onPointerUp={cancelMessageLongPress}
+                      onPointerCancel={cancelMessageLongPress}
+                      onPointerLeave={cancelMessageLongPress}
                     >
                       <p>
                         {messageBody(message)}
@@ -958,28 +1025,24 @@ const refreshTimerRef =
                         )}
                       </div>
 
-                      {isMine &&
-                        !message.id.startsWith(
-                          "temporary-"
-                        ) && (
-                          <button
-                            className="deleteMessageButton"
-                            disabled={
-                              deletingId ===
-                              message.id
-                            }
-                            onClick={() =>
-                              deleteMessage(
-                                message
-                              )
-                            }
-                          >
-                            {deletingId ===
-                            message.id
-                              ? "Deleting..."
-                              : "🗑 Delete"}
-                          </button>
-                        )}
+                      {!message.id.startsWith(
+                        "temporary-"
+                      ) && (
+                        <button
+                          type="button"
+                          className="messageMoreButton"
+                          aria-label="Message actions"
+                          onPointerDown={(event) =>
+                            event.stopPropagation()
+                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openMessageActions(message);
+                          }}
+                        >
+                          •••
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -996,6 +1059,101 @@ const refreshTimerRef =
 
         <div ref={bottomRef} />
       </section>
+
+      {actionMessage && (
+        <div
+          className="messageActionBackdrop"
+          onClick={() => {
+            setActionMessage(null);
+            setDeleteConfirm(false);
+          }}
+        >
+          <section
+            className="messageActionSheet"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="messageActionHandle" />
+
+            <div className="messageActionPreview">
+              <small>
+                {actionMessage.sender_email === viewerEmail
+                  ? "YOUR MESSAGE"
+                  : otherName.toUpperCase()}
+              </small>
+
+              <p>{messageBody(actionMessage)}</p>
+            </div>
+
+            <button
+              type="button"
+              className="messageSheetAction"
+              onClick={() =>
+                void copyActionMessage()
+              }
+            >
+              <span>⧉</span>
+              <div>
+                <strong>Copy</strong>
+                <small>Copy message text</small>
+              </div>
+              <b>›</b>
+            </button>
+
+            {actionMessage.sender_email === viewerEmail &&
+              !actionMessage.id.startsWith("temporary-") && (
+                <button
+                  type="button"
+                  className={
+                    deleteConfirm
+                      ? "messageSheetAction danger confirm"
+                      : "messageSheetAction danger"
+                  }
+                  disabled={
+                    deletingId === actionMessage.id
+                  }
+                  onClick={() => {
+                    if (!deleteConfirm) {
+                      setDeleteConfirm(true);
+                      return;
+                    }
+
+                    void deleteMessage(actionMessage);
+                  }}
+                >
+                  <span>⌫</span>
+                  <div>
+                    <strong>
+                      {deletingId === actionMessage.id
+                        ? "Deleting…"
+                        : deleteConfirm
+                          ? "Tap again to delete"
+                          : "Delete"}
+                    </strong>
+                    <small>
+                      {deleteConfirm
+                        ? "This cannot be undone"
+                        : "Remove this message"}
+                    </small>
+                  </div>
+                  <b>›</b>
+                </button>
+              )}
+
+            <button
+              type="button"
+              className="messageSheetCancel"
+              onClick={() => {
+                setActionMessage(null);
+                setDeleteConfirm(false);
+              }}
+            >
+              Cancel
+            </button>
+          </section>
+        </div>
+      )}
 
       <footer className="messageComposer">
         <button
@@ -1293,18 +1451,176 @@ const styles = `
     font-size: 8px;
     font-weight: 850;
   }
-      .deleteMessageButton {
+  .messageMoreButton {
     position: absolute;
-    right: 0;
-    bottom: calc(100% + 7px);
-    padding: 8px 11px;
-    color: #ff7b82;
-    border: 1px solid rgba(255,255,255,.13);
+    top: 5px;
+    right: 6px;
+    min-width: 28px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    padding: 0 5px;
+    border: 0;
+    border-radius: 999px;
+    color: rgba(255,255,255,.58);
+    background: rgba(0,0,0,.13);
+    font-size: 12px;
+    font-weight: 1000;
+    letter-spacing: 1px;
+    opacity: .68;
+  }
+
+  .mineBubble .messageMoreButton {
+    color: rgba(4,15,12,.62);
+    background: rgba(255,255,255,.14);
+  }
+
+  .messageActionBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1800;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 18px 12px calc(92px + env(safe-area-inset-bottom));
+    background: rgba(0,0,0,.58);
+    backdrop-filter: blur(10px);
+  }
+
+  .messageActionSheet {
+    width: min(520px,100%);
+    overflow: hidden;
+    padding: 8px 10px 10px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 27px;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(82,247,200,.11), transparent 28%),
+      radial-gradient(circle at 90% 0%, rgba(123,97,255,.16), transparent 32%),
+      rgba(7,11,18,.985);
+    box-shadow: 0 28px 70px rgba(0,0,0,.58);
+    animation: utvMessageSheetIn .18s ease-out;
+  }
+
+  .messageActionHandle {
+    width: 42px;
+    height: 5px;
+    margin: 2px auto 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.24);
+  }
+
+  .messageActionPreview {
+    margin: 0 4px 8px;
+    padding: 13px 14px;
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 18px;
+    background: rgba(255,255,255,.045);
+  }
+
+  .messageActionPreview small {
+    display: block;
+    margin-bottom: 5px;
+    color: #52f7c8;
+    font-size: 8px;
+    font-weight: 1000;
+    letter-spacing: 1.2px;
+  }
+
+  .messageActionPreview p {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 0;
+    color: rgba(255,255,255,.76);
+    font-size: 13px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .messageSheetAction {
+    width: 100%;
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: 38px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 17px;
+    color: white;
+    background: transparent;
+    text-align: left;
+  }
+
+  .messageSheetAction:active {
+    background: rgba(255,255,255,.075);
+  }
+
+  .messageSheetAction > span {
+    width: 35px;
+    height: 35px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(82,247,200,.15);
     border-radius: 12px;
-    background: #121722;
-    box-shadow: 0 10px 25px rgba(0,0,0,.4);
-    font-size: 11px;
+    background: rgba(82,247,200,.08);
+    font-size: 17px;
+  }
+
+  .messageSheetAction strong,
+  .messageSheetAction small {
+    display: block;
+  }
+
+  .messageSheetAction strong {
+    font-size: 13px;
+  }
+
+  .messageSheetAction small {
+    margin-top: 2px;
+    color: rgba(255,255,255,.43);
+    font-size: 9px;
+  }
+
+  .messageSheetAction > b {
+    color: rgba(255,255,255,.3);
+    font-size: 18px;
+  }
+
+  .messageSheetAction.danger {
+    color: #ff8188;
+  }
+
+  .messageSheetAction.danger > span {
+    color: #ff8188;
+    border-color: rgba(255,83,96,.15);
+    background: rgba(255,83,96,.08);
+  }
+
+  .messageSheetAction.danger.confirm {
+    background: rgba(255,70,82,.09);
+  }
+
+  .messageSheetCancel {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 6px;
+    border: 0;
+    border-radius: 16px;
+    color: rgba(255,255,255,.7);
+    background: rgba(255,255,255,.055);
     font-weight: 900;
+  }
+
+  @keyframes utvMessageSheetIn {
+    from {
+      opacity: 0;
+      transform: translateY(22px) scale(.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
   .seenDivider {

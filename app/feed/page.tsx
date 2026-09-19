@@ -9394,4 +9394,158 @@ const styles = `
   }
 }
 
+
+
+/* =========================================================
+   UTV FEED AURA V2 — PREMIUM DEPTH WITHOUT CHANGING LOGIC
+   ========================================================= */
+
+[data-utv-page="feed"],
+.feedPage {
+  position: relative;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(82,247,200,.09), transparent 22%),
+    radial-gradient(circle at 86% 13%, rgba(123,97,255,.105), transparent 24%),
+    radial-gradient(circle at 50% 62%, rgba(60,120,255,.045), transparent 32%),
+    linear-gradient(180deg,#03090d 0%,#03060b 46%,#020408 100%) !important;
+}
+
+.utvHomePulse {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-top: 1px solid rgba(82,247,200,.09);
+  border-bottom: 1px solid rgba(123,97,255,.08);
+  background: linear-gradient(180deg,rgba(4,11,14,.82),rgba(4,7,12,.9));
+}
+
+.utvHomePulse::before {
+  content: "";
+  position: absolute;
+  inset: -70% 22% auto -12%;
+  z-index: -1;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(circle,rgba(82,247,200,.14),transparent 68%);
+  filter: blur(18px);
+  animation: utvAuraDrift 7s ease-in-out infinite alternate;
+}
+
+.utvHomePulseDot {
+  box-shadow:
+    0 0 0 4px rgba(82,247,200,.07),
+    0 0 17px rgba(82,247,200,.72);
+  animation: utvPulseBeacon 2.2s ease-in-out infinite;
+}
+
+.utvPulseCard {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255,255,255,.105) !important;
+  background: linear-gradient(155deg,rgba(255,255,255,.065),rgba(255,255,255,.025)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    0 13px 30px rgba(0,0,0,.16);
+  backdrop-filter: blur(16px);
+  transition: transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+
+.utvPulseCard::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  right: -56px;
+  bottom: -70px;
+  border-radius: 50%;
+  background: radial-gradient(circle,rgba(123,97,255,.14),transparent 70%);
+  pointer-events: none;
+}
+
+.utvPulseCard:active {
+  transform: translateY(1px) scale(.985);
+  border-color: rgba(82,247,200,.25) !important;
+}
+
+.feedPost {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  background: linear-gradient(180deg,rgba(6,10,15,.98),rgba(3,6,10,.98));
+  box-shadow: 0 14px 44px rgba(0,0,0,.22);
+}
+
+.feedPost::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -1px -1px auto;
+  height: 48%;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(125deg,rgba(82,247,200,.055),transparent 36%,rgba(123,97,255,.055));
+  opacity: .85;
+}
+
+.feedPost::after {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  left: 9%;
+  right: 9%;
+  bottom: -14px;
+  height: 28px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(90deg,rgba(82,247,200,.07),rgba(123,97,255,.09));
+  filter: blur(18px);
+}
+
+.storyButton {
+  transition: transform .18s ease,filter .18s ease;
+}
+
+.storyButton:active {
+  transform: scale(.965);
+}
+
+.postCreator h3 {
+  letter-spacing: -.012em;
+  text-shadow: 0 0 22px rgba(255,255,255,.045);
+}
+
+.postMenuPanel {
+  backdrop-filter: blur(22px);
+  box-shadow: 0 18px 46px rgba(0,0,0,.5) !important;
+}
+
+@keyframes utvAuraDrift {
+  from {
+    transform: translate3d(-2%,0,0) scale(.96);
+    opacity: .7;
+  }
+  to {
+    transform: translate3d(18%,8%,0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes utvPulseBeacon {
+  0%,100% {
+    transform: scale(.92);
+    opacity: .72;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .utvHomePulse::before,
+  .utvHomePulseDot {
+    animation: none;
+  }
+}
+
 `;

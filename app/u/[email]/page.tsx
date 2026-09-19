@@ -31,356 +31,207 @@ function PremiumOGBadge({
   number: number;
 }) {
   const badgeNumber =
-    String(number).padStart(
-      3,
-      "0"
-    );
+    String(number).padStart(3, "0");
 
   return (
     <span
-      className="premiumOgSvgBadge"
-      aria-label={`UTV Original 100 member #${badgeNumber}`}
+      className="utvFoundingOg"
+      aria-label={`UTV Original 100 founding member #${badgeNumber}`}
       title={`UTV OG #${badgeNumber}`}
     >
       <svg
-        viewBox="0 0 124 144"
+        viewBox="0 0 180 210"
         role="img"
         aria-hidden="true"
       >
         <defs>
-          <linearGradient
-            id="utvOgOuterGold"
-            x1="18"
-            y1="7"
-            x2="105"
-            y2="136"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop
-              offset="0"
-              stopColor="#fff3a3"
-            />
-            <stop
-              offset=".16"
-              stopColor="#d79b22"
-            />
-            <stop
-              offset=".36"
-              stopColor="#6e430a"
-            />
-            <stop
-              offset=".57"
-              stopColor="#2c1903"
-            />
-            <stop
-              offset=".76"
-              stopColor="#aa7214"
-            />
-            <stop
-              offset=".9"
-              stopColor="#ffd85c"
-            />
-            <stop
-              offset="1"
-              stopColor="#7e500d"
-            />
+          <linearGradient id="ogOuter" x1="22" y1="8" x2="154" y2="196" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#fffbd2" />
+            <stop offset=".08" stopColor="#f8d86b" />
+            <stop offset=".22" stopColor="#8e5710" />
+            <stop offset=".38" stopColor="#2b1702" />
+            <stop offset=".52" stopColor="#ffdf73" />
+            <stop offset=".67" stopColor="#6b3d07" />
+            <stop offset=".82" stopColor="#f2c64d" />
+            <stop offset="1" stopColor="#5e3507" />
           </linearGradient>
 
-          <linearGradient
-            id="utvOgInner"
-            x1="35"
-            y1="22"
-            x2="88"
-            y2="124"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop
-              offset="0"
-              stopColor="#191610"
-            />
-            <stop
-              offset=".52"
-              stopColor="#070706"
-            />
-            <stop
-              offset="1"
-              stopColor="#171006"
-            />
+          <linearGradient id="ogBevel" x1="40" y1="20" x2="130" y2="182" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#2a220f" />
+            <stop offset=".42" stopColor="#070806" />
+            <stop offset=".75" stopColor="#121009" />
+            <stop offset="1" stopColor="#2c1c06" />
           </linearGradient>
 
-          <linearGradient
-            id="utvOgCrown"
-            x1="40"
-            y1="23"
-            x2="84"
-            y2="58"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop
-              offset="0"
-              stopColor="#fff7c1"
-            />
-            <stop
-              offset=".28"
-              stopColor="#ffd454"
-            />
-            <stop
-              offset=".58"
-              stopColor="#a86708"
-            />
-            <stop
-              offset=".82"
-              stopColor="#f5c54d"
-            />
-            <stop
-              offset="1"
-              stopColor="#fff2a0"
-            />
+          <linearGradient id="ogMintPurple" x1="40" y1="65" x2="140" y2="126" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#52f7c8" />
+            <stop offset=".52" stopColor="#83f0f4" />
+            <stop offset="1" stopColor="#8b6dff" />
           </linearGradient>
 
-          <radialGradient
-            id="utvOgGlow"
-            cx="0"
-            cy="0"
-            r="1"
-            gradientTransform="translate(62 30) rotate(90) scale(72 58)"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop
-              stopColor="#ffd75a"
-              stopOpacity=".22"
-            />
-            <stop
-              offset=".64"
-              stopColor="#ffd75a"
-              stopOpacity=".035"
-            />
-            <stop
-              offset="1"
-              stopColor="#ffd75a"
-              stopOpacity="0"
-            />
+          <linearGradient id="ogCrown" x1="58" y1="39" x2="120" y2="86" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#fffbd2" />
+            <stop offset=".22" stopColor="#ffe16f" />
+            <stop offset=".55" stopColor="#a86a08" />
+            <stop offset=".8" stopColor="#f6cd55" />
+            <stop offset="1" stopColor="#fff0a4" />
+          </linearGradient>
+
+          <radialGradient id="ogCoreGlow" cx="0" cy="0" r="1"
+            gradientTransform="translate(90 84) rotate(90) scale(95 82)"
+            gradientUnits="userSpaceOnUse">
+            <stop stopColor="#f3c94f" stopOpacity=".18" />
+            <stop offset=".55" stopColor="#52f7c8" stopOpacity=".055" />
+            <stop offset="1" stopColor="#7b61ff" stopOpacity="0" />
           </radialGradient>
 
-          <filter
-            id="utvOgShadow"
-            x="-25%"
-            y="-20%"
-            width="150%"
-            height="160%"
-          >
-            <feDropShadow
-              dx="0"
-              dy="7"
-              stdDeviation="6"
-              floodColor="#000"
-              floodOpacity=".6"
-            />
+          <filter id="ogDrop" x="-35%" y="-28%" width="170%" height="180%">
+            <feDropShadow dx="0" dy="12" stdDeviation="9" floodColor="#000" floodOpacity=".72" />
           </filter>
 
-          <filter
-            id="utvOgMetalGlow"
-            x="-30%"
-            y="-30%"
-            width="160%"
-            height="160%"
-          >
-            <feGaussianBlur
-              stdDeviation="1.2"
-              result="blur"
-            />
-
+          <filter id="ogGoldGlow" x="-35%" y="-35%" width="170%" height="170%">
+            <feGaussianBlur stdDeviation="1.7" result="g" />
             <feMerge>
-              <feMergeNode
-                in="blur"
-              />
-              <feMergeNode
-                in="SourceGraphic"
-              />
+              <feMergeNode in="g" />
+              <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
         </defs>
 
-        <g
-          filter="url(#utvOgShadow)"
-        >
+        <g filter="url(#ogDrop)">
           <path
-            d="
-              M62 3
-              L108 18
-              L118 58
-              C116 94 95 123 62 140
-              C29 123 8 94 6 58
-              L16 18
-              Z
-            "
-            fill="url(#utvOgOuterGold)"
+            d="M90 4 151 24 168 73 158 132 129 174 90 204 51 174 22 132 12 73 29 24Z"
+            fill="url(#ogOuter)"
           />
 
           <path
-            d="
-              M62 10
-              L102 23
-              L111 60
-              C108 90 91 114 62 131
-              C33 114 16 90 13 60
-              L22 23
-              Z
-            "
-            fill="#0a0906"
-            stroke="#f0bb42"
-            strokeWidth="1.4"
+            d="M90 12 145 30 159 75 150 126 124 165 90 191 56 165 30 126 21 75 35 30Z"
+            fill="#090905"
+            stroke="#f2c84f"
+            strokeWidth="1.6"
           />
 
           <path
-            d="
-              M62 15
-              L97 27
-              L104 61
-              C102 85 87 107 62 122
-              C37 107 22 85 20 61
-              L27 27
-              Z
-            "
-            fill="url(#utvOgInner)"
-            stroke="#6e4710"
+            d="M90 20 138 36 150 77 142 121 118 155 90 178 62 155 38 121 30 77 42 36Z"
+            fill="url(#ogBevel)"
+            stroke="#765019"
             strokeWidth="1"
           />
 
           <path
-            d="
-              M62 15
-              L97 27
-              L104 61
-              C102 85 87 107 62 122
-              C37 107 22 85 20 61
-              L27 27
-              Z
-            "
-            fill="url(#utvOgGlow)"
+            d="M90 20 138 36 150 77 142 121 118 155 90 178 62 155 38 121 30 77 42 36Z"
+            fill="url(#ogCoreGlow)"
           />
 
-          <path
-            d="
-              M39 37
-              L47 42
-              L53 28
-              L62 39
-              L71 28
-              L77 42
-              L85 37
-              L81 55
-              H43
-              Z
-            "
-            fill="url(#utvOgCrown)"
-            stroke="#fff0a0"
-            strokeWidth="1.2"
-            strokeLinejoin="round"
-            filter="url(#utvOgMetalGlow)"
-          />
-
-          <circle
-            cx="53"
-            cy="27"
-            r="2.2"
-            fill="#fff2a3"
-          />
-
-          <circle
-            cx="71"
-            cy="27"
-            r="2.2"
-            fill="#fff2a3"
-          />
-
-          <circle
-            cx="39"
-            cy="36"
-            r="2"
-            fill="#ffd65a"
-          />
-
-          <circle
-            cx="85"
-            cy="36"
-            r="2"
-            fill="#ffd65a"
-          />
-
-          <path
-            d="M43 50H81"
-            stroke="#fff4b5"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            opacity=".7"
-          />
+          <path d="M37 51 50 42" stroke="#52f7c8" strokeWidth="3" strokeLinecap="round" opacity=".8" />
+          <path d="M130 42 143 51" stroke="#8b6dff" strokeWidth="3" strokeLinecap="round" opacity=".8" />
+          <circle cx="37" cy="52" r="4" fill="#52f7c8" opacity=".92" />
+          <circle cx="143" cy="52" r="4" fill="#8b6dff" opacity=".92" />
 
           <text
-            x="62"
-            y="72"
+            x="90"
+            y="132"
             textAnchor="middle"
-            fill="#d3aa53"
-            fontSize="6.4"
-            fontWeight="800"
-            letterSpacing="2.2"
+            fill="url(#ogMintPurple)"
+            opacity=".09"
+            fontSize="94"
+            fontWeight="1000"
+            fontFamily="Arial Black, Arial, sans-serif"
+          >
+            U
+          </text>
+
+          <path
+            d="M55 61 66 68 75 47 90 64 105 47 114 68 125 61 119 84H61Z"
+            fill="url(#ogCrown)"
+            stroke="#fff4b4"
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+            filter="url(#ogGoldGlow)"
+          />
+
+          <circle cx="75" cy="46" r="2.8" fill="#fff1a0" />
+          <circle cx="105" cy="46" r="2.8" fill="#fff1a0" />
+          <circle cx="55" cy="60" r="2.4" fill="#ffd857" />
+          <circle cx="125" cy="60" r="2.4" fill="#ffd857" />
+
+          <text
+            x="90"
+            y="101"
+            textAnchor="middle"
+            fill="#d8b45c"
+            fontSize="7.5"
+            fontWeight="900"
+            letterSpacing="3"
             fontFamily="Arial, Helvetica, sans-serif"
           >
             ORIGINAL 100
           </text>
 
           <text
-            x="62"
-            y="91"
+            x="90"
+            y="126"
             textAnchor="middle"
-            fill="#fff7d1"
-            fontSize="17"
-            fontWeight="900"
-            letterSpacing=".8"
-            fontFamily="Arial, Helvetica, sans-serif"
+            fill="#fff9d7"
+            fontSize="24"
+            fontWeight="1000"
+            letterSpacing="1.4"
+            fontFamily="Arial Black, Arial, sans-serif"
           >
             UTV OG
           </text>
 
-          <path
-            d="M37 99H87"
-            stroke="#8f651b"
-            strokeWidth=".8"
-            opacity=".75"
+          <path d="M51 138H129" stroke="#7b5416" strokeWidth="1" opacity=".92" />
+
+          <text
+            x="90"
+            y="154"
+            textAnchor="middle"
+            fill="#52f7c8"
+            fontSize="6.4"
+            fontWeight="900"
+            letterSpacing="2.4"
+            fontFamily="Arial, Helvetica, sans-serif"
+          >
+            FOUNDING MEMBER
+          </text>
+
+          <rect
+            x="59"
+            y="164"
+            width="62"
+            height="21"
+            rx="10.5"
+            fill="#0a0a08"
+            stroke="#c8962b"
+            strokeWidth="1"
           />
 
           <text
-            x="62"
-            y="114"
+            x="90"
+            y="178.5"
             textAnchor="middle"
-            fill="#f5c951"
-            fontSize="10"
-            fontWeight="900"
+            fill="#f8d765"
+            fontSize="11"
+            fontWeight="1000"
             letterSpacing="1.5"
-            fontFamily="Arial, Helvetica, sans-serif"
+            fontFamily="Arial Black, Arial, sans-serif"
           >
-            #{badgeNumber}
+            {badgeNumber}/100
           </text>
 
           <path
-            d="
-              M30 31
-              C48 16 77 14 95 28
-            "
+            d="M43 39C69 19 112 18 139 39"
             fill="none"
-            stroke="#fff8c7"
-            strokeWidth="1.2"
+            stroke="#fffbd2"
+            strokeWidth="1.5"
             strokeLinecap="round"
-            opacity=".28"
+            opacity=".34"
           />
-
           <path
-            d="
-              M25 66
-              C30 93 44 110 62 120
-            "
+            d="M33 83C39 129 60 158 90 176"
             fill="none"
-            stroke="#fff0a1"
+            stroke="#fff4af"
             strokeWidth="1"
             strokeLinecap="round"
             opacity=".15"
@@ -388,35 +239,117 @@ function PremiumOGBadge({
         </g>
       </svg>
 
+      <span className="utvOgSpark utvOgSparkOne" />
+      <span className="utvOgSpark utvOgSparkTwo" />
+
       <style jsx>{`
-        .premiumOgSvgBadge {
-          width: 92px;
-          height: 106px;
-          flex: 0 0 92px;
+        .utvFoundingOg {
+          position: relative;
+          width: 108px;
+          height: 126px;
+          flex: 0 0 108px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          isolation: isolate;
           filter:
-            drop-shadow(
-              0 10px 18px
-              rgba(0,0,0,.5)
-            );
+            drop-shadow(0 16px 22px rgba(0,0,0,.52))
+            drop-shadow(0 0 16px rgba(241,191,54,.14));
         }
 
-        .premiumOgSvgBadge svg {
+        .utvFoundingOg svg {
           width: 100%;
           height: 100%;
           display: block;
           overflow: visible;
         }
 
-        @media (
-          max-width: 430px
-        ) {
-          .premiumOgSvgBadge {
-            width: 86px;
-            height: 99px;
-            flex-basis: 86px;
+        .utvFoundingOg::after {
+          content: "";
+          position: absolute;
+          inset: 5% 10% 9%;
+          pointer-events: none;
+          background:
+            linear-gradient(
+              112deg,
+              transparent 22%,
+              rgba(255,255,255,0) 38%,
+              rgba(255,247,194,.35) 49%,
+              rgba(255,255,255,0) 59%,
+              transparent 76%
+            );
+          transform: translateX(-150%) rotate(-2deg);
+          animation: utvOgSweep 4.8s ease-in-out infinite;
+          mix-blend-mode: screen;
+          clip-path:
+            polygon(
+              50% 0,
+              95% 14%,
+              100% 58%,
+              78% 88%,
+              50% 100%,
+              22% 88%,
+              0 58%,
+              5% 14%
+            );
+          opacity: .7;
+        }
+
+        .utvOgSpark {
+          position: absolute;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: #fff6b4;
+          box-shadow:
+            0 0 8px #f8d75c,
+            0 0 14px rgba(82,247,200,.5);
+          animation: utvOgSpark 3.2s ease-in-out infinite;
+        }
+
+        .utvOgSparkOne {
+          top: 18%;
+          right: 10%;
+        }
+
+        .utvOgSparkTwo {
+          left: 13%;
+          bottom: 28%;
+          animation-delay: 1.25s;
+        }
+
+        @keyframes utvOgSweep {
+          0%, 56% {
+            transform: translateX(-160%) rotate(-2deg);
+          }
+          74%, 100% {
+            transform: translateX(160%) rotate(-2deg);
+          }
+        }
+
+        @keyframes utvOgSpark {
+          0%, 100% {
+            opacity: .18;
+            transform: scale(.7);
+          }
+          45% {
+            opacity: 1;
+            transform: scale(1.45);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .utvFoundingOg::after,
+          .utvOgSpark {
+            animation: none;
+          }
+        }
+
+        @media (max-width: 430px) {
+          .utvFoundingOg {
+            width: 100px;
+            height: 117px;
+            flex-basis: 100px;
           }
         }
       `}</style>
