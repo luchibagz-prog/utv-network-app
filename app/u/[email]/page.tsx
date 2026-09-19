@@ -35,7 +35,7 @@ function PremiumOGBadge({
 
   return (
     <span
-      className="utvFoundingOg"
+      className="utvRealOgBadge"
       aria-label={`UTV Original 100 founding member #${badgeNumber}`}
       title={`UTV OG #${badgeNumber}`}
     >
@@ -338,7 +338,128 @@ function PremiumOGBadge({
           }
         }
 
-        @media (prefers-reduced-motion: reduce) {
+        
+/* =========================================================
+   UTV OG — FIRST 100 LIVE COLLECTIBLE POLISH
+   Gold prestige + UTV cyan/purple energy
+   ========================================================= */
+
+.utvRealOgBadge {
+  width: 76px !important;
+  height: 89px !important;
+  flex: 0 0 76px !important;
+  margin-left: 5px !important;
+
+  filter:
+    drop-shadow(0 10px 10px rgba(0,0,0,.68))
+    drop-shadow(0 0 8px rgba(70,244,210,.42))
+    drop-shadow(0 0 13px rgba(128,91,255,.30))
+    drop-shadow(0 0 5px rgba(255,207,76,.38)) !important;
+
+  transition:
+    transform .25s ease,
+    filter .25s ease !important;
+}
+
+.utvRealOgBadge svg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+
+/* UTV energy halo */
+.utvRealOgBadge::before {
+  content: "" !important;
+  position: absolute !important;
+  z-index: -2 !important;
+
+  width: 82% !important;
+  height: 74% !important;
+  left: 9% !important;
+  top: 13% !important;
+
+  border-radius: 50% !important;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(86,247,207,.25) 0%,
+      rgba(112,113,255,.15) 42%,
+      transparent 72%
+    ) !important;
+
+  filter: blur(8px) !important;
+  animation: utvOgEnergyPulse 2.7s ease-in-out infinite !important;
+}
+
+/* small premium sparkle */
+.utvRealOgBadge::after {
+  content: "✦" !important;
+  position: absolute !important;
+  z-index: 20 !important;
+
+  top: 3px !important;
+  right: 2px !important;
+
+  color: #ffffff !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+
+  text-shadow:
+    0 0 4px #ffffff,
+    0 0 8px #55f4d2,
+    0 0 12px #8b6dff !important;
+
+  animation: utvOgSpark 2.15s ease-in-out infinite !important;
+}
+
+.utvRealOgBadge:hover {
+  transform:
+    perspective(650px)
+    rotateX(0deg)
+    rotateY(0deg)
+    translateY(-3px)
+    scale(1.05) !important;
+
+  filter:
+    drop-shadow(0 12px 12px rgba(0,0,0,.72))
+    drop-shadow(0 0 11px rgba(70,244,210,.62))
+    drop-shadow(0 0 18px rgba(128,91,255,.48))
+    drop-shadow(0 0 8px rgba(255,207,76,.55)) !important;
+}
+
+@keyframes utvOgEnergyPulse {
+  0%,100% {
+    opacity: .62;
+    transform: scale(.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes utvOgSpark {
+  0%,100% {
+    opacity: .28;
+    transform: scale(.70) rotate(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.18) rotate(18deg);
+  }
+
+  62% {
+    opacity: .62;
+    transform: scale(.92) rotate(27deg);
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
           .utvFoundingOg::after,
           .utvOgSpark {
             animation: none;
