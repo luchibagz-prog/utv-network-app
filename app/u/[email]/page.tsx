@@ -1,6 +1,7 @@
 "use client";
 
 import UTVBadgePatch from "../../components/badges/UTVBadgePatch";
+import UTVRoleChip from "../../components/badges/UTVRoleChip";
 
 /* UTV PROFILE POLISH 1A1 */
 
@@ -1434,40 +1435,7 @@ export default function PublicProfile() {
                 }}
               >
                 {utvBadge.is_ceo && (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      minHeight: "27px",
-                      padding: "6px 10px",
-                      borderRadius: "999px",
-                      border: "1px solid rgba(255,211,92,.58)",
-                      color: "#fff4bc",
-                      background:
-                        "linear-gradient(135deg, rgba(157,101,16,.96), rgba(48,29,5,.97))",
-                      boxShadow:
-                        "0 6px 20px rgba(255,177,30,.18), inset 0 1px 0 rgba(255,255,255,.18)",
-                      fontSize: "10px",
-                      fontWeight: 900,
-                      letterSpacing: ".7px",
-                      lineHeight: 1,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: "#ffd76a",
-                        fontSize: "13px",
-                        textShadow:
-                          "0 0 10px rgba(255,207,78,.65)",
-                      }}
-                    >
-                      ♛
-                    </span>
-
-                    CEO
-                  </span>
+                  <UTVRoleChip role="CEO" />
                 )}
 
                 {utvBadge.og_number &&

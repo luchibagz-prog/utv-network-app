@@ -206,7 +206,7 @@ export default function UTVBadgePatch({
           >
             <stop
               offset="0"
-              stopColor="#16283a"
+              stopColor="#182d42"
             />
             <stop
               offset=".32"
@@ -232,7 +232,7 @@ export default function UTVBadgePatch({
           >
             <stop
               offset="0"
-              stopColor="#fff6c7"
+              stopColor="#fff9d8"
             />
             <stop
               offset=".22"
@@ -344,6 +344,80 @@ export default function UTVBadgePatch({
           "
           fill={`url(#face-${badgeKey})`}
         />
+
+
+        {/* UTV_SHIELD_DETAIL_V2 */}
+
+        {/* precision inner metal keyline */}
+        <path
+          d="
+            M50 16
+            L77 23
+            Q82 25 82 31
+            L79 62
+            Q77 76 50 91
+            Q23 76 21 62
+            L18 31
+            Q18 25 23 23
+            Z
+          "
+          fill="none"
+          stroke="#d9b85e"
+          strokeWidth=".55"
+          opacity=".48"
+        />
+
+        {/* dark engraved inner keyline */}
+        <path
+          d="
+            M50 18
+            L75 25
+            Q79 26 79.5 32
+            L77 60
+            Q75 73 50 87
+            Q25 73 23 60
+            L20.5 32
+            Q21 26 25 25
+            Z
+          "
+          fill="none"
+          stroke="#000000"
+          strokeWidth=".7"
+          opacity=".75"
+        />
+
+        {/* tiny UTV identity jewels */}
+        <circle
+          cx="25"
+          cy="29"
+          r="1.15"
+          fill="#59efd0"
+          opacity=".92"
+        />
+
+        <circle
+          cx="75"
+          cy="29"
+          r="1.15"
+          fill="#866cff"
+          opacity=".92"
+        />
+
+        {/* micro brushed-metal highlights */}
+        <path
+          d="M15 39 L13.5 56"
+          stroke="#fff0ba"
+          strokeWidth=".65"
+          opacity=".42"
+        />
+
+        <path
+          d="M85 39 L86.5 56"
+          stroke="#fff0ba"
+          strokeWidth=".65"
+          opacity=".28"
+        />
+
 
         {/* UTV cyan/purple identity accent */}
         <path
@@ -479,8 +553,8 @@ export default function UTVBadgePatch({
          * PROFILE STAMP
          */
         .utvShieldBadge--md {
-          width: 56px;
-          height: 63px;
+          width: 59px;
+          height: 66px;
         }
 
         /*
