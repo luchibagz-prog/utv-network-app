@@ -117,7 +117,7 @@ const ownerActions: Action[] = [
     icon: "watch",
     title: "Watch Control",
     sub: "Feature movies & shows",
-    href: "/watch/manage",
+    href: "/founder#watch-control",
     accent: "mint",
     primary: true,
   },
