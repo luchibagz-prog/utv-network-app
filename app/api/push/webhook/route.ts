@@ -122,7 +122,7 @@ async function copyFromWebhook(
       link: record.room_id
         ? `/walkie/${encodeURIComponent(record.room_id)}`
         : "/walkie",
-      tag: `walkie-${record.room_id || record.id || Date.now()}`,
+      tag: `utv-walkie-${record.room_id || record.id || Date.now()}`,
     };
   }
 
@@ -158,7 +158,7 @@ async function copyFromWebhook(
       link: record.id
         ? `/calls?incoming=${encodeURIComponent(record.id)}`
         : "/calls",
-      tag: `call-${record.id || Date.now()}`,
+      tag: `utv-call-${record.id || Date.now()}`,
     };
   }
 

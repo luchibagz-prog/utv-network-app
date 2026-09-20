@@ -693,12 +693,25 @@ export default function CallsPage() {
       }
 
       /*
-       * Do NOT manually send another push here.
+       * UTV CONNECT STABILITY CORE
        *
-       * The call_sessions webhook is the one
-       * authoritative push source for the
-       * primary receiver.
+       * Deliver the primary incoming-call push directly
+       * from the authenticated caller action. This makes
+       * ringing work even if the database webhook is late
+       * or temporarily unavailable. The notification tag
+       * is call-id based, so duplicate sources collapse.
        */
+      void sendUTVPush({
+        recipientEmail: cleanTarget,
+        event:
+          type === "video"
+            ? "video_call"
+            : "audio_call",
+        url:
+          `/calls?incoming=${encodeURIComponent(id)}`,
+        callId: id,
+      });
+
       try {
         navigator.vibrate?.(
           [45, 40, 45]
@@ -945,12 +958,22 @@ export default function CallsPage() {
       }
 
       /*
-       * The call_sessions webhook sends the
-       * primary receiver exactly one push.
-       *
-       * Extra group seats need their own push
-       * because they are stored in call_members.
+       * Primary group receiver gets the same reliable
+       * direct push path as a 1-to-1 call. Extra group
+       * seats are stored in call_members and get their
+       * own push below.
        */
+      void sendUTVPush({
+        recipientEmail: primary.email,
+        event:
+          type === "video"
+            ? "video_call"
+            : "audio_call",
+        url:
+          `/calls?incoming=${encodeURIComponent(id)}`,
+        callId: id,
+      });
+
       for (
         const person
         of unique.slice(1)

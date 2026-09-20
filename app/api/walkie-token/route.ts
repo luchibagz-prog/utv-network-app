@@ -144,8 +144,9 @@ export async function POST(request: NextRequest) {
       livekitKey,
       livekitSecret,
       {
-        identity:
-          `${user.id}-${crypto.randomUUID().slice(0, 8)}`,
+        // Stable identity prevents duplicate Walkie ghosts
+        // after a reconnect or quick app reload.
+        identity: `utv-${user.id}`,
         name: user.email.split("@")[0],
         metadata: JSON.stringify({
           email: user.email,

@@ -220,11 +220,19 @@ export default function UTVCallRoom() {
   const terminalExitRef =
     useRef(false);
 
+  // Give a temporarily disconnected phone a short grace
+  // period to rejoin before a direct call is ended.
+  const remoteDisconnectTimerRef =
+    useRef<number | null>(null);
+
   const [email, setEmail] =
     useState("");
 
   const [call, setCall] =
     useState<CallRow | null>(null);
+
+  const callRef =
+    useRef<CallRow | null>(null);
 
   const [connected, setConnected] =
     useState(false);
@@ -350,6 +358,10 @@ export default function UTVCallRoom() {
    * Re-apply the voice constraints after the
    * active microphone exists.
    */
+  useEffect(() => {
+    callRef.current = call;
+  }, [call]);
+
   useEffect(() => {
     if (
       !connected ||
@@ -979,6 +991,51 @@ export default function UTVCallRoom() {
   }
 
 
+  function cancelRemoteDisconnectTimer() {
+    if (remoteDisconnectTimerRef.current) {
+      window.clearTimeout(
+        remoteDisconnectTimerRef.current
+      );
+      remoteDisconnectTimerRef.current = null;
+    }
+  }
+
+  function scheduleDirectCallEndIfEmpty() {
+    cancelRemoteDisconnectTimer();
+
+    const activeCall = callRef.current;
+
+    if (
+      !activeCall ||
+      activeCall.status !== "accepted" ||
+      (activeCall.max_participants || 2) > 2 ||
+      leavingRef.current ||
+      endingRef.current
+    ) {
+      return;
+    }
+
+    remoteDisconnectTimerRef.current =
+      window.setTimeout(async () => {
+        remoteDisconnectTimerRef.current = null;
+
+        if (
+          leavingRef.current ||
+          endingRef.current ||
+          roomRef.current?.remoteParticipants.size
+        ) {
+          return;
+        }
+
+        try {
+          await supabase.rpc(
+            "utv_end_call_v3",
+            { p_call_id: callId }
+          );
+        } catch {}
+      }, 12000);
+  }
+
   async function tuneMicrophone() {
     const room =
       roomRef.current;
@@ -1142,6 +1199,7 @@ export default function UTVCallRoom() {
       const current =
         row as CallRow;
 
+      callRef.current = current;
       setCall(current);
 
       if (
@@ -1227,9 +1285,31 @@ export default function UTVCallRoom() {
           resolution: {
             width: 1280,
             height: 720,
-            frameRate: 30,
+            frameRate: 24,
           },
         } as any,
+
+        // Voice stays mono with RED + DTX for resilience.
+        // Video uses simulcast and prioritizes smooth motion
+        // so weak networks lower picture quality before audio.
+        publishDefaults: {
+          audioPreset: {
+            maxBitrate: 48000,
+            priority: "high",
+          },
+          dtx: true,
+          red: true,
+          forceStereo: false,
+          stopMicTrackOnMute: false,
+          simulcast: true,
+          videoCodec: "vp8",
+          degradationPreference: "maintain-framerate",
+          videoEncoding: {
+            maxBitrate: 1_500_000,
+            maxFramerate: 24,
+            priority: "medium",
+          },
+        },
 
         /*
          * Do not kill an active call just
@@ -1247,9 +1327,13 @@ export default function UTVCallRoom() {
       room.on(
         RoomEvent.ParticipantConnected,
         (participant) => {
+          cancelRemoteDisconnectTimer();
+
           upsertRemoteParticipant(
             participant
           );
+
+          void room.startAudio().catch(() => {});
 
           setConnected(true);
           setMessage("Connected");
@@ -1292,6 +1376,8 @@ export default function UTVCallRoom() {
           if (
             !leavingRef.current
           ) {
+            scheduleDirectCallEndIfEmpty();
+
             const remaining =
               Math.max(
                 0,
@@ -1470,6 +1556,7 @@ export default function UTVCallRoom() {
       room.on(
         RoomEvent.Reconnected,
         () => {
+          cancelRemoteDisconnectTimer();
           setConnected(true);
           setMessage("Connected");
 
@@ -1480,6 +1567,9 @@ export default function UTVCallRoom() {
           void room
             .startAudio()
             .catch(() => {});
+
+          void tuneMicrophone();
+          void enableCallAudio();
 
           if (
             current.call_type === "video"
@@ -1506,13 +1596,23 @@ export default function UTVCallRoom() {
         }
       );
 
+      room.prepareConnection(
+        serverUrl,
+        tokenData.token
+      );
+
       await room.connect(
         serverUrl,
         tokenData.token,
         {
           autoSubscribe: true,
+          maxRetries: 5,
+          websocketTimeout: 12000,
+          peerConnectionTimeout: 15000,
         }
       );
+
+      void room.startAudio().catch(() => {});
 
       room.remoteParticipants
         .forEach(
@@ -1802,6 +1902,8 @@ export default function UTVCallRoom() {
 
 
   async function cleanup() {
+    cancelRemoteDisconnectTimer();
+
     if (timerRef.current) {
       window.clearInterval(
         timerRef.current

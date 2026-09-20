@@ -37,6 +37,16 @@ self.addEventListener(
     const title =
       data.title || "UTV";
 
+    const eventType =
+      data?.data?.event ||
+      data?.event ||
+      "";
+
+    const isRealtimeInvite =
+      eventType === "audio_call" ||
+      eventType === "video_call" ||
+      eventType === "walkie";
+
     const options = {
       body:
         data.body ||
@@ -51,12 +61,15 @@ self.addEventListener(
         data.tag ||
         `utv-${Date.now()}`,
       renotify: true,
-      vibrate: [
-        110,
-        55,
-        110,
-      ],
+      requireInteraction:
+        isRealtimeInvite,
+      vibrate:
+        isRealtimeInvite
+          ? [180, 80, 180, 80, 260]
+          : [110, 55, 110],
       data: {
+        ...(data.data || {}),
+        event: eventType,
         url:
           data.url ||
           data.link ||

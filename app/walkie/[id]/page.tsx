@@ -71,6 +71,13 @@ export default function WalkieProRoomPage() {
   const liveKitRef = useRef<Room | null>(null);
   const realtimeRef = useRef<any>(null);
   const audioRootRef = useRef<HTMLDivElement | null>(null);
+
+  // One remote audio element per participant prevents
+  // echo/double playback after reconnect/resubscribe.
+  const remoteAudioElementsRef = useRef<
+    Map<string, HTMLAudioElement>
+  >(new Map());
+
   const holdingRef = useRef(false);
   const reconnectTimerRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
@@ -238,6 +245,66 @@ export default function WalkieProRoomPage() {
     };
   }
 
+  function removeRemoteAudio(identity: string) {
+    const element =
+      remoteAudioElementsRef.current.get(identity);
+
+    if (!element) return;
+
+    try {
+      element.pause();
+      element.srcObject = null;
+    } catch {}
+
+    element.remove();
+    remoteAudioElementsRef.current.delete(identity);
+  }
+
+  function clearRemoteAudio() {
+    remoteAudioElementsRef.current.forEach((element) => {
+      try {
+        element.pause();
+        element.srcObject = null;
+      } catch {}
+      element.remove();
+    });
+
+    remoteAudioElementsRef.current.clear();
+
+    audioRootRef.current
+      ?.querySelectorAll("audio")
+      .forEach((element) => element.remove());
+  }
+
+  async function attachRemoteAudio(
+    track: RemoteTrack,
+    participantIdentity: string
+  ) {
+    removeRemoteAudio(participantIdentity);
+
+    const element = track.attach() as HTMLAudioElement;
+    element.autoplay = true;
+    element.volume = 1;
+    element.muted = incomingMuted;
+    element.setAttribute("playsinline", "true");
+
+    audioRootRef.current?.appendChild(element);
+    remoteAudioElementsRef.current.set(
+      participantIdentity,
+      element
+    );
+
+    if (!incomingMuted) {
+      try {
+        await element.play();
+      } catch {
+        setMessage(
+          "Tap Audio once to enable Walkie sound."
+        );
+      }
+    }
+  }
+
   async function openRoom() {
     try {
       setConnecting(true);
@@ -347,6 +414,31 @@ export default function WalkieProRoomPage() {
         adaptiveStream: true,
         dynacast: true,
         disconnectOnPageLeave: false,
+
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+          sampleSize: 16,
+          latency: {
+            ideal: 0.02,
+            max: 0.08,
+          },
+          voiceIsolation: true,
+        } as any,
+
+        publishDefaults: {
+          audioPreset: {
+            maxBitrate: 32000,
+            priority: "high",
+          },
+          dtx: true,
+          red: true,
+          forceStereo: false,
+          stopMicTrackOnMute: false,
+        },
       });
 
       liveKitRef.current =
@@ -366,25 +458,10 @@ export default function WalkieProRoomPage() {
             return;
           }
 
-          const element =
-            track.attach();
-
-          element.autoplay = true;
-          element.volume = 1;
-          element.muted = false;
-          element.setAttribute(
-            "playsinline",
-            "true"
+          void attachRemoteAudio(
+            track,
+            participant.identity
           );
-
-          audioRootRef.current
-            ?.appendChild(element);
-
-          void element.play().catch(() => {
-            setMessage(
-              "Tap the screen once to enable Walkie audio."
-            );
-          });
 
           const metadata =
             participant.metadata
@@ -405,7 +482,13 @@ export default function WalkieProRoomPage() {
 
       liveKitRoom.on(
         RoomEvent.TrackUnsubscribed,
-        (track) => {
+        (track, _publication, participant) => {
+          if (track.kind === Track.Kind.Audio) {
+            removeRemoteAudio(
+              participant.identity
+            );
+          }
+
           track
             .detach()
             .forEach((element) =>
@@ -491,8 +574,37 @@ export default function WalkieProRoomPage() {
       );
 
       liveKitRoom.on(
+        RoomEvent.Reconnecting,
+        () => {
+          setConnected(false);
+          setReconnecting(true);
+          setQuality("weak");
+          setMessage("Weak signal • reconnecting…");
+        }
+      );
+
+      liveKitRoom.on(
+        RoomEvent.Reconnected,
+        () => {
+          setConnected(true);
+          setReconnecting(false);
+          setQuality("great");
+          reconnectAttemptsRef.current = 0;
+
+          void liveKitRoom.startAudio().catch(() => {});
+
+          setMessage(
+            holdingRef.current
+              ? "TRANSMITTING"
+              : "Signal restored • hold to talk."
+          );
+        }
+      );
+
+      liveKitRoom.on(
         RoomEvent.Disconnected,
         () => {
+          clearRemoteAudio();
           setConnected(false);
           setTransmitting(false);
           holdingRef.current = false;
@@ -504,13 +616,23 @@ export default function WalkieProRoomPage() {
         }
       );
 
+      liveKitRoom.prepareConnection(
+        serverUrl,
+        tokenData.token
+      );
+
       await liveKitRoom.connect(
         serverUrl,
         tokenData.token,
         {
           autoSubscribe: true,
+          maxRetries: 5,
+          websocketTimeout: 12000,
+          peerConnectionTimeout: 15000,
         }
       );
+
+      void liveKitRoom.startAudio().catch(() => {});
 
       await liveKitRoom.localParticipant
         .setMicrophoneEnabled(false);
@@ -704,8 +826,43 @@ export default function WalkieProRoomPage() {
     try {
       micStartingRef.current = true;
       holdingRef.current = true;
+      setMessage("Opening channel…");
 
-      // Make the button feel instant.
+      const {
+        data: floorGranted,
+        error: floorError,
+      } = await supabase.rpc(
+        "utv_walkie_claim_floor",
+        { p_room_id: roomId }
+      );
+
+      if (
+        floorError ||
+        floorGranted !== true
+      ) {
+        holdingRef.current = false;
+        micStartingRef.current = false;
+        setTransmitting(false);
+        setMessage(
+          floorError
+            ? floorError.message
+            : "Channel busy • wait for the speaker."
+        );
+        return;
+      }
+
+      // The user may have released while the server was
+      // granting the floor. Release it immediately so the
+      // channel can never get stuck on this phone.
+      if (!holdingRef.current) {
+        micStartingRef.current = false;
+        void supabase.rpc(
+          "utv_walkie_release_floor",
+          { p_room_id: roomId }
+        );
+        return;
+      }
+
       setTransmitting(true);
       setSpeakerEmail(email);
       setMessage("TRANSMITTING");
@@ -735,15 +892,9 @@ export default function WalkieProRoomPage() {
 
       micStartingRef.current = false;
 
-      // Do not make audio transmission wait on Supabase.
-      void supabase
-        .from("walkie_rooms")
-        .update({
-          current_speaker_email:
-            email,
-        })
-        .eq("id", roomId);
-
+      // Floor ownership is already authoritative in
+      // utv_walkie_claim_floor(). No second race-prone
+      // direct table update is needed here.
       beep(960);
     } catch (error) {
       micStartingRef.current = false;
@@ -753,6 +904,11 @@ export default function WalkieProRoomPage() {
 
       setMessage(
         "Microphone access is needed for Walkie."
+      );
+
+      void supabase.rpc(
+        "utv_walkie_release_floor",
+        { p_room_id: roomId }
       );
 
       console.error(
@@ -800,17 +956,11 @@ export default function WalkieProRoomPage() {
     }
 
     // Presence update should never delay mic release.
-    void supabase
-      .from("walkie_rooms")
-      .update({
-        current_speaker_email:
-          null,
-      })
-      .eq("id", roomId)
-      .eq(
-        "current_speaker_email",
-        email
-      );
+    // The RPC only releases the floor when this user owns it.
+    void supabase.rpc(
+      "utv_walkie_release_floor",
+      { p_room_id: roomId }
+    );
 
     vibrate(18);
     beep(520);
@@ -855,6 +1005,7 @@ export default function WalkieProRoomPage() {
 
   async function cleanup() {
     intentionallyLeavingRef.current = true;
+    clearRemoteAudio();
 
     if (
       reconnectTimerRef.current

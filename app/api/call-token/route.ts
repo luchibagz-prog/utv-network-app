@@ -219,10 +219,11 @@ export async function POST(request: NextRequest) {
       livekitKey,
       livekitSecret,
       {
-        identity:
-          `${user.id}-${crypto
-            .randomUUID()
-            .slice(0, 8)}`,
+        // Stable per-user identity inside the room.
+        // If the same user reconnects/reloads, LiveKit
+        // replaces the stale connection instead of leaving
+        // a second ghost participant/audio stream behind.
+        identity: `utv-${user.id}`,
 
         name:
           publicName,
