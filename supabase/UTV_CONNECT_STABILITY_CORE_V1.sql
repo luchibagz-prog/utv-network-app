@@ -175,6 +175,8 @@ $$;
 -- Either participant in a direct call or the host/member
 -- already authorized for the session can end their call path.
 -- ---------------------------------------------------------
+drop function if exists public.utv_end_call_v3(uuid);
+
 create or replace function public.utv_end_call_v3(
   p_call_id uuid
 )
