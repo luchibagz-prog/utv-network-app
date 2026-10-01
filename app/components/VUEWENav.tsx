@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/feed", label: "Home", icon: Home },
-  { href: "/world", label: "World", icon: Globe2 },
+  { href: "/feed", label: "Home", icon: Home, primary: false },
+  { href: "/world", label: "World", icon: Globe2, primary: false },
   { href: "/submit", label: "Create", icon: Plus, primary: true },
-  { href: "/messages", label: "Inbox", icon: MessageCircle },
-  { href: "/profile-pro-v12", label: "You", icon: UserRound },
+  { href: "/messages", label: "Inbox", icon: MessageCircle, primary: false },
+  { href: "/profile-pro-v12", label: "You", icon: UserRound, primary: false },
 ] as const;
 
 const hiddenPrefixes = [
@@ -95,7 +95,10 @@ export default function VUEWENav() {
                 }}
               >
                 <span className="vueweNavIcon">
-                  <Icon size={item.primary ? 27 : 23} strokeWidth={item.primary ? 2.6 : 2.1} />
+                  <Icon
+                    size={item.primary ? 27 : 23}
+                    strokeWidth={item.primary ? 2.6 : 2.1}
+                  />
                 </span>
                 <small>{item.label}</small>
               </Link>
