@@ -3,6 +3,7 @@ import "./utv-discovery-system.css";
 import "./utv-pack2.css";
 import "./utv-pack3.css";
 import "./vuewe-theme.css";
+import "./vuewe-feed.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
