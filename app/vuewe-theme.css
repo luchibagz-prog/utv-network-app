@@ -1,0 +1,70 @@
+:root {
+  --vuewe-bg: #f7f8fa;
+  --vuewe-surface: #ffffff;
+  --vuewe-ink: #0b0d10;
+  --vuewe-muted: #667085;
+  --vuewe-silver: #d8dee6;
+  --vuewe-teal: #00d9e8;
+  --vuewe-blue: #1e5eff;
+  --vuewe-green: #34e84a;
+  --vuewe-live: #ff3045;
+  --vuewe-radius-sm: 14px;
+  --vuewe-radius-md: 20px;
+  --vuewe-radius-lg: 28px;
+  --vuewe-shadow-soft: 0 12px 34px rgba(15, 23, 42, 0.10);
+  --vuewe-shadow-float: 0 22px 60px rgba(15, 23, 42, 0.16);
+  --vuewe-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  color-scheme: light;
+  background: var(--vuewe-bg);
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0, 217, 232, 0.10), transparent 28%),
+    radial-gradient(circle at 92% 8%, rgba(52, 232, 74, 0.08), transparent 24%),
+    linear-gradient(180deg, #ffffff 0%, var(--vuewe-bg) 46%, #eef3f8 100%);
+  color: var(--vuewe-ink);
+}
+
+::selection {
+  background: rgba(0, 217, 232, 0.28);
+  color: var(--vuewe-ink);
+}
+
+.vueweChromeText {
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f7 30%, #9aa8b8 64%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(11, 13, 16, 0.18));
+}
+
+.vueweElectricRing {
+  box-shadow:
+    0 0 0 2px rgba(0, 217, 232, 0.55),
+    0 0 0 5px rgba(30, 94, 255, 0.14),
+    0 12px 28px rgba(30, 94, 255, 0.18);
+}
+
+.vueweLive {
+  color: var(--vuewe-live) !important;
+}
+
+.vueweSuccess {
+  color: var(--vuewe-green) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
