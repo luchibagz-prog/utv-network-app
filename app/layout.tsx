@@ -2,21 +2,22 @@ import "./globals.css";
 import "./utv-discovery-system.css";
 import "./utv-pack2.css";
 import "./utv-pack3.css";
+import "./vuewe-theme.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
-
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
 import UTVAppShell from "./components/UTVAppShell";
+
 export const metadata = {
-  title: "UTV - Urban Television",
+  title: "VUEWE - Your View. Our World.",
   description:
-    "Urban Television. Watch shows, movies, podcasts, music videos, documentaries, live events, and UTV originals.",
+    "VUEWE is a brighter social world for real people, creators, communities, live moments, discovery, entertainment, and connection.",
   manifest: "/manifest.json",
-  themeColor: "#000000",
+  themeColor: "#f7f8fa",
   appleWebApp: {
     capable: true,
-    title: "UTV",
-    statusBarStyle: "black-translucent",
+    title: "VUEWE",
+    statusBarStyle: "default",
   },
   icons: {
     icon: "/utv-logo.png",
@@ -33,8 +34,8 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <UTVLiveTruthSync />
-          <UTVAppShell />
-          <UTVRealtimeBridge />
+        <UTVAppShell />
+        <UTVRealtimeBridge />
         {children}
         <UTVNotificationBootstrap />
       </body>
