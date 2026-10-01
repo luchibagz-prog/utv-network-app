@@ -1,0 +1,372 @@
+/* VUEWE Home Feed presentation layer.
+   Keeps the existing feed data/actions intact and upgrades only the UI. */
+
+.feedPage {
+  width: min(100%, 720px) !important;
+  margin: 0 auto !important;
+  padding: 0 0 118px !important;
+  color: var(--vuewe-ink) !important;
+  background: transparent !important;
+}
+
+/* The new global VUEWE bar owns feed branding. */
+.utvFeedPremiumHeader {
+  display: none !important;
+}
+
+.feedTabs {
+  position: sticky !important;
+  top: 64px !important;
+  z-index: 950 !important;
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  padding: 10px 12px 9px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07) !important;
+  background: rgba(247, 248, 250, 0.9) !important;
+  backdrop-filter: blur(20px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
+  scrollbar-width: none !important;
+}
+
+.feedTabs::-webkit-scrollbar { display: none !important; }
+
+.feedTabs button {
+  flex: 0 0 auto !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 999px !important;
+  color: #687587 !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05) !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  white-space: nowrap !important;
+}
+
+.feedTabs button.active {
+  color: #fff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, var(--vuewe-blue), var(--vuewe-teal) 68%, var(--vuewe-green)) !important;
+  box-shadow: 0 9px 22px rgba(30, 94, 255, 0.2) !important;
+}
+
+/* Stories */
+.stories {
+  display: flex !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  padding: 15px 13px 13px !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  scrollbar-width: none !important;
+}
+
+.stories::-webkit-scrollbar { display: none !important; }
+
+.storyWrap {
+  min-width: 70px !important;
+  gap: 6px !important;
+}
+
+.storyButton {
+  width: 66px !important;
+  height: 66px !important;
+  padding: 3px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, var(--vuewe-teal), var(--vuewe-blue) 58%, var(--vuewe-green)) border-box !important;
+  box-shadow: 0 8px 22px rgba(30, 94, 255, 0.13) !important;
+}
+
+.storyButton.noStory {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #cbd5e1, #e5e7eb) border-box !important;
+  box-shadow: none !important;
+}
+
+.storyButton.addStory {
+  color: #fff !important;
+  background: linear-gradient(135deg, var(--vuewe-blue), var(--vuewe-teal), var(--vuewe-green)) !important;
+  box-shadow: 0 10px 24px rgba(0, 217, 232, 0.23) !important;
+}
+
+.storyName {
+  color: #4b5565 !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+}
+
+/* Quick composer */
+.motionComposer,
+.quickComposer,
+.feedComposer {
+  margin: 12px !important;
+  border: 1px solid rgba(15, 23, 42, 0.07) !important;
+  border-radius: 22px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: var(--vuewe-shadow-soft) !important;
+}
+
+.motionPrompt span,
+.motionPrompt strong {
+  color: var(--vuewe-ink) !important;
+}
+
+.motionPrompt small {
+  color: transparent !important;
+  position: relative !important;
+}
+
+.motionPrompt small::after {
+  content: "Share something with VUEWE";
+  position: absolute;
+  left: 0;
+  color: var(--vuewe-muted);
+}
+
+/* Live rail */
+.liveNowSection {
+  margin: 12px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(255, 48, 69, 0.12) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(255, 48, 69, 0.07), transparent 35%),
+    #fff !important;
+  box-shadow: var(--vuewe-shadow-soft) !important;
+}
+
+.liveNowLabel,
+.liveNowPulse {
+  color: var(--vuewe-live) !important;
+}
+
+/* VUEWE NOW / nearby / discovery cards */
+.utvHomePulse {
+  margin: 12px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.07) !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(0, 217, 232, 0.09), transparent 38%),
+    radial-gradient(circle at 100% 100%, rgba(52, 232, 74, 0.07), transparent 34%),
+    #fff !important;
+  box-shadow: var(--vuewe-shadow-soft) !important;
+}
+
+.utvHomePulseHead b {
+  font-size: 0 !important;
+}
+
+.utvHomePulseHead b::after {
+  content: "VUEWE NOW";
+  color: var(--vuewe-ink);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.utvHomePulseDot {
+  background: var(--vuewe-green) !important;
+  box-shadow: 0 0 14px rgba(52, 232, 74, 0.55) !important;
+}
+
+.utvPulseCard {
+  border: 1px solid rgba(15, 23, 42, 0.07) !important;
+  border-radius: 18px !important;
+  color: var(--vuewe-ink) !important;
+  background: linear-gradient(180deg, #fff, #f7fafc) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+.utvPulseCard.near {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(52, 232, 74, 0.14), transparent 38%),
+    linear-gradient(180deg, #fff, #f7fafc) !important;
+}
+
+/* Suggested creators */
+.suggested {
+  gap: 10px !important;
+  padding: 6px 12px 14px !important;
+}
+
+.suggestedCard {
+  border: 1px solid rgba(15, 23, 42, 0.07) !important;
+  border-radius: 20px !important;
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+  box-shadow: 0 9px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+.suggestedCard p,
+.suggestedCard small {
+  color: var(--vuewe-muted) !important;
+}
+
+/* Main posts */
+.feedList {
+  display: grid !important;
+  gap: 14px !important;
+  padding: 0 10px 24px !important;
+}
+
+.feedPost {
+  overflow: hidden !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border-radius: 24px !important;
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+  box-shadow: 0 13px 32px rgba(15, 23, 42, 0.09) !important;
+}
+
+.postHeader {
+  min-height: 62px !important;
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+}
+
+.postHeader:active {
+  background: #f7f9fb !important;
+}
+
+.postCreator h3,
+.postCreator strong,
+.postCreator b {
+  color: var(--vuewe-ink) !important;
+}
+
+.postCreator p,
+.postCreator small,
+.postMeta,
+.postMeta * {
+  color: var(--vuewe-muted) !important;
+}
+
+.postAvatar {
+  border: 2px solid #fff !important;
+  box-shadow:
+    0 0 0 2px var(--vuewe-teal),
+    0 6px 16px rgba(30, 94, 255, 0.14) !important;
+}
+
+.mediaWrap {
+  background: #020509 !important;
+}
+
+.postBody {
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+}
+
+.actionRow {
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.actionButton {
+  color: #3f4b5b !important;
+}
+
+.actionButton.liked {
+  color: #ff3658 !important;
+}
+
+.postCaption,
+.postCaption *,
+.captionText,
+.captionText * {
+  color: var(--vuewe-ink) !important;
+}
+
+.commentRow,
+.commentsWrap,
+.commentsSection {
+  color: var(--vuewe-ink) !important;
+  background: #fff !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.commentRow p,
+.commentRow small,
+.commentsWrap small,
+.commentsSection small {
+  color: var(--vuewe-muted) !important;
+}
+
+/* Text-only posts become a VUEWE signature surface. */
+.textOnlyPost {
+  min-height: 300px !important;
+  color: #fff !important;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(0, 217, 232, 0.42), transparent 34%),
+    radial-gradient(circle at 86% 84%, rgba(52, 232, 74, 0.25), transparent 31%),
+    linear-gradient(145deg, #0b0d10 0%, #111b33 48%, #081d23 100%) !important;
+}
+
+.textOnlyBrand {
+  font-size: 0 !important;
+}
+
+.textOnlyBrand::after {
+  content: "VUEWE";
+  color: rgba(255,255,255,0.86);
+  font-size: 12px;
+  font-weight: 1000;
+  letter-spacing: 0.18em;
+}
+
+.fallbackMedia {
+  font-size: 0 !important;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(0, 217, 232, 0.22), transparent 38%),
+    #081018 !important;
+}
+
+.fallbackMedia::after {
+  content: "VUEWE";
+  color: #fff;
+  font-size: clamp(34px, 10vw, 66px);
+  font-weight: 1000;
+  letter-spacing: -0.06em;
+}
+
+.feedToast {
+  color: #fff !important;
+  border: 1px solid rgba(0, 217, 232, 0.28) !important;
+  background: rgba(11, 13, 16, 0.94) !important;
+  box-shadow: var(--vuewe-shadow-float) !important;
+}
+
+.skeleton,
+.skeletonHeader,
+.skeletonMedia,
+.skeletonBody {
+  background-color: #edf1f5 !important;
+}
+
+@media (max-width: 759px) {
+  .feedPage {
+    width: 100% !important;
+  }
+
+  .feedList {
+    gap: 9px !important;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .feedPost {
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.06) !important;
+  }
+}
