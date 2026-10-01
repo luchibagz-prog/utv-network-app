@@ -7,6 +7,7 @@ import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
 import UTVAppShell from "./components/UTVAppShell";
+import VUEWENav from "./components/VUEWENav";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <UTVLiveTruthSync />
         <UTVAppShell />
         <UTVRealtimeBridge />
+        <VUEWENav />
         {children}
         <UTVNotificationBootstrap />
       </body>
