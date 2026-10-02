@@ -9,11 +9,13 @@ import "./vuewe-polish-v2.css";
 import "./vuewe-premium-v3.css";
 import "./vuewe-premium-v4.css";
 import "./vuewe-premium-v5.css";
+import "./vuewe-app-shell.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
 import UTVAppShell from "./components/UTVAppShell";
 import VUEWENav from "./components/VUEWENav";
+import VUEWEExperienceShell from "./components/VUEWEExperienceShell";
 import VUEWELivingProfileSystem from "./components/VUEWELivingProfileSystem";
 import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
 
@@ -46,6 +48,7 @@ export default function RootLayout({
         <UTVAppShell />
         <UTVRealtimeBridge />
         <VUEWENav />
+        <VUEWEExperienceShell />
         <VUEWEProfileVideoRuntime />
         <VUEWELivingProfileSystem />
         {children}
