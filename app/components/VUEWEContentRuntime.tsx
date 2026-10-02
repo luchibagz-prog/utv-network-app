@@ -30,6 +30,14 @@ function relativeTime(value?: string | null) {
   });
 }
 
+function playerTime(value?: string | null) {
+  const age = relativeTime(value);
+  if (!age) return "";
+  if (age === "now") return "Added now";
+  if (/^\d+(m|h|d)$/.test(age)) return `Added ${age} ago`;
+  return `Added ${age}`;
+}
+
 function titleTime(value?: string | null) {
   if (!value) return "";
 
@@ -48,7 +56,7 @@ function titleTime(value?: string | null) {
 function replaceLegacyWatchBranding() {
   const roots = Array.from(
     document.querySelectorAll<HTMLElement>(
-      "main.watchPage, main.page, main.loading, main.unavailable"
+      "main.watchPage, main.page, main.loading, main.unavailable, main.watchManage, main.watchEdit"
     )
   );
 
@@ -81,7 +89,9 @@ function replaceLegacyWatchBranding() {
       const current = textNode.nodeValue || "";
       if (!/\bUTV\b/i.test(current)) return;
 
-      textNode.nodeValue = current.replace(/\bUTV\b/g, "VUEWE").replace(/\butv\b/g, "vuewe");
+      textNode.nodeValue = current
+        .replace(/\bUTV\b/g, "VUEWE")
+        .replace(/\butv\b/g, "vuewe");
     });
   });
 
@@ -204,7 +214,7 @@ async function stampWatchCards() {
 }
 
 async function stampWatchPlayer(pathname: string) {
-  const match = pathname.match(/^\/watch\/([^/?#]+)/);
+  const match = pathname.match(/^\/watch\/([^/?#]+)$/);
   const id = match?.[1] || "";
   if (!id || id === "manage" || id === "edit") return;
 
@@ -232,7 +242,7 @@ async function stampWatchPlayer(pathname: string) {
     }
   }
 
-  stamp.textContent = `Added ${relativeTime(createdAt)} ago`;
+  stamp.textContent = playerTime(createdAt);
   stamp.title = titleTime(createdAt);
 }
 
@@ -240,13 +250,20 @@ export default function VUEWEContentRuntime() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const isWatch = pathname === "/watch";
-    const isWatchChild = pathname.startsWith("/watch/");
+    const isWatchHome = pathname === "/watch";
+    const playerMatch = pathname.match(/^\/watch\/([^/?#]+)$/);
+    const playerId = playerMatch?.[1] || "";
+    const isWatchPlayer = Boolean(
+      playerId && playerId !== "manage" && playerId !== "edit"
+    );
+    const isWatchArea = pathname.startsWith("/watch");
 
-    if (isWatch) {
+    if (isWatchHome) {
       document.documentElement.dataset.vueweWatchRoute = "home";
-    } else if (isWatchChild) {
+    } else if (isWatchPlayer) {
       document.documentElement.dataset.vueweWatchRoute = "player";
+    } else if (isWatchArea) {
+      document.documentElement.dataset.vueweWatchRoute = "tools";
     } else {
       delete document.documentElement.dataset.vueweWatchRoute;
     }
@@ -260,12 +277,12 @@ export default function VUEWEContentRuntime() {
         await stampFeedPosts();
       }
 
-      if (isWatch || isWatchChild) {
+      if (isWatchArea) {
         replaceLegacyWatchBranding();
 
-        if (isWatch) {
+        if (isWatchHome) {
           await stampWatchCards();
-        } else {
+        } else if (isWatchPlayer) {
           await stampWatchPlayer(pathname);
         }
       }
