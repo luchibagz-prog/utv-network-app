@@ -78,6 +78,9 @@ export async function POST(request: Request) {
       "story_reaction",
       "story_comment_reaction",
       "follow",
+      "mention",
+      "gift",
+      "collab",
     ];
 
     if (!allowedEvents.includes(event)) {
@@ -89,83 +92,100 @@ export async function POST(request: Request) {
 
     const senderEmail = user.email.toLowerCase();
 
-    let title = "UTV";
-    let notificationBody = "You have a new UTV update.";
-    let tag = `utv-${event}-${Date.now()}`;
+    let title = "VUEWE";
+    let notificationBody = "You have a new VUEWE update.";
+    let tag = `vuewe-${event}-${Date.now()}`;
 
     const senderName = senderEmail.split("@")[0];
 
     if (event === "message") {
-      title = "💬 New UTV Message";
+      title = "💬 New VUEWE Message";
       notificationBody = `${senderName} sent you a message.`;
-      tag = `utv-message-${senderEmail}`;
+      tag = `vuewe-message-${senderEmail}`;
     }
 
     if (event === "walkie") {
-      title = "🎙️ Incoming UTV Walkie";
+      title = "🎙️ Incoming VUEWE Walkie";
       notificationBody = `${senderName} wants to Walkie with you.`;
-      tag = `utv-walkie-${safeText(body?.roomId, senderEmail)}`;
+      tag = `vuewe-walkie-${safeText(body?.roomId, senderEmail)}`;
     }
 
     if (event === "audio_call") {
-      title = "📞 Incoming UTV Call";
+      title = "📞 Incoming VUEWE Call";
       notificationBody = `${senderName} is calling you.`;
-      tag = `utv-call-${safeText(body?.callId, senderEmail)}`;
+      tag = `vuewe-call-${safeText(body?.callId, senderEmail)}`;
     }
 
     if (event === "video_call") {
-      title = "📹 Incoming UTV Video Call";
+      title = "📹 Incoming VUEWE Video Call";
       notificationBody = `${senderName} is video calling you.`;
-      tag = `utv-video-${safeText(body?.callId, senderEmail)}`;
+      tag = `vuewe-video-${safeText(body?.callId, senderEmail)}`;
     }
 
     if (event === "booking") {
-      title = "📅 New UTV Booking";
+      title = "📅 New VUEWE Booking";
       notificationBody = `${senderName} sent you a booking request.`;
-      tag = `utv-booking-${senderEmail}`;
+      tag = `vuewe-booking-${senderEmail}`;
     }
 
-
     if (event === "like") {
-      title = "❤️ New UTV Like";
+      title = "❤️ New VUEWE Like";
       notificationBody = `${senderName} liked your post.`;
-      tag = `utv-like-${senderEmail}`;
+      tag = `vuewe-like-${senderEmail}`;
     }
 
     if (event === "comment") {
-      title = "💬 New UTV Comment";
+      title = "💬 New VUEWE Comment";
       notificationBody = `${senderName} commented on your post.`;
-      tag = `utv-comment-${senderEmail}`;
+      tag = `vuewe-comment-${senderEmail}`;
     }
 
-    if (event === "comment_reply") {
-      title = "↩️ New UTV Reply";
+    if (event === "reply" || event === "comment_reply") {
+      title = "↩️ New VUEWE Reply";
       notificationBody = `${senderName} replied to your comment.`;
-      tag = `utv-reply-${senderEmail}`;
+      tag = `vuewe-reply-${senderEmail}`;
     }
 
     if (event === "comment_reaction") {
-      title = "🔥 UTV Comment Reaction";
+      title = "🔥 VUEWE Comment Reaction";
       notificationBody = `${senderName} reacted to your comment.`;
-      tag = `utv-comment-reaction-${senderEmail}`;
+      tag = `vuewe-comment-reaction-${senderEmail}`;
     }
 
     if (event === "follow") {
-      title = "👥 New UTV Follower";
+      title = "👥 New VUEWE Follower";
       notificationBody = `${senderName} followed you.`;
-      tag = `utv-follow-${senderEmail}`;
+      tag = `vuewe-follow-${senderEmail}`;
     }
 
     if (event === "story_reaction") {
-      title = "🔥 UTV Story Reaction";
+      title = "🔥 VUEWE Story Reaction";
       notificationBody = `${senderName} reacted to your Story.`;
-      tag = `utv-story-reaction-${senderEmail}`;
+      tag = `vuewe-story-reaction-${senderEmail}`;
     }
 
     if (event === "story_comment_reaction") {
-      title = "💬 UTV Story Comment Reaction";
+      title = "💬 VUEWE Story Comment Reaction";
       notificationBody = `${senderName} reacted to your Story comment.`;
-      tag = `utv-story-comment-reaction-${senderEmail}`;
+      tag = `vuewe-story-comment-reaction-${senderEmail}`;
+    }
+
+    if (event === "mention") {
+      title = "@ Mentioned on VUEWE";
+      notificationBody = `${senderName} mentioned you.`;
+      tag = `vuewe-mention-${senderEmail}`;
+    }
+
+    if (event === "gift") {
+      title = "🎁 New VUEWE Gift";
+      notificationBody = `${senderName} sent you support.`;
+      tag = `vuewe-gift-${senderEmail}`;
+    }
+
+    if (event === "collab") {
+      title = "🤝 VUEWE Collab Invite";
+      notificationBody = `${senderName} invited you to collaborate.`;
+      tag = `vuewe-collab-${senderEmail}`;
     }
 
     const admin = createClient(url, serviceKey, {
@@ -188,8 +208,8 @@ export async function POST(request: Request) {
       body: notificationBody,
       url: urlPath,
       tag,
-      icon: "/utv-logo.png",
-      badge: "/utv-logo.png",
+      icon: "/vuewe-icon.svg",
+      badge: "/vuewe-badge.svg",
       data: {
         event,
         senderEmail,
@@ -227,7 +247,7 @@ export async function POST(request: Request) {
             .delete()
             .eq("endpoint", row.endpoint);
         } else {
-          console.error("UTV direct push send:", error);
+          console.error("VUEWE direct push send:", error);
         }
       }
     }
@@ -238,7 +258,7 @@ export async function POST(request: Request) {
       expired,
     });
   } catch (error: any) {
-    console.error("UTV direct push event:", error);
+    console.error("VUEWE direct push event:", error);
 
     return NextResponse.json(
       {
