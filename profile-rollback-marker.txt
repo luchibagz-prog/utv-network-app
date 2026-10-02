@@ -1,0 +1,1 @@
+Profile rollback refresh: restored vuewe-foundation to the V16 app state after V17 caused the profile skeleton to hang. This file only triggers a clean deployment; it is not imported by the app.
