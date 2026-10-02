@@ -40,6 +40,7 @@ function routeName(pathname: string) {
   if (pathname === "/world") return "world";
   if (pathname === "/submit") return "create";
   if (pathname === "/live-room") return "live";
+  if (pathname === "/walkie" || pathname.startsWith("/walkie/")) return "walkie";
   if (pathname === "/bookings") return "bookings";
   if (pathname === "/profile-edit") return "profileEdit";
   if (pathname === "/messages") return "messages";
@@ -140,8 +141,6 @@ function applyFeedMock() {
   setImportant(feedPage, "padding-top", "0");
   setImportant(feedPage, "margin-top", "0");
 
-  // Keep this bar at the top of the wall, but do not let it hover
-  // over posts once the user scrolls.
   setImportant(tabsShell, "position", "relative");
   setImportant(tabsShell, "top", "auto");
   setImportant(tabsShell, "margin", "0");
@@ -202,8 +201,28 @@ function applyFeedMock() {
   });
 }
 
+function ensureProfileOwnerTools(scope: ParentNode) {
+  const actions = scope.querySelector(
+    ".ownerSocialActions"
+  ) as HTMLElement | null;
+
+  if (!actions || actions.querySelector(".vueweQuickEditProfile")) return;
+
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "vueweQuickEditProfile";
+  edit.innerHTML = "<span>✎</span><strong>Edit Profile</strong>";
+  edit.addEventListener("click", () => {
+    window.location.assign("/profile-edit");
+  });
+
+  actions.prepend(edit);
+}
+
 function applyProfileCopy(scope: ParentNode) {
   replaceExact(scope, "UTV INNER CIRCLE", "VUEWE CIRCLE");
+  replaceExact(scope, "VUEWE INNER CIRCLE", "VUEWE CIRCLE");
+  replaceIncludes(scope, "VUEWE CIRCLEVUEWE CIRCLE", "VUEWE CIRCLE");
   replaceExact(scope, "YOUR UTV", "CREATOR TOOLS");
   replaceExact(scope, "UTV SPOTLIGHT", "VUEWE SPOTLIGHT");
   replaceExact(scope, "UTV SOCIAL", "VUEWE SOCIAL");
@@ -212,6 +231,8 @@ function applyProfileCopy(scope: ParentNode) {
   replaceExact(scope, "UTV Post", "VUEWE Post");
   replaceIncludes(scope, "posts on UTV", "posts on VUEWE");
   replaceIncludes(scope, "Featured UTV content", "Featured VUEWE content");
+
+  ensureProfileOwnerTools(scope);
 
   const top8 = scope.querySelector(".top8Spotlight") as HTMLElement | null;
   if (top8) {
@@ -276,6 +297,12 @@ function applyLiveCopy(scope: ParentNode) {
   replaceIncludes(scope, "UTV Live", "VUEWE Live");
 }
 
+function applyWalkieCopy(scope: ParentNode) {
+  replaceExact(scope, "VUEWE ORIGINAL FEATURE", "VUEWE SIGNATURE");
+  replaceExact(scope, "📡 VUEWE WALKIE", "📡 VUEWE WALKIE");
+  replaceIncludes(scope, "UTV Walkie", "VUEWE Walkie");
+}
+
 function applyProfileEditCopy(scope: ParentNode) {
   replaceExact(scope, "UTV colors", "VUEWE colors");
   replaceIncludes(scope, "Your UTV Name", "Your VUEWE Name");
@@ -302,6 +329,7 @@ export default function VUEWEMockRuntime() {
       if (route === "messages" || route === "chat") applyMessagesCopy(main);
       if (route === "world") applyWorldCopy(main);
       if (route === "live") applyLiveCopy(main);
+      if (route === "walkie") applyWalkieCopy(main);
       if (route === "profileEdit") applyProfileEditCopy(main);
       if (route === "messages") buildInboxPeopleRail();
     };
