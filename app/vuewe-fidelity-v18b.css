@@ -1,0 +1,195 @@
+/* VUEWE FIDELITY V18.1 — map cards + live shell finishing pass */
+
+html[data-vuewe-fidelity-route="live"] .vueweBottomNav,
+html[data-vuewe-fidelity-route="live"] .vueweTopBar{
+  display:none!important;
+}
+
+/* Give the real Mapbox map a luminous street-network treatment like the mock. */
+html[data-vuewe-fidelity-route="world"] .worldMapShell::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:4!important;
+  pointer-events:none!important;
+  opacity:.30!important;
+  background:
+    repeating-linear-gradient(27deg,transparent 0 70px,rgba(31,255,153,.40) 71px 73px,transparent 74px 142px),
+    repeating-linear-gradient(-39deg,transparent 0 91px,rgba(19,219,228,.38) 92px 94px,transparent 95px 178px),
+    repeating-linear-gradient(75deg,transparent 0 126px,rgba(46,104,255,.42) 127px 129px,transparent 130px 248px)!important;
+  mix-blend-mode:screen!important;
+  -webkit-mask-image:radial-gradient(circle at 50% 48%,#000 0 54%,rgba(0,0,0,.72) 72%,transparent 100%)!important;
+  mask-image:radial-gradient(circle at 50% 48%,#000 0 54%,rgba(0,0,0,.72) 72%,transparent 100%)!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldMapControls,
+html[data-vuewe-fidelity-route="world"] .worldGameHud,
+html[data-vuewe-fidelity-route="world"] .worldRadar,
+html[data-vuewe-fidelity-route="world"] .worldLoadingSignal{
+  z-index:30!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldResultsHeader{
+  width:min(100%,760px)!important;
+  margin:0 auto!important;
+  padding:22px 16px 9px!important;
+  color:#fff!important;
+  background:#020504!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldResultsHeader p{
+  margin:0!important;
+  color:#6ff5a4!important;
+  font-size:9px!important;
+  font-weight:1000!important;
+  letter-spacing:.12em!important;
+  text-transform:uppercase!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldResultsHeader h2{
+  margin:3px 0 0!important;
+  color:#fff!important;
+  font-size:27px!important;
+  letter-spacing:-.9px!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldResultsHeader>button{
+  min-height:39px!important;
+  padding:0 13px!important;
+  border:1px solid rgba(19,219,228,.24)!important;
+  border-radius:13px!important;
+  color:#06110c!important;
+  background:linear-gradient(135deg,#6bf4c7,#7dd7ff)!important;
+  font-size:9px!important;
+  font-weight:1000!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldList{
+  width:100%!important;
+  max-width:760px!important;
+  display:flex!important;
+  gap:12px!important;
+  margin:0 auto!important;
+  padding:8px 16px 24px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  background:#020504!important;
+  scroll-snap-type:x proximity!important;
+  scrollbar-width:none!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldList::-webkit-scrollbar{display:none!important}
+
+html[data-vuewe-fidelity-route="world"] .worldCard{
+  flex:0 0 min(80vw,310px)!important;
+  width:min(80vw,310px)!important;
+  min-height:355px!important;
+  margin:0!important;
+  overflow:hidden!important;
+  scroll-snap-align:start!important;
+  border:1px solid rgba(255,255,255,.11)!important;
+  border-radius:23px!important;
+  color:#fff!important;
+  background:#0a0e0c!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.30)!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardMedia{
+  height:185px!important;
+  min-height:185px!important;
+  overflow:hidden!important;
+  background:#0a1318!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardMedia img,
+html[data-vuewe-fidelity-route="world"] .worldCardFallback{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardType{
+  top:10px!important;
+  left:10px!important;
+  padding:7px 9px!important;
+  border-radius:999px!important;
+  color:#fff!important;
+  background:rgba(3,7,9,.76)!important;
+  backdrop-filter:blur(10px)!important;
+  font-size:8px!important;
+  font-weight:1000!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardBody{
+  padding:13px!important;
+  color:#fff!important;
+  background:
+    radial-gradient(circle at 100% 0,rgba(23,109,255,.10),transparent 35%),
+    #0a0e0c!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardBody h2{
+  margin:10px 0 6px!important;
+  color:#fff!important;
+  font-size:18px!important;
+  line-height:1.08!important;
+  letter-spacing:-.5px!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCreatorRow strong{color:#fff!important}
+html[data-vuewe-fidelity-route="world"] .worldCreatorRow small,
+html[data-vuewe-fidelity-route="world"] .worldDesc,
+html[data-vuewe-fidelity-route="world"] .worldMetaRow{color:rgba(255,255,255,.52)!important}
+
+html[data-vuewe-fidelity-route="world"] .worldCardActions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+  margin-top:10px!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardActions button{
+  min-width:0!important;
+  min-height:36px!important;
+  padding:0 4px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:11px!important;
+  color:#dce8e2!important;
+  background:rgba(255,255,255,.045)!important;
+  font-size:7px!important;
+  font-weight:900!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .worldCardActions .bookingAction{
+  color:#07100b!important;
+  background:linear-gradient(135deg,#63f2b0,#76dfff)!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .hudGrid{
+  width:min(calc(100% - 28px),730px)!important;
+  margin:12px auto!important;
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  padding:0!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .hudItem{
+  min-width:0!important;
+  min-height:82px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:17px!important;
+  color:#fff!important;
+  background:
+    linear-gradient(145deg,rgba(23,109,255,.09),rgba(33,236,115,.035)),
+    #08100d!important;
+}
+
+html[data-vuewe-fidelity-route="world"] .hudItem b{
+  font-size:24px!important;
+}
+
+@media(max-width:520px){
+  html[data-vuewe-fidelity-route="world"] .worldCard{flex-basis:78vw!important;width:78vw!important}
+  html[data-vuewe-fidelity-route="world"] .hudGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}

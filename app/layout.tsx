@@ -21,6 +21,7 @@ import "./vuewe-profile-safe-v14.css";
 import "./vuewe-profile-v15.css";
 import "./vuewe-profile-v16.css";
 import "./vuewe-fidelity-v18.css";
+import "./vuewe-fidelity-v18b.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
