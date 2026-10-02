@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 140" role="img" aria-label="VUEWE Watch">
+  <defs>
+    <linearGradient id="iris" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#24e86e"/>
+      <stop offset="0.5" stop-color="#13dbe4"/>
+      <stop offset="1" stop-color="#2468f2"/>
+    </linearGradient>
+    <filter id="glow"><feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#13dbe4" flood-opacity="0.42"/></filter>
+  </defs>
+  <g transform="translate(18 18)" filter="url(#glow)">
+    <path d="M0 52 C25 15 57 0 90 0 C123 0 155 15 180 52 C155 89 123 104 90 104 C57 104 25 89 0 52Z" fill="none" stroke="#ffffff" stroke-width="7"/>
+    <circle cx="90" cy="52" r="31" fill="url(#iris)"/>
+    <circle cx="90" cy="52" r="15" fill="#02070b"/>
+    <circle cx="80" cy="42" r="5" fill="#ffffff"/>
+  </g>
+  <text x="220" y="76" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="62" font-weight="900" letter-spacing="-2">VUEWE</text>
+  <text x="224" y="112" fill="#24e86e" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="800" letter-spacing="7">WATCH</text>
+</svg>
