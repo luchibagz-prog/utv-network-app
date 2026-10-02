@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="VUEWE">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#55f4ce"/>
+      <stop offset="0.55" stop-color="#8d82ff"/>
+      <stop offset="1" stop-color="#ff75ba"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.2" cy="0.05" r="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#070911"/>
+  <rect x="18" y="18" width="476" height="476" rx="102" fill="url(#bg)"/>
+  <rect x="30" y="30" width="452" height="452" rx="92" fill="#080b12" opacity="0.92"/>
+  <rect x="30" y="30" width="452" height="452" rx="92" fill="url(#glow)"/>
+  <path d="M120 132h72l65 190 64-190h71L292 380h-73L120 132Z" fill="url(#bg)"/>
+  <text x="256" y="438" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900" letter-spacing="9">VUEWE</text>
+</svg>

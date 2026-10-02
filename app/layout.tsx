@@ -43,8 +43,8 @@ export const metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: "/utv-logo.png",
-    apple: "/utv-logo.png",
+    icon: "/vuewe-icon.svg",
+    apple: "/vuewe-icon.svg",
   },
 };
 

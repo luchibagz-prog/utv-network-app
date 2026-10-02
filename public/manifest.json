@@ -1,18 +1,19 @@
 {
-  "name": "UTV - Urban Television",
-  "short_name": "UTV",
-  "description": "Urban Television \u2014 The Culture Streams.",
+  "id": "/",
+  "name": "VUEWE — Your View. Our World.",
+  "short_name": "VUEWE",
+  "description": "A social world for people, creators, communities, entertainment and connection.",
   "start_url": "/feed",
   "scope": "/",
   "display": "standalone",
   "background_color": "#05080f",
-  "theme_color": "#05080f",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/utv-logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/vuewe-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]
