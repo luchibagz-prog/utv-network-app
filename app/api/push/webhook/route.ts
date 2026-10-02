@@ -66,7 +66,7 @@ async function copyFromWebhook(
     return recipientEmail
       ? {
           recipientEmail,
-          title: "New UTV message",
+          title: "New VUEWE message",
           body:
             record.message ||
             record.body ||
@@ -75,7 +75,7 @@ async function copyFromWebhook(
           link: record.sender_email
             ? `/messages/${encodeURIComponent(record.sender_email)}`
             : "/messages",
-          tag: `message-${record.id || Date.now()}`,
+          tag: `vuewe-message-${record.id || Date.now()}`,
         }
       : null;
   }
@@ -89,13 +89,14 @@ async function copyFromWebhook(
     return recipientEmail
       ? {
           recipientEmail,
-          title: record.title || "New UTV activity",
-          body:
+          title: String(record.title || "New VUEWE activity").replace(/\bUTV\b/g, "VUEWE"),
+          body: String(
             record.message ||
-            record.body ||
-            "Something new happened on UTV.",
+              record.body ||
+              "Something new happened on VUEWE."
+          ).replace(/\bUTV\b/g, "VUEWE"),
           link: record.link || record.url || "/activity",
-          tag: `notification-${record.id || Date.now()}`,
+          tag: `vuewe-notification-${record.id || Date.now()}`,
         }
       : null;
   }
@@ -117,12 +118,12 @@ async function copyFromWebhook(
 
     return {
       recipientEmail,
-      title: "📡 Incoming UTV Walkie",
+      title: "📡 Incoming VUEWE Walkie",
       body: `${actor} wants to Walkie.`,
       link: record.room_id
         ? `/walkie/${encodeURIComponent(record.room_id)}`
         : "/walkie",
-      tag: `utv-walkie-${record.room_id || record.id || Date.now()}`,
+      tag: `vuewe-walkie-${record.room_id || record.id || Date.now()}`,
     };
   }
 
@@ -144,21 +145,13 @@ async function copyFromWebhook(
     return {
       recipientEmail,
       title: isVideo
-        ? "📹 Incoming UTV Video Call"
-        : "📞 Incoming UTV Call",
+        ? "📹 Incoming VUEWE Video Call"
+        : "📞 Incoming VUEWE Call",
       body: `${actor} is calling you.`,
-      /*
-       * UTV CALLS V3
-       *
-       * Incoming users always land on the
-       * Accept / Decline screen first.
-       * Never deep-link a ringing receiver
-       * straight into LiveKit.
-       */
       link: record.id
         ? `/calls?incoming=${encodeURIComponent(record.id)}`
         : "/calls",
-      tag: `utv-call-${record.id || Date.now()}`,
+      tag: `vuewe-call-${record.id || Date.now()}`,
     };
   }
 
@@ -181,10 +174,10 @@ async function copyFromWebhook(
 
     return {
       recipientEmail: comment.user_email,
-      title: `${record.reaction || "❤️"} Comment reaction`,
+      title: `${record.reaction || "❤️"} VUEWE comment reaction`,
       body: `${actor} reacted to your comment.`,
       link: `/feed#post-${comment.upload_id}`,
-      tag: `comment-reaction-${record.id || Date.now()}`,
+      tag: `vuewe-comment-reaction-${record.id || Date.now()}`,
     };
   }
 
@@ -226,12 +219,12 @@ async function copyFromWebhook(
 
     return {
       recipientEmail,
-      title: parentId ? "New reply" : "New comment",
+      title: parentId ? "New VUEWE reply" : "New VUEWE comment",
       body: parentId
         ? `${actor} replied to your comment.`
         : `${actor} commented on your post.`,
       link: `/feed#post-${record.upload_id}`,
-      tag: `comment-${record.id || Date.now()}`,
+      tag: `vuewe-comment-${record.id || Date.now()}`,
     };
   }
 
@@ -257,8 +250,8 @@ async function deliverPush(copy: PushCopy) {
     link: copy.link,
     url: copy.link,
     tag: copy.tag,
-    icon: "/utv-logo.png",
-    badge: "/utv-logo.png",
+    icon: "/vuewe-icon.svg",
+    badge: "/vuewe-badge.svg",
   });
 
   let delivered = 0;
@@ -292,7 +285,7 @@ async function deliverPush(copy: PushCopy) {
           .eq("endpoint", subscription.endpoint);
       } else {
         console.error(
-          "UTV push delivery error:",
+          "VUEWE push delivery error:",
           error?.message || error,
         );
       }
@@ -365,7 +358,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error(
-      "UTV push webhook error:",
+      "VUEWE push webhook error:",
       error?.message || error,
     );
 
