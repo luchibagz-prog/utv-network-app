@@ -38,17 +38,18 @@ import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
 import VUEWEFidelityRuntime from "./components/VUEWEFidelityRuntime";
 import VUEWEInteractionRuntime from "./components/VUEWEInteractionRuntime";
 import VUEWEContentRuntime from "./components/VUEWEContentRuntime";
+import VUEWEInstallBrandRuntime from "./components/VUEWEInstallBrandRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
   description:
     "VUEWE is a brighter social world for real people, creators, communities, live moments, discovery, entertainment, and connection.",
   manifest: "/manifest.json",
-  themeColor: "#ffffff",
+  themeColor: "#08111f",
   appleWebApp: {
     capable: true,
     title: "VUEWE",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
   icons: {
     icon: "/vuewe-icon.svg",
@@ -66,6 +67,7 @@ export default function RootLayout({
       <body>
         <UTVLiveTruthSync />
         <UTVAppShell />
+        <VUEWEInstallBrandRuntime />
         <UTVRealtimeBridge />
         <VUEWENav />
         <VUEWEExperienceShell />
