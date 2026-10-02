@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="VUEWE Watch">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#030709"/>
+      <stop offset="0.55" stop-color="#071219"/>
+      <stop offset="1" stop-color="#020405"/>
+    </linearGradient>
+    <radialGradient id="g1" cx="0.22" cy="0.18" r="0.65">
+      <stop offset="0" stop-color="#24e86e" stop-opacity="0.36"/>
+      <stop offset="1" stop-color="#24e86e" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="0.8" cy="0.28" r="0.7">
+      <stop offset="0" stop-color="#2468f2" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#2468f2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="iris" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#24e86e"/>
+      <stop offset="0.5" stop-color="#13dbe4"/>
+      <stop offset="1" stop-color="#2468f2"/>
+    </linearGradient>
+    <filter id="glow"><feDropShadow dx="0" dy="0" stdDeviation="18" flood-color="#13dbe4" flood-opacity="0.45"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#g1)"/>
+  <rect width="1600" height="900" fill="url(#g2)"/>
+  <g opacity="0.22" stroke="#13dbe4" fill="none">
+    <path d="M-40 640 C300 430 500 760 825 520 S1300 350 1640 580" stroke-width="3"/>
+    <path d="M-40 700 C280 485 540 800 860 565 S1310 420 1640 630" stroke-width="1.5"/>
+  </g>
+  <g transform="translate(800 400)" filter="url(#glow)">
+    <path d="M-260 0 C-185-112-83-158 0-158 C83-158 185-112 260 0 C185 112 83 158 0 158 C-83 158-185 112-260 0Z" fill="#081219" fill-opacity="0.86" stroke="#ffffff" stroke-width="10"/>
+    <circle cx="0" cy="0" r="100" fill="url(#iris)"/>
+    <circle cx="0" cy="0" r="48" fill="#010509"/>
+    <circle cx="-24" cy="-27" r="14" fill="#ffffff"/>
+  </g>
+  <text x="800" y="670" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="900" letter-spacing="4">VUEWE WATCH</text>
+  <text x="800" y="725" text-anchor="middle" fill="#84a0ad" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" letter-spacing="8">SHOWS • MOVIES • LIVE • REELS</text>
+</svg>
