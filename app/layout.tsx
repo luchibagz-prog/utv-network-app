@@ -15,6 +15,7 @@ import "./vuewe-polish-v7.css";
 import "./vuewe-mock-v8.css";
 import "./vuewe-mock-v9.css";
 import "./vuewe-mock-v10.css";
+import "./vuewe-unified-v11.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -23,6 +24,7 @@ import VUEWENav from "./components/VUEWENav";
 import VUEWEExperienceShell from "./components/VUEWEExperienceShell";
 import VUEWELivingProfileSystem from "./components/VUEWELivingProfileSystem";
 import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
+import VUEWEProfileThemeRuntime from "./components/VUEWEProfileThemeRuntime";
 import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
 
 export const metadata = {
@@ -56,6 +58,7 @@ export default function RootLayout({
         <VUEWENav />
         <VUEWEExperienceShell />
         <VUEWEProfileVideoRuntime />
+        <VUEWEProfileThemeRuntime />
         <VUEWELivingProfileSystem />
         <VUEWEMockRuntime />
         {children}
