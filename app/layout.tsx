@@ -22,6 +22,7 @@ import "./vuewe-profile-v15.css";
 import "./vuewe-profile-v16.css";
 import "./vuewe-fidelity-v18.css";
 import "./vuewe-fidelity-v18b.css";
+import "./vuewe-motion-v19.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -33,6 +34,7 @@ import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
 import VUEWEProfileThemeRuntime from "./components/VUEWEProfileThemeRuntime";
 import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
 import VUEWEFidelityRuntime from "./components/VUEWEFidelityRuntime";
+import VUEWEInteractionRuntime from "./components/VUEWEInteractionRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -69,6 +71,7 @@ export default function RootLayout({
         <VUEWELivingProfileSystem />
         <VUEWEMockRuntime />
         <VUEWEFidelityRuntime />
+        <VUEWEInteractionRuntime />
         {children}
         <UTVNotificationBootstrap />
       </body>
