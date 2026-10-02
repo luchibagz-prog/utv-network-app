@@ -72,9 +72,10 @@ export default function UTVCollabInboxPage() {
     setLoading(false);
   }
 
-  async function respond(
+  async function updateCollab(
     invite: CollabInvite,
-    response: "accepted" | "declined"
+    response: "accepted" | "declined",
+    leaving = false
   ) {
     setWorkingId(invite.collab_id);
     setMessage("");
@@ -95,7 +96,9 @@ export default function UTVCollabInboxPage() {
 
       setMessage(
         error.message ||
-          "Could not update this collaboration."
+          (leaving
+            ? "Could not leave this collaboration."
+            : "Could not update this collaboration.")
       );
 
       setWorkingId("");
@@ -115,12 +118,30 @@ export default function UTVCollabInboxPage() {
     );
 
     setMessage(
-      response === "accepted"
+      leaving
+        ? "You left the collaboration."
+        : response === "accepted"
         ? "🔥 Collaboration accepted."
         : "Collaboration declined."
     );
 
     setWorkingId("");
+  }
+
+  async function leaveCollab(
+    invite: CollabInvite
+  ) {
+    const confirmed = window.confirm(
+      "Leave this collaboration? Your name will no longer be attached as an accepted collaborator."
+    );
+
+    if (!confirmed) return;
+
+    await updateCollab(
+      invite,
+      "declined",
+      true
+    );
   }
 
   function openContent(
@@ -151,15 +172,15 @@ export default function UTVCollabInboxPage() {
           <span>🤝</span>
 
           <div>
-            <p>UTV COLLABS</p>
+            <p>VUEWE COLLABS</p>
 
             <h1>
               Collaboration Inbox
             </h1>
 
             <small>
-              Accept or decline creator
-              invitations.
+              Accept, decline or leave creator
+              collaborations anytime.
             </small>
           </div>
         </header>
@@ -193,10 +214,14 @@ export default function UTVCollabInboxPage() {
                   invite.status ===
                   "pending";
 
+                const accepted =
+                  invite.status ===
+                  "accepted";
+
                 const name =
                   invite.owner_display_name ||
                   invite.owner_username ||
-                  "UTV Creator";
+                  "VUEWE Creator";
 
                 return (
                   <article
@@ -222,7 +247,7 @@ export default function UTVCollabInboxPage() {
                         />
                       ) : (
                         <span>
-                          U
+                          V
                         </span>
                       )}
 
@@ -251,8 +276,8 @@ export default function UTVCollabInboxPage() {
                       <small>
                         {invite.content_kind ===
                         "story"
-                          ? "UTV Story"
-                          : "UTV Post"}
+                          ? "VUEWE Story"
+                          : "VUEWE Post"}
                       </small>
                     </div>
 
@@ -265,7 +290,7 @@ export default function UTVCollabInboxPage() {
                             invite.collab_id
                           }
                           onClick={() =>
-                            void respond(
+                            void updateCollab(
                               invite,
                               "declined"
                             )
@@ -281,7 +306,7 @@ export default function UTVCollabInboxPage() {
                             invite.collab_id
                           }
                           onClick={() =>
-                            void respond(
+                            void updateCollab(
                               invite,
                               "accepted"
                             )
@@ -293,14 +318,34 @@ export default function UTVCollabInboxPage() {
                             : "Accept Collab"}
                         </button>
                       </div>
+                    ) : accepted ? (
+                      <div className="acceptedActions">
+                        <div className="status accepted">
+                          ✓ Accepted
+                        </div>
+
+                        <button
+                          className="leave"
+                          disabled={
+                            workingId ===
+                            invite.collab_id
+                          }
+                          onClick={() =>
+                            void leaveCollab(
+                              invite
+                            )
+                          }
+                        >
+                          {workingId === invite.collab_id
+                            ? "Leaving…"
+                            : "Leave Collab"}
+                        </button>
+                      </div>
                     ) : (
                       <div
                         className={`status ${invite.status}`}
                       >
-                        {invite.status ===
-                        "accepted"
-                          ? "✓ Accepted"
-                          : "Declined"}
+                        Declined
                       </div>
                     )}
 
@@ -489,25 +534,34 @@ export default function UTVCollabInboxPage() {
             rgba(255,255,255,.42);
         }
 
-        .actions {
+        .actions,
+        .acceptedActions {
           display: grid;
           grid-template-columns: 1fr 1.4fr;
           gap: 8px;
         }
 
         .actions button,
+        .acceptedActions button,
         .view {
           min-height: 43px;
           border-radius: 14px;
           font-weight: 900;
         }
 
-        .decline {
+        .decline,
+        .leave {
           border: 1px solid
             rgba(255,255,255,.1);
           color: #fff;
           background:
             rgba(255,255,255,.04);
+        }
+
+        .leave {
+          color: #ff9aab;
+          border-color: rgba(255,90,110,.18);
+          background: rgba(255,90,110,.07);
         }
 
         .accept {
@@ -530,6 +584,8 @@ export default function UTVCollabInboxPage() {
         }
 
         .status.accepted {
+          display: grid;
+          place-items: center;
           color: #73f6d4;
           background:
             rgba(82,247,200,.07);
