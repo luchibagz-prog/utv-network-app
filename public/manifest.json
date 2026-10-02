@@ -6,15 +6,44 @@
   "start_url": "/feed",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#05080f",
-  "theme_color": "#ffffff",
+  "theme_color": "#08111f",
   "orientation": "portrait",
+  "categories": ["social", "entertainment", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/vuewe-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "VUEWE Feed",
+      "short_name": "Feed",
+      "url": "/feed",
+      "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    },
+    {
+      "name": "Create on VUEWE",
+      "short_name": "Create",
+      "url": "/submit",
+      "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    },
+    {
+      "name": "VUEWE Live",
+      "short_name": "Live",
+      "url": "/live",
+      "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+    },
+    {
+      "name": "VUEWE Watch",
+      "short_name": "Watch",
+      "url": "/watch",
+      "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
     }
   ]
 }
