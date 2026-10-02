@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
+const createdAtCache = new Map<string, string>();
+const missingCreatedAt = new Set<string>();
+
 function relativeTime(value?: string | null) {
   if (!value) return "";
 
@@ -117,21 +120,40 @@ async function fetchCreatedAt(ids: string[]) {
   const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
   if (!uniqueIds.length) return new Map<string, string>();
 
-  const { data, error } = await supabase
-    .from("uploads")
-    .select("id,created_at")
-    .in("id", uniqueIds);
+  const uncached = uniqueIds.filter(
+    (id) => !createdAtCache.has(id) && !missingCreatedAt.has(id)
+  );
 
-  if (error) {
-    console.info("VUEWE timestamps skipped:", error.message);
-    return new Map<string, string>();
+  if (uncached.length) {
+    const { data, error } = await supabase
+      .from("uploads")
+      .select("id,created_at")
+      .in("id", uncached);
+
+    if (error) {
+      console.info("VUEWE timestamps skipped:", error.message);
+    } else {
+      const found = new Set<string>();
+
+      (data || []).forEach((row: any) => {
+        const id = String(row.id || "");
+        const createdAt = String(row.created_at || "");
+        if (!id || !createdAt) return;
+
+        found.add(id);
+        createdAtCache.set(id, createdAt);
+      });
+
+      uncached.forEach((id) => {
+        if (!found.has(id)) missingCreatedAt.add(id);
+      });
+    }
   }
 
   return new Map(
-    (data || []).map((row: any) => [
-      String(row.id),
-      String(row.created_at || ""),
-    ])
+    uniqueIds
+      .filter((id) => createdAtCache.has(id))
+      .map((id) => [id, createdAtCache.get(id) || ""])
   );
 }
 
@@ -270,39 +292,56 @@ export default function VUEWEContentRuntime() {
 
     let cancelled = false;
 
-    const refresh = async () => {
+    const refreshTimes = async () => {
       if (cancelled) return;
 
       if (pathname === "/feed") {
         await stampFeedPosts();
       }
 
-      if (isWatchArea) {
-        replaceLegacyWatchBranding();
-
-        if (isWatchHome) {
-          await stampWatchCards();
-        } else if (isWatchPlayer) {
-          await stampWatchPlayer(pathname);
-        }
+      if (isWatchHome) {
+        await stampWatchCards();
+      } else if (isWatchPlayer) {
+        await stampWatchPlayer(pathname);
       }
     };
 
+    const refreshAll = async () => {
+      if (cancelled) return;
+
+      if (isWatchArea) {
+        replaceLegacyWatchBranding();
+      }
+
+      await refreshTimes();
+    };
+
     const timers = [
-      window.setTimeout(() => void refresh(), 40),
-      window.setTimeout(() => void refresh(), 500),
-      window.setTimeout(() => void refresh(), 1600),
+      window.setTimeout(() => void refreshAll(), 40),
+      window.setTimeout(() => void refreshAll(), 500),
+      window.setTimeout(() => void refreshAll(), 1600),
     ];
 
-    const interval = window.setInterval(
-      () => void refresh(),
-      15_000
+    const updateInterval = window.setInterval(
+      () => void refreshTimes(),
+      60_000
     );
+
+    const onWatchInteraction = () => {
+      if (!isWatchArea) return;
+      window.setTimeout(replaceLegacyWatchBranding, 80);
+      window.setTimeout(replaceLegacyWatchBranding, 420);
+    };
+
+    if (isWatchArea) {
+      document.addEventListener("click", onWatchInteraction, { passive: true });
+    }
 
     return () => {
       cancelled = true;
       timers.forEach((timer) => window.clearTimeout(timer));
-      window.clearInterval(interval);
+      window.clearInterval(updateInterval);
+      document.removeEventListener("click", onWatchInteraction);
       delete document.documentElement.dataset.vueweWatchRoute;
     };
   }, [pathname]);
