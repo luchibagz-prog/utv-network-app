@@ -27,6 +27,7 @@ import VUEWELivingProfileSystem from "./components/VUEWELivingProfileSystem";
 import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
 import VUEWEProfileThemeRuntime from "./components/VUEWEProfileThemeRuntime";
 import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
+import VUEWEProfileFinishV13 from "./components/VUEWEProfileFinishV13";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -62,6 +63,7 @@ export default function RootLayout({
         <VUEWEProfileThemeRuntime />
         <VUEWELivingProfileSystem />
         <VUEWEMockRuntime />
+        <VUEWEProfileFinishV13 />
         {children}
         <UTVNotificationBootstrap />
       </body>
