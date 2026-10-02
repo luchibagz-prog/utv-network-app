@@ -1,0 +1,614 @@
+/* VUEWE POLISH V7 — GREEN SIGNAL / SOCIAL FUTURE CORRECTION
+   Loaded last. Screenshot-driven fixes for feed stories, Living Profile,
+   Connect/messages, Top 8 and a more green-led VUEWE visual system. */
+
+:root {
+  --v7-ink:#07110b;
+  --v7-ink2:#0d1811;
+  --v7-copy:#314039;
+  --v7-muted:#75847c;
+  --v7-paper:#fbfdfc;
+  --v7-ice:#edf5f0;
+  --v7-steel:#dce8e1;
+  --v7-line:rgba(21,48,32,.10);
+  --v7-green:#31e66d;
+  --v7-green2:#78f08c;
+  --v7-mint:#b6f8c9;
+  --v7-blue:#2f73ff;
+  --v7-cyan:#39d9d0;
+  --v7-live:#ff385b;
+  --v7-shadow:0 12px 32px rgba(15,40,25,.10);
+}
+
+html,body {
+  background:#eaf2ed !important;
+}
+
+/* =========================================================
+   GLOBAL COLOR DIRECTION — GREEN FIRST, BLUE/CYAN SECOND
+   ========================================================= */
+html body .vuewePageKicker,
+html body .vueweQuickButton,
+html body .vueweNavItem.isActive {
+  color:#148a43 !important;
+}
+
+html body .vueweZoneTabs a.isActive::after,
+html body .feedPage .feedTabs button.active::after {
+  background:linear-gradient(90deg,var(--v7-green),var(--v7-green2),var(--v7-blue)) !important;
+}
+
+html body .vueweNavItem.isCreate .vueweNavIcon {
+  background:linear-gradient(145deg,#20c95b,#39e978 56%,#2f73ff) !important;
+  box-shadow:0 8px 22px rgba(49,230,109,.24),inset 0 1px 0 rgba(255,255,255,.46) !important;
+}
+
+/* =========================================================
+   FEED — ONE ROW TABS, STORIES NEVER HIDDEN
+   ========================================================= */
+html body .feedPage .feedTabs {
+  position:relative !important;
+  top:auto !important;
+  z-index:5 !important;
+  width:calc(100% - 20px) !important;
+  height:50px !important;
+  min-height:50px !important;
+  max-height:50px !important;
+  margin:8px auto 7px !important;
+  padding:4px 5px !important;
+  display:flex !important;
+  align-items:center !important;
+  flex-wrap:nowrap !important;
+  gap:2px !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  border:1px solid rgba(255,255,255,.86) !important;
+  border-radius:18px !important;
+  background:rgba(251,253,252,.93) !important;
+  box-shadow:0 7px 18px rgba(20,48,31,.07),inset 0 1px 0 #fff !important;
+  scrollbar-width:none !important;
+}
+html body .feedPage .feedTabs::-webkit-scrollbar { display:none !important; }
+html body .feedPage .feedTabs button {
+  flex:0 0 auto !important;
+  width:auto !important;
+  min-width:68px !important;
+  height:40px !important;
+  min-height:40px !important;
+  max-height:40px !important;
+  padding:0 12px !important;
+  margin:0 !important;
+  white-space:nowrap !important;
+  border-radius:13px !important;
+  color:#718078 !important;
+  font-size:10px !important;
+  font-weight:900 !important;
+}
+html body .feedPage .feedTabs button.active {
+  color:var(--v7-ink) !important;
+  background:linear-gradient(145deg,#fff,#edf6f0) !important;
+  box-shadow:0 4px 10px rgba(20,48,31,.07),inset 0 1px 0 #fff !important;
+}
+
+html body .feedPage .stories {
+  position:relative !important;
+  top:auto !important;
+  z-index:4 !important;
+  width:calc(100% - 20px) !important;
+  height:96px !important;
+  min-height:96px !important;
+  max-height:96px !important;
+  margin:0 auto 8px !important;
+  padding:8px 8px 6px !important;
+  display:flex !important;
+  align-items:flex-start !important;
+  flex-wrap:nowrap !important;
+  gap:9px !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  transform:none !important;
+  clip-path:none !important;
+  border:1px solid rgba(255,255,255,.84) !important;
+  border-radius:18px !important;
+  background:
+    linear-gradient(145deg,rgba(255,255,255,.91),rgba(235,245,238,.91)) !important;
+  box-shadow:0 7px 18px rgba(20,48,31,.06),inset 0 1px 0 #fff !important;
+  scrollbar-width:none !important;
+}
+html body .feedPage .stories::-webkit-scrollbar { display:none !important; }
+html body .feedPage .storyWrap {
+  flex:0 0 62px !important;
+  width:62px !important;
+  min-width:62px !important;
+  height:80px !important;
+  min-height:80px !important;
+  display:grid !important;
+  grid-template-rows:58px 18px !important;
+  place-items:start center !important;
+  gap:3px !important;
+  overflow:visible !important;
+}
+html body .feedPage .storyButton,
+html body .feedPage .storyWrap .storyButton {
+  width:58px !important;
+  height:58px !important;
+  min-width:58px !important;
+  min-height:58px !important;
+  margin:0 !important;
+  padding:2px !important;
+  border-radius:50% !important;
+  box-shadow:0 0 0 2px rgba(49,230,109,.62),0 0 0 4px rgba(47,115,255,.10) !important;
+}
+html body .feedPage .storyButton.addStory {
+  background:linear-gradient(145deg,#1db956,#31e66d 58%,#2f73ff) !important;
+  box-shadow:0 0 0 2px rgba(49,230,109,.18),0 8px 18px rgba(49,230,109,.18) !important;
+}
+html body .feedPage .storyName {
+  position:static !important;
+  width:62px !important;
+  height:18px !important;
+  margin:0 !important;
+  color:#35433c !important;
+  font-size:8px !important;
+  font-weight:850 !important;
+  line-height:18px !important;
+  text-align:center !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+/* VUEWE NOW should feel like a signal rail, not an old dashboard. */
+html body .feedPage .utvHomePulse {
+  width:calc(100% - 20px) !important;
+  margin:0 auto 8px !important;
+  border:1px solid rgba(49,230,109,.15) !important;
+  border-radius:17px !important;
+  background:
+    radial-gradient(circle at 0 0,rgba(49,230,109,.10),transparent 28%),
+    linear-gradient(145deg,rgba(252,254,253,.94),rgba(232,243,235,.94)) !important;
+  box-shadow:0 7px 20px rgba(20,48,31,.07),inset 0 -2px 0 rgba(49,230,109,.45) !important;
+}
+
+/* Instagram-like feed wall: content dominates, footer stays compact. */
+html body .feedPage .feedList {
+  padding-left:6px !important;
+  padding-right:6px !important;
+  gap:9px !important;
+}
+html body .feedPage .feedPost {
+  border-radius:18px !important;
+  border-color:rgba(21,48,32,.075) !important;
+  background:#fcfefd !important;
+  box-shadow:0 7px 18px rgba(20,48,31,.065),inset 0 1px 0 #fff !important;
+}
+html body .feedPage .postHeader {
+  min-height:54px !important;
+  padding:7px 10px !important;
+  background:#fcfefd !important;
+}
+html body .feedPage .postBody {
+  padding:4px 10px 7px !important;
+  background:#fcfefd !important;
+}
+html body .feedPage .postBody .actionRow {
+  height:37px !important;
+  min-height:37px !important;
+}
+html body .feedPage .actionMeta {
+  margin:0 0 2px !important;
+  color:#68766f !important;
+  font-size:9px !important;
+}
+html body .feedPage .commentSection {
+  min-height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+html body .feedPage .viewComments {
+  min-height:20px !important;
+  height:auto !important;
+  margin:0 !important;
+  padding:0 !important;
+  color:#6d7b74 !important;
+  font-size:9.5px !important;
+}
+
+/* =========================================================
+   LIVING PROFILE — VIDEO MUST BE THE HERO
+   ========================================================= */
+html[data-vuewe-profile-video="1"] body {
+  background:#07110b !important;
+}
+html[data-vuewe-profile-video="1"] body main[data-utv-page="profile"].page {
+  position:relative !important;
+  z-index:1 !important;
+  background:transparent !important;
+}
+html[data-vuewe-profile-video="1"] body main[data-utv-page="profile"] .hero {
+  background-image:none !important;
+  background-color:transparent !important;
+}
+
+html body .vueweLivingProfileBackdrop {
+  display:none !important;
+}
+html body .vueweProfileVideoRuntime {
+  position:absolute !important;
+  inset:0 0 auto 0 !important;
+  z-index:0 !important;
+  width:100% !important;
+  height:560px !important;
+  overflow:hidden !important;
+  pointer-events:none !important;
+  background:#07110b !important;
+}
+html body .vueweProfileVideoRuntime video {
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  object-fit:cover !important;
+  object-position:center 22% !important;
+}
+html body .vueweProfileVideoRuntimeShade {
+  position:absolute !important;
+  inset:0 !important;
+  background:
+    linear-gradient(180deg,rgba(2,8,4,.02) 0%,rgba(2,8,4,.08) 42%,rgba(3,10,6,.62) 76%,#07110b 100%),
+    radial-gradient(circle at 12% 12%,rgba(49,230,109,.08),transparent 34%) !important;
+}
+
+html body main[data-utv-page="profile"].page {
+  background:
+    radial-gradient(circle at 4% 0%,rgba(49,230,109,.10),transparent 24%),
+    radial-gradient(circle at 96% 9%,rgba(47,115,255,.07),transparent 25%),
+    linear-gradient(180deg,#eaf3ed 0%,#f8fbf9 58%,#e8f1eb 100%) !important;
+}
+html body main[data-utv-page="profile"] .hero {
+  width:calc(100% - 14px) !important;
+  min-height:470px !important;
+  margin:7px auto 0 !important;
+  padding:292px 10px 10px !important;
+  border-radius:28px !important;
+  border:1px solid rgba(255,255,255,.15) !important;
+  box-shadow:0 18px 46px rgba(15,39,24,.16) !important;
+}
+html body main[data-utv-page="profile"] .hero::before {
+  background:linear-gradient(180deg,rgba(2,8,4,.00) 0%,rgba(2,8,4,.06) 39%,rgba(3,10,6,.58) 72%,rgba(4,12,7,.86) 100%) !important;
+}
+
+/* Smaller, cleaner identity glass — no giant black slab. */
+html body main[data-utv-page="profile"] .hero .identity {
+  min-height:96px !important;
+  padding:10px !important;
+  grid-template-columns:78px minmax(0,1fr) !important;
+  gap:11px !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  border-radius:21px !important;
+  background:
+    linear-gradient(145deg,rgba(6,18,10,.64),rgba(11,28,17,.48)) !important;
+  box-shadow:0 10px 28px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.10) !important;
+  backdrop-filter:blur(16px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(16px) saturate(125%) !important;
+}
+html body main[data-utv-page="profile"] .hero .avatar {
+  width:74px !important;
+  height:74px !important;
+  min-width:74px !important;
+  padding:3px !important;
+  border-radius:22px !important;
+  background:conic-gradient(from 210deg,#31e66d,#78f08c,#2f73ff,#31e66d) !important;
+  box-shadow:0 9px 24px rgba(0,0,0,.26),0 0 22px rgba(49,230,109,.17) !important;
+}
+html body main[data-utv-page="profile"] .hero .avatar img,
+html body main[data-utv-page="profile"] .hero .avatar > span {
+  border-radius:19px !important;
+  border-color:#07110b !important;
+}
+html body main[data-utv-page="profile"] .hero .category {
+  color:#7df49a !important;
+}
+html body main[data-utv-page="profile"] .hero .identityText h1 {
+  font-size:clamp(23px,7vw,32px) !important;
+}
+html body main[data-utv-page="profile"] .hero .bio {
+  margin-top:5px !important;
+  font-size:9.5px !important;
+}
+
+html body main[data-utv-page="profile"] .socialActions {
+  margin-top:6px !important;
+  gap:5px !important;
+}
+html body main[data-utv-page="profile"] .socialActions button {
+  min-height:39px !important;
+  border-radius:13px !important;
+  background:rgba(5,16,9,.56) !important;
+}
+html body main[data-utv-page="profile"] .socialActions .messageAction {
+  color:#06110a !important;
+  background:linear-gradient(135deg,#31e66d,#7af093 72%,#baf8c9) !important;
+  box-shadow:0 7px 17px rgba(49,230,109,.17) !important;
+}
+
+/* Bright soundtrack + stats, green-led accents. */
+html body main[data-utv-page="profile"] .profileMusicBar,
+html body main[data-utv-page="profile"] .stats.socialStats {
+  border-color:rgba(255,255,255,.86) !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(234,244,237,.95)) !important;
+  box-shadow:0 8px 22px rgba(20,48,31,.07),inset 0 1px 0 #fff !important;
+}
+html body main[data-utv-page="profile"] .profileMusicInfo span,
+html body main[data-utv-page="profile"] .heading p {
+  color:#15904a !important;
+}
+html body main[data-utv-page="profile"] .musicPlayButton {
+  background:linear-gradient(135deg,#31e66d,#7cf094) !important;
+  box-shadow:0 7px 16px rgba(49,230,109,.17) !important;
+}
+
+/* VUEWE Circle: no giant dark UTV panel. */
+html body main[data-utv-page="profile"] .top8Spotlight {
+  width:calc(100% - 18px) !important;
+  max-width:730px !important;
+  margin:4px auto 10px !important;
+  padding:9px 4px 8px !important;
+  overflow:visible !important;
+  border:0 !important;
+  border-radius:0 !important;
+  color:var(--v7-ink) !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+html body main[data-utv-page="profile"] .top8Heading {
+  padding:0 7px 7px !important;
+}
+html body main[data-utv-page="profile"] .top8Heading p {
+  font-size:0 !important;
+  color:transparent !important;
+}
+html body main[data-utv-page="profile"] .top8Heading p::before { display:none !important; content:none !important; }
+html body main[data-utv-page="profile"] .top8Heading p::after {
+  content:"VUEWE CIRCLE" !important;
+  color:#15904a !important;
+  font-size:8px !important;
+  font-weight:1000 !important;
+  letter-spacing:.17em !important;
+}
+html body main[data-utv-page="profile"] .top8Heading h2 {
+  color:#0a1510 !important;
+}
+html body main[data-utv-page="profile"] .top8Heading button {
+  color:#405047 !important;
+  border:1px solid rgba(21,48,32,.08) !important;
+  background:rgba(255,255,255,.72) !important;
+  box-shadow:0 5px 13px rgba(20,48,31,.05) !important;
+}
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid {
+  gap:6px !important;
+}
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid > button {
+  min-width:0 !important;
+  padding:8px 3px !important;
+  border:1px solid rgba(21,48,32,.075) !important;
+  border-radius:17px !important;
+  color:#122018 !important;
+  background:linear-gradient(145deg,rgba(255,255,255,.90),rgba(232,243,235,.88)) !important;
+  box-shadow:0 6px 16px rgba(20,48,31,.055),inset 0 1px 0 #fff !important;
+}
+html body main[data-utv-page="profile"] .top8Spotlight .crewAvatar {
+  box-shadow:0 0 0 2px rgba(49,230,109,.55),0 0 0 4px rgba(47,115,255,.09) !important;
+}
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid strong,
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid b {
+  color:#142119 !important;
+}
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid span,
+html body main[data-utv-page="profile"] .top8Spotlight .crewGrid small {
+  color:#718078 !important;
+}
+
+html body main[data-utv-page="profile"] .tabs {
+  border-color:rgba(255,255,255,.86) !important;
+  background:linear-gradient(145deg,rgba(252,254,253,.93),rgba(233,243,236,.93)) !important;
+}
+html body main[data-utv-page="profile"] .tabs button.active {
+  box-shadow:0 4px 11px rgba(20,48,31,.06),inset 0 -2px var(--v7-green) !important;
+}
+
+/* =========================================================
+   CONNECT / CHAT — INSTAGRAM-CLEAN, GREEN VUEWE SIGNAL
+   ========================================================= */
+html body .messagesPage,
+html body .conversationPage {
+  color:var(--v7-ink) !important;
+  background:
+    radial-gradient(circle at 4% 0%,rgba(49,230,109,.10),transparent 27%),
+    radial-gradient(circle at 98% 5%,rgba(47,115,255,.06),transparent 28%),
+    linear-gradient(180deg,#edf5f0 0%,#f8fbf9 100%) !important;
+}
+
+html body .conversationPage {
+  padding-bottom:215px !important;
+}
+html body .conversationPage .chatHeader {
+  color:var(--v7-ink) !important;
+  border-bottom:1px solid rgba(21,48,32,.08) !important;
+  background:rgba(250,253,251,.92) !important;
+  box-shadow:0 6px 18px rgba(20,48,31,.05) !important;
+  backdrop-filter:blur(18px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(125%) !important;
+}
+html body .conversationPage .backButton,
+html body .conversationPage .profileButton,
+html body .conversationPage .callShortcut {
+  color:#223229 !important;
+  border-color:rgba(21,48,32,.08) !important;
+  background:rgba(255,255,255,.76) !important;
+  box-shadow:0 5px 13px rgba(20,48,31,.05) !important;
+}
+html body .conversationPage .headerAvatar {
+  border-color:var(--v7-green) !important;
+}
+html body .conversationPage .chatProfile {
+  color:var(--v7-ink) !important;
+}
+html body .conversationPage .chatProfile span {
+  color:#75847c !important;
+}
+html body .conversationPage .messageArea {
+  padding-bottom:34px !important;
+}
+html body .conversationPage .dayDivider span,
+html body .conversationPage .seenDivider {
+  color:#839087 !important;
+  background:transparent !important;
+}
+html body .conversationPage .bubbleAvatar {
+  border-color:rgba(21,48,32,.09) !important;
+  background:#fff !important;
+}
+html body .conversationPage .messageBubble {
+  max-width:min(78%,520px) !important;
+  padding:9px 11px 6px !important;
+  border:1px solid rgba(21,48,32,.07) !important;
+  box-shadow:0 5px 13px rgba(20,48,31,.045) !important;
+}
+html body .conversationPage .theirBubble {
+  color:#17241c !important;
+  background:rgba(255,255,255,.94) !important;
+  border-bottom-left-radius:6px !important;
+}
+html body .conversationPage .mineBubble {
+  color:#061109 !important;
+  border-color:rgba(49,230,109,.24) !important;
+  background:linear-gradient(135deg,#37e772,#78f08d 68%,#b9f7c9) !important;
+  border-bottom-right-radius:6px !important;
+}
+html body .conversationPage .messageMeta {
+  color:#526158 !important;
+  opacity:.72 !important;
+}
+
+/* No cheap visible three-dot/delete control on every bubble.
+   Long-press/context menu already opens the action sheet. */
+html body .conversationPage .messageMoreButton {
+  display:none !important;
+}
+
+html body .conversationPage .messageActionBackdrop {
+  padding-bottom:calc(106px + env(safe-area-inset-bottom)) !important;
+  background:rgba(4,12,7,.48) !important;
+}
+html body .conversationPage .messageActionSheet {
+  color:var(--v7-ink) !important;
+  border:1px solid rgba(255,255,255,.80) !important;
+  background:
+    radial-gradient(circle at 0 0,rgba(49,230,109,.10),transparent 29%),
+    linear-gradient(145deg,#fbfdfc,#eaf3ed) !important;
+  box-shadow:0 24px 64px rgba(6,25,13,.25) !important;
+}
+html body .conversationPage .messageActionHandle {
+  background:rgba(22,48,32,.18) !important;
+}
+html body .conversationPage .messageActionPreview {
+  border-color:rgba(21,48,32,.07) !important;
+  background:rgba(255,255,255,.70) !important;
+}
+html body .conversationPage .messageActionPreview small {
+  color:#15904a !important;
+}
+html body .conversationPage .messageActionPreview p,
+html body .conversationPage .messageSheetAction,
+html body .conversationPage .messageSheetAction strong {
+  color:#18271e !important;
+}
+html body .conversationPage .messageSheetAction small,
+html body .conversationPage .messageSheetAction > b {
+  color:#75847c !important;
+}
+html body .conversationPage .messageSheetAction > span {
+  border-color:rgba(49,230,109,.16) !important;
+  background:rgba(49,230,109,.08) !important;
+}
+html body .conversationPage .messageSheetCancel {
+  color:#34443a !important;
+  background:rgba(255,255,255,.70) !important;
+}
+
+/* Composer must sit ABOVE nav, never underneath it. */
+html body .conversationPage .messageComposer {
+  left:50% !important;
+  right:auto !important;
+  bottom:calc(100px + env(safe-area-inset-bottom,0px)) !important;
+  z-index:1050 !important;
+  width:min(720px,calc(100% - 20px)) !important;
+  transform:translateX(-50%) !important;
+  padding:7px !important;
+  border:1px solid rgba(255,255,255,.82) !important;
+  border-radius:22px !important;
+  background:rgba(8,20,12,.94) !important;
+  box-shadow:0 12px 32px rgba(6,24,12,.22),inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+html body .conversationPage .messageComposer input {
+  color:#fff !important;
+  padding:9px 4px !important;
+}
+html body .conversationPage .messageComposer input::placeholder {
+  color:rgba(255,255,255,.45) !important;
+}
+html body .conversationPage .emojiButton {
+  color:#fff !important;
+  background:rgba(255,255,255,.08) !important;
+}
+html body .conversationPage .sendMessageButton {
+  color:#061109 !important;
+  background:linear-gradient(135deg,#31e66d,#79f091) !important;
+  box-shadow:0 6px 16px rgba(49,230,109,.18) !important;
+}
+
+/* Inbox list uses the same green-led system. */
+html body .messagesPage .newMessage {
+  background:linear-gradient(135deg,#31e66d,#7af091) !important;
+  box-shadow:0 7px 18px rgba(49,230,109,.16) !important;
+}
+html body .messagesPage .threadRow.unread {
+  background:linear-gradient(145deg,#fff,#edf8f0) !important;
+  box-shadow:0 7px 19px rgba(49,230,109,.08),inset 3px 0 0 var(--v7-green) !important;
+}
+html body .messagesPage .avatarRing {
+  box-shadow:0 0 0 2px rgba(49,230,109,.45),0 0 0 4px rgba(47,115,255,.07) !important;
+}
+
+/* Bottom nav follows the new green signal language. */
+html body .vueweBottomNav {
+  border-color:rgba(255,255,255,.82) !important;
+  background:linear-gradient(145deg,rgba(251,253,252,.93),rgba(229,239,232,.93)) !important;
+  box-shadow:0 13px 32px rgba(13,36,22,.14),inset 0 1px 0 #fff !important;
+}
+
+@media(max-width:600px) {
+  html body .feedPage .feedTabs {
+    width:calc(100% - 14px) !important;
+  }
+  html body .feedPage .stories {
+    width:calc(100% - 14px) !important;
+  }
+  html body main[data-utv-page="profile"] .hero {
+    width:calc(100% - 10px) !important;
+    min-height:455px !important;
+    padding:282px 8px 8px !important;
+  }
+  html body main[data-utv-page="profile"] .top8Spotlight {
+    width:calc(100% - 10px) !important;
+  }
+  html body main[data-utv-page="profile"] .top8Spotlight .crewGrid {
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  }
+  html body main[data-utv-page="profile"] .top8Spotlight .crewGrid > button {
+    padding:7px 2px !important;
+  }
+  html body .conversationPage .messageBubble {
+    max-width:82% !important;
+  }
+}
