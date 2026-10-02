@@ -1,0 +1,214 @@
+/* =========================================================
+   VUEWE PROFILE V16 — FINAL IDENTITY CLEANUP
+   Remove the profile slab, enlarge the avatar ring,
+   and keep profile actions clean under the identity.
+   ========================================================= */
+
+/* Kill the large identity box on owner AND public profiles. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+  position: relative !important;
+  width: min(calc(100% - 20px), 680px) !important;
+  max-width: 680px !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  gap: 16px !important;
+  margin: auto auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity::before,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity::after {
+  content: none !important;
+  display: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identityText {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 0 5px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Make the avatar/ring a real focal point. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+  width: 104px !important;
+  height: 104px !important;
+  min-width: 104px !important;
+  max-width: 104px !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 4px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, var(--vp-accent, #24e86e), #31d8ff 55%, #876cff) !important;
+  box-shadow:
+    0 0 0 6px rgba(255,255,255,.45),
+    0 0 0 10px rgba(255,255,255,.15),
+    0 14px 34px rgba(10,17,12,.24) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar img,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar > span {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  overflow: hidden !important;
+  border: 3px solid rgba(255,255,255,.96) !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+/* The runtime used to inject this. Never show it on the profile header. */
+.vueweQuickEditProfile {
+  display: none !important;
+}
+
+/* Runtime may rename Creator Dash to Creator Tools. Keep the approved label visually. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .ownerCreatorButton strong {
+  font-size: 0 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .ownerCreatorButton strong::after {
+  content: "Creator Dash" !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+/* Owner actions live directly below the avatar/name/badges, with no backing slab. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+  position: relative !important;
+  inset: auto !important;
+  width: min(calc(100% - 20px), 680px) !important;
+  max-width: 680px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  margin: 10px auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  scrollbar-width: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions::-webkit-scrollbar {
+  display: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions .ownerCreatorButton { order: 1 !important; }
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions .messageAction { order: 2 !important; }
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions .walkieAction { order: 3 !important; }
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions .contactAction { order: 4 !important; }
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions > button {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+  min-height: 35px !important;
+  padding: 0 11px !important;
+}
+
+/* Public profile Follow/Following row belongs BELOW identity, not across the avatar. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions) {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 16 !important;
+  width: min(calc(100% - 20px), 680px) !important;
+  max-width: 680px !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin: 10px auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions) > button:first-child {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 116px !important;
+  height: 34px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+}
+
+/* Public contact actions get no container box either. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) {
+  width: min(calc(100% - 20px), 680px) !important;
+  max-width: 680px !important;
+  margin: 7px auto 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
+
+/* Keep rows in the intended order inside the profile hero. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity { order: 1 !important; }
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions) { order: 2 !important; }
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions { order: 3 !important; }
+
+@media (max-width: 600px) {
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+    width: calc(100% - 14px) !important;
+    gap: 13px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+    width: 100px !important;
+    height: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions,
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions),
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) {
+    width: calc(100% - 14px) !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions > button {
+    min-height: 34px !important;
+    padding: 0 9px !important;
+    font-size: 8px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .ownerCreatorButton strong::after {
+    font-size: 8px !important;
+  }
+}
