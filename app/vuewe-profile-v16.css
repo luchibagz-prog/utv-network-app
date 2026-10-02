@@ -212,3 +212,228 @@ html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActi
     font-size: 8px !important;
   }
 }
+
+/* =========================================================
+   V16.1 — SCREENSHOT CORRECTION
+   Keep this CSS-only: no runtime/observer changes.
+   ========================================================= */
+
+/* 1) Remove the heavy cover fade. The real cover stage remains visible. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero {
+  background-image: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero::before,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero::after,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage::after,
+html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] .vueweLivingProfileShade {
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+  background: transparent !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage {
+  opacity: 1 !important;
+  filter: none !important;
+  background-position: center top !important;
+}
+
+/* 2) Lock avatar into normal flow so action rows cannot sit on top of it. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+  min-height: 118px !important;
+  padding-bottom: 4px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* 3) Public profile controls: two clean rows BELOW the avatar. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions) {
+  position: static !important;
+  width: min(calc(100% - 28px), 680px) !important;
+  margin: 14px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions) > button:first-child {
+  min-width: 124px !important;
+  height: 34px !important;
+  padding: 0 15px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) {
+  position: static !important;
+  width: min(calc(100% - 28px), 680px) !important;
+  display: grid !important;
+  grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  gap: 7px !important;
+  margin: 8px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) button {
+  min-width: 0 !important;
+  min-height: 35px !important;
+  padding: 0 8px !important;
+  font-size: 9px !important;
+  white-space: nowrap !important;
+}
+
+/* 4) Owner controls get their own row BELOW identity too. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+  position: static !important;
+  width: min(calc(100% - 28px), 680px) !important;
+  margin: 14px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+/* Hide injected Edit Profile even if a later component rule tries to restore it. */
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"] section.hero .socialActions.ownerSocialActions > .vueweQuickEditProfile {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Force one clean Creator Dash label, regardless of runtime copy changes. */
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"] section.hero .socialActions.ownerSocialActions .ownerCreatorButton strong {
+  display: inline-block !important;
+  width: auto !important;
+  min-width: 70px !important;
+  overflow: hidden !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"] section.hero .socialActions.ownerSocialActions .ownerCreatorButton strong::after {
+  content: "Creator Dash" !important;
+  display: inline-block !important;
+  color: #101512 !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* 5) Posts / Followers / Following / Top 8 = slimmer dark strip. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats {
+  width: min(calc(100% - 28px), 680px) !important;
+  min-height: 48px !important;
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 0 !important;
+  margin: 10px auto 8px !important;
+  padding: 3px 6px !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  background: rgba(8,10,9,.94) !important;
+  box-shadow: 0 8px 22px rgba(8,12,9,.14) !important;
+  backdrop-filter: blur(16px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats button {
+  min-height: 40px !important;
+  padding: 2px !important;
+  color: #fff !important;
+  background: transparent !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats strong {
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats span {
+  margin-top: 3px !important;
+  color: rgba(255,255,255,.58) !important;
+  font-size: 8px !important;
+  line-height: 1 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats button:not(:last-child)::after {
+  top: 10px !important;
+  height: 24px !important;
+  background: rgba(255,255,255,.10) !important;
+}
+
+/* 6) Soundtrack = smaller black pill. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar {
+  width: min(calc(100% - 42px), 650px) !important;
+  min-height: 44px !important;
+  grid-template-columns: 30px minmax(0,1fr) auto !important;
+  gap: 9px !important;
+  margin: 8px auto 10px !important;
+  padding: 5px 10px !important;
+  border: 1px solid rgba(255,255,255,.10) !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  background: rgba(5,6,6,.96) !important;
+  box-shadow: 0 8px 22px rgba(5,7,6,.14) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .musicPlayButton {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 50% !important;
+  font-size: 9px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicInfo {
+  gap: 1px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicInfo span {
+  font-size: 6px !important;
+  letter-spacing: .14em !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicInfo strong {
+  color: #fff !important;
+  font-size: 10px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicInfo small {
+  color: rgba(255,255,255,.48) !important;
+  font-size: 7px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .musicBars {
+  height: 20px !important;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+    min-height: 114px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions),
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions),
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+    width: calc(100% - 20px) !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) button {
+    font-size: 8px !important;
+  }
+}
