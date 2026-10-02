@@ -12,6 +12,7 @@ import "./vuewe-premium-v5.css";
 import "./vuewe-app-shell.css";
 import "./vuewe-polish-v6.css";
 import "./vuewe-polish-v7.css";
+import "./vuewe-mock-v8.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -20,13 +21,14 @@ import VUEWENav from "./components/VUEWENav";
 import VUEWEExperienceShell from "./components/VUEWEExperienceShell";
 import VUEWELivingProfileSystem from "./components/VUEWELivingProfileSystem";
 import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
+import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
   description:
     "VUEWE is a brighter social world for real people, creators, communities, live moments, discovery, entertainment, and connection.",
   manifest: "/manifest.json",
-  themeColor: "#f7f8fa",
+  themeColor: "#ffffff",
   appleWebApp: {
     capable: true,
     title: "VUEWE",
@@ -53,6 +55,7 @@ export default function RootLayout({
         <VUEWEExperienceShell />
         <VUEWEProfileVideoRuntime />
         <VUEWELivingProfileSystem />
+        <VUEWEMockRuntime />
         {children}
         <UTVNotificationBootstrap />
       </body>
