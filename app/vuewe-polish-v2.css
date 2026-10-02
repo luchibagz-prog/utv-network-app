@@ -1,0 +1,359 @@
+/* VUEWE polish v2: stronger mock direction + mobile performance pass. */
+
+/* The new runtime owns saved video backgrounds. */
+.vueweLivingProfileBackdrop {
+  display: none !important;
+}
+
+.vueweProfileVideoRuntime {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: min(76vh, 700px);
+  min-height: 560px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(0,217,232,.14), transparent 34%),
+    radial-gradient(circle at 84% 18%, rgba(30,94,255,.18), transparent 30%),
+    #05070a;
+  pointer-events: none;
+}
+
+.vueweProfileVideoRuntime video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.vueweProfileVideoRuntime.isReady video {
+  opacity: 1;
+}
+
+.vueweProfileVideoRuntimeShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3,6,12,.04) 0%, rgba(3,6,12,.12) 40%, rgba(4,7,14,.52) 72%, #050812 99%),
+    radial-gradient(circle at 12% 10%, rgba(0,217,232,.08), transparent 32%),
+    radial-gradient(circle at 88% 18%, rgba(30,94,255,.12), transparent 30%);
+}
+
+/* -----------------------------
+   Home: make the actual screen feel like the approved VUEWE mock.
+   ----------------------------- */
+.feedPage {
+  width: min(100%, 720px) !important;
+  margin: 0 auto !important;
+  padding-bottom: 116px !important;
+  color: #0b0d10 !important;
+  background:
+    linear-gradient(180deg, #f8fbfd 0%, #f4f7fb 45%, #eef3f8 100%) !important;
+}
+
+.feedPage .feedTopRow {
+  min-height: 24px !important;
+  padding: 4px 14px 2px !important;
+  color: #6d7887 !important;
+  background: #fff !important;
+  border: 0 !important;
+}
+
+.feedPage .freshnessStatus {
+  color: #6d7887 !important;
+  font-size: 9px !important;
+  opacity: .82 !important;
+}
+
+.feedPage .feedTabs {
+  position: sticky !important;
+  top: 64px !important;
+  z-index: 950 !important;
+  display: flex !important;
+  gap: 22px !important;
+  overflow-x: auto !important;
+  padding: 11px 15px 9px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15,23,42,.07) !important;
+  background: #fff !important;
+  box-shadow: 0 7px 18px rgba(15,23,42,.035) !important;
+  scrollbar-width: none !important;
+}
+
+.feedPage .feedTabs::-webkit-scrollbar {
+  display: none !important;
+}
+
+.feedPage .feedTabs button {
+  position: relative !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #7b8491 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+.feedPage .feedTabs button.active {
+  color: #111827 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.feedPage .feedTabs button.active::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  bottom: -9px;
+  left: 2px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00d9e8, #1e5eff 62%, #34e84a);
+}
+
+.feedPage .stories {
+  display: flex !important;
+  gap: 13px !important;
+  overflow-x: auto !important;
+  padding: 15px 14px 14px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15,23,42,.06) !important;
+  color: #0b0d10 !important;
+  background: #fff !important;
+  scrollbar-width: none !important;
+}
+
+.feedPage .storyButton {
+  width: 68px !important;
+  height: 68px !important;
+  padding: 3px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background:
+    linear-gradient(#fff,#fff) padding-box,
+    linear-gradient(135deg,#00d9e8,#1e5eff 58%,#34e84a) border-box !important;
+  box-shadow: 0 7px 18px rgba(30,94,255,.12) !important;
+}
+
+.feedPage .storyName {
+  color: #596576 !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+}
+
+.feedPage .motionComposer,
+.feedPage .quickComposer,
+.feedPage .feedComposer {
+  margin: 12px !important;
+  border: 1px solid rgba(15,23,42,.07) !important;
+  border-radius: 24px !important;
+  color: #0b0d10 !important;
+  background: #fff !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.07) !important;
+}
+
+.feedPage .motionMain,
+.feedPage .motionActions {
+  color: #0b0d10 !important;
+  background: #fff !important;
+}
+
+.feedPage .motionPrompt span,
+.feedPage .motionPrompt strong {
+  color: #101828 !important;
+}
+
+.feedPage .motionPrompt small {
+  color: #7a8696 !important;
+}
+
+.feedPage .utvHomePulse {
+  margin: 12px !important;
+  padding: 15px !important;
+  border: 1px solid rgba(15,23,42,.07) !important;
+  border-radius: 25px !important;
+  color: #101828 !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(0,217,232,.10), transparent 36%),
+    radial-gradient(circle at 100% 100%, rgba(52,232,74,.07), transparent 32%),
+    #fff !important;
+  box-shadow: 0 14px 32px rgba(15,23,42,.075) !important;
+}
+
+.feedPage .utvHomePulseHead,
+.feedPage .utvHomePulseHead small {
+  color: #778396 !important;
+}
+
+.feedPage .utvHomePulseHead b {
+  display: inline-block !important;
+  width: auto !important;
+  overflow: visible !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+.feedPage .utvHomePulseHead b::after {
+  content: "VUEWE NOW" !important;
+  display: inline-block !important;
+  color: #101828 !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .08em !important;
+}
+
+.feedPage .utvPulseCard {
+  min-width: 160px !important;
+  border: 1px solid rgba(15,23,42,.07) !important;
+  border-radius: 19px !important;
+  color: #101828 !important;
+  background: linear-gradient(180deg,#fff,#f8fafc) !important;
+  box-shadow: 0 8px 18px rgba(15,23,42,.05) !important;
+}
+
+.feedPage .utvPulseCard small {
+  color: #7a8696 !important;
+}
+
+.feedPage .suggestedCard {
+  color: #101828 !important;
+  border: 1px solid rgba(15,23,42,.07) !important;
+  background: #fff !important;
+  box-shadow: 0 9px 22px rgba(15,23,42,.06) !important;
+}
+
+.feedPage .searchWrap {
+  padding: 2px 12px 12px !important;
+  background: transparent !important;
+}
+
+.feedPage .feedSearch {
+  min-height: 46px !important;
+  border: 1px solid rgba(15,23,42,.08) !important;
+  border-radius: 16px !important;
+  color: #101828 !important;
+  background: #fff !important;
+  box-shadow: 0 7px 18px rgba(15,23,42,.04) !important;
+}
+
+.feedPage .feedList {
+  display: grid !important;
+  gap: 12px !important;
+  padding: 0 10px 26px !important;
+}
+
+.feedPage .feedPost {
+  overflow: hidden !important;
+  border: 1px solid rgba(15,23,42,.075) !important;
+  border-radius: 24px !important;
+  color: #101828 !important;
+  background: #fff !important;
+  box-shadow: 0 12px 28px rgba(15,23,42,.075) !important;
+}
+
+.feedPage .postHeader {
+  min-height: 64px !important;
+  color: #101828 !important;
+  background: #fff !important;
+  border: 0 !important;
+}
+
+.feedPage .postCreator h3,
+.feedPage .postCreator strong,
+.feedPage .postCreator b {
+  color: #101828 !important;
+}
+
+.feedPage .postCreator p,
+.feedPage .postCreator small,
+.feedPage .postMeta,
+.feedPage .postMeta * {
+  color: #748093 !important;
+}
+
+.feedPage .mediaWrap {
+  background: #070b12 !important;
+}
+
+.feedPage .postBody,
+.feedPage .actionRow,
+.feedPage .commentSection,
+.feedPage .commentsWrap,
+.feedPage .commentsSection {
+  color: #101828 !important;
+  background: #fff !important;
+  border-color: rgba(15,23,42,.06) !important;
+}
+
+.feedPage .actionButton {
+  color: #455163 !important;
+}
+
+.feedPage .actionMeta,
+.feedPage .caption,
+.feedPage .viewComments {
+  color: #5d6979 !important;
+}
+
+.feedPage .emptyState {
+  color: #101828 !important;
+  background: transparent !important;
+}
+
+/* -----------------------------
+   Speed pass for Samsung / mobile Chrome.
+   ----------------------------- */
+.feedPage .feedPost {
+  content-visibility: auto;
+  contain-intrinsic-size: 760px;
+}
+
+.feedPage .suggestedCard,
+.feedPage .utvPulseCard {
+  content-visibility: auto;
+}
+
+@media (max-width: 759px) {
+  .vueweTopBar,
+  .vueweBottomNav,
+  .feedPage .feedTabs,
+  .vueweProfileEditorTop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .vueweTopBar {
+    background: rgba(255,255,255,.98) !important;
+  }
+
+  .vueweBottomNav {
+    background: rgba(255,255,255,.98) !important;
+    box-shadow: 0 12px 34px rgba(15,23,42,.16) !important;
+  }
+
+  .feedPage .feedList {
+    gap: 12px !important;
+    padding-right: 10px !important;
+    padding-left: 10px !important;
+  }
+
+  .feedPage .feedPost {
+    border-right: 1px solid rgba(15,23,42,.075) !important;
+    border-left: 1px solid rgba(15,23,42,.075) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 9px 22px rgba(15,23,42,.065) !important;
+  }
+
+  .feedPage .utvHomePulse,
+  .feedPage .motionComposer,
+  .feedPage .feedPost,
+  .feedPage .suggestedCard {
+    transform: translateZ(0);
+  }
+}
