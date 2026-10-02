@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell,
   Globe2,
   Home,
+  Menu,
   MessageCircle,
   Plus,
+  Search,
   UserRound,
 } from "lucide-react";
 
@@ -32,10 +33,7 @@ export default function VUEWENav() {
   const pathname = usePathname();
   const router = useRouter();
 
-  const hidden = hiddenPrefixes.some((prefix) =>
-    pathname.startsWith(prefix)
-  );
-
+  const hidden = hiddenPrefixes.some((prefix) => pathname.startsWith(prefix));
   if (hidden) return null;
 
   const inWalkieSession =
@@ -45,6 +43,19 @@ export default function VUEWENav() {
     <div className="vueweShell" data-vuewe-shell="true">
       {pathname === "/feed" && (
         <header className="vueweTopBar">
+          <Link
+            href="/discover"
+            className="vueweMenuAction"
+            aria-label="Explore VUEWE"
+            onPointerDown={() => {
+              try {
+                router.prefetch("/discover");
+              } catch {}
+            }}
+          >
+            <Menu size={22} strokeWidth={2.15} />
+          </Link>
+
           <Link href="/feed" className="vueweWordmark" aria-label="VUEWE Home">
             <span className="vueweEyeMark" aria-hidden="true">
               <span className="vueweEyeIris" />
@@ -53,16 +64,16 @@ export default function VUEWENav() {
           </Link>
 
           <Link
-            href="/activity"
-            className="vueweTopAction"
-            aria-label="Activity"
+            href="/search"
+            className="vueweSearchAction"
+            aria-label="Search VUEWE"
             onPointerDown={() => {
               try {
-                router.prefetch("/activity");
+                router.prefetch("/search");
               } catch {}
             }}
           >
-            <Bell size={20} strokeWidth={2.15} />
+            <Search size={21} strokeWidth={2.15} />
           </Link>
         </header>
       )}
@@ -96,8 +107,8 @@ export default function VUEWENav() {
               >
                 <span className="vueweNavIcon">
                   <Icon
-                    size={item.primary ? 27 : 23}
-                    strokeWidth={item.primary ? 2.6 : 2.1}
+                    size={item.primary ? 25 : 22}
+                    strokeWidth={item.primary ? 2.7 : 2.1}
                   />
                 </span>
                 <small>{item.label}</small>
