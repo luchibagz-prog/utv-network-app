@@ -1,0 +1,422 @@
+/* VUEWE WATCH V20
+   Keeps Watch cinematic/dark while bringing it into the VUEWE green/cyan/blue system.
+   Also centers the primary nav and replaces the old default profile art.
+*/
+
+:root{
+  --vw-green:#24e86e;
+  --vw-cyan:#13dbe4;
+  --vw-blue:#2468f2;
+  --vw-black:#020405;
+  --vw-panel:#071014;
+  --vw-line:rgba(125,232,236,.16);
+}
+
+/* ---------------------------------------------------------
+   PRIMARY NAV — centered, level and consistent
+   --------------------------------------------------------- */
+.vueweBottomNav{
+  left:50%!important;
+  right:auto!important;
+  width:min(calc(100% - 28px),620px)!important;
+  margin:0!important;
+  transform:translateX(-50%)!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:center!important;
+  justify-items:stretch!important;
+  padding-left:10px!important;
+  padding-right:10px!important;
+}
+
+.vueweBottomNav .vueweNavItem{
+  min-width:0!important;
+  justify-self:stretch!important;
+  align-self:center!important;
+}
+
+.vueweBottomNav .vueweNavIcon{
+  margin-inline:auto!important;
+}
+
+/* ---------------------------------------------------------
+   FEED WATCH SHORTCUT
+   --------------------------------------------------------- */
+.vueweTopActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:5px;
+}
+
+.vueweWatchShortcut{
+  width:44px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(18,121,146,.13);
+  border-radius:12px;
+  color:#06110d;
+  background:
+    radial-gradient(circle at 30% 20%,rgba(255,255,255,.82),transparent 28%),
+    linear-gradient(145deg,var(--vw-green),var(--vw-cyan) 56%,#78a7ff);
+  box-shadow:
+    0 7px 18px rgba(18,219,228,.16),
+    inset 0 1px 0 rgba(255,255,255,.65);
+  text-decoration:none;
+  transition:transform 160ms cubic-bezier(.22,.8,.24,1),box-shadow 220ms ease;
+}
+
+.vueweWatchShortcut:active{
+  transform:scale(.94);
+}
+
+/* ---------------------------------------------------------
+   CONTENT TIMESTAMPS
+   --------------------------------------------------------- */
+.vueweContentTime,
+.vueweWatchTime,
+.vueweWatchPlayerTime{
+  font-variant-numeric:tabular-nums;
+}
+
+.feedPost .postCreator .vueweContentTime{
+  display:block;
+  margin-top:2px;
+  color:#8b9694;
+  font-size:9px;
+  font-weight:720;
+  letter-spacing:.01em;
+}
+
+.feedPost .postCreator .vueweContentTime::before{
+  content:"• ";
+  color:var(--vw-cyan);
+}
+
+.watchCard .vueweWatchTime{
+  display:block;
+  margin-top:3px;
+  color:rgba(217,235,237,.42);
+  font-size:8px;
+  font-weight:760;
+}
+
+html[data-vuewe-watch-route="player"] .vueweWatchPlayerTime{
+  display:block;
+  margin:5px 0 0;
+  color:rgba(255,255,255,.42);
+  font-size:9px;
+  font-weight:760;
+  letter-spacing:.02em;
+}
+
+/* ---------------------------------------------------------
+   DEFAULT PROFILE COVER — neutral VUEWE, never B&B
+   --------------------------------------------------------- */
+main[data-utv-page="profile"] .hero[style*="utv-banner.png"],
+main[data-utv-page="profile"] .profileCoverStage[style*="utv-banner.png"]{
+  background-image:url("/vuewe-profile-default.svg")!important;
+  background-size:cover!important;
+  background-position:center!important;
+}
+
+/* ---------------------------------------------------------
+   WATCH HOME — cinematic VUEWE
+   --------------------------------------------------------- */
+html[data-vuewe-watch-route="home"] body{
+  background:#020405!important;
+}
+
+html[data-vuewe-watch-route="home"] main.watchPage{
+  color:#fff!important;
+  background:
+    radial-gradient(circle at 10% 3%,rgba(36,232,110,.095),transparent 23%),
+    radial-gradient(circle at 92% 7%,rgba(36,104,242,.12),transparent 27%),
+    radial-gradient(circle at 50% 42%,rgba(19,219,228,.035),transparent 34%),
+    linear-gradient(180deg,#020405 0%,#04090b 46%,#010203 100%)!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchTop{
+  background:
+    linear-gradient(180deg,rgba(1,4,6,.98),rgba(4,10,13,.96))!important;
+  border-bottom:1px solid rgba(19,219,228,.10)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.28)!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchIdentity{
+  min-width:0!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchLogo[data-vuewe-watch-brand="1"]{
+  width:142px!important;
+  height:46px!important;
+  object-fit:contain!important;
+  object-position:left center!important;
+  filter:drop-shadow(0 6px 12px rgba(19,219,228,.12))!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchIdentityCopy{
+  display:none!important;
+}
+
+html[data-vuewe-watch-route="home"] .studioShortcut{
+  border-color:rgba(125,232,236,.14)!important;
+  color:#fff!important;
+  background:rgba(255,255,255,.045)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045)!important;
+}
+
+html[data-vuewe-watch-route="home"] .studioShortcut:active{
+  color:#04120d!important;
+  background:linear-gradient(145deg,var(--vw-green),var(--vw-cyan))!important;
+}
+
+html[data-vuewe-watch-route="home"] .streamTabs{
+  border-top:1px solid rgba(255,255,255,.025)!important;
+  border-bottom:1px solid rgba(19,219,228,.08)!important;
+}
+
+html[data-vuewe-watch-route="home"] .streamTabs button,
+html[data-vuewe-watch-route="home"] .modeSwitch button{
+  color:rgba(225,235,238,.54)!important;
+}
+
+html[data-vuewe-watch-route="home"] .streamTabs button.active,
+html[data-vuewe-watch-route="home"] .modeSwitch button.active{
+  color:#fff!important;
+}
+
+html[data-vuewe-watch-route="home"] .streamTabs button.active::after,
+html[data-vuewe-watch-route="home"] .modeSwitch button.active::after{
+  background:linear-gradient(90deg,var(--vw-green),var(--vw-cyan),var(--vw-blue))!important;
+  box-shadow:0 0 14px rgba(19,219,228,.25)!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchHero{
+  border-bottom:1px solid rgba(19,219,228,.07)!important;
+  background:#020405!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroBackdrop img[data-vuewe-watch-fallback="1"]{
+  object-fit:cover!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroShade{
+  background:
+    linear-gradient(90deg,rgba(1,4,6,.92) 0%,rgba(1,4,6,.60) 40%,rgba(1,4,6,.12) 72%),
+    linear-gradient(0deg,#020405 0%,transparent 42%),
+    linear-gradient(180deg,rgba(0,0,0,.13),transparent 34%)!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroLabel,
+html[data-vuewe-watch-route="home"] .watchRow .rowHeader p,
+html[data-vuewe-watch-route="home"] .reelsPreview header p,
+html[data-vuewe-watch-route="home"] .reelsHeader p{
+  color:var(--vw-green)!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroMeta i{
+  background:var(--vw-cyan)!important;
+  box-shadow:0 0 12px rgba(19,219,228,.52)!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroPlay{
+  color:#06110d!important;
+  background:linear-gradient(135deg,#fff,#eaf7f6)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.22)!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroActions button{
+  border-color:rgba(19,219,228,.16)!important;
+  color:#fff!important;
+  background:rgba(7,16,20,.68)!important;
+}
+
+html[data-vuewe-watch-route="home"] .heroDots button.active{
+  background:linear-gradient(90deg,var(--vw-green),var(--vw-cyan),var(--vw-blue))!important;
+  box-shadow:0 0 15px rgba(19,219,228,.3)!important;
+}
+
+html[data-vuewe-watch-route="home"] .discovery{
+  background:linear-gradient(180deg,rgba(5,12,15,.96),rgba(2,5,7,.92))!important;
+}
+
+html[data-vuewe-watch-route="home"] .searchBox{
+  border-color:rgba(19,219,228,.13)!important;
+  background:rgba(255,255,255,.038)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03)!important;
+}
+
+html[data-vuewe-watch-route="home"] .searchBox:focus-within{
+  border-color:rgba(19,219,228,.42)!important;
+  box-shadow:0 0 0 3px rgba(19,219,228,.06)!important;
+}
+
+html[data-vuewe-watch-route="home"] .categoryScroller button.active{
+  border-color:rgba(19,219,228,.22)!important;
+  color:#04120d!important;
+  background:linear-gradient(135deg,var(--vw-green),var(--vw-cyan))!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchCard{
+  border-color:rgba(125,232,236,.12)!important;
+  background:
+    linear-gradient(160deg,rgba(13,24,29,.94),rgba(3,7,9,.98))!important;
+  box-shadow:0 18px 40px rgba(0,0,0,.22)!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchCard:active{
+  transform:scale(.985)!important;
+}
+
+html[data-vuewe-watch-route="home"] .poster{
+  background:#030708!important;
+}
+
+html[data-vuewe-watch-route="home"] .rankBadge{
+  color:#03110d!important;
+  background:linear-gradient(160deg,#b6ffca 0%,var(--vw-green) 38%,var(--vw-cyan) 68%,#8aaeff 100%)!important;
+  text-shadow:0 1px rgba(255,255,255,.25)!important;
+  box-shadow:0 8px 24px rgba(19,219,228,.15)!important;
+}
+
+html[data-vuewe-watch-route="home"] .posterPlay{
+  border-color:rgba(19,219,228,.28)!important;
+  color:#fff!important;
+  background:rgba(2,7,9,.72)!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.04),0 9px 24px rgba(0,0,0,.28)!important;
+}
+
+html[data-vuewe-watch-route="home"] .originalBadge{
+  border-color:rgba(36,232,110,.24)!important;
+  color:#07110d!important;
+  background:linear-gradient(135deg,var(--vw-green),var(--vw-cyan))!important;
+}
+
+html[data-vuewe-watch-route="home"] .watchRow .rowHeader > span,
+html[data-vuewe-watch-route="home"] .reelsPreview header button{
+  color:var(--vw-cyan)!important;
+}
+
+html[data-vuewe-watch-route="home"] .reelCard,
+html[data-vuewe-watch-route="home"] .fullReelMedia{
+  border-color:rgba(19,219,228,.13)!important;
+}
+
+html[data-vuewe-watch-route="home"] .reelPlay,
+html[data-vuewe-watch-route="home"] .soundToggle{
+  border-color:rgba(19,219,228,.22)!important;
+  background:rgba(2,7,9,.72)!important;
+}
+
+html[data-vuewe-watch-route="home"] .reelActions button.liked{
+  color:var(--vw-green)!important;
+}
+
+/* ---------------------------------------------------------
+   WATCH PLAYER — immersive / Netflix-like
+   --------------------------------------------------------- */
+html[data-vuewe-watch-route="player"] body{
+  background:#000!important;
+}
+
+html[data-vuewe-watch-route="player"] .vueweBottomNav{
+  display:none!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page{
+  min-height:100dvh!important;
+  padding-bottom:0!important;
+  background:
+    radial-gradient(circle at 70% 2%,rgba(36,104,242,.09),transparent 25%),
+    linear-gradient(180deg,#000,#020607 58%,#03080a)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .playerTop{
+  padding-top:max(14px,env(safe-area-inset-top))!important;
+  background:linear-gradient(180deg,rgba(0,0,0,.92),rgba(0,0,0,.34) 58%,transparent)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .brand b{
+  font-size:24px!important;
+  letter-spacing:-.06em!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .brand span,
+html[data-vuewe-watch-route="player"] main.page .eyebrow,
+html[data-vuewe-watch-route="player"] main.page .live,
+html[data-vuewe-watch-route="player"] main.page .sectionHead small{
+  color:var(--vw-green)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .stage{
+  height:min(82dvh,920px)!important;
+  min-height:560px!important;
+  background:
+    radial-gradient(circle at 50% 40%,#111c21,#000 72%)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .stage video,
+html[data-vuewe-watch-route="player"] main.page .stage iframe{
+  background:#000!important;
+  object-fit:contain!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .back,
+html[data-vuewe-watch-route="player"] main.page .edit{
+  border-color:rgba(19,219,228,.16)!important;
+  background:rgba(1,6,8,.58)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.2)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .play{
+  color:#03110d!important;
+  background:linear-gradient(145deg,var(--vw-green),var(--vw-cyan))!important;
+  box-shadow:0 0 0 8px rgba(19,219,228,.05),0 0 48px rgba(19,219,228,.28)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .content{
+  width:min(calc(100% - 30px),1120px)!important;
+  padding-top:28px!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .pill{
+  border-color:rgba(19,219,228,.14)!important;
+  background:rgba(19,219,228,.055)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .avatar{
+  border-color:rgba(19,219,228,.34)!important;
+  background:linear-gradient(145deg,var(--vw-green),var(--vw-cyan))!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .tileImage{
+  border:1px solid rgba(19,219,228,.10)!important;
+  background:linear-gradient(135deg,#071219,#05080d)!important;
+}
+
+html[data-vuewe-watch-route="player"] main.page .tileImage span{
+  border-color:rgba(19,219,228,.20)!important;
+  background:rgba(0,0,0,.58)!important;
+}
+
+@media(max-width:600px){
+  .vueweBottomNav{
+    width:calc(100% - 22px)!important;
+  }
+
+  html[data-vuewe-watch-route="home"] .watchLogo[data-vuewe-watch-brand="1"]{
+    width:124px!important;
+    height:42px!important;
+  }
+
+  html[data-vuewe-watch-route="player"] main.page .stage{
+    height:74dvh!important;
+    min-height:520px!important;
+  }
+
+  html[data-vuewe-watch-route="player"] main.page .content{
+    width:calc(100% - 24px)!important;
+    padding-bottom:34px!important;
+  }
+}
