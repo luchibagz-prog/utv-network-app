@@ -10,6 +10,7 @@ import "./vuewe-premium-v3.css";
 import "./vuewe-premium-v4.css";
 import "./vuewe-premium-v5.css";
 import "./vuewe-app-shell.css";
+import "./vuewe-polish-v6.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
