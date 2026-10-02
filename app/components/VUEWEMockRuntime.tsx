@@ -4,24 +4,28 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 function replaceExact(scope: ParentNode, from: string, to: string) {
-  scope.querySelectorAll("h1,h2,h3,h4,p,span,small,strong,b,button").forEach((node) => {
-    const element = node as HTMLElement;
-    if (element.children.length) return;
-    if ((element.textContent || "").trim() === from) {
-      element.textContent = to;
-    }
-  });
+  scope
+    .querySelectorAll("h1,h2,h3,h4,p,span,small,strong,b,button,label")
+    .forEach((node) => {
+      const element = node as HTMLElement;
+      if (element.children.length) return;
+      if ((element.textContent || "").trim() === from) {
+        element.textContent = to;
+      }
+    });
 }
 
 function replaceIncludes(scope: ParentNode, from: string, to: string) {
-  scope.querySelectorAll("p,span,small,strong,b").forEach((node) => {
-    const element = node as HTMLElement;
-    if (element.children.length) return;
-    const value = element.textContent || "";
-    if (value.includes(from)) {
-      element.textContent = value.replaceAll(from, to);
-    }
-  });
+  scope
+    .querySelectorAll("h1,h2,h3,h4,p,span,small,strong,b,button,label")
+    .forEach((node) => {
+      const element = node as HTMLElement;
+      if (element.children.length) return;
+      const value = element.textContent || "";
+      if (value.includes(from)) {
+        element.textContent = value.replaceAll(from, to);
+      }
+    });
 }
 
 function routeName(pathname: string) {
@@ -30,7 +34,9 @@ function routeName(pathname: string) {
   if (pathname === "/submit") return "create";
   if (pathname === "/messages") return "messages";
   if (pathname.startsWith("/messages/")) return "chat";
-  if (pathname.startsWith("/u/") || pathname === "/profile-pro-v12") return "profile";
+  if (pathname.startsWith("/u/") || pathname === "/profile-pro-v12") {
+    return "profile";
+  }
   return "other";
 }
 
@@ -38,7 +44,11 @@ function buildInboxPeopleRail() {
   const shell = document.querySelector(".messagesShell");
   if (!shell || shell.querySelector(".vueweMockPeopleRail")) return;
 
-  const rows = Array.from(document.querySelectorAll(".threadRow")).slice(0, 6) as HTMLElement[];
+  const rows = Array.from(document.querySelectorAll(".threadRow")).slice(
+    0,
+    6
+  ) as HTMLElement[];
+
   if (!rows.length) return;
 
   const rail = document.createElement("div");
@@ -50,8 +60,13 @@ function buildInboxPeopleRail() {
     button.className = "vueweMockPerson";
     button.setAttribute("aria-label", "Open conversation");
 
-    const avatar = row.querySelector(".avatarRing")?.cloneNode(true) as HTMLElement | null;
-    const name = row.querySelector(".threadTop strong")?.textContent?.trim() || `Chat ${index + 1}`;
+    const avatar = row
+      .querySelector(".avatarRing")
+      ?.cloneNode(true) as HTMLElement | null;
+
+    const name =
+      row.querySelector(".threadTop strong")?.textContent?.trim() ||
+      `Chat ${index + 1}`;
 
     if (avatar) button.appendChild(avatar);
 
@@ -68,7 +83,9 @@ function buildInboxPeopleRail() {
 }
 
 function applyFeedMock() {
-  const tabs = Array.from(document.querySelectorAll(".feedTabs button")) as HTMLButtonElement[];
+  const tabs = Array.from(
+    document.querySelectorAll(".feedTabs button")
+  ) as HTMLButtonElement[];
 
   tabs.forEach((button) => {
     const text = (button.textContent || "").trim();
@@ -104,26 +121,52 @@ function applyProfileCopy(scope: ParentNode) {
   replaceExact(scope, "UTV SOCIAL", "VUEWE SOCIAL");
   replaceExact(scope, "Creator Dash", "Creator Tools");
   replaceExact(scope, "⚡ Creator Dash", "Creator Tools");
+  replaceExact(scope, "UTV Post", "Post");
   replaceIncludes(scope, "posts on UTV", "posts on VUEWE");
   replaceIncludes(scope, "Featured UTV content", "Featured VUEWE content");
+
+  const top8 = scope.querySelector(".top8Spotlight") as HTMLElement | null;
+  if (top8) {
+    const crewGrid = top8.querySelector(".crewGrid");
+    const actualCrew = crewGrid
+      ? crewGrid.querySelectorAll("button, a, .crewCard").length
+      : 0;
+
+    if (actualCrew === 0) {
+      top8.dataset.vueweEmpty = "1";
+    } else {
+      delete top8.dataset.vueweEmpty;
+    }
+  }
 }
 
 function applyCreateCopy(scope: ParentNode) {
   replaceExact(scope, "UTV CREATOR", "VUEWE CREATE");
   replaceExact(scope, "Create Something", "Create Your View");
-  replaceExact(scope, "Post a story, upload content, or go live.", "Capture. Create. Share.");
+  replaceExact(
+    scope,
+    "Post a story, upload content, or go live.",
+    "Capture. Create. Share."
+  );
   replaceExact(scope, "Build your audience on UTV", "Your tools. Your world.");
+  replaceExact(scope, "UTV MUSIC", "VUEWE MUSIC");
+  replaceExact(scope, "Post to UTV", "Post to VUEWE");
+
+  const logo = scope.querySelector(".createLogo") as HTMLImageElement | null;
+  if (logo) logo.dataset.vueweLegacyLogo = "1";
 }
 
 function applyMessagesCopy(scope: ParentNode) {
   replaceExact(scope, "UTV SOCIAL", "VUEWE");
   replaceIncludes(scope, "Shared something on UTV", "Shared something");
   replaceIncludes(scope, "somebody on UTV", "somebody on VUEWE");
+  replaceIncludes(scope, "UTV Creator", "VUEWE Creator");
 }
 
 function applyWorldCopy(scope: ParentNode) {
   replaceIncludes(scope, "UTV World", "VUEWE World");
   replaceIncludes(scope, "UTV WORLD", "VUEWE WORLD");
+  replaceIncludes(scope, "UTV Creator", "VUEWE Creator");
 }
 
 export default function VUEWEMockRuntime() {
