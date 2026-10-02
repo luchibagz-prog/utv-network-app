@@ -1,0 +1,4 @@
+/* VUEWE V19 safety override: keep feed overlays/share sheets anchored to viewport. */
+html[data-vuewe-route="feed"] .feedPost{
+  contain:none!important;
+}
