@@ -1,0 +1,661 @@
+/* VUEWE FINISH V12
+   Final corrective layer for profile + Walkie.
+   Loaded after all previous VUEWE layers on purpose.
+*/
+
+:root{
+  --vuewe-v12-green:#22e36e;
+  --vuewe-v12-green2:#58f29b;
+  --vuewe-v12-ink:#0b0f0d;
+  --vuewe-v12-graphite:#2a2f2c;
+  --vuewe-v12-silver:#d9ddda;
+  --vuewe-v12-soft:#f6f7f5;
+}
+
+/* =========================================================
+   PROFILE — living media on top, premium light profile below
+   ========================================================= */
+html[data-vuewe-route="profile"] body,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"].page{
+  color:#101512!important;
+  background:
+    linear-gradient(
+      180deg,
+      #090c0a 0,
+      #171b18 330px,
+      #747a76 420px,
+      #c9cdca 500px,
+      #eef0ee 585px,
+      #f8f9f7 690px,
+      #f8f9f7 100%
+    )!important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero{
+  position:relative!important;
+  min-height:0!important;
+  width:100%!important;
+  padding:340px 14px 24px!important;
+  overflow:visible!important;
+  color:#101512!important;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 250px,
+      rgba(28,31,29,.16) 305px,
+      rgba(64,68,66,.55) 355px,
+      rgba(183,187,184,.86) 420px,
+      #eef0ee 510px,
+      #f8f9f7 100%
+    )!important;
+}
+
+html[data-vuewe-route="profile"] .profileCoverStage,
+html[data-vuewe-route="profile"] .vueweProfileVideoRuntime{
+  position:absolute!important;
+  inset:0 0 auto!important;
+  z-index:0!important;
+  width:100%!important;
+  height:430px!important;
+  min-height:430px!important;
+  overflow:hidden!important;
+  background-color:#080b09!important;
+  background-size:cover!important;
+  background-position:center!important;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 72%,rgba(0,0,0,.82) 84%,transparent 100%)!important;
+  mask-image:linear-gradient(180deg,#000 0%,#000 72%,rgba(0,0,0,.82) 84%,transparent 100%)!important;
+}
+
+html[data-vuewe-route="profile"] .vueweProfileVideoRuntime video{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+}
+
+html[data-vuewe-route="profile"] .vueweProfileVideoRuntimeShade{
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.02) 0%,
+      rgba(0,0,0,.04) 54%,
+      rgba(10,12,11,.28) 76%,
+      rgba(68,72,70,.58) 90%,
+      transparent 100%
+    )!important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .identity{
+  position:relative!important;
+  z-index:8!important;
+  width:min(calc(100% - 8px),640px)!important;
+  min-height:0!important;
+  margin:0 auto 12px!important;
+  padding:12px 13px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  border-radius:20px!important;
+  color:#fff!important;
+  background:
+    linear-gradient(135deg,rgba(19,23,21,.72),rgba(74,78,76,.34))!important;
+  box-shadow:
+    0 18px 45px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.17)!important;
+  backdrop-filter:blur(18px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(145%)!important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .identity .avatar{
+  flex:0 0 88px!important;
+  width:88px!important;
+  height:88px!important;
+  min-width:88px!important;
+  min-height:88px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:2px solid rgba(255,255,255,.82)!important;
+  border-radius:50%!important;
+  background:#0f1411!important;
+  box-shadow:
+    0 0 0 3px var(--vuewe-profile-accent,var(--vuewe-v12-green)),
+    0 10px 26px rgba(0,0,0,.26)!important;
+}
+
+html[data-vuewe-route="profile"] .identity .avatar img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+
+html[data-vuewe-route="profile"] .identityText{
+  min-width:0!important;
+  padding:0!important;
+  color:#fff!important;
+}
+
+html[data-vuewe-route="profile"] .identityText .category{
+  margin:0 0 2px!important;
+  color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+  font-size:8px!important;
+  font-weight:950!important;
+  letter-spacing:.18em!important;
+}
+
+html[data-vuewe-route="profile"] .identityText h1{
+  margin:0!important;
+  color:#fff!important;
+  font-size:clamp(24px,7vw,34px)!important;
+  line-height:.98!important;
+  letter-spacing:-1.1px!important;
+  text-shadow:0 3px 12px rgba(0,0,0,.34)!important;
+}
+
+html[data-vuewe-route="profile"] .identityText .username{
+  display:block!important;
+  margin-top:3px!important;
+  color:rgba(255,255,255,.74)!important;
+  font-size:14px!important;
+}
+
+html[data-vuewe-route="profile"] .identityText .bio{
+  margin:6px 0 0!important;
+  max-width:360px!important;
+  overflow:hidden!important;
+  color:rgba(255,255,255,.78)!important;
+  font-size:11px!important;
+  line-height:1.25!important;
+  display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+}
+
+html[data-vuewe-route="profile"] .identity .utvShieldBadge{
+  width:46px!important;
+  min-width:46px!important;
+  height:52px!important;
+  min-height:52px!important;
+  transform:none!important;
+}
+
+html[data-vuewe-route="profile"] .identity .utvShieldBadge svg{
+  width:46px!important;
+  height:52px!important;
+}
+
+html[data-vuewe-route="profile"] .identity .utvRoleChip{
+  height:27px!important;
+  min-width:64px!important;
+  padding:0 9px 0 7px!important;
+}
+
+/* Owner/user action strip — compact and obvious */
+html[data-vuewe-route="profile"] .socialActions,
+html[data-vuewe-route="profile"] .ownerSocialActions{
+  position:relative!important;
+  z-index:8!important;
+  width:min(calc(100% - 8px),640px)!important;
+  margin:0 auto!important;
+  padding:9px!important;
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:8px!important;
+  border:1px solid rgba(16,24,19,.09)!important;
+  border-radius:18px!important;
+  background:rgba(255,255,255,.72)!important;
+  box-shadow:0 12px 30px rgba(14,22,17,.08)!important;
+  backdrop-filter:blur(16px) saturate(145%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(145%)!important;
+}
+
+html[data-vuewe-route="profile"] .socialActions button,
+html[data-vuewe-route="profile"] .ownerSocialActions button{
+  min-height:40px!important;
+  flex:1 1 calc(33.333% - 6px)!important;
+  margin:0!important;
+  padding:0 8px!important;
+  border:1px solid rgba(15,24,18,.10)!important;
+  border-radius:12px!important;
+  color:#151b17!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+  font-weight:900!important;
+}
+
+html[data-vuewe-route="profile"] .ownerSocialActions .vueweQuickEditProfile,
+html[data-vuewe-route="profile"] .ownerSocialActions .ownerCreatorButton{
+  flex:1 1 calc(50% - 4px)!important;
+  min-height:44px!important;
+}
+
+html[data-vuewe-route="profile"] .ownerSocialActions .vueweQuickEditProfile{
+  order:-2!important;
+  color:#06110a!important;
+  border-color:transparent!important;
+  background:linear-gradient(135deg,var(--vuewe-profile-accent,var(--vuewe-v12-green)),#78ef9f)!important;
+}
+
+html[data-vuewe-route="profile"] .ownerSocialActions .ownerCreatorButton{
+  order:-1!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.10)!important;
+  background:linear-gradient(135deg,#141917,#303632)!important;
+}
+
+html[data-vuewe-route="profile"] .ownerSocialActions .ownerCreatorButton span,
+html[data-vuewe-route="profile"] .ownerSocialActions .ownerCreatorButton b{
+  color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+}
+
+/* Creator tools drawer */
+html[data-vuewe-route="profile"] .creatorDashboard{
+  width:min(calc(100% - 28px),660px)!important;
+  margin:12px auto!important;
+  padding:14px!important;
+  border:1px solid rgba(255,255,255,.11)!important;
+  border-radius:22px!important;
+  color:#fff!important;
+  background:
+    radial-gradient(circle at 10% 0%,color-mix(in srgb,var(--vuewe-profile-accent,var(--vuewe-v12-green)) 14%,transparent),transparent 34%),
+    linear-gradient(145deg,#111613,#242a26)!important;
+  box-shadow:0 20px 52px rgba(0,0,0,.24)!important;
+}
+
+html[data-vuewe-route="profile"] .creatorDashboard .dashboardHeader p{
+  color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+}
+html[data-vuewe-route="profile"] .creatorDashboard .dashboardHeader h2,
+html[data-vuewe-route="profile"] .creatorDashboard .dashboardHeader span{
+  color:#fff!important;
+}
+html[data-vuewe-route="profile"] .creatorDashboard .creatorQuickActions{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+html[data-vuewe-route="profile"] .creatorDashboard .creatorQuickActions button{
+  min-height:66px!important;
+  padding:10px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:14px!important;
+  color:#fff!important;
+  background:rgba(255,255,255,.055)!important;
+}
+html[data-vuewe-route="profile"] .creatorDashboard .creatorQuickActions button.creatorPrimary{
+  color:#07120b!important;
+  background:linear-gradient(135deg,var(--vuewe-profile-accent,var(--vuewe-v12-green)),#8af4a9)!important;
+}
+
+/* Lower profile becomes light and readable */
+html[data-vuewe-route="profile"] .profileMusicBar{
+  width:min(calc(100% - 28px),660px)!important;
+  min-height:60px!important;
+  margin:14px auto 0!important;
+  padding:8px 10px!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:16px!important;
+  color:#111714!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 10px 26px rgba(15,24,18,.06)!important;
+}
+html[data-vuewe-route="profile"] .profileMusicInfo strong{color:#101512!important}
+html[data-vuewe-route="profile"] .profileMusicInfo small{color:#6f7872!important}
+html[data-vuewe-route="profile"] .profileMusicInfo span{color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important}
+html[data-vuewe-route="profile"] .musicPlayButton{
+  color:#06110a!important;
+  background:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+}
+
+html[data-vuewe-route="profile"] .stats.socialStats{
+  width:min(calc(100% - 28px),660px)!important;
+  min-height:70px!important;
+  margin:10px auto 0!important;
+  padding:0!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.92)!important;
+  box-shadow:0 10px 28px rgba(15,24,18,.05)!important;
+}
+html[data-vuewe-route="profile"] .stats.socialStats button{
+  color:#111714!important;
+  border-right:1px solid rgba(15,26,19,.08)!important;
+  background:transparent!important;
+}
+html[data-vuewe-route="profile"] .stats.socialStats strong{
+  color:#0e1511!important;
+  font-size:18px!important;
+}
+html[data-vuewe-route="profile"] .stats.socialStats span{
+  color:#6b746e!important;
+  font-size:8px!important;
+  font-weight:850!important;
+  letter-spacing:.08em!important;
+}
+
+html[data-vuewe-route="profile"] .top8Spotlight{
+  width:min(100%,720px)!important;
+  margin:18px auto 0!important;
+  padding:16px 14px 18px!important;
+  border:0!important;
+  border-top:1px solid rgba(15,26,19,.08)!important;
+  border-bottom:1px solid rgba(15,26,19,.08)!important;
+  color:#101512!important;
+  background:#f8f9f7!important;
+  box-shadow:none!important;
+}
+html[data-vuewe-route="profile"] .top8Spotlight[data-vuewe-empty="1"]{display:none!important}
+html[data-vuewe-route="profile"] .top8Heading p{
+  color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+  font-size:8px!important;
+  font-weight:950!important;
+  letter-spacing:.16em!important;
+}
+html[data-vuewe-route="profile"] .top8Heading p::after{content:none!important}
+html[data-vuewe-route="profile"] .top8Heading h2{color:#101512!important;font-size:24px!important}
+html[data-vuewe-route="profile"] .top8Heading button{
+  color:#101512!important;
+  background:#fff!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:999px!important;
+}
+html[data-vuewe-route="profile"] .top8Spotlight .crewGrid{
+  display:flex!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:4px 1px 6px!important;
+  scroll-snap-type:x proximity!important;
+}
+html[data-vuewe-route="profile"] .top8Spotlight .crewGrid>button,
+html[data-vuewe-route="profile"] .top8Spotlight .crewCard{
+  flex:0 0 92px!important;
+  width:92px!important;
+  min-width:92px!important;
+  padding:8px 6px!important;
+  color:#101512!important;
+  border:1px solid rgba(15,26,19,.07)!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 8px 20px rgba(15,24,18,.05)!important;
+  scroll-snap-align:start!important;
+}
+html[data-vuewe-route="profile"] .top8Spotlight .crewAvatar,
+html[data-vuewe-route="profile"] .top8Spotlight .crewGrid img{
+  width:68px!important;
+  height:68px!important;
+  border:2px solid var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+  border-radius:50%!important;
+  box-shadow:0 0 0 2px #fff!important;
+}
+html[data-vuewe-route="profile"] .top8Spotlight .crewGrid strong{color:#101512!important}
+html[data-vuewe-route="profile"] .top8Spotlight .crewGrid small{color:#7a837d!important}
+
+html[data-vuewe-route="profile"] nav.tabs{
+  position:relative!important;
+  width:min(calc(100% - 28px),660px)!important;
+  height:52px!important;
+  min-height:52px!important;
+  margin:12px auto 0!important;
+  padding:4px!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 8px 22px rgba(15,24,18,.04)!important;
+}
+html[data-vuewe-route="profile"] nav.tabs button{
+  height:44px!important;
+  min-height:44px!important;
+  color:#737c76!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:transparent!important;
+  font-size:11px!important;
+  font-weight:900!important;
+}
+html[data-vuewe-route="profile"] nav.tabs button.active{
+  color:#07120b!important;
+  background:color-mix(in srgb,var(--vuewe-profile-accent,var(--vuewe-v12-green)) 15%,white)!important;
+}
+html[data-vuewe-route="profile"] nav.tabs button.active::after{
+  height:3px!important;
+  background:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+}
+html[data-vuewe-route="profile"] .swipeHint{display:none!important}
+
+html[data-vuewe-route="profile"] .content,
+html[data-vuewe-route="profile"] .swipeContent{
+  width:100%!important;
+  max-width:720px!important;
+  margin:0 auto!important;
+  padding:18px 14px 120px!important;
+  color:#101512!important;
+  background:#fff!important;
+}
+html[data-vuewe-route="profile"] .content .heading{
+  margin:0 0 12px!important;
+  padding:0!important;
+}
+html[data-vuewe-route="profile"] .content .heading p{
+  margin:0 0 3px!important;
+  color:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+  font-size:8px!important;
+  font-weight:950!important;
+  letter-spacing:.15em!important;
+}
+html[data-vuewe-route="profile"] .content .heading h2{
+  margin:0!important;
+  color:#101512!important;
+  font-size:26px!important;
+}
+
+html[data-vuewe-route="profile"] .content .utvProfileGridStage{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  display:block!important;
+  background:transparent!important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .utvProfileGridStage .premiumProfileGrid{
+  width:100%!important;
+  max-width:none!important;
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .utvProfileGridStage .premiumProfileGrid .premiumMediaCard{
+  width:100%!important;
+  min-width:0!important;
+  height:auto!important;
+  aspect-ratio:4 / 5!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid rgba(11,18,14,.10)!important;
+  border-radius:20px!important;
+  background:#101411!important;
+  box-shadow:0 12px 30px rgba(13,20,15,.13)!important;
+}
+html[data-vuewe-route="profile"] .premiumMediaCategory{
+  color:#06110a!important;
+  background:var(--vuewe-profile-accent,var(--vuewe-v12-green))!important;
+}
+html[data-vuewe-route="profile"] .premiumMediaTitle{
+  font-size:12px!important;
+  font-weight:950!important;
+}
+
+html[data-vuewe-route="profile"] .about article,
+html[data-vuewe-route="profile"] .featuredContentSection,
+html[data-vuewe-route="profile"] .featuredEmpty{
+  color:#101512!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  background:#f6f8f6!important;
+}
+
+@media(min-width:700px){
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .utvProfileGridStage .premiumProfileGrid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+
+/* =========================================================
+   WALKIE — bright readable VUEWE signature feature
+   ========================================================= */
+html[data-vuewe-route="walkie"] body{
+  background:#edf0ed!important;
+}
+html[data-vuewe-route="walkie"] main[data-utv-page="walkie"].walkiePage{
+  min-height:100dvh!important;
+  color:#101512!important;
+  background:
+    radial-gradient(circle at 85% 8%,rgba(34,227,110,.12),transparent 25%),
+    linear-gradient(180deg,#fbfcfb 0%,#eef1ee 40%,#d9ddda 76%,#c8cdca 100%)!important;
+}
+html[data-vuewe-route="walkie"] .walkieShell{
+  width:min(100%,680px)!important;
+  margin:0 auto!important;
+  padding:18px 14px 150px!important;
+}
+html[data-vuewe-route="walkie"] .walkieShell>.hero{
+  margin:0 0 16px!important;
+  padding:15px!important;
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:22px!important;
+  color:#101512!important;
+  background:linear-gradient(135deg,#fff,#e3e6e3)!important;
+  box-shadow:0 12px 30px rgba(15,24,18,.07)!important;
+}
+html[data-vuewe-route="walkie"] .radioOrb{
+  width:66px!important;
+  height:66px!important;
+  border:1px solid rgba(34,227,110,.26)!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#111613,#2c322e)!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.14)!important;
+}
+html[data-vuewe-route="walkie"] .walkieShell>.hero p,
+html[data-vuewe-route="walkie"] .sectionTitle span{
+  color:#0dbf58!important;
+}
+html[data-vuewe-route="walkie"] .walkieShell>.hero h1,
+html[data-vuewe-route="walkie"] .sectionTitle strong{
+  color:#101512!important;
+}
+html[data-vuewe-route="walkie"] .walkieShell>.hero>div:last-child>span{
+  color:#68716b!important;
+}
+
+html[data-vuewe-route="walkie"] .incoming,
+html[data-vuewe-route="walkie"] .peopleSection{
+  border:1px solid rgba(15,26,19,.08)!important;
+  border-radius:22px!important;
+  color:#101512!important;
+  background:rgba(255,255,255,.84)!important;
+  box-shadow:0 12px 30px rgba(15,24,18,.06)!important;
+  backdrop-filter:blur(16px)!important;
+  -webkit-backdrop-filter:blur(16px)!important;
+}
+html[data-vuewe-route="walkie"] .selectionStatus{
+  color:#fff!important;
+  background:linear-gradient(135deg,#161b18,#343a36)!important;
+}
+html[data-vuewe-route="walkie"] .selectionStatus span{
+  color:#54ef92!important;
+}
+html[data-vuewe-route="walkie"] .selectionStatus small{
+  color:rgba(255,255,255,.68)!important;
+}
+html[data-vuewe-route="walkie"] .peopleGrid{
+  gap:10px!important;
+}
+html[data-vuewe-route="walkie"] .personCard{
+  min-height:154px!important;
+  color:#101512!important;
+  border:1px solid rgba(15,26,19,.09)!important;
+  border-radius:20px!important;
+  background:linear-gradient(145deg,#fff,#ecefec)!important;
+  box-shadow:0 9px 24px rgba(15,24,18,.05)!important;
+}
+html[data-vuewe-route="walkie"] .personCard strong{color:#101512!important}
+html[data-vuewe-route="walkie"] .personCard small{color:#7a837d!important}
+html[data-vuewe-route="walkie"] .personCard.selected{
+  color:#07120b!important;
+  border-color:rgba(34,227,110,.52)!important;
+  background:linear-gradient(145deg,#e9fff0,#c7f5d6)!important;
+  box-shadow:0 0 0 2px rgba(34,227,110,.10),0 12px 30px rgba(34,227,110,.10)!important;
+}
+html[data-vuewe-route="walkie"] .avatar{
+  border:2px solid rgba(16,25,19,.08)!important;
+  background:linear-gradient(145deg,#dfe4e0,#cdd2ce)!important;
+}
+html[data-vuewe-route="walkie"] .personCard.selected .avatar{
+  border-color:#22e36e!important;
+  box-shadow:0 0 0 3px rgba(34,227,110,.12)!important;
+}
+html[data-vuewe-route="walkie"] .selectDot{
+  color:#fff!important;
+  border:1px solid rgba(16,25,19,.10)!important;
+  background:#cfd4d0!important;
+}
+html[data-vuewe-route="walkie"] .personCard.selected .selectDot{
+  color:#07120b!important;
+  background:#22e36e!important;
+}
+html[data-vuewe-route="walkie"] .emptyState,
+html[data-vuewe-route="walkie"] .message{
+  color:#59635c!important;
+  background:rgba(255,255,255,.72)!important;
+}
+
+html[data-vuewe-route="walkie"] .walkieStartDock{
+  left:12px!important;
+  right:12px!important;
+  bottom:78px!important;
+  width:min(calc(100% - 24px),640px)!important;
+  margin:0 auto!important;
+  padding:9px!important;
+  border:1px solid rgba(255,255,255,.11)!important;
+  border-radius:20px!important;
+  color:#fff!important;
+  background:linear-gradient(135deg,#111613,#2b302d)!important;
+  box-shadow:0 18px 45px rgba(0,0,0,.24)!important;
+}
+html[data-vuewe-route="walkie"] .startWalkie{
+  color:#06110a!important;
+  border:0!important;
+  background:linear-gradient(135deg,#22e36e,#77f09f)!important;
+}
+
+html[data-vuewe-route="walkie"] .inviteCard{
+  color:#101512!important;
+  border-color:rgba(15,26,19,.08)!important;
+  background:#f5f7f5!important;
+}
+html[data-vuewe-route="walkie"] .inviteCopy strong{color:#101512!important}
+html[data-vuewe-route="walkie"] .inviteCopy span{color:#727c75!important}
+
+html[data-vuewe-route="walkie"] .outgoingWalkieOverlay{
+  background:rgba(236,240,237,.91)!important;
+}
+html[data-vuewe-route="walkie"] .outgoingWalkieCard{
+  color:#fff!important;
+  border-color:rgba(34,227,110,.22)!important;
+  background:linear-gradient(145deg,#111613,#2d332f)!important;
+}
+html[data-vuewe-route="walkie"] .outgoingEyebrow,
+html[data-vuewe-route="walkie"] .outgoingPerson small{
+  color:#55ef92!important;
+}
+html[data-vuewe-route="walkie"] .utvWalkieDock,
+html[data-vuewe-route="walkie"] .vueweWalkieDock{
+  display:none!important;
+}
