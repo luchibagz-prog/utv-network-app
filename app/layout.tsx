@@ -17,6 +17,7 @@ import "./vuewe-mock-v9.css";
 import "./vuewe-mock-v10.css";
 import "./vuewe-unified-v11.css";
 import "./vuewe-finish-v12.css";
+import "./vuewe-profile-safe-v14.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
