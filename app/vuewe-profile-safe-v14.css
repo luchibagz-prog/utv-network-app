@@ -1,0 +1,626 @@
+/* =========================================================
+   VUEWE PROFILE SAFE V14
+   CSS-only correction layer. No DOM mutation, no data/auth changes.
+   Loaded last so the living profile can keep its working features
+   while matching the approved VUEWE mock direction more closely.
+   ========================================================= */
+
+html[data-vuewe-route="profile"] body {
+  background: #f4f6f4;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] {
+  --vp-accent: var(--vuewe-profile-accent, #24e86e);
+  --vp-theme: var(--vuewe-profile-theme, #111712);
+  min-height: 100svh !important;
+  overflow-x: hidden !important;
+  padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  color: #101713 !important;
+  background:
+    linear-gradient(180deg, #0b0f0d 0 37rem, #e6e9e7 43rem, #f7f8f7 51rem, #fff 100%) !important;
+}
+
+/* ---------- LIVING COVER ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero {
+  position: relative !important;
+  isolation: isolate !important;
+  min-height: 610px !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 16px 18px !important;
+  overflow: hidden !important;
+  border-radius: 0 0 28px 28px !important;
+  background-color: #080b0a !important;
+  background-position: center 24% !important;
+  background-size: cover !important;
+  box-shadow: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  display: block !important;
+  background-position: center 24% !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage::after,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.02) 0%,
+      rgba(0,0,0,.03) 54%,
+      rgba(8,12,10,.12) 66%,
+      rgba(22,29,25,.52) 78%,
+      rgba(103,111,106,.72) 90%,
+      rgba(220,224,221,.90) 100%
+    ) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero::after {
+  display: none !important;
+}
+
+/* Real video background stays visible when selected. */
+html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] main[data-utv-page="profile"] .hero {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage {
+  opacity: 0 !important;
+}
+
+html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] .vueweLivingProfileBackdrop {
+  height: 610px !important;
+  min-height: 610px !important;
+}
+
+html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] .vueweLivingProfileShade {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.01) 0%,
+      rgba(0,0,0,.03) 55%,
+      rgba(15,21,18,.22) 72%,
+      rgba(101,109,104,.66) 89%,
+      rgba(220,224,221,.92) 100%
+    ) !important;
+}
+
+/* ---------- SMALL FLOATING IDENTITY GLASS ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+  position: relative !important;
+  z-index: 12 !important;
+  width: min(100%, 720px) !important;
+  max-width: 720px !important;
+  display: grid !important;
+  grid-template-columns: 92px minmax(0,1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: auto auto 0 !important;
+  padding: 11px 13px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 24px !important;
+  color: #fff !important;
+  background:
+    linear-gradient(135deg, rgba(9,14,12,.66), rgba(26,31,29,.48)) !important;
+  box-shadow:
+    0 16px 42px rgba(0,0,0,.20),
+    inset 0 1px 0 rgba(255,255,255,.12) !important;
+  backdrop-filter: blur(18px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(130%) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+  width: 84px !important;
+  height: 84px !important;
+  min-width: 84px !important;
+  flex: 0 0 84px !important;
+  padding: 3px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background:
+    linear-gradient(145deg, var(--vp-accent), #31d8ff 54%, #826cff) !important;
+  box-shadow:
+    0 9px 24px rgba(0,0,0,.30),
+    0 0 0 1px rgba(255,255,255,.12) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar img,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar > span {
+  width: 100% !important;
+  height: 100% !important;
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+  border: 2px solid rgba(6,10,8,.92) !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identityText {
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  text-align: left !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .category {
+  margin: 0 0 3px !important;
+  color: #7cf8a5 !important;
+  font-size: 8px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .15em !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identityText h1 {
+  max-width: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: #fff !important;
+  font-size: clamp(25px, 7.1vw, 38px) !important;
+  line-height: .98 !important;
+  letter-spacing: -.045em !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-shadow: 0 4px 18px rgba(0,0,0,.35) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .username {
+  margin-top: 4px !important;
+  color: rgba(255,255,255,.74) !important;
+  font-size: 12px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .bio {
+  max-width: 420px !important;
+  margin: 6px 0 0 !important;
+  overflow: hidden !important;
+  color: rgba(255,255,255,.72) !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+}
+
+/* ---------- OWNER / CONTACT CONTROLS ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions {
+  position: relative !important;
+  z-index: 13 !important;
+  width: min(100%, 720px) !important;
+  max-width: 720px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions::-webkit-scrollbar {
+  display: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions button {
+  width: auto !important;
+  min-width: max-content !important;
+  min-height: 38px !important;
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  background: rgba(10,14,12,.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions .messageAction,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .socialActions .vueweQuickEditProfile {
+  color: #07100b !important;
+  border-color: rgba(255,255,255,.32) !important;
+  background: linear-gradient(135deg, #fff, #e9f7ed 65%, #d7fbe1) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerCreatorButton {
+  min-width: max-content !important;
+  min-height: 38px !important;
+  padding: 0 12px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerCreatorButton > span {
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 10px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .ownerCreatorButton strong {
+  font-size: 9px !important;
+}
+
+/* ---------- CREATOR TOOLS PANEL ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard.open {
+  width: min(calc(100% - 28px), 720px) !important;
+  max-height: 920px !important;
+  margin: 12px auto 10px !important;
+  padding: 15px !important;
+  border: 1px solid rgba(20,32,24,.12) !important;
+  border-radius: 22px !important;
+  color: #101713 !important;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--vp-accent) 15%, transparent), transparent 32%),
+    linear-gradient(145deg, rgba(255,255,255,.97), rgba(235,239,236,.97)) !important;
+  box-shadow: 0 18px 44px rgba(20,28,23,.12) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard .dashboardHeader h2,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard .creatorQuickActions strong {
+  color: #101713 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard .dashboardHeader span,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard .creatorQuickActions small {
+  color: #6a756e !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .creatorDashboard .creatorQuickActions button:not(.creatorPrimary) {
+  border-color: rgba(20,32,24,.10) !important;
+  color: #101713 !important;
+  background: rgba(255,255,255,.78) !important;
+}
+
+/* ---------- SLIM MUSIC ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar {
+  position: relative !important;
+  z-index: 20 !important;
+  width: min(calc(100% - 32px), 700px) !important;
+  min-height: 58px !important;
+  grid-template-columns: 40px minmax(0,1fr) 32px !important;
+  gap: 10px !important;
+  margin: 12px auto 9px !important;
+  padding: 8px 11px !important;
+  border: 1px solid rgba(23,34,27,.11) !important;
+  border-radius: 18px !important;
+  color: #101713 !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.94), rgba(235,241,237,.92)) !important;
+  box-shadow: 0 12px 30px rgba(22,31,25,.09) !important;
+  backdrop-filter: blur(18px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(130%) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .musicPlayButton {
+  width: 38px !important;
+  height: 38px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #07100a !important;
+  background: linear-gradient(145deg, var(--vp-accent), #7af29c) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--vp-accent) 24%, transparent) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .profileMusicInfo span {
+  color: #1aa44e !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .profileMusicInfo strong {
+  color: #111713 !important;
+  font-size: 12px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .profileMusicInfo small {
+  color: #77817b !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar .musicBars i {
+  background: var(--vp-accent) !important;
+}
+
+/* ---------- READABLE STATS STRIP ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats {
+  position: relative !important;
+  z-index: 19 !important;
+  width: min(calc(100% - 32px), 700px) !important;
+  min-height: 62px !important;
+  display: grid !important;
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 0 !important;
+  margin: 0 auto 14px !important;
+  padding: 6px !important;
+  border: 1px solid rgba(23,34,27,.10) !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.88) !important;
+  box-shadow: 0 10px 26px rgba(24,34,27,.07) !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats button {
+  position: relative !important;
+  min-height: 48px !important;
+  padding: 4px 3px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #111713 !important;
+  background: transparent !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats button:not(:last-child)::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 10px !important;
+  right: 0 !important;
+  width: 1px !important;
+  height: 29px !important;
+  background: rgba(22,33,26,.10) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats strong {
+  color: #101713 !important;
+  font-size: 17px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats span {
+  color: #718078 !important;
+  font-size: 8px !important;
+}
+
+/* ---------- VUEWE CIRCLE / TOP 8 ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight {
+  width: min(100%, 760px) !important;
+  margin: 7px auto 12px !important;
+  padding: 14px 16px 16px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #101713 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Heading {
+  display: flex !important;
+  align-items: end !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin: 0 0 11px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Heading p {
+  margin: 0 !important;
+  color: #228c48 !important;
+  font-size: 8px !important;
+  letter-spacing: .16em !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Heading h2 {
+  margin: 3px 0 0 !important;
+  color: #101713 !important;
+  font-size: 22px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Heading button {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border: 1px solid rgba(20,31,24,.10) !important;
+  border-radius: 999px !important;
+  color: #344239 !important;
+  background: rgba(255,255,255,.78) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid {
+  width: 100% !important;
+  display: flex !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 2px 1px 5px !important;
+  scrollbar-width: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid::-webkit-scrollbar {
+  display: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid > * {
+  flex: 0 0 102px !important;
+  min-width: 102px !important;
+  max-width: 102px !important;
+  min-height: 132px !important;
+  padding: 9px 7px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(20,31,24,.09) !important;
+  border-radius: 19px !important;
+  color: #101713 !important;
+  background: rgba(255,255,255,.76) !important;
+  box-shadow: 0 7px 20px rgba(22,31,25,.05) !important;
+}
+
+/* Force every possible crew/avatar wrapper to a true circle. */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid img,
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid [class*="avatar"],
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid [class*="Avatar"],
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid [class*="photo"],
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid [class*="Photo"] {
+  width: 72px !important;
+  height: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+  aspect-ratio: 1 / 1 !important;
+  display: block !important;
+  margin-inline: auto !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight .crewGrid img {
+  border: 3px solid var(--vp-accent) !important;
+  box-shadow: 0 0 0 2px rgba(50,107,255,.30) !important;
+}
+
+/* ---------- LOWER PROFILE: LIGHT + PREMIUM ---------- */
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .tabs {
+  position: relative !important;
+  top: auto !important;
+  z-index: 10 !important;
+  width: min(calc(100% - 32px), 700px) !important;
+  display: grid !important;
+  grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  gap: 5px !important;
+  margin: 4px auto 0 !important;
+  padding: 5px !important;
+  border: 1px solid rgba(22,33,26,.09) !important;
+  border-radius: 17px !important;
+  background: rgba(245,247,245,.96) !important;
+  box-shadow: 0 8px 22px rgba(20,30,23,.05) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .tabs button {
+  min-height: 38px !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #77817b !important;
+  background: transparent !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .tabs button.active {
+  color: #0b120d !important;
+  background: #fff !important;
+  box-shadow:
+    inset 0 -2px var(--vp-accent),
+    0 4px 12px rgba(18,29,21,.06) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .swipeHint {
+  display: none !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content {
+  width: min(calc(100% - 24px), 736px) !important;
+  margin: 0 auto !important;
+  padding: 10px 0 38px !important;
+  color: #101713 !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .heading {
+  margin: 10px 4px 12px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .heading p {
+  color: #2b9d54 !important;
+  font-size: 8px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .content .heading h2 {
+  color: #0d130f !important;
+  font-size: 26px !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .about article {
+  border-color: rgba(20,31,24,.09) !important;
+  color: #111713 !important;
+  background: rgba(255,255,255,.88) !important;
+}
+
+html[data-vuewe-route="profile"] main[data-utv-page="profile"] .about p {
+  color: #69766e !important;
+}
+
+/* Keep the approved large two-column post wall on phones. */
+@media (max-width: 719px) {
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .premiumProfileGrid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 9px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .premiumProfileGrid .premiumMediaCard {
+    aspect-ratio: 3 / 4 !important;
+    border-radius: 18px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero {
+    min-height: 590px !important;
+    padding: 0 12px 15px !important;
+    border-radius: 0 0 25px 25px !important;
+    background-position: center 22% !important;
+  }
+
+  html[data-vuewe-profile-video="1"][data-vuewe-route="profile"] .vueweLivingProfileBackdrop {
+    height: 590px !important;
+    min-height: 590px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileCoverStage {
+    background-position: center 22% !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identity {
+    grid-template-columns: 76px minmax(0,1fr) !important;
+    gap: 10px !important;
+    padding: 10px !important;
+    border-radius: 21px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+    width: 72px !important;
+    height: 72px !important;
+    min-width: 72px !important;
+    flex-basis: 72px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .identityText h1 {
+    font-size: clamp(23px, 7.2vw, 31px) !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .hero .bio {
+    font-size: 9px !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .profileMusicBar,
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .stats.socialStats,
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .tabs {
+    width: calc(100% - 24px) !important;
+  }
+
+  html[data-vuewe-route="profile"] main[data-utv-page="profile"] .top8Spotlight {
+    padding-inline: 12px !important;
+  }
+}
