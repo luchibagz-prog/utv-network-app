@@ -74,18 +74,34 @@ export default function VUEWENav() {
             <span>VUEWE</span>
           </Link>
 
-          <Link
-            href="/search"
-            className="vueweSearchAction"
-            aria-label="Search VUEWE"
-            onPointerDown={() => {
-              try {
-                router.prefetch("/search");
-              } catch {}
-            }}
-          >
-            <Search size={21} strokeWidth={2.15} />
-          </Link>
+          <div className="vueweTopActions">
+            <Link
+              href="/watch"
+              className="vueweWatchShortcut"
+              aria-label="Open VUEWE Watch"
+              title="VUEWE Watch"
+              onPointerDown={() => {
+                try {
+                  router.prefetch("/watch");
+                } catch {}
+              }}
+            >
+              <Tv size={21} strokeWidth={2.35} />
+            </Link>
+
+            <Link
+              href="/search"
+              className="vueweSearchAction"
+              aria-label="Search VUEWE"
+              onPointerDown={() => {
+                try {
+                  router.prefetch("/search");
+                } catch {}
+              }}
+            >
+              <Search size={21} strokeWidth={2.15} />
+            </Link>
+          </div>
         </header>
       )}
 
