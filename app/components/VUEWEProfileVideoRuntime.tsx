@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -19,6 +20,7 @@ export default function VUEWEProfileVideoRuntime() {
   const pathname = usePathname();
   const [videoUrl, setVideoUrl] = useState("");
   const [ready, setReady] = useState(false);
+  const [host, setHost] = useState<HTMLElement | null>(null);
 
   const email = useMemo(() => {
     if (!pathname.startsWith("/u/")) return "";
@@ -30,6 +32,39 @@ export default function VUEWEProfileVideoRuntime() {
     } catch {
       return segment;
     }
+  }, [pathname]);
+
+  useEffect(() => {
+    let active = true;
+    let observer: MutationObserver | null = null;
+
+    const resolveHost = () => {
+      if (!active) return;
+      const nextHost = document.querySelector(
+        'main[data-utv-page="profile"] .hero'
+      ) as HTMLElement | null;
+
+      if (nextHost) {
+        setHost(nextHost);
+        observer?.disconnect();
+      }
+    };
+
+    resolveHost();
+
+    if (!document.querySelector('main[data-utv-page="profile"] .hero')) {
+      observer = new MutationObserver(resolveHost);
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    return () => {
+      active = false;
+      observer?.disconnect();
+      setHost(null);
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -77,9 +112,9 @@ export default function VUEWEProfileVideoRuntime() {
     };
   }, [email]);
 
-  if (!videoUrl) return null;
+  if (!videoUrl || !host) return null;
 
-  return (
+  return createPortal(
     <div
       className={
         ready
@@ -95,11 +130,12 @@ export default function VUEWEProfileVideoRuntime() {
         loop
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         onCanPlay={() => setReady(true)}
         onLoadedData={() => setReady(true)}
       />
       <div className="vueweProfileVideoRuntimeShade" />
-    </div>
+    </div>,
+    host
   );
 }
