@@ -1,0 +1,394 @@
+/* VUEWE Premium Pass 1
+   Strong override layer to move the real app closer to the approved mock.
+   Intentionally loaded last. */
+
+/* -----------------------------
+   APP CHROME
+   ----------------------------- */
+html body {
+  padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+  background: #f5f7fb !important;
+}
+
+html body .vueweTopBar {
+  min-height: 60px !important;
+  padding: max(8px, env(safe-area-inset-top)) 18px 7px !important;
+  border-bottom: 1px solid rgba(15,23,42,.055) !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 3px 12px rgba(15,23,42,.045) !important;
+}
+
+html body .vueweWordmark {
+  gap: 8px !important;
+  font-size: 20px !important;
+  letter-spacing: -1.15px !important;
+}
+
+html body .vueweEyeMark {
+  width: 30px !important;
+  height: 30px !important;
+  border-width: 2px !important;
+  box-shadow: 0 0 0 3px rgba(0,217,232,.07), 0 5px 13px rgba(30,94,255,.13) !important;
+}
+
+html body .vueweTopAction {
+  width: 38px !important;
+  height: 38px !important;
+  border-color: rgba(15,23,42,.065) !important;
+  background: #fff !important;
+  box-shadow: 0 5px 14px rgba(15,23,42,.065) !important;
+}
+
+html body .vueweBottomNav {
+  bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  width: min(560px, calc(100vw - 22px)) !important;
+  min-height: 66px !important;
+  gap: 1px !important;
+  padding: 5px 6px !important;
+  border: 1px solid rgba(15,23,42,.07) !important;
+  border-radius: 21px !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 10px 28px rgba(15,23,42,.13), inset 0 1px 0 #fff !important;
+}
+
+html body .vueweBottomNav::before {
+  display: none !important;
+}
+
+html body .vueweNavItem {
+  min-height: 54px !important;
+  gap: 2px !important;
+  border-radius: 15px !important;
+}
+
+html body .vueweNavItem small {
+  font-size: 8.5px !important;
+  font-weight: 850 !important;
+}
+
+html body .vueweNavItem.isActive {
+  color: #1764ff !important;
+  background: linear-gradient(180deg, rgba(30,94,255,.075), rgba(0,217,232,.035)) !important;
+}
+
+html body .vueweNavItem.isActive::after {
+  right: 36% !important;
+  bottom: 2px !important;
+  left: 36% !important;
+  height: 2px !important;
+}
+
+html body .vueweNavItem.isCreate .vueweNavIcon {
+  width: 44px !important;
+  height: 44px !important;
+  margin-top: -12px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 9px 20px rgba(30,94,255,.20), 0 0 0 3px rgba(0,217,232,.055) !important;
+}
+
+/* Keep Walkie prominent, but stop the old radio graphic from making the new UI feel legacy. */
+html body .utvWalkieDock {
+  right: 10px !important;
+  bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+  width: 48px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 1px solid rgba(255,255,255,.75) !important;
+  border-radius: 17px !important;
+  background: linear-gradient(145deg, #151a23, #0b1018) !important;
+  box-shadow: 0 10px 24px rgba(5,10,18,.22), 0 0 0 2px rgba(0,217,232,.10) !important;
+  transform: none !important;
+}
+
+html body .utvWalkieDock > * {
+  display: none !important;
+}
+
+html body .utvWalkieDock::before {
+  content: "📡";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 19px;
+}
+
+html body .utvWalkieDock::after {
+  content: "PTT";
+  position: absolute;
+  right: 4px;
+  bottom: 3px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  color: #061018;
+  background: linear-gradient(90deg,#00d9e8,#34e84a);
+  font-size: 6px;
+  font-weight: 1000;
+  letter-spacing: .04em;
+}
+
+/* -----------------------------
+   HOME: REMOVE THE OLD DARK WEBSITE FEEL
+   ----------------------------- */
+html body main.feedPage,
+html body .feedPage {
+  width: min(100%, 720px) !important;
+  margin: 0 auto !important;
+  color: #0b1020 !important;
+  background: #f6f8fb !important;
+}
+
+/* That legacy status band is the large dark dead space visible below the VUEWE header. */
+html body main.feedPage > .feedTopRow,
+html body .feedPage > .feedTopRow,
+html body .feedPage .feedTopRow {
+  display: none !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body main.feedPage .feedTabs,
+html body .feedPage .feedTabs {
+  top: 60px !important;
+  min-height: 49px !important;
+  gap: 24px !important;
+  padding: 6px 18px 8px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15,23,42,.055) !important;
+  color: #667085 !important;
+  background: rgba(255,255,255,.99) !important;
+  box-shadow: none !important;
+}
+
+html body main.feedPage .feedTabs button,
+html body .feedPage .feedTabs button {
+  min-height: 35px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #7d8796 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+html body main.feedPage .feedTabs button.active,
+html body .feedPage .feedTabs button.active {
+  color: #0b1020 !important;
+  background: transparent !important;
+}
+
+html body .feedPage .feedTabs button.active::after {
+  bottom: -8px !important;
+  height: 3px !important;
+  background: linear-gradient(90deg,#00d9e8,#1e5eff 62%,#34e84a) !important;
+  box-shadow: none !important;
+}
+
+html body main.feedPage .stories,
+html body .feedPage .stories {
+  gap: 12px !important;
+  padding: 13px 15px 14px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(15,23,42,.05) !important;
+  background: #fff !important;
+}
+
+html body .feedPage .storyButton {
+  width: 64px !important;
+  height: 64px !important;
+  padding: 3px !important;
+  box-shadow: 0 5px 14px rgba(30,94,255,.10) !important;
+}
+
+html body .feedPage .storyName {
+  color: #596579 !important;
+  font-size: 9.5px !important;
+}
+
+/* Make the composer read like a native quick action instead of a web card. */
+html body .feedPage .motionComposer,
+html body .feedPage .quickComposer,
+html body .feedPage .feedComposer {
+  margin: 10px 12px !important;
+  border: 1px solid rgba(15,23,42,.055) !important;
+  border-radius: 19px !important;
+  background: #fff !important;
+  box-shadow: 0 5px 16px rgba(15,23,42,.045) !important;
+}
+
+/* VUEWE NOW becomes a crisp utility rail, not a giant washed card. */
+html body .feedPage .utvHomePulse {
+  margin: 10px 12px 12px !important;
+  padding: 12px !important;
+  border: 1px solid rgba(15,23,42,.055) !important;
+  border-radius: 21px !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0,217,232,.10), transparent 30%),
+    radial-gradient(circle at 98% 100%, rgba(52,232,74,.07), transparent 28%),
+    linear-gradient(145deg,#ffffff,#f8fbfd) !important;
+  box-shadow: 0 7px 20px rgba(15,23,42,.055) !important;
+}
+
+html body .feedPage .utvHomePulseHead {
+  margin-bottom: 9px !important;
+}
+
+html body .feedPage .utvHomePulseHead b::after {
+  color: #101728 !important;
+  font-size: 11.5px !important;
+  letter-spacing: .075em !important;
+}
+
+html body .feedPage .utvHomePulseHead small {
+  color: #7b8796 !important;
+  font-size: 9px !important;
+  font-weight: 750 !important;
+}
+
+html body .feedPage .utvHomePulseRail {
+  gap: 8px !important;
+  overflow-x: auto !important;
+  padding: 0 1px 2px !important;
+  scrollbar-width: none !important;
+}
+
+html body .feedPage .utvHomePulseRail::-webkit-scrollbar {
+  display: none !important;
+}
+
+html body .feedPage .utvPulseCard {
+  min-width: 132px !important;
+  min-height: 78px !important;
+  padding: 11px !important;
+  border: 1px solid rgba(15,23,42,.055) !important;
+  border-radius: 16px !important;
+  color: #111827 !important;
+  background: rgba(255,255,255,.92) !important;
+  box-shadow: 0 4px 12px rgba(15,23,42,.04) !important;
+}
+
+html body .feedPage .utvPulseCard strong {
+  color: #111827 !important;
+  font-size: 11px !important;
+}
+
+html body .feedPage .utvPulseCard small {
+  color: #7d8795 !important;
+  font-size: 8.5px !important;
+}
+
+html body .feedPage .utvPulseCard.live {
+  background: linear-gradient(145deg,rgba(255,48,69,.07),#fff 58%) !important;
+}
+
+html body .feedPage .utvPulseCard.near {
+  background: linear-gradient(145deg,rgba(52,232,74,.08),#fff 58%) !important;
+}
+
+html body .feedPage .utvPulseCard.following {
+  background: linear-gradient(145deg,rgba(30,94,255,.07),#fff 58%) !important;
+}
+
+/* Posts: premium social cards, less bubbly/web-like. */
+html body .feedPage .feedList {
+  gap: 10px !important;
+  padding: 0 10px 22px !important;
+}
+
+html body .feedPage .feedPost {
+  border: 1px solid rgba(15,23,42,.055) !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 6px 18px rgba(15,23,42,.055) !important;
+}
+
+html body .feedPage .postHeader {
+  min-height: 58px !important;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+
+html body .feedPage .postAvatar {
+  box-shadow: 0 0 0 1.5px #00d9e8, 0 4px 10px rgba(30,94,255,.10) !important;
+}
+
+html body .feedPage .postCreator h3 {
+  color: #111827 !important;
+  font-size: 13px !important;
+  letter-spacing: -.15px !important;
+}
+
+html body .feedPage .postCreator p {
+  color: #8993a2 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .045em !important;
+  text-transform: uppercase !important;
+}
+
+html body .feedPage .mediaWrap {
+  border-top: 1px solid rgba(15,23,42,.035) !important;
+  border-bottom: 1px solid rgba(15,23,42,.035) !important;
+  background: #05070b !important;
+}
+
+html body .feedPage .postBody {
+  padding-bottom: 12px !important;
+}
+
+html body .feedPage .actionRow {
+  min-height: 46px !important;
+  padding-top: 6px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Remove web-card overload from search/suggested surfaces. */
+html body .feedPage .searchWrap {
+  padding: 0 12px 10px !important;
+}
+
+html body .feedPage .feedSearch {
+  min-height: 43px !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+
+html body .feedPage .suggestedCard {
+  border-radius: 17px !important;
+  box-shadow: 0 4px 13px rgba(15,23,42,.045) !important;
+}
+
+/* -----------------------------
+   MOBILE PERFORMANCE + FEEL
+   ----------------------------- */
+@media (max-width: 759px) {
+  html body .vueweTopBar,
+  html body .vueweBottomNav,
+  html body .feedPage .feedTabs {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  html body .feedPage .feedPost {
+    content-visibility: auto !important;
+    contain: layout paint style !important;
+    contain-intrinsic-size: 680px !important;
+  }
+
+  html body .feedPage .postMedia {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  html body .feedPage .utvHomePulse,
+  html body .feedPage .feedPost,
+  html body .feedPage .suggestedCard {
+    transform: none !important;
+  }
+}

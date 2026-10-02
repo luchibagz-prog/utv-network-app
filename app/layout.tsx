@@ -6,6 +6,7 @@ import "./vuewe-theme.css";
 import "./vuewe-feed.css";
 import "./vuewe-profile.css";
 import "./vuewe-polish-v2.css";
+import "./vuewe-premium-v3.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
