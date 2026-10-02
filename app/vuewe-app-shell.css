@@ -1,0 +1,695 @@
+/* VUEWE Full-App Experience Shell v1
+   Gives the existing product one premium visual language without rewriting
+   working backend/page logic. Loaded after all current VUEWE layers. */
+
+:root {
+  --vx-ink: #08111f;
+  --vx-ink-2: #111b2b;
+  --vx-steel: #dce5ee;
+  --vx-steel-2: #edf2f7;
+  --vx-paper: #f8fafc;
+  --vx-teal: #00d9e8;
+  --vx-blue: #1764ff;
+  --vx-green: #34e84a;
+  --vx-live: #ff3045;
+  --vx-line: rgba(15, 31, 50, .09);
+  --vx-shadow: 0 14px 38px rgba(17, 35, 58, .11);
+}
+
+/* ---------------------------------------------------------
+   GLOBAL EXPERIENCE HEADER
+   --------------------------------------------------------- */
+.vueweExperienceShell {
+  position: relative;
+  z-index: 42;
+  width: min(100%, 860px);
+  margin: 0 auto;
+  color: var(--vx-ink);
+  background:
+    radial-gradient(circle at 0 0, rgba(0, 217, 232, .11), transparent 32%),
+    radial-gradient(circle at 100% 0, rgba(23, 100, 255, .08), transparent 28%),
+    linear-gradient(180deg, #f9fbfd 0%, #eaf0f6 100%);
+  border-bottom: 1px solid var(--vx-line);
+  box-shadow: 0 8px 24px rgba(22, 40, 64, .07);
+}
+
+.vuewePageHeader {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 112px;
+  padding: 14px 18px 11px;
+  overflow: hidden;
+}
+
+.vuewePageHeader::before {
+  content: "";
+  position: absolute;
+  inset: auto -50px -78px auto;
+  width: 220px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 217, 232, .15), rgba(23, 100, 255, .04) 48%, transparent 70%);
+  pointer-events: none;
+}
+
+.vuewePageHeader::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: 0;
+  left: 102px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 217, 232, .72), rgba(23, 100, 255, .34), transparent 88%);
+  opacity: .58;
+}
+
+.vuewePageHeading {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.vuewePageKicker {
+  display: block;
+  margin-bottom: 2px;
+  color: #1764ff;
+  font-size: 9px;
+  font-weight: 1000;
+  line-height: 1;
+  letter-spacing: .16em;
+}
+
+.vuewePageHeading h1 {
+  margin: 0;
+  color: var(--vx-ink);
+  font-size: clamp(25px, 5vw, 36px);
+  font-weight: 950;
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+
+.vuewePageHeading p {
+  max-width: 520px;
+  margin: 6px 0 0;
+  color: #647186;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------
+   VUEWE EYE CREATURE / MASCOT
+   --------------------------------------------------------- */
+.vueweMascotButton,
+.vueweQuickButton {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.vueweMascotButton {
+  position: relative;
+  z-index: 2;
+  width: 64px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.96), rgba(224,233,243,.95));
+  box-shadow:
+    0 11px 24px rgba(26, 53, 84, .12),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 0 0 1px rgba(23,100,255,.07);
+}
+
+.vueweMascotButton:active {
+  transform: translateY(1px) scale(.985);
+}
+
+.vueweMascot {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 58px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 7px 10px rgba(23, 100, 255, .15));
+}
+
+.vueweMascot.isSmall {
+  width: 26px;
+  height: 30px;
+  filter: drop-shadow(0 4px 7px rgba(23, 100, 255, .12));
+}
+
+.vueweMascotAntenna {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 10px;
+  margin-left: -1.5px;
+  border-radius: 99px;
+  background: linear-gradient(#1764ff, #00d9e8);
+}
+
+.vueweMascotAntenna::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #34e84a;
+  box-shadow: 0 0 0 3px rgba(52,232,74,.12), 0 0 12px rgba(52,232,74,.45);
+}
+
+.vueweMascotBody {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 46px;
+  height: 43px;
+  margin-left: -23px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(23,100,255,.14);
+  border-radius: 48% 52% 48% 52% / 52% 48% 52% 48%;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,.9), transparent 20%),
+    linear-gradient(145deg, #ffffff 0%, #dbe4ed 52%, #b9c6d4 100%);
+  box-shadow:
+    inset -7px -8px 16px rgba(48,67,92,.12),
+    inset 5px 5px 10px rgba(255,255,255,.85),
+    0 6px 14px rgba(23,100,255,.14);
+}
+
+.vueweMascotEye {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f8fbff;
+  box-shadow: inset 0 0 0 2px #0b1524, 0 0 0 2px rgba(0,217,232,.22);
+}
+
+.vueweMascotIris {
+  width: 21px;
+  height: 21px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, #70fbff 0 12%, transparent 13%),
+    conic-gradient(from 20deg, #00d9e8, #1764ff, #6438ff, #00d9e8);
+  box-shadow: 0 0 10px rgba(23,100,255,.25);
+}
+
+.vueweMascotPupil {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #07101d;
+}
+
+.vueweMascotGlint {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: white;
+}
+
+.vueweMascotFoot {
+  position: absolute;
+  bottom: 0;
+  width: 14px;
+  height: 8px;
+  border-radius: 60% 60% 48% 48%;
+  background: linear-gradient(180deg, #c9d4df, #7f90a4);
+}
+
+.vueweMascotFoot.left { left: 7px; transform: rotate(-7deg); }
+.vueweMascotFoot.right { right: 7px; transform: rotate(7deg); }
+
+.vueweMascot.isSmall .vueweMascotAntenna { height: 6px; width: 2px; }
+.vueweMascot.isSmall .vueweMascotAntenna::after { width: 4px; height: 4px; margin-left: -2px; }
+.vueweMascot.isSmall .vueweMascotBody { top: 5px; width: 25px; height: 23px; margin-left: -12.5px; }
+.vueweMascot.isSmall .vueweMascotEye { width: 17px; height: 17px; }
+.vueweMascot.isSmall .vueweMascotIris { width: 12px; height: 12px; }
+.vueweMascot.isSmall .vueweMascotPupil { width: 6px; height: 6px; }
+.vueweMascot.isSmall .vueweMascotGlint { width: 2px; height: 2px; }
+.vueweMascot.isSmall .vueweMascotFoot { width: 8px; height: 4px; }
+.vueweMascot.isSmall .vueweMascotFoot.left { left: 3px; }
+.vueweMascot.isSmall .vueweMascotFoot.right { right: 3px; }
+
+.vueweQuickButton {
+  position: relative;
+  z-index: 2;
+  min-width: 62px;
+  min-height: 58px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0;
+  padding: 3px 8px 4px;
+  border: 1px solid rgba(23,100,255,.08);
+  border-radius: 18px;
+  color: #455268;
+  background: rgba(255,255,255,.7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 6px 16px rgba(22,40,64,.055);
+}
+
+.vueweQuickButton > span:last-child {
+  margin-top: -2px;
+  font-size: 7.5px;
+  font-weight: 900;
+  letter-spacing: .035em;
+}
+
+/* ---------------------------------------------------------
+   ZONE TABS
+   --------------------------------------------------------- */
+.vueweZoneTabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 4px;
+  padding: 7px 10px 9px;
+  border-top: 1px solid rgba(255,255,255,.65);
+  background: rgba(235,241,247,.96);
+}
+
+.vueweZoneTabs a {
+  position: relative;
+  min-width: 0;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: #6e7a8d;
+  background: transparent;
+  text-decoration: none;
+  font-size: 9.5px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.vueweZoneTabs a.isActive {
+  color: #0b1422;
+  border-color: rgba(23,100,255,.09);
+  background: linear-gradient(145deg, #ffffff 0%, #e9f1f8 100%);
+  box-shadow: 0 6px 14px rgba(24,42,67,.075), inset 0 1px 0 #fff;
+}
+
+.vueweZoneTabs a.isActive::after {
+  content: "";
+  position: absolute;
+  right: 25%;
+  bottom: 3px;
+  left: 25%;
+  height: 2px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--vx-teal), var(--vx-blue), var(--vx-green));
+}
+
+.zone-connect .vuewePageKicker { color: #6655ff; }
+.zone-create .vuewePageKicker { color: #008e9a; }
+.zone-you .vuewePageKicker { color: #19843a; }
+
+/* ---------------------------------------------------------
+   MASCOT QUICK-JUMP SHEET
+   --------------------------------------------------------- */
+.vueweQuickBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(6, 13, 23, .48);
+}
+
+.vueweQuickSheet {
+  width: min(100%, 560px);
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 27px;
+  color: var(--vx-ink);
+  background:
+    radial-gradient(circle at 0 0, rgba(0,217,232,.12), transparent 31%),
+    radial-gradient(circle at 100% 20%, rgba(23,100,255,.10), transparent 28%),
+    linear-gradient(145deg,#ffffff 0%,#e8eff6 100%);
+  box-shadow: 0 26px 70px rgba(4, 12, 24, .28), inset 0 1px 0 #fff;
+}
+
+.vueweQuickHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.vueweQuickHead > button {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(15,31,50,.08);
+  border-radius: 13px;
+  color: #435066;
+  background: #f5f8fb;
+}
+
+.vueweQuickMascotLockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vueweQuickMascotLockup > div {
+  display: grid;
+  gap: 1px;
+}
+
+.vueweQuickMascotLockup > div span {
+  color: #1764ff;
+  font-size: 8px;
+  font-weight: 1000;
+  letter-spacing: .16em;
+}
+
+.vueweQuickMascotLockup > div strong {
+  color: #091321;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.vueweQuickCopy {
+  margin: 11px 0 13px;
+  color: #647186;
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.vueweQuickGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.vueweQuickGrid a {
+  min-width: 0;
+  min-height: 74px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 1px solid rgba(15,31,50,.075);
+  border-radius: 17px;
+  color: #344154;
+  background: rgba(255,255,255,.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+  text-decoration: none;
+}
+
+.vueweQuickIcon {
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #0f4fe2;
+  background: linear-gradient(145deg,rgba(0,217,232,.13),rgba(23,100,255,.09));
+}
+
+.vueweQuickGrid strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------
+   RETIRE VISIBLE LEGACY UTV CHROME ON VUEWE PAGES
+   Keep underlying realtime/Walkie logic mounted.
+   --------------------------------------------------------- */
+html body .utvTopNav,
+html body .utvBottomNav,
+html body .utvMobileBottomNav,
+html body .utvDesktopNav {
+  display: none !important;
+}
+
+html body .messagesPage .eyebrow,
+html body .eventPage .eventSignal,
+html body [data-utv-pack3="casting"] .eyebrow,
+html body [data-utv-pack3="events"] .eyebrow {
+  color: #1764ff !important;
+}
+
+html body .messagesPage .eyebrow {
+  font-size: 0 !important;
+}
+
+html body .messagesPage .eyebrow::after {
+  content: "VUEWE CONNECT";
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+}
+
+html body .eventPage .eventSignal {
+  font-size: 0 !important;
+}
+
+html body .eventPage .eventSignal::after {
+  content: "VUEWE WORLD EVENT";
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .14em;
+}
+
+/* ---------------------------------------------------------
+   SHARED PREMIUM SURFACE FOR EXISTING FEATURE PAGES
+   --------------------------------------------------------- */
+html body main[data-utv-page="messages"],
+html body main[data-utv-page="activity"],
+html body main[data-utv-page="calls"],
+html body main[data-utv-page="walkie"],
+html body main[data-utv-page="wallet"],
+html body main[data-utv-page="bookings"],
+html body main[data-utv-page="support"],
+html body main[data-utv-pack3="events"],
+html body main[data-utv-pack3="casting"],
+html body .messagesPage,
+html body .callsPage,
+html body .walkiePage,
+html body .walletPage,
+html body .eventPage {
+  color: #111b2b !important;
+  background:
+    radial-gradient(circle at 0 0, rgba(0,217,232,.055), transparent 24%),
+    radial-gradient(circle at 100% 0, rgba(23,100,255,.045), transparent 24%),
+    linear-gradient(180deg,#edf2f7 0%,#e6edf4 100%) !important;
+}
+
+html body .messagesShell,
+html body .callsPage .shell,
+html body .walletPage .walletShell,
+html body .walkiePage .walkieShell,
+html body .eventPage .eventWrap,
+html body main[data-utv-page="bookings"] > section,
+html body main[data-utv-pack3="casting"] > section.card {
+  border-color: rgba(24,45,70,.08) !important;
+}
+
+html body .messagesPage .messagesHeader,
+html body .callsPage .callsHeader,
+html body .walletPage .walletHero,
+html body .walkiePage .walkieHeader,
+html body .eventPage .eventHeader {
+  color: #101827 !important;
+}
+
+html body .messagesPage .messagesHeader h1,
+html body .callsPage h1,
+html body .walletPage h1,
+html body .walkiePage h1,
+html body .eventPage h1,
+html body main[data-utv-pack3="casting"] h1 {
+  color: #091321 !important;
+  letter-spacing: -.045em !important;
+}
+
+html body .messagesPage .messagesHeader p,
+html body .callsPage p,
+html body .walletPage p,
+html body .walkiePage p,
+html body .eventPage p,
+html body main[data-utv-pack3="casting"] p {
+  color: #667386 !important;
+}
+
+html body .messagesPage .searchBox,
+html body .messagesPage .threadCard,
+html body .messagesPage .conversationCard,
+html body .callsPage .callCard,
+html body .walletPage .walletCard,
+html body .eventPage .eventCard,
+html body .eventPage .worldPreview,
+html body main[data-utv-pack3="casting"] .card,
+html body main[data-utv-page="bookings"] .card {
+  border: 1px solid rgba(24,45,70,.075) !important;
+  color: #172235 !important;
+  background: linear-gradient(145deg,rgba(255,255,255,.96),rgba(239,244,249,.96)) !important;
+  box-shadow: 0 9px 24px rgba(27,47,72,.075), inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+html body input,
+html body textarea,
+html body select {
+  accent-color: #1764ff;
+}
+
+/* Keep old dark creator pages readable if they have inline dark styles. */
+html body main[data-utv-pack3="events"] input,
+html body main[data-utv-pack3="events"] textarea,
+html body main[data-utv-pack3="casting"] input,
+html body main[data-utv-pack3="casting"] textarea,
+html body main[data-utv-pack3="casting"] select {
+  color: #122033 !important;
+  border-color: rgba(24,45,70,.10) !important;
+  background: rgba(255,255,255,.82) !important;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+@media (max-width: 620px) {
+  .vueweExperienceShell {
+    width: 100%;
+  }
+
+  .vuewePageHeader {
+    grid-template-columns: 62px minmax(0,1fr) 54px;
+    gap: 9px;
+    min-height: 98px;
+    padding: 10px 12px 9px;
+  }
+
+  .vueweMascotButton {
+    width: 56px;
+    height: 63px;
+    border-radius: 20px;
+  }
+
+  .vueweMascotButton .vueweMascot {
+    transform: scale(.88);
+  }
+
+  .vuewePageHeading h1 {
+    font-size: 25px;
+  }
+
+  .vuewePageHeading p {
+    max-width: 330px;
+    margin-top: 4px;
+    font-size: 9.5px;
+    line-height: 1.27;
+  }
+
+  .vuewePageKicker {
+    font-size: 7.5px;
+  }
+
+  .vueweQuickButton {
+    min-width: 50px;
+    min-height: 55px;
+    padding-inline: 5px;
+  }
+
+  .vueweZoneTabs {
+    gap: 2px;
+    padding: 6px 7px 8px;
+  }
+
+  .vueweZoneTabs a {
+    min-height: 42px;
+    gap: 4px;
+    padding-inline: 4px;
+    font-size: 8px;
+  }
+
+  .vueweZoneTabs a svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .vueweQuickBackdrop {
+    padding: 8px;
+  }
+
+  .vueweQuickSheet {
+    padding: 14px;
+    border-radius: 24px;
+  }
+
+  .vueweQuickGrid {
+    grid-template-columns: repeat(5, minmax(0,1fr));
+    gap: 5px;
+  }
+
+  .vueweQuickGrid a {
+    min-height: 68px;
+    padding-inline: 2px;
+  }
+
+  .vueweQuickIcon {
+    width: 33px;
+    height: 33px;
+  }
+
+  /* Avoid expensive blur on the Samsung/PWA path. */
+  .vueweExperienceShell,
+  .vueweQuickSheet,
+  .vueweZoneTabs {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vueweMascotButton .vueweMascotAntenna::after {
+    animation: vueweMascotPing 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes vueweMascotPing {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(52,232,74,.10), 0 0 9px rgba(52,232,74,.28); }
+  50% { box-shadow: 0 0 0 5px rgba(52,232,74,.04), 0 0 15px rgba(52,232,74,.48); }
+}
