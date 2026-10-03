@@ -55,6 +55,7 @@ import VUEWELiveBrandRuntime from "./components/VUEWELiveBrandRuntime";
 import VUEWERealtimeQualityRuntime from "./components/VUEWERealtimeQualityRuntime";
 import VUEWEDeviceReadyRuntime from "./components/VUEWEDeviceReadyRuntime";
 import VUEWEMobilePolishRuntime from "./components/VUEWEMobilePolishRuntime";
+import VUEWELaunchRouteRuntime from "./components/VUEWELaunchRouteRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -85,6 +86,7 @@ export default function RootLayout({
         <UTVAppShell />
         <VUEWEInstallBrandRuntime />
         <VUEWEDeviceReadyRuntime />
+        <VUEWELaunchRouteRuntime />
         <UTVRealtimeBridge />
         <VUEWENav />
         <VUEWEExperienceShell />
