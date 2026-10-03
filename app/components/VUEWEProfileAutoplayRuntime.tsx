@@ -82,15 +82,16 @@ export default function VUEWEProfileAutoplayRuntime() {
   useEffect(() => {
     if (!audio || !visitor) return;
 
+    const activeAudio = audio;
     let cancelled = false;
     let timer = 0;
 
     const tryPlay = async () => {
       if (cancelled) return;
       try {
-        audio.muted = false;
-        audio.volume = 1;
-        await audio.play();
+        activeAudio.muted = false;
+        activeAudio.volume = 1;
+        await activeAudio.play();
         if (!cancelled) {
           setBlocked(false);
           setMuted(false);
@@ -105,7 +106,7 @@ export default function VUEWEProfileAutoplayRuntime() {
     }, 260);
 
     const unlock = () => {
-      if (audio.paused) void tryPlay();
+      if (activeAudio.paused) void tryPlay();
     };
 
     window.addEventListener("pointerdown", unlock, { once: true, passive: true });
@@ -121,12 +122,14 @@ export default function VUEWEProfileAutoplayRuntime() {
 
   if (!visitor || !audio || !host) return null;
 
+  const activeAudio = audio;
+
   async function handleControl() {
-    if (blocked || audio.paused) {
+    if (blocked || activeAudio.paused) {
       try {
-        audio.muted = false;
-        audio.volume = 1;
-        await audio.play();
+        activeAudio.muted = false;
+        activeAudio.volume = 1;
+        await activeAudio.play();
         setBlocked(false);
         setMuted(false);
       } catch {
@@ -135,8 +138,8 @@ export default function VUEWEProfileAutoplayRuntime() {
       return;
     }
 
-    const nextMuted = !audio.muted;
-    audio.muted = nextMuted;
+    const nextMuted = !activeAudio.muted;
+    activeAudio.muted = nextMuted;
     setMuted(nextMuted);
   }
 
