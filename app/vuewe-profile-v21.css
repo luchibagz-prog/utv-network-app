@@ -1,0 +1,196 @@
+/* =========================================================
+   VUEWE PROFILE V21 — SOCIAL HIERARCHY + SIGNATURE WALKIE
+   Safe CSS-only refinement for the VUEWE staging branch.
+   Keeps the existing profile data, routing, media, music,
+   creator tools, follow, message, call and walkie logic intact.
+   ========================================================= */
+
+:root {
+  --vp21-green: #21ec73;
+  --vp21-cyan: #13dbe4;
+  --vp21-blue: #176dff;
+  --vp21-violet: #7359ff;
+  --vp21-ink: #07100c;
+  --vp21-muted: #748079;
+  --vp21-line: #e4ebe7;
+}
+
+/* Keep the profile visually open and social-app-like. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero {
+  padding-bottom: 18px !important;
+  border-radius: 0 0 26px 26px !important;
+  box-shadow: 0 10px 30px rgba(7, 16, 12, .055) !important;
+}
+
+/* Identity: avatar + name are the focal point, with no oversized slab. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identity {
+  width: min(calc(100% - 24px), 680px) !important;
+  min-height: 114px !important;
+  gap: 14px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+  width: 110px !important;
+  height: 110px !important;
+  min-width: 110px !important;
+  max-width: 110px !important;
+  padding: 4px !important;
+  background: linear-gradient(145deg, var(--vp21-green), var(--vp21-cyan) 42%, var(--vp21-blue) 72%, var(--vp21-violet)) !important;
+  box-shadow:
+    0 0 0 5px rgba(255,255,255,.98),
+    0 0 0 8px rgba(19,219,228,.16),
+    0 16px 34px rgba(7,16,12,.18) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText {
+  padding-bottom: 8px !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText h1 {
+  margin: 0 !important;
+  color: var(--vp21-ink) !important;
+  letter-spacing: -1.35px !important;
+}
+
+/* Owner actions: Creator Dash is a compact control-center strip, not a web-page block. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+  width: min(calc(100% - 24px), 680px) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 13px auto 0 !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .ownerCreatorButton {
+  grid-column: 1 / -1 !important;
+  min-height: 42px !important;
+  border: 1px solid rgba(23,109,255,.12) !important;
+  border-radius: 14px !important;
+  color: var(--vp21-ink) !important;
+  background:
+    radial-gradient(circle at 8% 30%, rgba(33,236,115,.19), transparent 34%),
+    linear-gradient(105deg, rgba(19,219,228,.10), rgba(115,89,255,.08)),
+    #fff !important;
+  box-shadow: 0 8px 20px rgba(10,30,18,.055) !important;
+}
+
+/* Base action chips. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .messageAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .contactAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) button {
+  min-height: 40px !important;
+  border-radius: 13px !important;
+  font-weight: 950 !important;
+  letter-spacing: .01em !important;
+}
+
+/* Walkie is a signature VUEWE feature, so it should visibly read as one. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) .walkieAction {
+  position: relative !important;
+  color: #04110a !important;
+  border: 1px solid rgba(33,236,115,.38) !important;
+  background:
+    linear-gradient(135deg, rgba(108,247,174,.98), rgba(101,228,241,.98)) !important;
+  box-shadow:
+    0 9px 22px rgba(33,236,115,.18),
+    inset 0 1px 0 rgba(255,255,255,.72) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction::after,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) .walkieAction::after {
+  content: "" !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 8px !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: #0a7f45 !important;
+  box-shadow: 0 0 0 4px rgba(10,127,69,.09) !important;
+}
+
+/* Public-profile controls stay clean and usable below identity. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions),
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) {
+  width: min(calc(100% - 24px), 680px) !important;
+}
+
+/* Stats become a thinner, premium social strip instead of a heavy card. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats {
+  width: min(calc(100% - 24px), 680px) !important;
+  min-height: 58px !important;
+  margin: 10px auto 8px !important;
+  padding: 5px 4px !important;
+  border: 1px solid var(--vp21-line) !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 7px 18px rgba(10,24,16,.045) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats strong {
+  font-size: 19px !important;
+  letter-spacing: -.45px !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats span,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats small {
+  color: var(--vp21-muted) !important;
+  font-size: 8px !important;
+  font-weight: 850 !important;
+}
+
+/* Music stays part of the identity flow instead of feeling like a separate widget. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .musicPlayer,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileMusicPlayer {
+  width: min(calc(100% - 24px), 680px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  border-radius: 16px !important;
+}
+
+/* Media cards feel more like a premium social profile gallery. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .premiumProfileGrid {
+  gap: 8px !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .premiumMediaCard {
+  border-radius: 17px !important;
+  box-shadow: 0 8px 22px rgba(7,16,12,.10) !important;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identity,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero > .identity + div:not(.socialActions),
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions),
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .musicPlayer,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileMusicPlayer {
+    width: calc(100% - 16px) !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+    width: 98px !important;
+    height: 98px !important;
+    min-width: 98px !important;
+    max-width: 98px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) {
+    gap: 6px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .messageAction,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .contactAction,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) button {
+    min-height: 38px !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    font-size: 8px !important;
+  }
+}
