@@ -47,7 +47,7 @@
     {
       "name": "VUEWE Watch",
       "short_name": "Watch",
-      "url": "/watch",
+      "url": "/watch?launch=watch",
       "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
     }
   ]
