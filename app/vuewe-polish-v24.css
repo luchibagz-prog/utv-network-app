@@ -1,0 +1,195 @@
+/* =========================================================
+   VUEWE POLISH V24 — EYE PLACEMENT + LIVING PROFILE FINISH
+   Safe staging-only polish from screenshot review.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   WORLD / CREATE — keep the VUEWE eye visible but out of the way.
+   Use the compact quick eye in the upper-right instead of the
+   large mascot floating over page content.
+   --------------------------------------------------------- */
+.vueweExperienceShell.zone-world .vuewePageHeader,
+.vueweExperienceShell.zone-create .vuewePageHeader {
+  position: relative !important;
+  padding-right: 66px !important;
+}
+
+.vueweExperienceShell.zone-world .vueweMascotButton,
+.vueweExperienceShell.zone-create .vueweMascotButton {
+  display: none !important;
+}
+
+.vueweExperienceShell.zone-world .vueweQuickButton,
+.vueweExperienceShell.zone-create .vueweQuickButton {
+  position: absolute !important;
+  top: 12px !important;
+  right: 14px !important;
+  z-index: 40 !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 1px solid rgba(86,236,178,.34) !important;
+  border-radius: 50% !important;
+  background: rgba(7,17,12,.74) !important;
+  box-shadow:
+    0 0 0 4px rgba(66,233,161,.08),
+    0 10px 28px rgba(0,0,0,.18) !important;
+  backdrop-filter: blur(14px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  transform: none !important;
+}
+
+.vueweExperienceShell.zone-world .vueweQuickButton > span:last-child,
+.vueweExperienceShell.zone-create .vueweQuickButton > span:last-child {
+  display: none !important;
+}
+
+.vueweExperienceShell.zone-world .vueweQuickButton .vueweMascot,
+.vueweExperienceShell.zone-create .vueweQuickButton .vueweMascot {
+  transform: scale(.72) !important;
+  transform-origin: center !important;
+}
+
+/* ---------------------------------------------------------
+   PROFILE — background photo/video reaches right above the
+   Creator Dash and stays much less washed out.
+   --------------------------------------------------------- */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileCoverStage,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime {
+  height: 455px !important;
+  min-height: 455px !important;
+  border-radius: 0 0 32px 32px !important;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 91%,
+    rgba(0,0,0,.98) 95%,
+    rgba(0,0,0,.76) 98%,
+    transparent 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 91%,
+    rgba(0,0,0,.98) 95%,
+    rgba(0,0,0,.76) 98%,
+    transparent 100%
+  ) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntimeShade {
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,.01) 0%,
+    rgba(0,0,0,.025) 68%,
+    rgba(0,0,0,.08) 84%,
+    rgba(0,0,0,.19) 96%,
+    rgba(0,0,0,.28) 100%
+  ) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) 72%,
+    rgba(255,255,255,.05) 88%,
+    rgba(255,255,255,.16) 100%
+  ) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identityText::before {
+  height: 58% !important;
+  bottom: -3px !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.18) 48%,
+    rgba(255,255,255,.42) 100%
+  ) !important;
+  filter: blur(4px) !important;
+}
+
+/* Visitor soundtrack mute/unmute fallback control. */
+html[data-vuewe-fidelity-route="profile"] .profileMusicBar {
+  position: relative !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] .vueweProfileSoundControl {
+  position: absolute !important;
+  top: 50% !important;
+  right: 10px !important;
+  z-index: 30 !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border: 1px solid rgba(33,236,115,.30) !important;
+  border-radius: 50% !important;
+  color: #07100c !important;
+  background: linear-gradient(135deg,#72f3ac,#64e6ec) !important;
+  box-shadow: 0 8px 20px rgba(33,236,115,.16) !important;
+  transform: translateY(-50%) !important;
+  cursor: pointer !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] .vueweProfileSoundControl.isBlocked {
+  font-size: 11px !important;
+  background: linear-gradient(135deg,#eafff0,#dffcff) !important;
+}
+
+@media (max-width: 600px) {
+  .vueweExperienceShell.zone-world .vuewePageHeader,
+  .vueweExperienceShell.zone-create .vuewePageHeader {
+    padding-right: 58px !important;
+  }
+
+  .vueweExperienceShell.zone-world .vueweQuickButton,
+  .vueweExperienceShell.zone-create .vueweQuickButton {
+    top: 9px !important;
+    right: 9px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileCoverStage,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime {
+    height: 420px !important;
+    min-height: 420px !important;
+    border-radius: 0 0 28px 28px !important;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 91%,
+      rgba(0,0,0,.98) 95%,
+      rgba(0,0,0,.74) 98%,
+      transparent 100%
+    ) !important;
+    mask-image: linear-gradient(
+      to bottom,
+      #000 0%,
+      #000 91%,
+      rgba(0,0,0,.98) 95%,
+      rgba(0,0,0,.74) 98%,
+      transparent 100%
+    ) !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] .vueweProfileSoundControl {
+    right: 8px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+}
