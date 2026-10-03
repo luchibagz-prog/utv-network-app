@@ -1,0 +1,113 @@
+/* =========================================================
+   VUEWE LIVE V26 — QUALITY / PLAYBACK / BRAND FINISH
+   ========================================================= */
+
+html[data-vuewe-live-quality="true"] .livePage,
+html[data-vuewe-live-quality="true"] .viewerPage,
+html[data-vuewe-live-quality="true"] .replayPage,
+html[data-vuewe-live-quality="true"] .loadingPage,
+html[data-vuewe-live-quality="true"] .endedPage {
+  background: #030806 !important;
+}
+
+html[data-vuewe-live-quality="true"] .livePage video,
+html[data-vuewe-live-quality="true"] .viewerPage video {
+  object-fit: cover !important;
+  background: #020503 !important;
+  image-rendering: auto !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+html[data-vuewe-live-quality="true"] .loadingPage,
+html[data-vuewe-live-quality="true"] .endedPage {
+  min-height: 100svh !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 11px !important;
+  padding: 32px 20px !important;
+  color: #f6fff9 !important;
+  text-align: center !important;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(37,236,121,.13), transparent 28%),
+    radial-gradient(circle at 58% 44%, rgba(22,219,228,.09), transparent 34%),
+    #030806 !important;
+}
+
+html[data-vuewe-live-quality="true"] .loadingPage img[src*="utv-logo"],
+html[data-vuewe-live-quality="true"] .endedPage img[src*="utv-logo"] {
+  display: none !important;
+}
+
+html[data-vuewe-live-quality="true"] .loadingPage::before,
+html[data-vuewe-live-quality="true"] .endedPage::before {
+  content: "VUEWE" !important;
+  width: 74px !important;
+  height: 52px !important;
+  display: grid !important;
+  place-items: center !important;
+  margin-bottom: 6px !important;
+  border: 2px solid rgba(255,255,255,.14) !important;
+  border-radius: 20px !important;
+  color: #07100c !important;
+  background: linear-gradient(145deg,#50f09a,#5ae4ee,#7ea2ff) !important;
+  box-shadow:
+    0 0 0 5px rgba(80,240,154,.08),
+    0 16px 38px rgba(0,0,0,.30) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .11em !important;
+}
+
+html[data-vuewe-live-quality="true"] .loadingPage strong {
+  color: #f7fff9 !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+}
+
+html[data-vuewe-live-quality="true"] .endedPage p {
+  color: #57eca0 !important;
+  font-size: 9px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .14em !important;
+}
+
+html[data-vuewe-live-quality="true"] .endedPage h1 {
+  margin: 0 !important;
+  color: #f8fff9 !important;
+  font-size: clamp(27px,7vw,42px) !important;
+  line-height: 1 !important;
+  letter-spacing: -.045em !important;
+}
+
+html[data-vuewe-live-quality="true"] .endedPage button {
+  min-height: 44px !important;
+  margin-top: 9px !important;
+  padding: 0 18px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  color: #06100b !important;
+  background: linear-gradient(135deg,#4eee96,#67e5e9) !important;
+  box-shadow: 0 10px 28px rgba(37,236,121,.16) !important;
+  font-weight: 950 !important;
+}
+
+html[data-vuewe-live-quality="true"] .connecting {
+  border: 1px solid rgba(255,255,255,.12) !important;
+  background: rgba(5,11,8,.68) !important;
+  backdrop-filter: blur(12px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,.22) !important;
+}
+
+html[data-vuewe-live-quality="true"] .connecting span {
+  box-shadow: 0 0 0 4px rgba(37,236,121,.12),0 0 18px rgba(37,236,121,.35) !important;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-live-quality="true"] .loadingPage,
+  html[data-vuewe-live-quality="true"] .endedPage {
+    padding-bottom: max(94px,env(safe-area-inset-bottom)) !important;
+  }
+}
