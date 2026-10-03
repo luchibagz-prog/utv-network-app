@@ -127,7 +127,7 @@ return supabase.storage.from("creator-avatars").getPublicUrl(fileName).data.publ
   }
 
   return (
-    <main className="container" style={{ paddingBottom: 120 }}>
+    <main data-utv-pack3="settings" className="container" style={{ paddingBottom: 120 }}>
       <UTVNav />
 
       <section className="card" style={{ marginTop: 24 }}>
