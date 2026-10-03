@@ -1,11 +1,32 @@
-const CACHE_NAME = "vuewe-push-v2";
+const CACHE_NAME = "vuewe-push-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys
+            .filter(
+              (key) =>
+                key.startsWith("vuewe-push-") &&
+                key !== CACHE_NAME
+            )
+            .map((key) => caches.delete(key))
+        )
+      ),
+    ])
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("push", (event) => {
@@ -51,7 +72,9 @@ self.addEventListener("push", (event) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -68,17 +91,22 @@ self.addEventListener("notificationclick", (event) => {
   ).href;
 
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((windows) => {
-        for (const client of windows) {
-          if ("focus" in client) {
-            client.navigate(target);
-            return client.focus();
-          }
-        }
+    (async () => {
+      const windows = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
 
-        if (clients.openWindow) return clients.openWindow(target);
-      })
+      for (const client of windows) {
+        try {
+          await client.navigate(target);
+          return client.focus();
+        } catch {}
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow(target);
+      }
+    })()
   );
 });

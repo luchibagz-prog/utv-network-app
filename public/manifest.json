@@ -3,10 +3,15 @@
   "name": "VUEWE — Your View. Our World.",
   "short_name": "VUEWE",
   "description": "A social world for people, creators, communities, entertainment and connection.",
+  "lang": "en-US",
+  "dir": "ltr",
   "start_url": "/feed",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#05080f",
   "theme_color": "#08111f",
   "orientation": "portrait",

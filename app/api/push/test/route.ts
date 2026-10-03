@@ -7,27 +7,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const authorization =
-      request.headers.get("authorization") || "";
+    const authorization = request.headers.get("authorization") || "";
+    const token = authorization.replace(/^Bearer\s+/i, "");
 
-    const token =
-      authorization.replace(/^Bearer\s+/i, "");
-
-    const url =
-      process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    const anonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    const serviceKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !anonKey || !serviceKey) {
       return NextResponse.json(
-        {
-          error:
-            "Push server environment is incomplete.",
-        },
+        { error: "Push server environment is incomplete." },
         { status: 500 }
       );
     }
@@ -39,20 +28,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const authClient = createClient(
-      url,
-      anonKey,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+    const authClient = createClient(url, anonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
+      },
+      auth: {
+        persistSession: false,
+      },
+    });
 
     const {
       data: { user },
@@ -66,20 +51,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const admin = createClient(
-      url,
-      serviceKey,
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
+    const admin = createClient(url, serviceKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
 
-    const {
-      data: subscriptions,
-      error,
-    } = await admin
+    const { data: subscriptions, error } = await admin
       .from("push_subscriptions")
       .select("*")
       .eq("user_email", user.email);
@@ -89,13 +67,16 @@ export async function POST(request: Request) {
     const push = configureWebPush();
 
     const payload = JSON.stringify({
-      title: "UTV alerts are live 🔔",
+      title: "VUEWE alerts are live 🔔",
       body:
-        "Real UTV background notifications are connected.",
+        "Background notifications are connected on this VUEWE device.",
       url: "/activity",
-      tag: "utv-push-test",
-      icon: "/utv-logo.png",
-      badge: "/utv-logo.png",
+      tag: "vuewe-push-test",
+      icon: "/vuewe-icon.svg",
+      badge: "/vuewe-badge.svg",
+      data: {
+        event: "test",
+      },
     });
 
     let sent = 0;
@@ -118,9 +99,7 @@ export async function POST(request: Request) {
 
         sent += 1;
       } catch (error: any) {
-        const status =
-          error?.statusCode ||
-          error?.status;
+        const status = error?.statusCode || error?.status;
 
         if (status === 404 || status === 410) {
           expired += 1;
@@ -131,19 +110,14 @@ export async function POST(request: Request) {
             .eq("endpoint", row.endpoint);
         } else {
           failed += 1;
-
-          lastError =
-            String(
-              error?.body ||
+          lastError = String(
+            error?.body ||
               error?.message ||
               error ||
               "Unknown push error."
-            );
-
-          console.error(
-            "Push send error:",
-            error
           );
+
+          console.error("VUEWE push test send:", error);
         }
       }
     }
@@ -153,18 +127,15 @@ export async function POST(request: Request) {
       sent,
       expired,
       failed,
-      subscriptions:
-        (subscriptions || []).length,
+      subscriptions: (subscriptions || []).length,
       lastError,
     });
   } catch (error: any) {
-    console.error("UTV test push:", error);
+    console.error("VUEWE test push:", error);
 
     return NextResponse.json(
       {
-        error:
-          error?.message ||
-          "Test push failed.",
+        error: error?.message || "Test push failed.",
       },
       { status: 500 }
     );

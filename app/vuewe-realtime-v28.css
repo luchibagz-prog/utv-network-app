@@ -1,0 +1,46 @@
+/* =========================================================
+   VUEWE REALTIME V28 — CALLS / WALKIE / PHONE RELIABILITY
+   ========================================================= */
+
+html[data-vuewe-realtime="true"] body {
+  overscroll-behavior: none;
+}
+
+html[data-vuewe-realtime="true"] main video,
+html[data-vuewe-realtime="true"] main audio {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-vuewe-realtime="true"] main video {
+  background: #020503 !important;
+  image-rendering: auto !important;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+html[data-vuewe-realtime="true"] .walkiePage,
+html[data-vuewe-realtime="true"] .walkieRoomPage,
+html[data-vuewe-realtime="true"] .callsPage,
+html[data-vuewe-realtime="true"] .callPage,
+html[data-vuewe-realtime="true"] .callRoomPage {
+  min-height: 100svh !important;
+}
+
+html[data-vuewe-realtime="true"] img[src*="utv-logo"] {
+  content: url("/vuewe-icon.svg");
+}
+
+html[data-vuewe-standalone="true"] body {
+  min-height: 100svh;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-realtime="true"] .walkiePage,
+  html[data-vuewe-realtime="true"] .walkieRoomPage,
+  html[data-vuewe-realtime="true"] .callsPage,
+  html[data-vuewe-realtime="true"] .callPage,
+  html[data-vuewe-realtime="true"] .callRoomPage {
+    padding-bottom: max(88px, env(safe-area-inset-bottom)) !important;
+  }
+}
