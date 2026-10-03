@@ -1,0 +1,164 @@
+/* VUEWE RELAUNCH V30 — final phone smoothness + visibility pass */
+
+/* Feed empty states must remain readable on the bright premium Feed. */
+html[data-vuewe-route="feed"] .emptyState{
+  width:min(620px,calc(100% - 28px))!important;
+  min-height:210px!important;
+  display:grid!important;
+  place-items:center!important;
+  align-content:center!important;
+  gap:8px!important;
+  margin:18px auto 90px!important;
+  padding:26px 18px!important;
+  border:1px solid #e5ebe7!important;
+  border-radius:24px!important;
+  color:#59635e!important;
+  background:linear-gradient(145deg,#f8fbf9,#f2f6f4)!important;
+  box-shadow:0 14px 40px rgba(10,20,14,.05)!important;
+  text-align:center!important;
+}
+html[data-vuewe-route="feed"] .emptyState h2{
+  margin:0!important;
+  color:#0a0d0b!important;
+  font-size:28px!important;
+  letter-spacing:-.04em!important;
+  opacity:1!important;
+}
+html[data-vuewe-route="feed"] .emptyState p{
+  max-width:360px!important;
+  margin:0!important;
+  color:#69736e!important;
+  font-size:13px!important;
+  line-height:1.45!important;
+  opacity:1!important;
+}
+
+/* Smooth long Feed paint without changing data/order/interaction. */
+@supports (content-visibility:auto){
+  html[data-vuewe-route="feed"] .feedPost{
+    content-visibility:auto;
+    contain-intrinsic-size:760px;
+  }
+  main.watchPage .watchCard,
+  html[data-vuewe-route="world"] .worldCard{
+    content-visibility:auto;
+    contain-intrinsic-size:300px;
+  }
+}
+
+html[data-vuewe-route="feed"] .feedPost,
+html[data-vuewe-route="world"] .worldCard,
+main.watchPage .watchCard{
+  contain:layout paint style;
+}
+
+button,a,[role="button"]{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+/* Call/video stability: fixed surfaces, GPU-composited media and less layout jump. */
+main[data-utv-page="calls"].callPage.videoCall{
+  width:100%!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  overflow:hidden!important;
+  background:#020305!important;
+}
+main[data-utv-page="calls"] .videoStage{
+  width:100%!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  contain:layout paint!important;
+  transform:translateZ(0)!important;
+}
+main[data-utv-page="calls"] .participantGrid{
+  contain:layout paint!important;
+  transform:translateZ(0)!important;
+}
+main[data-utv-page="calls"] .participantTile{
+  isolation:isolate!important;
+  contain:layout paint!important;
+  transform:translateZ(0)!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+}
+main[data-utv-page="calls"] .participantVideo{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  object-fit:cover!important;
+  transform:translateZ(0)!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+}
+main[data-utv-page="calls"] .participantVideo.mirror{
+  transform:scaleX(-1) translateZ(0)!important;
+}
+main[data-utv-page="calls"] .videoControls{
+  will-change:auto!important;
+  transform:translate3d(-50%,0,0)!important;
+  box-shadow:0 18px 60px rgba(0,0,0,.36)!important;
+}
+main[data-utv-page="calls"] .control,
+main[data-utv-page="calls"] .end{
+  transition:transform .12s ease,background-color .12s ease,border-color .12s ease!important;
+}
+main[data-utv-page="calls"] .control:active,
+main[data-utv-page="calls"] .end:active{
+  transform:scale(.94)!important;
+}
+main[data-utv-page="calls"] .top span,
+main[data-utv-page="calls"] .videoStatus strong{
+  text-shadow:0 2px 14px rgba(0,0,0,.5)!important;
+}
+
+/* Create Lab stays above the persistent bottom nav and does not fight browser chrome. */
+.premiumTools{
+  overscroll-behavior-y:contain!important;
+}
+.premiumTools .greenStudio,
+.premiumTools .premiumTemplateGrid button{
+  transform:translateZ(0)!important;
+}
+
+/* Keep the main Feed header/nav layers stable while scrolling. */
+html[data-vuewe-route="feed"] .vueweTopBar,
+html[data-vuewe-route="feed"] .feedTabs{
+  transform:translateZ(0)!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+}
+
+@media(max-width:520px){
+  main[data-utv-page="calls"] .participantGrid{
+    gap:4px!important;
+    padding-left:4px!important;
+    padding-right:4px!important;
+  }
+  main[data-utv-page="calls"] .participantTile{
+    border-radius:18px!important;
+  }
+  main[data-utv-page="calls"] .videoControls{
+    width:calc(100% - 12px)!important;
+    padding:11px 10px max(15px,env(safe-area-inset-bottom))!important;
+    border-radius:24px!important;
+  }
+  main[data-utv-page="calls"] .videoControls .control{
+    width:64px!important;
+    height:64px!important;
+    border-radius:21px!important;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  main[data-utv-page="calls"] *,
+  .vueweMainMenuSheet *{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+}
