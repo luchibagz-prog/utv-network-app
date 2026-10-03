@@ -1,4 +1,4 @@
-const CACHE_NAME = "vuewe-push-v3";
+const CACHE_NAME = "vuewe-push-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -42,10 +42,25 @@ self.addEventListener("push", (event) => {
 
   const title = data.title || "VUEWE";
   const eventType = data?.data?.event || data?.event || "";
-  const isRealtimeInvite =
+  const isCall =
     eventType === "audio_call" ||
-    eventType === "video_call" ||
-    eventType === "walkie";
+    eventType === "video_call";
+  const isWalkie = eventType === "walkie";
+  const isRealtimeInvite = isCall || isWalkie;
+
+  let openLabel = "Open VUEWE";
+
+  if (isCall) {
+    openLabel = eventType === "video_call"
+      ? "Open Video Call"
+      : "Open Call";
+  } else if (isWalkie) {
+    openLabel = "Open Walkie";
+  } else if (eventType === "message") {
+    openLabel = "Open Message";
+  } else if (eventType === "booking") {
+    openLabel = "View Booking";
+  }
 
   const options = {
     body: data.body || "You have new activity on VUEWE.",
@@ -61,10 +76,10 @@ self.addEventListener("push", (event) => {
       : [120, 55, 120],
     actions: isRealtimeInvite
       ? [
-          { action: "open", title: "Open VUEWE" },
+          { action: "open", title: openLabel },
           { action: "dismiss", title: "Dismiss" },
         ]
-      : [{ action: "open", title: "Open VUEWE" }],
+      : [{ action: "open", title: openLabel }],
     data: {
       ...(data.data || {}),
       event: eventType,
@@ -100,6 +115,11 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of windows) {
         try {
           await client.navigate(target);
+          client.postMessage?.({
+            type: "VUEWE_NOTIFICATION_OPEN",
+            event: event.notification.data?.event || "",
+            url: target,
+          });
           return client.focus();
         } catch {}
       }

@@ -5,7 +5,7 @@
   "description": "A social world for people, creators, communities, entertainment and connection.",
   "lang": "en-US",
   "dir": "ltr",
-  "start_url": "/feed",
+  "start_url": "/feed?launch=app",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -29,7 +29,7 @@
     {
       "name": "VUEWE Feed",
       "short_name": "Feed",
-      "url": "/feed",
+      "url": "/feed?launch=app",
       "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
     },
     {

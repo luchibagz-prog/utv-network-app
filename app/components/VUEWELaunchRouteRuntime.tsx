@@ -1,24 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-
-function isStandaloneMode() {
-  if (typeof window === "undefined") return false;
-
-  const iosStandalone = Boolean(
-    (window.navigator as Navigator & { standalone?: boolean }).standalone
-  );
-
-  return (
-    iosStandalone ||
-    window.matchMedia("(display-mode: standalone)").matches
-  );
-}
+import { usePathname, useSearchParams } from "next/navigation";
 
 export default function VUEWELaunchRouteRuntime() {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -26,31 +12,29 @@ export default function VUEWELaunchRouteRuntime() {
       __vueweLaunchHandled?: boolean;
     };
 
+    /*
+     * Only decide the launch route once for this browser/app window.
+     * Normal in-app navigation to Watch must keep working after startup.
+     */
     if (launchWindow.__vueweLaunchHandled) return;
     launchWindow.__vueweLaunchHandled = true;
 
-    if (!isStandaloneMode()) return;
-
-    // Keep an explicit Watch shortcut/deep launch working normally.
+    /* The explicit Watch app shortcut is allowed to open Watch. */
     if (searchParams.get("launch") === "watch") return;
 
-    const navigation = performance.getEntriesByType(
-      "navigation"
-    )[0] as PerformanceNavigationTiming | undefined;
-
-    const isFreshAppOpen =
-      !navigation ||
-      navigation.type === "navigate" ||
-      navigation.type === "reload";
-
-    if (!isFreshAppOpen) return;
-
-    // Some Android installs restore the last open route instead of honoring
-    // the manifest start_url. VUEWE should always cold-launch into Feed.
+    /*
+     * Android/Chrome Preview links can restore the last visited /watch URL
+     * even when the manifest start_url is /feed. This can happen in a normal
+     * browser tab too, not only display-mode: standalone, so do not gate this
+     * fix on PWA detection.
+     *
+     * A fresh VUEWE open should land on Feed. Once the app is running, users
+     * can move to Watch normally without being bounced back.
+     */
     if (pathname === "/watch") {
-      router.replace("/feed");
+      window.location.replace("/feed?launch=app");
     }
-  }, [pathname, router, searchParams]);
+  }, [pathname, searchParams]);
 
   return null;
 }

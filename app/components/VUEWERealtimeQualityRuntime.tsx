@@ -45,7 +45,16 @@ function resumeRealtimeMedia() {
     .forEach((element) => {
       tuneMediaElement(element);
 
-      if (element.paused && !element.muted) {
+      /*
+       * Local camera previews are intentionally muted, but they still need
+       * play() after Android suspends/resumes the page. Remote audio remains
+       * protected by its own muted state.
+       */
+      const shouldResume =
+        element instanceof HTMLVideoElement ||
+        !element.muted;
+
+      if (element.paused && shouldResume) {
         void element.play().catch(() => {});
       }
     });
@@ -102,6 +111,25 @@ function patchRealtimeBranding() {
   });
 }
 
+function focusIncomingCall() {
+  if (window.location.pathname !== "/calls") return;
+
+  const incomingId = new URLSearchParams(
+    window.location.search
+  ).get("incoming");
+
+  if (!incomingId) return;
+
+  window.setTimeout(() => {
+    document
+      .querySelector<HTMLElement>(".incomingSection")
+      ?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
+  }, 180);
+}
+
 export default function VUEWERealtimeQualityRuntime() {
   const pathname = usePathname();
   const active = isRealtimeRoute(pathname);
@@ -137,7 +165,14 @@ export default function VUEWERealtimeQualityRuntime() {
     const refresh = () => {
       patchRealtimeBranding();
       resumeRealtimeMedia();
+      focusIncomingCall();
       void requestWakeLock();
+
+      window.dispatchEvent(
+        new CustomEvent("vuewe:realtime-resume", {
+          detail: { pathname: window.location.pathname },
+        })
+      );
     };
 
     refresh();
@@ -160,14 +195,15 @@ export default function VUEWERealtimeQualityRuntime() {
 
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
-        window.setTimeout(refresh, 100);
-        window.setTimeout(refresh, 550);
+        window.setTimeout(refresh, 60);
+        window.setTimeout(refresh, 280);
+        window.setTimeout(refresh, 900);
       }
     };
 
     const onResume = () => {
-      window.setTimeout(refresh, 80);
-      window.setTimeout(refresh, 420);
+      window.setTimeout(refresh, 40);
+      window.setTimeout(refresh, 260);
     };
 
     window.addEventListener("pointerdown", resumeRealtimeMedia, {
@@ -175,14 +211,20 @@ export default function VUEWERealtimeQualityRuntime() {
     });
     window.addEventListener("pageshow", onResume);
     window.addEventListener("online", onResume);
+    window.addEventListener("focus", onResume);
     document.addEventListener("visibilitychange", onVisibility);
+
+    const connection = (navigator as any).connection;
+    connection?.addEventListener?.("change", onResume);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("pointerdown", resumeRealtimeMedia);
       window.removeEventListener("pageshow", onResume);
       window.removeEventListener("online", onResume);
+      window.removeEventListener("focus", onResume);
       document.removeEventListener("visibilitychange", onVisibility);
+      connection?.removeEventListener?.("change", onResume);
 
       try {
         void wakeLock?.release?.();
