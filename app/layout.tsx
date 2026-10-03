@@ -58,6 +58,8 @@ import VUEWEDeviceReadyRuntime from "./components/VUEWEDeviceReadyRuntime";
 import VUEWEMobilePolishRuntime from "./components/VUEWEMobilePolishRuntime";
 import VUEWELiveGiftRuntime from "./components/VUEWELiveGiftRuntime";
 import VUEWEMonetizationRuntime from "./components/VUEWEMonetizationRuntime";
+import VUEWEFirstRunSetup from "./components/VUEWEFirstRunSetup";
+import VUEWEGreenScreenStudio from "./components/VUEWEGreenScreenStudio";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -101,6 +103,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: launchScript }} />
       </head>
       <body>
+        <VUEWEFirstRunSetup />
         <UTVLiveTruthSync />
         <UTVAppShell />
         <VUEWEInstallBrandRuntime />
@@ -124,6 +127,7 @@ export default function RootLayout({
         <VUEWELiveGiftRuntime />
         <VUEWEMonetizationRuntime />
         {children}
+        <VUEWEGreenScreenStudio />
         <UTVNotificationBootstrap />
       </body>
     </html>
