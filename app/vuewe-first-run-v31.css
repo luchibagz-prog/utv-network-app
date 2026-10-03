@@ -1,0 +1,9 @@
+/* VUEWE FIRST RUN V31
+   The old install card and old notification card are replaced by the single
+   one-time VUEWEFirstRunSetup experience. Keeping these hidden guarantees
+   users never see stacked or repeating setup prompts. */
+.utvInstallCard,
+.utvIOSOverlay,
+.vueweNotifyPrompt {
+  display: none !important;
+}
