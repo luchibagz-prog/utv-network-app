@@ -1,0 +1,240 @@
+/* =========================================================
+   VUEWE PROFILE V22 — OWNER HEADER CORRECTION
+   Screenshot-led cleanup for VUEWE staging only.
+   Keeps all existing profile logic intact while fixing
+   mobile/desktop hierarchy, duplicate labels and overlap.
+   ========================================================= */
+
+:root {
+  --vp22-green: #21ec73;
+  --vp22-cyan: #13dbe4;
+  --vp22-blue: #176dff;
+  --vp22-violet: #7359ff;
+  --vp22-ink: #07100c;
+  --vp22-soft-line: rgba(7,16,12,.09);
+}
+
+/* The profile identity must own its own vertical space. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identity {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 24 !important;
+  width: min(calc(100% - 24px), 680px) !important;
+  min-height: 126px !important;
+  margin: 0 auto !important;
+  padding: 0 0 8px !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 26 !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText {
+  position: relative !important;
+  z-index: 27 !important;
+  min-width: 0 !important;
+  padding: 0 0 8px !important;
+  transform: none !important;
+}
+
+/* Never let the old injected quick-edit chip crowd the owner header. */
+html[data-vuewe-fidelity-route="profile"] .vueweQuickEditProfile,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions > .vueweQuickEditProfile {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Owner controls always sit BELOW avatar/name. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 30 !important;
+  width: min(calc(100% - 24px), 680px) !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 14px auto 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+}
+
+/* Creator Dash is one clean strip above the three social controls. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .ownerCreatorButton {
+  order: 1 !important;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(23,109,255,.13) !important;
+  border-radius: 15px !important;
+  color: var(--vp22-ink) !important;
+  background:
+    radial-gradient(circle at 8% 30%, rgba(33,236,115,.20), transparent 32%),
+    linear-gradient(105deg, rgba(19,219,228,.12), rgba(115,89,255,.09)),
+    rgba(255,255,255,.98) !important;
+  box-shadow: 0 8px 22px rgba(10,30,18,.055) !important;
+}
+
+/* Kill the duplicated Creator Tools / Creator Dash runtime text. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .ownerCreatorButton strong {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 84px !important;
+  overflow: hidden !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .ownerCreatorButton strong::after {
+  content: "Creator Dash" !important;
+  display: inline-block !important;
+  color: var(--vp22-ink) !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .01em !important;
+  white-space: nowrap !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .messageAction {
+  order: 2 !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction {
+  order: 3 !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .contactAction {
+  order: 4 !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .messageAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .contactAction {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 7px !important;
+  border-radius: 13px !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  white-space: nowrap !important;
+}
+
+/* Make Walkie read like a signature feature, not a generic chip. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) .walkieAction {
+  position: relative !important;
+  color: #031109 !important;
+  border: 1px solid rgba(33,236,115,.46) !important;
+  background: linear-gradient(135deg, #67f3ae 0%, #61e1ee 58%, #79c5ff 100%) !important;
+  box-shadow:
+    0 9px 22px rgba(33,236,115,.19),
+    inset 0 1px 0 rgba(255,255,255,.78) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction::before,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) .walkieAction::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 3px !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+  border-radius: 10px !important;
+  pointer-events: none !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction::after,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .socialActions:not(.ownerSocialActions) .walkieAction::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 7px !important;
+  right: 7px !important;
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+  background: #087c43 !important;
+  box-shadow: 0 0 0 4px rgba(8,124,67,.10) !important;
+}
+
+/* Keep stats and music visually separated from the action area. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .stats.socialStats {
+  clear: both !important;
+  margin-top: 12px !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileMusicBar,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .musicPlayer,
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileMusicPlayer {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero {
+    padding-bottom: 16px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identity {
+    width: calc(100% - 18px) !important;
+    min-height: 122px !important;
+    gap: 12px !important;
+    padding-bottom: 8px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .avatar {
+    width: 96px !important;
+    height: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText h1 {
+    font-size: clamp(30px, 9vw, 38px) !important;
+    line-height: .96 !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .ownerSocialActions {
+    width: calc(100% - 18px) !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    margin-top: 12px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .ownerCreatorButton {
+    min-height: 42px !important;
+    border-radius: 14px !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .messageAction,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .walkieAction,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .ownerSocialActions .contactAction {
+    min-height: 38px !important;
+    padding: 0 4px !important;
+    font-size: 8px !important;
+  }
+}
