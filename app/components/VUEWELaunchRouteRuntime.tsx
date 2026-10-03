@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function VUEWELaunchRouteRuntime() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const launchWindow = window as Window & {
@@ -18,6 +17,13 @@ export default function VUEWELaunchRouteRuntime() {
      */
     if (launchWindow.__vueweLaunchHandled) return;
     launchWindow.__vueweLaunchHandled = true;
+
+    /*
+     * Read the query directly from the browser instead of useSearchParams().
+     * This runtime lives in the root layout, and useSearchParams there forces
+     * Next.js static prerendering (including /404) to require Suspense.
+     */
+    const searchParams = new URLSearchParams(window.location.search);
 
     /* The explicit Watch app shortcut is allowed to open Watch. */
     if (searchParams.get("launch") === "watch") return;
@@ -34,7 +40,7 @@ export default function VUEWELaunchRouteRuntime() {
     if (pathname === "/watch") {
       window.location.replace("/feed?launch=app");
     }
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return null;
 }
