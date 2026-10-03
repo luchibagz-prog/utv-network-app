@@ -77,6 +77,71 @@
   box-shadow: inset 0 0 0 3px #6cf5ff;
 }
 
+/* The App Router fallback itself is now VUEWE — no UTV logo/skeleton flash. */
+.vueweAppLoading {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #07100c;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(37,236,121,.11), transparent 31%),
+    radial-gradient(circle at 84% 12%, rgba(23,109,255,.08), transparent 34%),
+    linear-gradient(180deg,#fbfdfc 0%,#f1f6f3 100%);
+}
+
+.vueweAppLoadingMark {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translateY(-22px);
+}
+
+.vueweAppLoadingMark strong {
+  margin-top: 4px;
+  color: #07100c;
+  font-size: 20px;
+  font-weight: 1000;
+  line-height: 1;
+  letter-spacing: .16em;
+}
+
+.vueweAppLoadingMark small {
+  color: #728079;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.vueweAppLoadingRails {
+  position: absolute;
+  right: 22px;
+  bottom: max(26px,env(safe-area-inset-bottom));
+  left: 22px;
+  display: grid;
+  gap: 7px;
+}
+
+.vueweAppLoadingRails span {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,rgba(37,236,121,.11),rgba(22,219,228,.13),rgba(23,109,255,.08));
+  animation: vueweRailBreath 1s ease-in-out infinite alternate;
+}
+
+.vueweAppLoadingRails span:nth-child(2) {
+  width: 76%;
+  animation-delay: .12s;
+}
+
+.vueweAppLoadingRails span:nth-child(3) {
+  width: 48%;
+  animation-delay: .24s;
+}
+
 /* Replace the old dark UTV profile-loading look with the current VUEWE language. */
 .utvProfileSkeleton {
   color: #07100c !important;
@@ -133,6 +198,11 @@ body > .worldPage {
   48%, 52% { transform: scaleY(.12); }
 }
 
+@keyframes vueweRailBreath {
+  from { opacity: .45; transform: scaleX(.96); transform-origin: left; }
+  to { opacity: 1; transform: scaleX(1); transform-origin: left; }
+}
+
 @keyframes vuewePageArrive {
   from { opacity: .72; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
@@ -141,6 +211,7 @@ body > .worldPage {
 @media (prefers-reduced-motion: reduce) {
   .vueweRouteProgress,
   .vueweRouteEye,
+  .vueweAppLoadingRails span,
   body > main,
   body > .page,
   body > .feedPage,
