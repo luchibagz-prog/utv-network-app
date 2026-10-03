@@ -1,0 +1,150 @@
+/* =========================================================
+   VUEWE MOBILE V29 — PHONE POLISH + FAST NAVIGATION
+   Fixes mobile World eye placement, composers, camera retry,
+   and removes the heavy full-screen navigation wash.
+   ========================================================= */
+
+/* WORLD — keep the signature eye beside the fixed VUEWE World header. */
+html[data-vuewe-fidelity-route="world"] .vueweWorldMockLayer {
+  position: fixed !important;
+}
+
+html[data-vuewe-fidelity-route="world"] .vueweWorldEyeBeacon {
+  position: absolute !important;
+  top: 3px !important;
+  right: 8px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 45 !important;
+  width: 58px !important;
+  height: 48px !important;
+  opacity: .96 !important;
+  transform: scale(.48) !important;
+  transform-origin: top right !important;
+  pointer-events: none !important;
+}
+
+/* NAVIGATION — use a fast top progress line instead of washing out the page. */
+.vueweRouteVeil,
+.vueweRouteVeil.isVisible {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.vueweRouteMark {
+  display: none !important;
+}
+
+.vueweRouteProgress {
+  height: 2px !important;
+  animation-duration: .54s !important;
+}
+
+body > main,
+body > .page,
+body > .feedPage,
+body > .worldPage {
+  animation-duration: .08s !important;
+}
+
+/* MESSAGES — readable text and a composer anchored to the visible phone viewport. */
+html[data-vuewe-fidelity-route="messages"] .messageComposer {
+  bottom: calc(var(--vuewe-visible-bottom-offset, 0px) + 82px + env(safe-area-inset-bottom)) !important;
+  z-index: 9995 !important;
+  border-color: rgba(15,30,22,.12) !important;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: 0 12px 30px rgba(5,18,11,.14) !important;
+  backdrop-filter: blur(18px) saturate(125%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(125%) !important;
+  transition: bottom .16s ease, box-shadow .16s ease, width .16s ease !important;
+}
+
+html[data-vuewe-fidelity-route="messages"] .messageComposer input {
+  color: #101713 !important;
+  -webkit-text-fill-color: #101713 !important;
+  caret-color: #19d56c !important;
+  background: transparent !important;
+  opacity: 1 !important;
+}
+
+html[data-vuewe-fidelity-route="messages"] .messageComposer input::placeholder {
+  color: rgba(16,23,19,.43) !important;
+  -webkit-text-fill-color: rgba(16,23,19,.43) !important;
+  opacity: 1 !important;
+}
+
+html[data-vuewe-fidelity-route="messages"] .messageComposer .emojiButton {
+  color: #101713 !important;
+  background: #eef3f0 !important;
+}
+
+html[data-vuewe-keyboard="open"][data-vuewe-fidelity-route="messages"] .messageComposer {
+  bottom: calc(var(--vuewe-visible-bottom-offset, 0px) + 8px) !important;
+  width: calc(100% - 16px) !important;
+}
+
+html[data-vuewe-keyboard="open"] .vueweBottomNav {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(110%) !important;
+}
+
+/* COMMENTS — VUEWE feed cards are light, so typing must be dark and visible. */
+html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer {
+  border-color: #dfe7e2 !important;
+  background: #f3f7f5 !important;
+}
+
+html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer input {
+  color: #101713 !important;
+  -webkit-text-fill-color: #101713 !important;
+  caret-color: #17ca65 !important;
+  opacity: 1 !important;
+}
+
+html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer input::placeholder {
+  color: rgba(16,23,19,.44) !important;
+  -webkit-text-fill-color: rgba(16,23,19,.44) !important;
+  opacity: 1 !important;
+}
+
+html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer > span,
+html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer .sendComment {
+  color: #101713 !important;
+}
+
+/* LIVE — preserve the native VUEWE double-tap camera switch without browser zoom. */
+html[data-vuewe-fidelity-route="live"] .livePage .hostVideoTile,
+html[data-vuewe-fidelity-route="live"] .livePage .hostVideoTile video {
+  touch-action: manipulation !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* CAMERA RETRY — visually show the recovery tap is working. */
+button[data-vuewe-camera-prepared="1"],
+button[aria-busy="true"] {
+  opacity: .72 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 640px) {
+  html[data-vuewe-fidelity-route="world"] .vueweWorldEyeBeacon {
+    top: 2px !important;
+    right: 4px !important;
+    width: 56px !important;
+    height: 46px !important;
+    transform: scale(.46) !important;
+  }
+
+  html[data-vuewe-fidelity-route="messages"] .messageComposer input,
+  html[data-vuewe-fidelity-route="feed"] .feedPage .commentComposer input {
+    font-size: 16px !important;
+  }
+
+  html[data-vuewe-fidelity-route="messages"] .messageComposer {
+    width: calc(100% - 18px) !important;
+  }
+}
