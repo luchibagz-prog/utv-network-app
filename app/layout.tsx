@@ -28,6 +28,7 @@ import "./vuewe-watch-v20.css";
 import "./vuewe-profile-v21.css";
 import "./vuewe-profile-v22.css";
 import "./vuewe-profile-v23.css";
+import "./vuewe-polish-v24.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -37,6 +38,7 @@ import VUEWEExperienceShell from "./components/VUEWEExperienceShell";
 import VUEWELivingProfileSystem from "./components/VUEWELivingProfileSystem";
 import VUEWEProfileVideoRuntime from "./components/VUEWEProfileVideoRuntime";
 import VUEWEProfileThemeRuntime from "./components/VUEWEProfileThemeRuntime";
+import VUEWEProfileAutoplayRuntime from "./components/VUEWEProfileAutoplayRuntime";
 import VUEWEMockRuntime from "./components/VUEWEMockRuntime";
 import VUEWEFidelityRuntime from "./components/VUEWEFidelityRuntime";
 import VUEWEInteractionRuntime from "./components/VUEWEInteractionRuntime";
@@ -76,6 +78,7 @@ export default function RootLayout({
         <VUEWEExperienceShell />
         <VUEWEProfileVideoRuntime />
         <VUEWEProfileThemeRuntime />
+        <VUEWEProfileAutoplayRuntime />
         <VUEWELivingProfileSystem />
         <VUEWEMockRuntime />
         <VUEWEFidelityRuntime />
