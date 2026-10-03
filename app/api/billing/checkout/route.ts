@@ -67,13 +67,13 @@ async function verifiedEmail(request: NextRequest) {
   );
 
   if (!response.ok) {
-    throw new Error("Your UTV session expired.");
+    throw new Error("Your VUEWE session expired.");
   }
 
   const user = await response.json();
 
   if (!user?.email) {
-    throw new Error("UTV could not verify your account.");
+    throw new Error("VUEWE could not verify your account.");
   }
 
   return String(user.email);
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
         .slice(0, 320);
 
       const giftName = String(
-        body.giftName || "UTV Gift"
+        body.giftName || "VUEWE Gift"
       ).slice(0, 60);
 
       const amountCents = Number(
@@ -264,9 +264,9 @@ export async function POST(request: NextRequest) {
               price_data: {
                 currency: "usd",
                 product_data: {
-                  name: `UTV Gift — ${giftName}`,
+                  name: `VUEWE Gift — ${giftName}`,
                   description:
-                    `Support a creator on UTV`,
+                    `Support a creator on VUEWE`,
                 },
                 unit_amount: amountCents,
               },
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (error: any) {
-    console.error("UTV checkout error:", error);
+    console.error("VUEWE checkout error:", error);
 
     return NextResponse.json(
       {

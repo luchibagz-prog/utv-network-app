@@ -55,7 +55,8 @@ import VUEWELiveBrandRuntime from "./components/VUEWELiveBrandRuntime";
 import VUEWERealtimeQualityRuntime from "./components/VUEWERealtimeQualityRuntime";
 import VUEWEDeviceReadyRuntime from "./components/VUEWEDeviceReadyRuntime";
 import VUEWEMobilePolishRuntime from "./components/VUEWEMobilePolishRuntime";
-import VUEWELaunchRouteRuntime from "./components/VUEWELaunchRouteRuntime";
+import VUEWELiveGiftRuntime from "./components/VUEWELiveGiftRuntime";
+import VUEWEMonetizationRuntime from "./components/VUEWEMonetizationRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -74,6 +75,20 @@ export const metadata = {
   },
 };
 
+const launchScript = `
+(function () {
+  try {
+    var current = new URL(window.location.href);
+    if (
+      current.pathname === "/watch" &&
+      current.searchParams.get("launch") !== "watch"
+    ) {
+      window.location.replace("/feed?launch=app");
+    }
+  } catch (_) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -81,12 +96,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: launchScript }} />
+      </head>
       <body>
         <UTVLiveTruthSync />
         <UTVAppShell />
         <VUEWEInstallBrandRuntime />
         <VUEWEDeviceReadyRuntime />
-        <VUEWELaunchRouteRuntime />
         <UTVRealtimeBridge />
         <VUEWENav />
         <VUEWEExperienceShell />
@@ -103,6 +120,8 @@ export default function RootLayout({
         <VUEWELiveBrandRuntime />
         <VUEWERealtimeQualityRuntime />
         <VUEWEMobilePolishRuntime />
+        <VUEWELiveGiftRuntime />
+        <VUEWEMonetizationRuntime />
         {children}
         <UTVNotificationBootstrap />
       </body>

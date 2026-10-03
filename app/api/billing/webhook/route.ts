@@ -209,6 +209,7 @@ export async function POST(request: NextRequest) {
           }
         );
       }
+
       if (
         metadata.kind === "gift" &&
         metadata.sender_email &&
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
         const giftName =
           String(
             metadata.gift_name ||
-            "UTV Gift"
+            "VUEWE Gift"
           ).slice(0, 60);
 
         const amountCents =
@@ -295,10 +296,6 @@ export async function POST(request: NextRequest) {
           throw giftError;
         }
 
-        /*
-          Stripe can retry webhooks. Only the first successful
-          ledger insert creates Activity + background push.
-        */
         if (giftRow?.id) {
           const dollars =
             (amountCents / 100).toFixed(2);
@@ -323,7 +320,7 @@ export async function POST(request: NextRequest) {
 
           if (notificationError) {
             console.error(
-              "UTV gift Activity notification:",
+              "VUEWE gift Activity notification:",
               notificationError
             );
           }
@@ -351,9 +348,9 @@ export async function POST(request: NextRequest) {
               body:
                 `${actor} sent you a ${giftName} ($${dollars}).`,
               url: "/activity",
-              tag: `utv-gift-${session.id}`,
-              icon: "/utv-logo.png",
-              badge: "/utv-logo.png",
+              tag: `vuewe-gift-${session.id}`,
+              icon: "/vuewe-icon.svg",
+              badge: "/vuewe-badge.svg",
               data: {
                 event: "gift",
                 senderEmail,
@@ -395,19 +392,15 @@ export async function POST(request: NextRequest) {
                     );
                 } else {
                   console.error(
-                    "UTV gift push:",
+                    "VUEWE gift push:",
                     pushError
                   );
                 }
               }
             }
           } catch (pushError) {
-            /*
-              Payment + gift ledger must never fail just
-              because a device push is unavailable.
-            */
             console.error(
-              "UTV gift push unavailable:",
+              "VUEWE gift push unavailable:",
               pushError
             );
           }
@@ -472,7 +465,7 @@ export async function POST(request: NextRequest) {
       received: true,
     });
   } catch (error: any) {
-    console.error("UTV Stripe webhook error:", error);
+    console.error("VUEWE Stripe webhook error:", error);
 
     return NextResponse.json(
       {

@@ -29,7 +29,7 @@
     {
       "name": "VUEWE Feed",
       "short_name": "Feed",
-      "url": "/feed?launch=app",
+      "url": "/feed",
       "icons": [{"src": "/vuewe-icon.svg", "sizes": "any", "type": "image/svg+xml"}]
     },
     {
