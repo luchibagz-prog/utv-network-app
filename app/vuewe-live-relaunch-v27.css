@@ -1,0 +1,98 @@
+/* =========================================================
+   VUEWE LIVE RELAUNCH V27 — PREMIUM HOST / VIEWER POLISH
+   ========================================================= */
+
+html[data-vuewe-live-quality="true"] body {
+  background: #030806 !important;
+}
+
+html[data-vuewe-live-quality="true"] .livePage,
+html[data-vuewe-live-quality="true"] .viewerPage,
+html[data-vuewe-live-quality="true"] .replayPage {
+  min-height: 100svh !important;
+  color: #fff !important;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(37,236,121,.08), transparent 30%),
+    #030806 !important;
+}
+
+html[data-vuewe-live-quality="true"] .stage,
+html[data-vuewe-live-quality="true"] .liveStage,
+html[data-vuewe-live-quality="true"] .cameraStage {
+  background: #020503 !important;
+}
+
+html[data-vuewe-live-quality="true"] .topBar,
+html[data-vuewe-live-quality="true"] .liveTopBar {
+  backdrop-filter: blur(12px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+}
+
+html[data-vuewe-live-quality="true"] .interactionToast,
+html[data-vuewe-live-quality="true"] .connecting {
+  border: 1px solid rgba(255,255,255,.13) !important;
+  color: #f8fff9 !important;
+  background: rgba(4,10,7,.72) !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,.28) !important;
+  backdrop-filter: blur(14px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(135%) !important;
+}
+
+html[data-vuewe-live-quality="true"] .liveSheetBackdrop {
+  background: rgba(0,0,0,.52) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+html[data-vuewe-live-quality="true"] .liveSheet,
+html[data-vuewe-live-quality="true"] .viewerSheet,
+html[data-vuewe-live-quality="true"] .joinSheet {
+  border-color: rgba(255,255,255,.12) !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(37,236,121,.10), transparent 30%),
+    rgba(8,14,10,.96) !important;
+  box-shadow: 0 -22px 60px rgba(0,0,0,.40) !important;
+}
+
+html[data-vuewe-live-quality="true"] .guestViewerPanel,
+html[data-vuewe-live-quality="true"] .guestTile {
+  border-color: rgba(94,241,164,.30) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.05),
+    0 14px 34px rgba(0,0,0,.30),
+    0 0 30px rgba(37,236,121,.08) !important;
+}
+
+html[data-vuewe-live-quality="true"] button:focus-visible {
+  outline: 2px solid #55ef9d !important;
+  outline-offset: 2px !important;
+}
+
+html[data-vuewe-live-quality="true"] .reactionLayer,
+html[data-vuewe-live-quality="true"] .audioTracks,
+html[data-vuewe-live-quality="true"] .guestAudioTracks {
+  pointer-events: none !important;
+}
+
+html[data-vuewe-live-route="host"] .livePage.active {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html[data-vuewe-live-route="viewer"] .viewerPage {
+  overscroll-behavior: contain !important;
+}
+
+@media (max-width: 600px) {
+  html[data-vuewe-live-quality="true"] .livePage,
+  html[data-vuewe-live-quality="true"] .viewerPage,
+  html[data-vuewe-live-quality="true"] .replayPage {
+    min-height: 100dvh !important;
+  }
+
+  html[data-vuewe-live-quality="true"] .stage,
+  html[data-vuewe-live-quality="true"] .liveStage,
+  html[data-vuewe-live-quality="true"] .cameraStage {
+    min-height: 100dvh !important;
+  }
+}
