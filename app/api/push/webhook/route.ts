@@ -231,6 +231,40 @@ async function copyFromWebhook(
   return null;
 }
 
+function actorEmailForWebhook(
+  table: string,
+  record: Record<string, any>,
+) {
+  if (table === "notifications") {
+    return String(record.actor_email || "");
+  }
+
+  if (table === "messages") {
+    return String(record.sender_email || "");
+  }
+
+  if (table === "call_sessions") {
+    return String(record.caller_email || "");
+  }
+
+  if (table === "walkie_members") {
+    return String(record.invited_by || "");
+  }
+
+  if (
+    table === "feed_comments" ||
+    table === "feed_comment_reactions"
+  ) {
+    return String(record.user_email || "");
+  }
+
+  return String(
+    record.actor_email ||
+      record.sender_email ||
+      "",
+  );
+}
+
 async function deliverPush(copy: PushCopy) {
   configureWebPush();
   const supabase = serverClient();
@@ -238,7 +272,7 @@ async function deliverPush(copy: PushCopy) {
   const { data: subscriptions, error } = await supabase
     .from("push_subscriptions")
     .select("*")
-    .eq("user_email", copy.recipientEmail);
+    .ilike("user_email", copy.recipientEmail);
 
   if (error) {
     throw new Error(error.message);
@@ -337,10 +371,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const actorEmail = actorEmailForWebhook(
+      table,
+      record,
+    )
+      .trim()
+      .toLowerCase();
+
     if (
-      record.user_email &&
-      String(record.user_email).toLowerCase() ===
-        String(copy.recipientEmail).toLowerCase()
+      actorEmail &&
+      actorEmail ===
+        String(copy.recipientEmail)
+          .trim()
+          .toLowerCase()
     ) {
       return NextResponse.json({
         ok: true,
