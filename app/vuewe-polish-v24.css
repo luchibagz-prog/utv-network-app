@@ -4,9 +4,7 @@
    ========================================================= */
 
 /* ---------------------------------------------------------
-   WORLD / CREATE — keep the VUEWE eye visible but out of the way.
-   Use the compact quick eye in the upper-right instead of the
-   large mascot floating over page content.
+   EXPERIENCE SHELL — keep the little quick eye compact.
    --------------------------------------------------------- */
 .vueweExperienceShell.zone-world .vuewePageHeader,
 .vueweExperienceShell.zone-create .vuewePageHeader {
@@ -56,63 +54,149 @@
 }
 
 /* ---------------------------------------------------------
-   PROFILE — background photo/video reaches right above the
-   Creator Dash and stays much less washed out.
+   ACTUAL FIDELITY EYES — these are the floating eye elements
+   visible in the screenshot. Park them at the edge instead of
+   letting them sit over World/Create content.
+   --------------------------------------------------------- */
+html[data-vuewe-fidelity-route="world"] .vueweWorldEyeBeacon {
+  position: fixed !important;
+  top: 132px !important;
+  right: 16px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 3650 !important;
+  width: 62px !important;
+  height: 52px !important;
+  opacity: .92 !important;
+  transform: scale(.56) !important;
+  transform-origin: top right !important;
+  pointer-events: none !important;
+}
+
+html[data-vuewe-fidelity-route="create"] .vueweCreateMascot {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 40 !important;
+  width: 126px !important;
+  height: 96px !important;
+  opacity: .94 !important;
+  transform: scale(.58) !important;
+  transform-origin: top right !important;
+  pointer-events: none !important;
+}
+
+html[data-vuewe-fidelity-route="create"] .vueweCreateMascot b {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   PROFILE — background photo/video extends behind the lower
+   identity area and softly disappears into Creator Dash.
    --------------------------------------------------------- */
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileCoverStage,
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime {
-  height: 455px !important;
-  min-height: 455px !important;
-  border-radius: 0 0 32px 32px !important;
+  height: 520px !important;
+  min-height: 520px !important;
+  border-radius: 0 0 34px 34px !important;
   -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    #000 91%,
-    rgba(0,0,0,.98) 95%,
-    rgba(0,0,0,.76) 98%,
+    #000 80%,
+    rgba(0,0,0,.98) 87%,
+    rgba(0,0,0,.82) 92%,
+    rgba(0,0,0,.50) 96%,
+    rgba(0,0,0,.18) 99%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    #000 91%,
-    rgba(0,0,0,.98) 95%,
-    rgba(0,0,0,.76) 98%,
+    #000 80%,
+    rgba(0,0,0,.98) 87%,
+    rgba(0,0,0,.82) 92%,
+    rgba(0,0,0,.50) 96%,
+    rgba(0,0,0,.18) 99%,
     transparent 100%
   ) !important;
 }
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntimeShade {
+  display: block !important;
+  opacity: 1 !important;
   background: linear-gradient(
     180deg,
-    rgba(0,0,0,.01) 0%,
-    rgba(0,0,0,.025) 68%,
-    rgba(0,0,0,.08) 84%,
-    rgba(0,0,0,.19) 96%,
-    rgba(0,0,0,.28) 100%
+    rgba(0,0,0,0) 0%,
+    rgba(0,0,0,.015) 64%,
+    rgba(255,255,255,.02) 78%,
+    rgba(255,255,255,.10) 88%,
+    rgba(255,255,255,.24) 96%,
+    rgba(255,255,255,.42) 100%
   ) !important;
 }
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero::before {
+  display: block !important;
+  content: "" !important;
+  opacity: 1 !important;
   background: linear-gradient(
     180deg,
     rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0) 72%,
-    rgba(255,255,255,.05) 88%,
-    rgba(255,255,255,.16) 100%
+    rgba(255,255,255,0) 70%,
+    rgba(255,255,255,.035) 83%,
+    rgba(255,255,255,.13) 93%,
+    rgba(255,255,255,.32) 100%
   ) !important;
 }
 
+/* Keep the identity readable over any photo/video without making
+   the profile feel like a dark card. */
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText .username {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin-top: 3px !important;
+  padding: 2px 7px !important;
+  border-radius: 8px !important;
+  color: #1d2a23 !important;
+  background: rgba(255,255,255,.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72) !important;
+  backdrop-filter: blur(7px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(120%) !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.82) !important;
+}
+
+html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText .bio {
+  display: inline-block !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin-top: 5px !important;
+  padding: 3px 7px !important;
+  border-radius: 8px !important;
+  color: #2f3b34 !important;
+  background: rgba(255,255,255,.46) !important;
+  backdrop-filter: blur(6px) saturate(115%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(115%) !important;
+  font-weight: 760 !important;
+  line-height: 1.3 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.85) !important;
+}
+
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero .identityText::before {
-  height: 58% !important;
-  bottom: -3px !important;
+  height: 46% !important;
+  bottom: -4px !important;
+  opacity: .46 !important;
   background: linear-gradient(
     180deg,
     rgba(255,255,255,0) 0%,
-    rgba(255,255,255,.18) 48%,
-    rgba(255,255,255,.42) 100%
+    rgba(255,255,255,.10) 44%,
+    rgba(255,255,255,.24) 100%
   ) !important;
-  filter: blur(4px) !important;
+  filter: blur(5px) !important;
 }
 
 /* Visitor soundtrack mute/unmute fallback control. */
@@ -162,27 +246,53 @@ html[data-vuewe-fidelity-route="profile"] .vueweProfileSoundControl.isBlocked {
     min-height: 40px !important;
   }
 
+  html[data-vuewe-fidelity-route="world"] .vueweWorldEyeBeacon {
+    top: 116px !important;
+    right: 8px !important;
+    width: 58px !important;
+    height: 48px !important;
+    transform: scale(.48) !important;
+  }
+
+  html[data-vuewe-fidelity-route="create"] .vueweCreateMascot {
+    top: 12px !important;
+    right: 8px !important;
+    width: 112px !important;
+    height: 86px !important;
+    transform: scale(.50) !important;
+  }
+
   html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileCoverStage,
   html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime {
-    height: 420px !important;
-    min-height: 420px !important;
-    border-radius: 0 0 28px 28px !important;
+    height: 470px !important;
+    min-height: 470px !important;
+    border-radius: 0 0 30px 30px !important;
     -webkit-mask-image: linear-gradient(
       to bottom,
       #000 0%,
-      #000 91%,
-      rgba(0,0,0,.98) 95%,
-      rgba(0,0,0,.74) 98%,
+      #000 80%,
+      rgba(0,0,0,.98) 87%,
+      rgba(0,0,0,.80) 92%,
+      rgba(0,0,0,.46) 96%,
+      rgba(0,0,0,.16) 99%,
       transparent 100%
     ) !important;
     mask-image: linear-gradient(
       to bottom,
       #000 0%,
-      #000 91%,
-      rgba(0,0,0,.98) 95%,
-      rgba(0,0,0,.74) 98%,
+      #000 80%,
+      rgba(0,0,0,.98) 87%,
+      rgba(0,0,0,.80) 92%,
+      rgba(0,0,0,.46) 96%,
+      rgba(0,0,0,.16) 99%,
       transparent 100%
     ) !important;
+  }
+
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText .username,
+  html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .identityText .bio {
+    backdrop-filter: blur(5px) saturate(115%) !important;
+    -webkit-backdrop-filter: blur(5px) saturate(115%) !important;
   }
 
   html[data-vuewe-fidelity-route="profile"] .vueweProfileSoundControl {
