@@ -1,0 +1,150 @@
+/* =========================================================
+   VUEWE TRANSITION V25 — SMOOTH ROUTES / NO LEGACY FLASHES
+   ========================================================= */
+
+.vueweRouteVeil {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(49,238,144,.10), transparent 28%),
+    radial-gradient(circle at 58% 50%, rgba(42,149,255,.08), transparent 34%),
+    rgba(248,251,249,.72);
+  backdrop-filter: blur(8px) saturate(118%);
+  -webkit-backdrop-filter: blur(8px) saturate(118%);
+  transition: opacity .14s ease, visibility .14s ease;
+}
+
+.vueweRouteVeil.isVisible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.vueweRouteProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 38%;
+  height: 3px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg,#25ec79,#16dbe4,#176dff);
+  box-shadow: 0 0 18px rgba(22,219,228,.30);
+  animation: vueweRouteSweep .78s cubic-bezier(.34,.72,.25,1) infinite;
+}
+
+.vueweRouteMark {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  opacity: .92;
+  transform: translateY(-7px);
+}
+
+.vueweRouteMark strong {
+  color: #07100c;
+  font-size: 13px;
+  font-weight: 1000;
+  letter-spacing: .18em;
+}
+
+.vueweRouteEye {
+  width: 49px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #07100c;
+  border-radius: 56% 44% 56% 44% / 48% 58% 42% 52%;
+  background: rgba(255,255,255,.92);
+  box-shadow:
+    0 0 0 4px rgba(22,219,228,.16),
+    0 0 0 7px rgba(37,236,121,.08),
+    0 10px 28px rgba(7,16,12,.10);
+  animation: vueweRouteBlink 1.35s ease-in-out infinite;
+}
+
+.vueweRouteEye i {
+  width: 18px;
+  height: 18px;
+  display: block;
+  border: 4px solid #176dff;
+  border-radius: 50%;
+  background: #07100c;
+  box-shadow: inset 0 0 0 3px #6cf5ff;
+}
+
+/* Replace the old dark UTV profile-loading look with the current VUEWE language. */
+.utvProfileSkeleton {
+  color: #07100c !important;
+  background:
+    radial-gradient(circle at 12% 5%, rgba(37,236,121,.09), transparent 28%),
+    radial-gradient(circle at 88% 10%, rgba(23,109,255,.07), transparent 30%),
+    #f8faf9 !important;
+}
+
+.utvProfileSkeleton .skeletonCover,
+.utvProfileSkeleton .skeletonAvatar,
+.utvProfileSkeleton .skeletonLine,
+.utvProfileSkeleton .skeletonActions span,
+.utvProfileSkeleton .skeletonCard {
+  background:
+    linear-gradient(
+      110deg,
+      rgba(7,16,12,.035) 8%,
+      rgba(37,236,121,.10) 18%,
+      rgba(22,219,228,.10) 26%,
+      rgba(7,16,12,.035) 38%
+    ) !important;
+  background-size: 260% 100% !important;
+  border-color: rgba(7,16,12,.05) !important;
+  box-shadow: none !important;
+}
+
+.utvProfileSkeleton .skeletonCover {
+  border-radius: 0 0 30px 30px !important;
+}
+
+.utvProfileSkeleton .skeletonAvatar {
+  border-color: #f8faf9 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 3px rgba(22,219,228,.14) !important;
+}
+
+/* Route arrival should feel like one app, not a page flash. */
+body > main,
+body > .page,
+body > .feedPage,
+body > .worldPage {
+  animation: vuewePageArrive .22s ease both;
+}
+
+@keyframes vueweRouteSweep {
+  0% { transform: translateX(-110%); opacity: .55; }
+  55% { opacity: 1; }
+  100% { transform: translateX(365%); opacity: .40; }
+}
+
+@keyframes vueweRouteBlink {
+  0%, 44%, 100% { transform: scaleY(1); }
+  48%, 52% { transform: scaleY(.12); }
+}
+
+@keyframes vuewePageArrive {
+  from { opacity: .72; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vueweRouteProgress,
+  .vueweRouteEye,
+  body > main,
+  body > .page,
+  body > .feedPage,
+  body > .worldPage {
+    animation: none !important;
+  }
+}
