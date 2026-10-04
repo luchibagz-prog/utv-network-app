@@ -61,6 +61,7 @@ import VUEWELiveGiftRuntime from "./components/VUEWELiveGiftRuntime";
 import VUEWEMonetizationRuntime from "./components/VUEWEMonetizationRuntime";
 import VUEWEFirstRunSetup from "./components/VUEWEFirstRunSetup";
 import VUEWEGreenScreenStudio from "./components/VUEWEGreenScreenStudio";
+import VUEWEIncomingCallRuntime from "./components/VUEWEIncomingCallRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -127,6 +128,7 @@ export default function RootLayout({
         <VUEWEMobilePolishRuntime />
         <VUEWELiveGiftRuntime />
         <VUEWEMonetizationRuntime />
+        <VUEWEIncomingCallRuntime />
         {children}
         <VUEWEGreenScreenStudio />
         <UTVNotificationBootstrap />
