@@ -138,14 +138,14 @@ export default function VUEWEProfileVisualFixRuntime() {
         fontSize: "8px",
         lineHeight: "1.25",
         textAlign: "left",
-        WebkitLineClamp: "1",
+        "-webkit-line-clamp": "1",
         overflow: "hidden",
       });
     };
 
     apply();
     observer = new MutationObserver(apply);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     timer = window.setInterval(apply, 700);
     window.addEventListener("resize", apply);
 
