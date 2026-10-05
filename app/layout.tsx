@@ -68,6 +68,7 @@ import VUEWECommsReliabilityRuntime from "./components/VUEWECommsReliabilityRunt
 import VUEWEBusinessReliabilityRuntime from "./components/VUEWEBusinessReliabilityRuntime";
 import VUEWELaunchPolishRuntime from "./components/VUEWELaunchPolishRuntime";
 import VUEWESocialVisualPolishRuntime from "./components/VUEWESocialVisualPolishRuntime";
+import VUEWESeasonalMomentsRuntime from "./components/VUEWESeasonalMomentsRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -139,6 +140,7 @@ export default function RootLayout({
         <VUEWEBusinessReliabilityRuntime />
         <VUEWELaunchPolishRuntime />
         <VUEWESocialVisualPolishRuntime />
+        <VUEWESeasonalMomentsRuntime />
         {children}
         <VUEWEGreenScreenStudioV4 />
         <VUEWEUpgradePulse />
