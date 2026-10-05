@@ -26,20 +26,17 @@ export default function VUEWEProfileIdentityDockRuntime() {
 
       let dock = hero.querySelector("#vuewe-profile-identity-dock") as HTMLElement | null;
       if (!dock) {
-        const heroRect = hero.getBoundingClientRect();
-        const identityRect = identity.getBoundingClientRect();
-        const rawTop = identityRect.top - heroRect.top;
-        const top = Math.max(190, Math.min(rawTop, heroRect.height - 170));
-
         dock = document.createElement("section");
         dock.id = "vuewe-profile-identity-dock";
         dock.className = "vueweProfileIdentityDock";
-        dock.dataset.top = String(Math.round(top));
         hero.appendChild(dock);
       }
 
-      const storedTop = Number(dock.dataset.top || "0");
-      if (storedTop > 0) dock.style.setProperty("top", `${storedTop}px`, "important");
+      const heroRect = hero.getBoundingClientRect();
+      const identityRect = identity.getBoundingClientRect();
+      const rawTop = identityRect.top - heroRect.top;
+      const loweredTop = Math.max(230, Math.min(rawTop + 52, heroRect.height - 138));
+      dock.style.setProperty("top", `${Math.round(loweredTop)}px`, "important");
 
       const name = text.querySelector("h1")?.textContent?.trim() || "VUEWE Creator";
       const category = text.querySelector(".category")?.textContent?.trim() || "Creator";
