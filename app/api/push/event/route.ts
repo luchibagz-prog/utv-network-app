@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     const recipientEmail = safeText(body?.recipientEmail).toLowerCase();
     const event = safeText(body?.event) as PushEvent;
     const urlPath = safeText(body?.url, "/activity");
+    const bookingStatus = safeText(body?.status).toLowerCase();
 
     if (!recipientEmail) {
       return NextResponse.json(
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       "audio_call",
       "video_call",
       "booking",
+      "booking_update",
       "like",
       "comment",
       "reply",
@@ -126,6 +128,36 @@ export async function POST(request: Request) {
       title = "📅 New VUEWE Booking";
       notificationBody = `${senderName} sent you a booking request.`;
       tag = `vuewe-booking-${senderEmail}`;
+    }
+
+    if (event === "booking_update") {
+      const statusCopy: Record<string, { title: string; body: string }> = {
+        accepted: {
+          title: "✅ Booking Accepted",
+          body: `${senderName} accepted your VUEWE booking request.`,
+        },
+        declined: {
+          title: "Booking Declined",
+          body: `${senderName} declined your VUEWE booking request.`,
+        },
+        cancelled: {
+          title: "Booking Canceled",
+          body: `${senderName} canceled the VUEWE booking request.`,
+        },
+        completed: {
+          title: "🎉 Booking Completed",
+          body: `${senderName} marked your VUEWE booking complete.`,
+        },
+      };
+
+      const copy = statusCopy[bookingStatus] || {
+        title: "📅 VUEWE Booking Updated",
+        body: `${senderName} updated your booking.`,
+      };
+
+      title = copy.title;
+      notificationBody = copy.body;
+      tag = `vuewe-booking-update-${recipientEmail}-${bookingStatus || "updated"}`;
     }
 
     if (event === "like") {
@@ -216,6 +248,7 @@ export async function POST(request: Request) {
         recipientEmail,
         callId: safeText(body?.callId),
         roomId: safeText(body?.roomId),
+        status: bookingStatus,
       },
     });
 
