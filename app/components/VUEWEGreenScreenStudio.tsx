@@ -498,17 +498,45 @@ export default function VUEWEGreenScreenStudio() {
         throw new Error("This browser cannot open the camera.");
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: nextFacing },
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
-          aspectRatio: { ideal: 9 / 16 },
-          frameRate: { ideal: 30, max: 30 },
-          resizeMode: "crop-and-scale",
-        } as MediaTrackConstraints,
-        audio: false,
+      // Give mobile browsers a moment to fully release a previous
+      // camera before requesting the next one.
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 140);
       });
+
+      let stream: MediaStream;
+
+      try {
+        // Prefer a portrait-friendly stream without forcing a camera mode
+        // that some Samsung / Android devices reject.
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: nextFacing },
+            width: { ideal: 720 },
+            height: { ideal: 1280 },
+            frameRate: { ideal: 30, max: 30 },
+          },
+          audio: false,
+        });
+      } catch (portraitError) {
+        console.info(
+          "VUEWE portrait camera profile unavailable; retrying native camera profile.",
+          portraitError
+        );
+
+        // Safe fallback: let the phone choose its native camera resolution.
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 180);
+        });
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: nextFacing },
+            frameRate: { ideal: 30, max: 30 },
+          },
+          audio: false,
+        });
+      }
 
       // Keep selfies looking natural.
       // On devices that expose camera zoom, apply only a tiny center zoom
