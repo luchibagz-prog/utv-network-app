@@ -1,4 +1,4 @@
-const CACHE_NAME = "vuewe-push-v4";
+const CACHE_NAME = "vuewe-push-v5";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -58,8 +58,13 @@ self.addEventListener("push", (event) => {
     openLabel = "Open Walkie";
   } else if (eventType === "message") {
     openLabel = "Open Message";
-  } else if (eventType === "booking") {
+  } else if (
+    eventType === "booking" ||
+    eventType === "booking_update"
+  ) {
     openLabel = "View Booking";
+  } else if (eventType === "gift") {
+    openLabel = "Open Wallet";
   }
 
   const options = {
