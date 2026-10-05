@@ -71,6 +71,7 @@ import VUEWEBusinessReliabilityRuntime from "./components/VUEWEBusinessReliabili
 import VUEWELaunchPolishRuntime from "./components/VUEWELaunchPolishRuntime";
 import VUEWESocialVisualPolishRuntime from "./components/VUEWESocialVisualPolishRuntime";
 import VUEWESeasonalFeedRuntime from "./components/VUEWESeasonalFeedRuntime";
+import VUEWESeasonalPageAccentRuntime from "./components/VUEWESeasonalPageAccentRuntime";
 import VUEWEProfileMomentsRuntime from "./components/VUEWEProfileMomentsRuntime";
 import VUEWECreatorDashRuntime from "./components/VUEWECreatorDashRuntime";
 import VUEWEProfileIdentityDockRuntime from "./components/VUEWEProfileIdentityDockRuntime";
@@ -146,6 +147,7 @@ export default function RootLayout({
         <VUEWELaunchPolishRuntime />
         <VUEWESocialVisualPolishRuntime />
         <VUEWESeasonalFeedRuntime />
+        <VUEWESeasonalPageAccentRuntime />
         <VUEWEProfileMomentsRuntime />
         <VUEWECreatorDashRuntime />
         <VUEWEProfileIdentityDockRuntime />
