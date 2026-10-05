@@ -2,12 +2,12 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeDollarSign,
-  CalendarCheck,
   Camera,
   Globe2,
   Mic2,
   Phone,
   Sparkles,
+  Store,
   Tv,
 } from "lucide-react";
 
@@ -37,16 +37,16 @@ const upgrades = [
     tag: "CONNECT",
   },
   {
-    title: "Bookings",
-    copy: "Creators and businesses can keep booking requests and accepted work together inside VUEWE.",
-    href: "/bookings",
-    action: "Open Bookings",
-    icon: CalendarCheck,
-    tag: "BUSINESS",
+    title: "Creator Business",
+    copy: "Bookings, accepted work, creator support, payouts and growth tools now live together in one business center.",
+    href: "/business",
+    action: "Open Business",
+    icon: Store,
+    tag: "NEW",
   },
   {
     title: "Wallet + Support",
-    copy: "A home for creator money, gifts and support as VUEWE monetization grows.",
+    copy: "Track confirmed gifts, creator share and Stripe payout setup from one creator wallet.",
     href: "/wallet",
     action: "Open Wallet",
     icon: BadgeDollarSign,
@@ -116,8 +116,7 @@ export default function WhatsNewPage() {
         <small>LAUNCH SPRINT</small>
         <h2>Powerful underneath. Easy on the surface.</h2>
         <p>
-          The next VUEWE passes are focused on reliability and speed: Feed/Create,
-          notifications, messages/calls/Walkie, bookings, monetization and mobile polish.
+          Feed/Create, communication reliability and creator business are now being tightened together. The final passes focus on monetization reliability, mobile polish and launch testing.
         </p>
       </section>
 
