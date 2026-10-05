@@ -61,6 +61,7 @@ import VUEWELiveGiftRuntime from "./components/VUEWELiveGiftRuntime";
 import VUEWEMonetizationRuntime from "./components/VUEWEMonetizationRuntime";
 import VUEWEFirstRunSetup from "./components/VUEWEFirstRunSetup";
 import VUEWEGreenScreenStudio from "./components/VUEWEGreenScreenStudio";
+import VUEWEGreenScreenReviewRuntime from "./components/VUEWEGreenScreenReviewRuntime";
 import VUEWEIncomingCallRuntime from "./components/VUEWEIncomingCallRuntime";
 
 export const metadata = {
@@ -131,6 +132,7 @@ export default function RootLayout({
         <VUEWEIncomingCallRuntime />
         {children}
         <VUEWEGreenScreenStudio />
+        <VUEWEGreenScreenReviewRuntime />
         <UTVNotificationBootstrap />
       </body>
     </html>
