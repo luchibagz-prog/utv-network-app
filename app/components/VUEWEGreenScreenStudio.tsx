@@ -501,12 +501,51 @@ export default function VUEWEGreenScreenStudio() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: nextFacing },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1080 },
+          height: { ideal: 1920 },
+          aspectRatio: { ideal: 9 / 16 },
           frameRate: { ideal: 30, max: 30 },
-        },
+          resizeMode: "crop-and-scale",
+        } as MediaTrackConstraints,
         audio: false,
       });
+
+      // Keep selfies looking natural.
+      // On devices that expose camera zoom, apply only a tiny center zoom
+      // to reduce ultra-wide front-camera distortion.
+      if (nextFacing === "user") {
+        try {
+          const track = stream.getVideoTracks()[0];
+          const capabilities =
+            track?.getCapabilities?.() as any;
+
+          const zoom = capabilities?.zoom;
+
+          if (
+            zoom &&
+            typeof zoom.min === "number" &&
+            typeof zoom.max === "number" &&
+            zoom.max > zoom.min
+          ) {
+            const normal = Math.max(1, zoom.min);
+
+            const naturalZoom = Math.min(
+              zoom.max,
+              normal + Math.min(.14, (zoom.max - normal) * .06)
+            );
+
+            if (naturalZoom > normal + .01) {
+              await track.applyConstraints({
+                advanced: [
+                  { zoom: naturalZoom } as any
+                ],
+              });
+            }
+          }
+        } catch {
+          // Zoom is optional. Never block the camera over it.
+        }
+      }
 
       cameraStreamRef.current = stream;
       setCameraFacing(nextFacing);
@@ -1959,6 +1998,8 @@ export default function VUEWEGreenScreenStudio() {
 
       <style jsx global>{`
         html.vueweGreenStudioActive .vueweToolLabInner>.vueweToolPanel{display:none!important}
+        html.vueweGreenStudioActive .vueweBottomNav{display:none!important}
+        html.vueweGreenStudioActive body{overflow:hidden!important}
         .vueweGreenStudio{margin:0 0 110px;padding:24px;border:1px solid rgba(80,242,188,.16);border-radius:30px;color:#fff;background:radial-gradient(circle at 0 0,rgba(36,232,110,.12),transparent 32%),radial-gradient(circle at 100% 0,rgba(36,104,242,.12),transparent 36%),#0a0f0d;box-shadow:0 28px 75px rgba(0,0,0,.22)}
         .vueweGreenStudioHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.vueweGreenStudioHead>div{min-width:0}.vueweGreenStudioHead small,.vueweGreenEditorTop small,.vueweGreenDraftBar small{color:#52f2bd;font-size:8px;font-weight:1000;letter-spacing:.15em}.vueweGreenStudioHead h2{margin:7px 0 8px;font-size:36px;line-height:1;letter-spacing:-.045em}.vueweGreenStudioHead p{max-width:650px;margin:0;color:rgba(255,255,255,.52);font-size:13px;line-height:1.48}.vueweGreenSavedBadge{flex:0 0 auto;padding:8px 10px;border-radius:999px;color:#51efb9;background:rgba(81,239,185,.08);font-size:8px;font-weight:1000;letter-spacing:.08em}
         .vueweGreenBackgroundRow{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:20px}.vueweGreenBackgroundRow label{min-height:72px;display:grid;grid-template-columns:42px 1fr;align-items:center;gap:10px;padding:12px;border:1px dashed rgba(80,242,188,.30);border-radius:20px;background:rgba(80,242,188,.035);cursor:pointer}.vueweGreenBackgroundRow label>span{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;color:#06110d;background:linear-gradient(145deg,#24e86e,#16dce4,#6f91ff);font-size:21px}.vueweGreenBackgroundRow label>div{display:grid;gap:3px}.vueweGreenBackgroundRow label strong{font-size:13px}.vueweGreenBackgroundRow label small{color:rgba(255,255,255,.43);font-size:9px}.vueweGreenBackgroundRow>button{padding:0 14px;border:1px solid rgba(255,255,255,.09);border-radius:18px;color:#ff8396;background:rgba(255,255,255,.035);font-weight:900}
@@ -1986,6 +2027,198 @@ export default function VUEWEGreenScreenStudio() {
         .vueweGreenCanvas{touch-action:none!important;-webkit-user-select:none;user-select:none}
 
         @media(max-width:520px){
+          .vueweGreenStudio{
+            position:fixed!important;
+            inset:0!important;
+            z-index:6500!important;
+            width:100%!important;
+            height:100dvh!important;
+            box-sizing:border-box!important;
+            margin:0!important;
+            padding:
+              max(10px,env(safe-area-inset-top))
+              10px
+              max(12px,env(safe-area-inset-bottom))!important;
+            overflow-y:auto!important;
+            overscroll-behavior:contain!important;
+            border:0!important;
+            border-radius:0!important;
+            background:#050706!important;
+          }
+
+          .vueweGreenStudioHead{
+            align-items:center!important;
+            gap:8px!important;
+            margin:0 2px 6px!important;
+          }
+
+          .vueweGreenStudioHead h2{
+            margin:2px 0!important;
+            font-size:21px!important;
+            line-height:1.05!important;
+          }
+
+          .vueweGreenStudioHead p{
+            display:none!important;
+          }
+
+          .vueweGreenSavedBadge{
+            padding:6px 8px!important;
+            font-size:7px!important;
+          }
+
+          .vueweGreenBackgroundRow{
+            margin-top:7px!important;
+          }
+
+          .vueweGreenBackgroundRow label{
+            min-height:50px!important;
+            padding:7px 9px!important;
+            border-radius:15px!important;
+          }
+
+          .vueweGreenBackgroundRow label>span{
+            width:34px!important;
+            height:34px!important;
+            border-radius:11px!important;
+            font-size:17px!important;
+          }
+
+          .vueweGreenBackgroundRow label strong{
+            font-size:11px!important;
+          }
+
+          .vueweGreenBackgroundRow label small{
+            font-size:8px!important;
+          }
+
+          .vueweGreenBackgroundRow>button{
+            border-radius:15px!important;
+          }
+
+          .vueweGreenModeRow{
+            justify-content:center!important;
+            margin:7px 0!important;
+          }
+
+          .vueweGreenModeRow>button{
+            min-height:34px!important;
+            padding:0 13px!important;
+            font-size:10px!important;
+          }
+
+          .vueweGreenStage{
+            width:100%!important;
+            max-width:520px!important;
+            max-height:66dvh!important;
+            margin:0 auto!important;
+            border-radius:22px!important;
+          }
+
+          .vueweGreenStageBrand{
+            top:10px!important;
+            left:10px!important;
+          }
+
+          .vueweGreenCameraBar{
+            position:sticky!important;
+            bottom:max(6px,env(safe-area-inset-bottom))!important;
+            z-index:30!important;
+            width:100%!important;
+            margin:7px auto!important;
+            padding:6px!important;
+            gap:6px!important;
+            border:1px solid rgba(255,255,255,.08)!important;
+            border-radius:22px!important;
+            background:rgba(7,10,9,.88)!important;
+            backdrop-filter:blur(20px)!important;
+            -webkit-backdrop-filter:blur(20px)!important;
+            box-shadow:0 15px 40px rgba(0,0,0,.32)!important;
+          }
+
+          .vueweGreenCameraBar button{
+            min-height:50px!important;
+            border-radius:17px!important;
+            font-size:11px!important;
+          }
+
+          .vueweGreenCameraBar .capture{
+            font-size:13px!important;
+          }
+
+          .vueweGreenEditor{
+            margin-top:7px!important;
+            padding:10px!important;
+            border-radius:18px!important;
+          }
+
+          .vueweGreenEditorTop>div:first-child{
+            display:none!important;
+          }
+
+          .vueweGreenEditorActions{
+            width:100%!important;
+            justify-content:flex-end!important;
+          }
+
+          .vueweSegmentationLine{
+            margin-top:5px!important;
+            padding:7px 9px!important;
+            border-radius:999px!important;
+          }
+
+          .vueweSegmentationLine small{
+            display:none!important;
+          }
+
+          .vueweSegmentationStatus{
+            margin:auto!important;
+            font-size:7px!important;
+          }
+
+          .vueweGreenLayerSwitch{
+            margin:7px 0!important;
+          }
+
+          .vueweGreenLayerSwitch button{
+            min-height:38px!important;
+            border-radius:999px!important;
+            font-size:10px!important;
+          }
+
+          .vueweGreenGestureCard{
+            display:none!important;
+          }
+
+          .vueweFineTuneToggle{
+            min-height:35px!important;
+            margin-top:5px!important;
+            border-radius:999px!important;
+          }
+
+          .vueweGreenDraftBar{
+            margin-top:7px!important;
+            padding:9px!important;
+            border-radius:18px!important;
+          }
+
+          .vueweGreenDraftBar button{
+            min-height:37px!important;
+            border-radius:999px!important;
+          }
+
+          .vueweGreenCaption{
+            min-height:65px!important;
+            margin-top:7px!important;
+            border-radius:16px!important;
+          }
+
+          .vueweGreenPost{
+            min-height:49px!important;
+            margin-top:6px!important;
+            border-radius:16px!important;
+          }
+
           .vueweGreenDraftBar{grid-template-columns:1fr 1fr!important}
           .vueweGreenDraftBar>div{grid-column:1/-1}
           .vueweGreenDraftBar button{min-height:38px}
