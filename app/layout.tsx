@@ -37,6 +37,7 @@ import "./vuewe-mobile-v29.css";
 import "./vuewe-relaunch-v30.css";
 import "./vuewe-first-run-v31.css";
 import "./vuewe-profile-identity-v32.css";
+import "./vuewe-seasonal-v34.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -72,6 +73,7 @@ import VUEWESocialVisualPolishRuntime from "./components/VUEWESocialVisualPolish
 import VUEWESeasonalMomentsRuntime from "./components/VUEWESeasonalMomentsRuntime";
 import VUEWEProfileMomentsRuntime from "./components/VUEWEProfileMomentsRuntime";
 import VUEWECreatorDashRuntime from "./components/VUEWECreatorDashRuntime";
+import VUEWEProfileVisualFixRuntime from "./components/VUEWEProfileVisualFixRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -146,6 +148,7 @@ export default function RootLayout({
         <VUEWESeasonalMomentsRuntime />
         <VUEWEProfileMomentsRuntime />
         <VUEWECreatorDashRuntime />
+        <VUEWEProfileVisualFixRuntime />
         {children}
         <VUEWEGreenScreenStudioV4 />
         <VUEWEUpgradePulse />
