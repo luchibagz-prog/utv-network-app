@@ -35,19 +35,77 @@
   left:0;
   right:0;
   height:190px;
-  background:
-    radial-gradient(circle at 88% 24%,rgba(245,236,197,.18) 0 22px,rgba(245,236,197,.07) 23px 38px,transparent 39px),
-    linear-gradient(180deg,rgba(17,7,25,.20),transparent 78%);
+  background:linear-gradient(180deg,rgba(17,7,25,.20),rgba(19,8,26,.08) 48%,transparent 82%);
   opacity:.85;
   animation:vueweFogPulse 5.5s ease-in-out infinite;
 }
 
-.vueweSeasonFX-halloween .vuewePumpkin{
+/* Turn the old orange moon/orb into an unmistakable dimensional pumpkin. */
+.vueweSeasonFX-halloween .halloweenMoon{
+  right:66px!important;
+  top:18px!important;
+  width:58px!important;
+  height:48px!important;
+  border-radius:48% 48% 50% 50% / 58% 58% 45% 45%!important;
+  opacity:.94!important;
+  background:
+    radial-gradient(ellipse at 50% 18%,rgba(255,225,151,.58),transparent 26%),
+    linear-gradient(90deg,rgba(113,37,7,.34) 0 9%,transparent 10% 20%,rgba(117,39,6,.27) 21% 31%,transparent 32% 43%,rgba(117,39,6,.31) 44% 55%,transparent 56% 67%,rgba(117,39,6,.26) 68% 78%,transparent 79% 90%,rgba(105,31,5,.34) 91% 100%),
+    linear-gradient(145deg,#ffbe4c 0%,#f57a1e 48%,#d94b0c 76%,#942708 100%)!important;
+  box-shadow:
+    inset 7px 0 10px rgba(255,208,104,.18),
+    inset -8px 0 12px rgba(104,24,4,.24),
+    inset 0 -7px 8px rgba(89,18,2,.17),
+    0 0 18px rgba(255,112,30,.36),
+    0 7px 18px rgba(0,0,0,.26)!important;
+  filter:none!important;
+  transform:rotate(2deg)!important;
+  animation:vueweHeaderPumpkin 4.2s ease-in-out infinite!important;
+}
+
+.vueweSeasonFX-halloween .halloweenMoon::before{
+  content:"";
+  position:absolute;
+  left:25px;
+  top:-9px;
+  width:9px;
+  height:14px;
+  border-radius:4px 4px 2px 2px;
+  background:linear-gradient(135deg,#6e5420,#2d3715 66%,#16230d);
+  box-shadow:0 2px 3px rgba(0,0,0,.26);
+  transform:rotate(8deg);
+}
+
+.vueweSeasonFX-halloween .halloweenMoon::after{
+  content:"";
+  position:absolute;
+  inset:5px 12px 6px;
+  border-radius:50%;
+  border-left:1px solid rgba(255,218,138,.18);
+  border-right:1px solid rgba(92,23,3,.18);
+  opacity:.9;
+}
+
+.vueweSeasonFX-halloween .halloweenMoon i{
+  position:absolute!important;
+  left:50%!important;
+  top:4px!important;
+  width:1px!important;
+  height:38px!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(255,228,157,.18),rgba(111,30,5,.20))!important;
+  box-shadow:-13px 1px 0 rgba(117,38,6,.09),13px 1px 0 rgba(117,38,6,.09)!important;
+  transform:translateX(-50%)!important;
+  opacity:.9!important;
+}
+
+.vueweSeasonFX-halloween .vuewePumpkin,
+.vueweSeasonFX-halloween .vueweTopPumpkin{
   bottom:auto!important;
   top:max(108px,calc(env(safe-area-inset-top) + 96px))!important;
-  font-size:26px!important;
-  opacity:.82!important;
-  filter:drop-shadow(0 0 14px rgba(255,113,29,.62))!important;
+  font-size:24px!important;
+  opacity:.72!important;
+  filter:drop-shadow(0 0 12px rgba(255,113,29,.48))!important;
   animation:vuewePumpkinTopFloat 3.2s ease-in-out infinite!important;
 }
 
@@ -72,27 +130,36 @@
 .vueweSeasonFX-halloween .webLeft{left:-30px!important}
 .vueweSeasonFX-halloween .webRight{right:-30px!important}
 
-.vueweSeasonFX-halloween .vueweSpider{
+.vueweSeasonFX-halloween .vueweSpider,
+.vueweSeasonFX-halloween .vueweSpiderLine{
   top:max(70px,calc(env(safe-area-inset-top) + 58px))!important;
   right:76px!important;
-  font-size:20px!important;
   opacity:.88!important;
+}
+
+.vueweSeasonFX-halloween .vueweSpider{
+  font-size:20px!important;
   animation:vueweSpiderHeader 4.7s ease-in-out infinite!important;
 }
 
 .vueweSeasonFX-halloween .vueweBat{
-  top:110px!important;
   opacity:.62!important;
   font-size:18px!important;
   animation-duration:9s!important;
 }
 
+.vueweSeasonFX-halloween .bat1{top:110px!important}
 .vueweSeasonFX-halloween .bat2{top:145px!important;animation-delay:2.2s!important}
 .vueweSeasonFX-halloween .bat3{top:88px!important;animation-delay:4.5s!important}
 
 .vueweSeasonBanner.halloween{
   border-color:rgba(255,137,54,.25)!important;
   box-shadow:0 18px 55px rgba(0,0,0,.40),0 0 24px rgba(255,109,30,.10)!important;
+}
+
+@keyframes vueweHeaderPumpkin{
+  0%,100%{transform:translateY(0) rotate(2deg) scale(1)}
+  50%{transform:translateY(-4px) rotate(-2deg) scale(1.035)}
 }
 
 @keyframes vuewePumpkinTopFloat{
@@ -121,8 +188,15 @@
     font-size:6.5px;
     padding:6px 10px 6px 26px;
   }
-  .vueweSeasonFX-halloween .vuewePumpkin{
+  .vueweSeasonFX-halloween .halloweenMoon{
+    right:56px!important;
+    top:16px!important;
+    width:52px!important;
+    height:43px!important;
+  }
+  .vueweSeasonFX-halloween .vuewePumpkin,
+  .vueweSeasonFX-halloween .vueweTopPumpkin{
     top:max(100px,calc(env(safe-area-inset-top) + 88px))!important;
-    font-size:23px!important;
+    font-size:22px!important;
   }
 }
