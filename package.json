@@ -6,6 +6,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
     "@stripe/stripe-js": "^9.9.0",
     "@supabase/auth-helpers-nextjs": "latest",
     "@supabase/supabase-js": "latest",

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
 
 type CameraFacing = "user" | "environment";
 type CaptureMode = "photo" | "video";
@@ -152,6 +153,9 @@ export default function VUEWEGreenScreenStudio() {
   const [caption, setCaption] = useState("");
   const [posting, setPosting] = useState(false);
   const [notice, setNotice] = useState("");
+  const [fineTuneOpen, setFineTuneOpen] = useState(false);
+  const [segmentationStatus, setSegmentationStatus] =
+    useState<"loading" | "ready" | "fallback">("loading");
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -175,6 +179,40 @@ export default function VUEWEGreenScreenStudio() {
     startY: number;
     layer: EditLayer;
   } | null>(null);
+
+  const segmenterRef = useRef<ImageSegmenter | null>(null);
+  const segmentationBusyRef = useRef(false);
+  const segmentationLastRunRef = useRef(0);
+  const personMaskRef = useRef<{
+    data: Float32Array;
+    width: number;
+    height: number;
+  } | null>(null);
+  const personBoundsRef = useRef<{
+    x0: number;
+    y0: number;
+    x1: number;
+    y1: number;
+  } | null>(null);
+
+  const cutoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const alphaCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const pointersRef = useRef(
+    new Map<number, { x: number; y: number }>()
+  );
+
+  const pinchRef = useRef<{
+    distance: number;
+    centerX: number;
+    centerY: number;
+    zoom: number;
+    x: number;
+    y: number;
+    layer: EditLayer;
+  } | null>(null);
+
+  const autoFitPendingRef = useRef(false);
 
   const recordingTime = useMemo(() => {
     const min = Math.floor(recordingSeconds / 60);
@@ -255,6 +293,84 @@ export default function VUEWEGreenScreenStudio() {
   }, [active, caption]);
 
   useEffect(() => {
+    if (!active) return;
+
+    let cancelled = false;
+
+    async function bootPersonCutout() {
+      setSegmentationStatus("loading");
+
+      try {
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm"
+        );
+
+        let segmenter: ImageSegmenter | null = null;
+
+        const model =
+          "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite";
+
+        const isiOS =
+          /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        if (!isiOS) {
+          try {
+            segmenter = await ImageSegmenter.createFromOptions(vision, {
+              baseOptions: {
+                modelAssetPath: model,
+                delegate: "GPU",
+              },
+              runningMode: "VIDEO",
+              outputCategoryMask: false,
+              outputConfidenceMasks: true,
+            });
+          } catch {
+            segmenter = null;
+          }
+        }
+
+        if (!segmenter) {
+          segmenter = await ImageSegmenter.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: model,
+            },
+            runningMode: "VIDEO",
+            outputCategoryMask: false,
+            outputConfidenceMasks: true,
+          });
+        }
+
+        if (cancelled) {
+          segmenter.close?.();
+          return;
+        }
+
+        segmenterRef.current?.close?.();
+        segmenterRef.current = segmenter;
+        setSegmentationStatus("ready");
+      } catch (error) {
+        console.info(
+          "VUEWE person segmentation unavailable, using green-key fallback:",
+          error
+        );
+        segmenterRef.current = null;
+        setSegmentationStatus("fallback");
+      }
+    }
+
+    void bootPersonCutout();
+
+    return () => {
+      cancelled = true;
+      segmentationBusyRef.current = false;
+      personMaskRef.current = null;
+      personBoundsRef.current = null;
+      segmenterRef.current?.close?.();
+      segmenterRef.current = null;
+    };
+  }, [active]);
+
+  useEffect(() => {
     return () => {
       stopCamera();
       stopRecording();
@@ -279,9 +395,9 @@ export default function VUEWEGreenScreenStudio() {
         setSavedCapture(
           captureDraft.blob,
           captureDraft.meta?.kind === "video" ? "video" : "image",
+          false,
           false
         );
-        setReviewingCapture(true);
       }
     } catch (error) {
       console.info("VUEWE Green Screen draft restore skipped:", error);
@@ -366,6 +482,15 @@ export default function VUEWEGreenScreenStudio() {
     setCameraBusy(true);
     setCameraError("");
     setReviewingCapture(false);
+
+    autoFitPendingRef.current =
+      Math.abs(scene.personZoom - 1) < .01 &&
+      Math.abs(scene.personX) < .01 &&
+      Math.abs(scene.personY) < .01;
+
+    personMaskRef.current = null;
+    personBoundsRef.current = null;
+
     stopCamera();
 
     try {
@@ -411,12 +536,107 @@ export default function VUEWEGreenScreenStudio() {
     await startCamera(next);
   }
 
+  function applyAutoFit(bounds = personBoundsRef.current) {
+    if (!bounds) {
+      setNotice("Finding you in the frame…");
+      window.setTimeout(() => setNotice(""), 1200);
+      return;
+    }
+
+    const boxWidth = Math.max(.08, bounds.x1 - bounds.x0);
+    const boxHeight = Math.max(.12, bounds.y1 - bounds.y0);
+
+    const zoom = Math.max(
+      .72,
+      Math.min(1.7, Math.min(.78 / boxWidth, .82 / boxHeight))
+    );
+
+    const centerX = (bounds.x0 + bounds.x1) / 2;
+    const centerY = (bounds.y0 + bounds.y1) / 2;
+
+    const personWidth = PREVIEW_WIDTH * zoom;
+    const personHeight = PREVIEW_HEIGHT * zoom;
+
+    const baseX = (PREVIEW_WIDTH - personWidth) / 2;
+    const baseY = (PREVIEW_HEIGHT - personHeight) / 2;
+
+    const desiredX = PREVIEW_WIDTH * .5;
+    const desiredY = PREVIEW_HEIGHT * .51;
+
+    const xPercent =
+      ((desiredX - (baseX + centerX * personWidth)) /
+        (PREVIEW_WIDTH * .42)) *
+      100;
+
+    const yPercent =
+      ((desiredY - (baseY + centerY * personHeight)) /
+        (PREVIEW_HEIGHT * .42)) *
+      100;
+
+    setScene((current) => ({
+      ...current,
+      personZoom: zoom,
+      personX: Math.max(-100, Math.min(100, xPercent)),
+      personY: Math.max(-100, Math.min(100, yPercent)),
+    }));
+
+    setEditLayer("person");
+    setNotice("Auto Fit locked you into the scene. 🔥");
+    window.setTimeout(() => setNotice(""), 1400);
+  }
+
+  function updateMaskBounds(
+    data: Float32Array,
+    width: number,
+    height: number
+  ) {
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    let found = false;
+
+    for (let y = 0; y < height; y += 2) {
+      for (let x = 0; x < width; x += 2) {
+        const confidence = data[y * width + x] || 0;
+
+        if (confidence > .48) {
+          found = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (!found) return;
+
+    const bounds = {
+      x0: minX / width,
+      y0: minY / height,
+      x1: (maxX + 1) / width,
+      y1: (maxY + 1) / height,
+    };
+
+    personBoundsRef.current = bounds;
+
+    if (autoFitPendingRef.current) {
+      autoFitPendingRef.current = false;
+      applyAutoFit(bounds);
+    }
+  }
+
   function renderFrame() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
     if (!video || !canvas || !cameraStreamRef.current) return;
 
-    if (canvas.width !== PREVIEW_WIDTH || canvas.height !== PREVIEW_HEIGHT) {
+    if (
+      canvas.width !== PREVIEW_WIDTH ||
+      canvas.height !== PREVIEW_HEIGHT
+    ) {
       canvas.width = PREVIEW_WIDTH;
       canvas.height = PREVIEW_HEIGHT;
     }
@@ -427,42 +647,78 @@ export default function VUEWEGreenScreenStudio() {
     ctx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
 
     const background = backgroundMediaRef.current;
+
     const backgroundReady =
       background instanceof HTMLImageElement
         ? background.complete && background.naturalWidth > 0
         : background instanceof HTMLVideoElement
-          ? background.readyState >= 2 && background.videoWidth > 0
+          ? background.readyState >= 2 &&
+            background.videoWidth > 0
           : false;
 
     if (background && backgroundReady) {
-      drawCover(ctx, background, PREVIEW_WIDTH, PREVIEW_HEIGHT, scene.bgZoom, scene.bgX, scene.bgY);
+      drawCover(
+        ctx,
+        background,
+        PREVIEW_WIDTH,
+        PREVIEW_HEIGHT,
+        scene.bgZoom,
+        scene.bgX,
+        scene.bgY
+      );
     } else {
-      const gradient = ctx.createLinearGradient(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+      const gradient = ctx.createLinearGradient(
+        0,
+        0,
+        PREVIEW_WIDTH,
+        PREVIEW_HEIGHT
+      );
+
       gradient.addColorStop(0, "#071913");
       gradient.addColorStop(.5, "#0a3028");
       gradient.addColorStop(1, "#0b1733");
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
     }
 
-    if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
-      const mask = maskCanvasRef.current || document.createElement("canvas");
-      maskCanvasRef.current = mask;
-      mask.width = PREVIEW_WIDTH;
-      mask.height = PREVIEW_HEIGHT;
-      const maskCtx = mask.getContext("2d", { willReadFrequently: true });
+    if (
+      video.readyState >= 2 &&
+      video.videoWidth > 0 &&
+      video.videoHeight > 0
+    ) {
+      const source =
+        maskCanvasRef.current || document.createElement("canvas");
 
-      if (maskCtx) {
-        maskCtx.clearRect(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
-        maskCtx.save();
+      maskCanvasRef.current = source;
+      source.width = PREVIEW_WIDTH;
+      source.height = PREVIEW_HEIGHT;
+
+      const sourceCtx = source.getContext("2d", {
+        willReadFrequently: true,
+      });
+
+      if (sourceCtx) {
+        sourceCtx.clearRect(
+          0,
+          0,
+          PREVIEW_WIDTH,
+          PREVIEW_HEIGHT
+        );
+
+        sourceCtx.save();
 
         if (cameraFacing === "user") {
-          maskCtx.translate(PREVIEW_WIDTH, 0);
-          maskCtx.scale(-1, 1);
+          sourceCtx.translate(PREVIEW_WIDTH, 0);
+          sourceCtx.scale(-1, 1);
         }
 
-        const sourceRatio = video.videoWidth / video.videoHeight;
-        const targetRatio = PREVIEW_WIDTH / PREVIEW_HEIGHT;
+        const sourceRatio =
+          video.videoWidth / video.videoHeight;
+
+        const targetRatio =
+          PREVIEW_WIDTH / PREVIEW_HEIGHT;
+
         let drawWidth = PREVIEW_WIDTH;
         let drawHeight = PREVIEW_HEIGHT;
         let drawX = 0;
@@ -478,52 +734,311 @@ export default function VUEWEGreenScreenStudio() {
           drawY = (PREVIEW_HEIGHT - drawHeight) / 2;
         }
 
-        maskCtx.drawImage(video, drawX, drawY, drawWidth, drawHeight);
-        maskCtx.restore();
+        sourceCtx.drawImage(
+          video,
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight
+        );
 
-        try {
-          const frame = maskCtx.getImageData(0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
-          const pixels = frame.data;
-          const dominanceNeeded = 72 - scene.keyStrength * .52;
-          const minimumGreen = 118 - scene.keyStrength * .38;
+        sourceCtx.restore();
 
-          for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            const dominance = g - Math.max(r, b);
+        const segmenter = segmenterRef.current;
+        const now = performance.now();
 
-            if (g > minimumGreen && dominance > dominanceNeeded && g > r * 1.08 && g > b * 1.05) {
-              const strength = Math.min(1, Math.max(.18, (dominance - dominanceNeeded + 8) / 74));
-              pixels[i + 3] = Math.round(255 * (1 - strength));
-            } else if (dominance > dominanceNeeded * .55) {
-              // Light green spill suppression keeps skin/clothes from looking neon.
-              pixels[i + 1] = Math.round(g - Math.max(0, dominance) * .25);
+        if (
+          segmenter &&
+          !segmentationBusyRef.current &&
+          now - segmentationLastRunRef.current > 68
+        ) {
+          segmentationBusyRef.current = true;
+          segmentationLastRunRef.current = now;
+
+          try {
+            (segmenter as any).segmentForVideo(
+              source,
+              now,
+              (result: any) => {
+                try {
+                  const mask = result?.confidenceMasks?.[0];
+
+                  if (mask) {
+                    const raw =
+                      mask.getAsFloat32Array() as Float32Array;
+
+                    const width =
+                      Number(mask.width) || 256;
+
+                    const height =
+                      Number(mask.height) || 256;
+
+                    const previous = personMaskRef.current;
+                    const smooth = new Float32Array(raw.length);
+
+                    if (
+                      previous &&
+                      previous.width === width &&
+                      previous.height === height &&
+                      previous.data.length === raw.length
+                    ) {
+                      for (let i = 0; i < raw.length; i++) {
+                        smooth[i] =
+                          previous.data[i] * .55 +
+                          raw[i] * .45;
+                      }
+                    } else {
+                      smooth.set(raw);
+                    }
+
+                    personMaskRef.current = {
+                      data: smooth,
+                      width,
+                      height,
+                    };
+
+                    updateMaskBounds(
+                      smooth,
+                      width,
+                      height
+                    );
+
+                    mask.close?.();
+                  }
+                } catch (error) {
+                  console.info(
+                    "VUEWE segmentation frame skipped:",
+                    error
+                  );
+                } finally {
+                  segmentationBusyRef.current = false;
+                }
+              }
+            );
+          } catch (error) {
+            segmentationBusyRef.current = false;
+
+            console.info(
+              "VUEWE live segmentation fallback:",
+              error
+            );
+          }
+        }
+
+        const cutout =
+          cutoutCanvasRef.current ||
+          document.createElement("canvas");
+
+        cutoutCanvasRef.current = cutout;
+        cutout.width = PREVIEW_WIDTH;
+        cutout.height = PREVIEW_HEIGHT;
+
+        const cutoutCtx = cutout.getContext("2d", {
+          willReadFrequently: true,
+        });
+
+        if (cutoutCtx) {
+          cutoutCtx.clearRect(
+            0,
+            0,
+            PREVIEW_WIDTH,
+            PREVIEW_HEIGHT
+          );
+
+          cutoutCtx.drawImage(
+            source,
+            0,
+            0,
+            PREVIEW_WIDTH,
+            PREVIEW_HEIGHT
+          );
+
+          const personMask = personMaskRef.current;
+
+          if (personMask) {
+            const alpha =
+              alphaCanvasRef.current ||
+              document.createElement("canvas");
+
+            alphaCanvasRef.current = alpha;
+
+            alpha.width = personMask.width;
+            alpha.height = personMask.height;
+
+            const alphaCtx = alpha.getContext("2d");
+
+            if (alphaCtx) {
+              const alphaImage = alphaCtx.createImageData(
+                personMask.width,
+                personMask.height
+              );
+
+              for (
+                let i = 0;
+                i < personMask.data.length;
+                i++
+              ) {
+                const probability =
+                  personMask.data[i] || 0;
+
+                let value =
+                  (probability - .12) / .68;
+
+                value = Math.max(
+                  0,
+                  Math.min(1, value)
+                );
+
+                value =
+                  value *
+                  value *
+                  (3 - 2 * value);
+
+                const p = i * 4;
+
+                alphaImage.data[p] = 255;
+                alphaImage.data[p + 1] = 255;
+                alphaImage.data[p + 2] = 255;
+                alphaImage.data[p + 3] =
+                  Math.round(value * 255);
+              }
+
+              alphaCtx.putImageData(
+                alphaImage,
+                0,
+                0
+              );
+
+              cutoutCtx.save();
+
+              cutoutCtx.globalCompositeOperation =
+                "destination-in";
+
+              cutoutCtx.filter = "blur(.65px)";
+
+              cutoutCtx.drawImage(
+                alpha,
+                0,
+                0,
+                PREVIEW_WIDTH,
+                PREVIEW_HEIGHT
+              );
+
+              cutoutCtx.restore();
             }
+          } else {
+            // Keep the old physical-green-screen behavior as a
+            // fallback until the person model is ready.
+            try {
+              const frame = cutoutCtx.getImageData(
+                0,
+                0,
+                PREVIEW_WIDTH,
+                PREVIEW_HEIGHT
+              );
+
+              const pixels = frame.data;
+
+              const dominanceNeeded =
+                72 - scene.keyStrength * .52;
+
+              const minimumGreen =
+                118 - scene.keyStrength * .38;
+
+              for (
+                let i = 0;
+                i < pixels.length;
+                i += 4
+              ) {
+                const red = pixels[i];
+                const green = pixels[i + 1];
+                const blue = pixels[i + 2];
+
+                const dominance =
+                  green - Math.max(red, blue);
+
+                if (
+                  green > minimumGreen &&
+                  dominance > dominanceNeeded &&
+                  green > red * 1.08 &&
+                  green > blue * 1.05
+                ) {
+                  const strength = Math.min(
+                    1,
+                    Math.max(
+                      .18,
+                      (dominance -
+                        dominanceNeeded +
+                        8) /
+                        74
+                    )
+                  );
+
+                  pixels[i + 3] =
+                    Math.round(
+                      255 * (1 - strength)
+                    );
+                }
+              }
+
+              cutoutCtx.putImageData(frame, 0, 0);
+            } catch {}
           }
 
-          maskCtx.putImageData(frame, 0, 0);
-        } catch {}
+          const personWidth =
+            PREVIEW_WIDTH * scene.personZoom;
 
-        const personWidth = PREVIEW_WIDTH * scene.personZoom;
-        const personHeight = PREVIEW_HEIGHT * scene.personZoom;
-        const personX = (PREVIEW_WIDTH - personWidth) / 2 + (scene.personX / 100) * PREVIEW_WIDTH * .42;
-        const personY = (PREVIEW_HEIGHT - personHeight) / 2 + (scene.personY / 100) * PREVIEW_HEIGHT * .42;
-        ctx.drawImage(mask, personX, personY, personWidth, personHeight);
+          const personHeight =
+            PREVIEW_HEIGHT * scene.personZoom;
+
+          const personX =
+            (PREVIEW_WIDTH - personWidth) / 2 +
+            (scene.personX / 100) *
+              PREVIEW_WIDTH *
+              .42;
+
+          const personY =
+            (PREVIEW_HEIGHT - personHeight) / 2 +
+            (scene.personY / 100) *
+              PREVIEW_HEIGHT *
+              .42;
+
+          ctx.save();
+
+          ctx.shadowColor = "rgba(0,0,0,.20)";
+          ctx.shadowBlur = 7;
+          ctx.shadowOffsetY = 3;
+
+          ctx.drawImage(
+            cutout,
+            personX,
+            personY,
+            personWidth,
+            personHeight
+          );
+
+          ctx.restore();
+        }
       }
     }
 
-    frameRef.current = requestAnimationFrame(renderFrame);
+    frameRef.current =
+      requestAnimationFrame(renderFrame);
   }
 
-  function setSavedCapture(blob: Blob, kind: CaptureKind, persist = true) {
+  function setSavedCapture(
+    blob: Blob,
+    kind: CaptureKind,
+    persist = true,
+    review = true
+  ) {
     if (captureObjectUrlRef.current) URL.revokeObjectURL(captureObjectUrlRef.current);
     const url = URL.createObjectURL(blob);
     captureObjectUrlRef.current = url;
     setCaptureBlob(blob);
     setCaptureKind(kind);
     setCaptureUrl(url);
-    setReviewingCapture(true);
+    setReviewingCapture(review);
 
     if (persist) {
       void saveDraftBlob(CAPTURE_KEY, blob, { kind }).catch((error) => {
@@ -664,12 +1179,42 @@ export default function VUEWEGreenScreenStudio() {
   }
 
   async function clearCapture() {
-    if (captureObjectUrlRef.current) URL.revokeObjectURL(captureObjectUrlRef.current);
+    if (captureObjectUrlRef.current) {
+      URL.revokeObjectURL(captureObjectUrlRef.current);
+    }
+
     captureObjectUrlRef.current = "";
     setCaptureUrl("");
     setCaptureBlob(null);
+    setCaptureKind("image");
     setReviewingCapture(false);
+
     await removeDraftBlob(CAPTURE_KEY).catch(() => {});
+
+    setNotice("Saved Green Screen draft deleted.");
+    window.setTimeout(() => setNotice(""), 1400);
+  }
+
+  async function editCaptureScene() {
+    setReviewingCapture(false);
+
+    if (!cameraOn) {
+      await startCamera();
+    }
+
+    setNotice("Scene unlocked. Drag or pinch to adjust it.");
+    window.setTimeout(() => setNotice(""), 1400);
+  }
+
+  async function retakeCapture() {
+    setReviewingCapture(false);
+
+    if (!cameraOn) {
+      await startCamera();
+    }
+
+    setNotice("Retake ready. Your old draft stays safe until you capture again.");
+    window.setTimeout(() => setNotice(""), 1700);
   }
 
   async function postCapture() {
@@ -755,38 +1300,239 @@ export default function VUEWEGreenScreenStudio() {
     window.setTimeout(() => setNotice(""), 1200);
   }
 
-  function pointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
+  function pointerDown(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
     const canvas = event.currentTarget;
+
     canvas.setPointerCapture?.(event.pointerId);
+
+    pointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const points = Array.from(
+      pointersRef.current.values()
+    );
+
+    if (points.length >= 2) {
+      const first = points[0];
+      const second = points[1];
+
+      const distance = Math.hypot(
+        second.x - first.x,
+        second.y - first.y
+      );
+
+      pinchRef.current = {
+        distance: Math.max(1, distance),
+        centerX: (first.x + second.x) / 2,
+        centerY: (first.y + second.y) / 2,
+        zoom:
+          editLayer === "background"
+            ? scene.bgZoom
+            : scene.personZoom,
+        x:
+          editLayer === "background"
+            ? scene.bgX
+            : scene.personX,
+        y:
+          editLayer === "background"
+            ? scene.bgY
+            : scene.personY,
+        layer: editLayer,
+      };
+
+      dragRef.current = null;
+      return;
+    }
+
     dragRef.current = {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      startX: editLayer === "background" ? scene.bgX : scene.personX,
-      startY: editLayer === "background" ? scene.bgY : scene.personY,
+      startX:
+        editLayer === "background"
+          ? scene.bgX
+          : scene.personX,
+      startY:
+        editLayer === "background"
+          ? scene.bgY
+          : scene.personY,
       layer: editLayer,
     };
   }
 
-  function pointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
+  function pointerMove(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
+    if (!pointersRef.current.has(event.pointerId)) {
+      return;
+    }
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const dx = ((event.clientX - drag.x) / Math.max(1, rect.width)) * 170;
-    const dy = ((event.clientY - drag.y) / Math.max(1, rect.height)) * 170;
-    const nextX = Math.max(-100, Math.min(100, drag.startX + dx));
-    const nextY = Math.max(-100, Math.min(100, drag.startY + dy));
+    pointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    const points = Array.from(
+      pointersRef.current.values()
+    );
+
+    const rect =
+      event.currentTarget.getBoundingClientRect();
+
+    if (points.length >= 2 && pinchRef.current) {
+      const first = points[0];
+      const second = points[1];
+
+      const distance = Math.max(
+        1,
+        Math.hypot(
+          second.x - first.x,
+          second.y - first.y
+        )
+      );
+
+      const centerX =
+        (first.x + second.x) / 2;
+
+      const centerY =
+        (first.y + second.y) / 2;
+
+      const pinch = pinchRef.current;
+      const scale = distance / pinch.distance;
+
+      const dx =
+        ((centerX - pinch.centerX) /
+          Math.max(1, rect.width)) *
+        170;
+
+      const dy =
+        ((centerY - pinch.centerY) /
+          Math.max(1, rect.height)) *
+        170;
+
+      if (pinch.layer === "background") {
+        setScene((current) => ({
+          ...current,
+          bgZoom: Math.max(
+            1,
+            Math.min(2.4, pinch.zoom * scale)
+          ),
+          bgX: Math.max(
+            -100,
+            Math.min(100, pinch.x + dx)
+          ),
+          bgY: Math.max(
+            -100,
+            Math.min(100, pinch.y + dy)
+          ),
+        }));
+      } else {
+        setScene((current) => ({
+          ...current,
+          personZoom: Math.max(
+            .62,
+            Math.min(2, pinch.zoom * scale)
+          ),
+          personX: Math.max(
+            -100,
+            Math.min(100, pinch.x + dx)
+          ),
+          personY: Math.max(
+            -100,
+            Math.min(100, pinch.y + dy)
+          ),
+        }));
+      }
+
+      return;
+    }
+
+    const drag = dragRef.current;
+
+    if (
+      !drag ||
+      drag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    const dx =
+      ((event.clientX - drag.x) /
+        Math.max(1, rect.width)) *
+      170;
+
+    const dy =
+      ((event.clientY - drag.y) /
+        Math.max(1, rect.height)) *
+      170;
+
+    const nextX = Math.max(
+      -100,
+      Math.min(100, drag.startX + dx)
+    );
+
+    const nextY = Math.max(
+      -100,
+      Math.min(100, drag.startY + dy)
+    );
 
     if (drag.layer === "background") {
-      setScene((current) => ({ ...current, bgX: nextX, bgY: nextY }));
+      setScene((current) => ({
+        ...current,
+        bgX: nextX,
+        bgY: nextY,
+      }));
     } else {
-      setScene((current) => ({ ...current, personX: nextX, personY: nextY }));
+      setScene((current) => ({
+        ...current,
+        personX: nextX,
+        personY: nextY,
+      }));
     }
   }
 
-  function pointerUp(event: React.PointerEvent<HTMLCanvasElement>) {
-    if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
+  function pointerUp(
+    event: React.PointerEvent<HTMLCanvasElement>
+  ) {
+    pointersRef.current.delete(event.pointerId);
+
+    if (
+      dragRef.current?.pointerId ===
+      event.pointerId
+    ) {
+      dragRef.current = null;
+    }
+
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
+
+    const remaining = Array.from(
+      pointersRef.current.entries()
+    );
+
+    if (remaining.length === 1) {
+      const [pointerId, point] = remaining[0];
+
+      dragRef.current = {
+        pointerId,
+        x: point.x,
+        y: point.y,
+        startX:
+          editLayer === "background"
+            ? scene.bgX
+            : scene.personX,
+        startY:
+          editLayer === "background"
+            ? scene.bgY
+            : scene.personY,
+        layer: editLayer,
+      };
+    }
   }
 
   if (!active || !host) return null;
@@ -799,8 +1545,8 @@ export default function VUEWEGreenScreenStudio() {
             <small>VUEWE GREEN SCREEN • SAVED STUDIO</small>
             <h2>Put yourself anywhere.</h2>
             <p>
-              Your background and scene position stay saved. Shoot a photo or video,
-              move and crop the scene, review it, then post when it is right.
+              Choose any photo or video as your scene. VUEWE keeps you in front,
+              then lets you grab, pinch, position, capture, review and post.
             </p>
           </div>
           <span className="vueweGreenSavedBadge">{backgroundSaved ? "● SAVED" : "● READY"}</span>
@@ -872,7 +1618,11 @@ export default function VUEWEGreenScreenStudio() {
             <div className="vueweGreenStageEmpty">
               <span>👁️</span>
               <strong>Your scene is ready.</strong>
-              <small>Start the camera, then drag the preview to reposition the selected layer.</small>
+              <small>
+                {captureUrl
+                  ? "Your saved draft is below. Open the camera to edit or retake without losing it."
+                  : "Open the camera. Drag with one finger or pinch with two fingers to build your scene."}
+              </small>
             </div>
           )}
 
@@ -902,46 +1652,287 @@ export default function VUEWEGreenScreenStudio() {
         <div className="vueweGreenEditor">
           <div className="vueweGreenEditorTop">
             <div>
-              <small>MOVE • CROP • EDIT</small>
-              <strong>Scene controls stay saved.</strong>
+              <small>TOUCH STUDIO</small>
+              <strong>Grab it. Pinch it. Place it.</strong>
             </div>
-            <button type="button" onClick={resetScene}>Reset</button>
+
+            <div className="vueweGreenEditorActions">
+              <button
+                type="button"
+                className="autoFit"
+                onClick={() => applyAutoFit()}
+              >
+                ✦ Auto Fit
+              </button>
+
+              <button
+                type="button"
+                onClick={resetScene}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div className="vueweSegmentationLine">
+            <span
+              className={`vueweSegmentationStatus ${segmentationStatus}`}
+            >
+              {segmentationStatus === "ready"
+                ? "● PERSON CUTOUT READY"
+                : segmentationStatus === "loading"
+                  ? "◌ PREPARING PERSON CUTOUT"
+                  : "● GREEN KEY FALLBACK"}
+            </span>
+
+            <small>
+              {segmentationStatus === "ready"
+                ? "No physical green wall required."
+                : segmentationStatus === "loading"
+                  ? "VUEWE is loading the cutout engine."
+                  : "Person cutout unavailable on this device."}
+            </small>
           </div>
 
           <div className="vueweGreenLayerSwitch">
-            <button type="button" className={editLayer === "background" ? "active" : ""} onClick={() => setEditLayer("background")}>Background</button>
-            <button type="button" className={editLayer === "person" ? "active" : ""} onClick={() => setEditLayer("person")}>Me / Camera</button>
+            <button
+              type="button"
+              className={
+                editLayer === "background"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setEditLayer("background")
+              }
+            >
+              🖼 Background
+            </button>
+
+            <button
+              type="button"
+              className={
+                editLayer === "person"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setEditLayer("person")
+              }
+            >
+              👤 Me
+            </button>
           </div>
 
-          {editLayer === "background" ? (
-            <div className="vueweGreenSliders">
-              <label><span>Crop / Zoom</span><input type="range" min="100" max="220" value={Math.round(scene.bgZoom * 100)} onChange={(event) => updateScene("bgZoom", Number(event.target.value) / 100)} /></label>
-              <label><span>Move Left / Right</span><input type="range" min="-100" max="100" value={scene.bgX} onChange={(event) => updateScene("bgX", Number(event.target.value))} /></label>
-              <label><span>Move Up / Down</span><input type="range" min="-100" max="100" value={scene.bgY} onChange={(event) => updateScene("bgY", Number(event.target.value))} /></label>
-            </div>
-          ) : (
-            <div className="vueweGreenSliders">
-              <label><span>Size / Crop</span><input type="range" min="70" max="180" value={Math.round(scene.personZoom * 100)} onChange={(event) => updateScene("personZoom", Number(event.target.value) / 100)} /></label>
-              <label><span>Move Left / Right</span><input type="range" min="-100" max="100" value={scene.personX} onChange={(event) => updateScene("personX", Number(event.target.value))} /></label>
-              <label><span>Move Up / Down</span><input type="range" min="-100" max="100" value={scene.personY} onChange={(event) => updateScene("personY", Number(event.target.value))} /></label>
-              <label><span>Green Removal</span><input type="range" min="35" max="100" value={scene.keyStrength} onChange={(event) => updateScene("keyStrength", Number(event.target.value))} /></label>
-            </div>
-          )}
+          <div className="vueweGreenGestureCard">
+            <span>☝️ Drag to move</span>
+            <span>🤏 Pinch to resize</span>
 
-          <p className="vueweGreenDragHint">
-            Tip: while the live preview is open, choose Background or Me / Camera and drag directly on the preview to reposition it.
-          </p>
+            <small>
+              Editing{" "}
+              {editLayer === "background"
+                ? "your background"
+                : "you"}.
+              Tap the other layer anytime.
+            </small>
+          </div>
+
+          <button
+            type="button"
+            className="vueweFineTuneToggle"
+            onClick={() =>
+              setFineTuneOpen((value) => !value)
+            }
+          >
+            {fineTuneOpen
+              ? "Hide Fine Tune"
+              : "Fine Tune"}
+            <span>{fineTuneOpen ? "−" : "+"}</span>
+          </button>
+
+          {fineTuneOpen && (
+            <>
+              {editLayer === "background" ? (
+                <div className="vueweGreenSliders">
+                  <label>
+                    <span>Background Zoom</span>
+                    <input
+                      type="range"
+                      min="100"
+                      max="240"
+                      value={Math.round(
+                        scene.bgZoom * 100
+                      )}
+                      onChange={(event) =>
+                        updateScene(
+                          "bgZoom",
+                          Number(
+                            event.target.value
+                          ) / 100
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Left / Right</span>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value={scene.bgX}
+                      onChange={(event) =>
+                        updateScene(
+                          "bgX",
+                          Number(event.target.value)
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Up / Down</span>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value={scene.bgY}
+                      onChange={(event) =>
+                        updateScene(
+                          "bgY",
+                          Number(event.target.value)
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className="vueweGreenSliders">
+                  <label>
+                    <span>My Size</span>
+                    <input
+                      type="range"
+                      min="62"
+                      max="200"
+                      value={Math.round(
+                        scene.personZoom * 100
+                      )}
+                      onChange={(event) =>
+                        updateScene(
+                          "personZoom",
+                          Number(
+                            event.target.value
+                          ) / 100
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Left / Right</span>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value={scene.personX}
+                      onChange={(event) =>
+                        updateScene(
+                          "personX",
+                          Number(event.target.value)
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Up / Down</span>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      value={scene.personY}
+                      onChange={(event) =>
+                        updateScene(
+                          "personY",
+                          Number(event.target.value)
+                        )
+                      }
+                    />
+                  </label>
+
+                  {segmentationStatus ===
+                    "fallback" && (
+                    <label>
+                      <span>Green Key</span>
+                      <input
+                        type="range"
+                        min="35"
+                        max="100"
+                        value={scene.keyStrength}
+                        onChange={(event) =>
+                          updateScene(
+                            "keyStrength",
+                            Number(
+                              event.target.value
+                            )
+                          )
+                        }
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {captureUrl && (
           <div className="vueweGreenDraftBar">
             <div>
               <small>SAVED DRAFT</small>
-              <strong>{captureKind === "video" ? "Green Screen video" : "Green Screen photo"}</strong>
+              <strong>
+                {captureKind === "video"
+                  ? "Green Screen video"
+                  : "Green Screen photo"}
+              </strong>
             </div>
-            <button type="button" onClick={() => setReviewingCapture(false)}>Edit / Retake</button>
-            <button type="button" onClick={() => setReviewingCapture(true)}>Review</button>
-            <button type="button" onClick={() => void clearCapture()}>Delete</button>
+
+            <button
+              type="button"
+              onClick={() =>
+                setReviewingCapture(true)
+              }
+            >
+              Review
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                void editCaptureScene()
+              }
+            >
+              Edit Scene
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                void retakeCapture()
+              }
+            >
+              Retake
+            </button>
+
+            <button
+              type="button"
+              className="danger"
+              onClick={() =>
+                void clearCapture()
+              }
+            >
+              Delete
+            </button>
           </div>
         )}
 
@@ -977,7 +1968,30 @@ export default function VUEWEGreenScreenStudio() {
         .vueweGreenEditor{margin-top:17px;padding:14px;border:1px solid rgba(255,255,255,.07);border-radius:22px;background:rgba(255,255,255,.025)}.vueweGreenEditorTop{display:flex;align-items:center;justify-content:space-between;gap:12px}.vueweGreenEditorTop>div{display:grid;gap:3px}.vueweGreenEditorTop strong{font-size:14px}.vueweGreenEditorTop>button{border:0;border-radius:999px;padding:8px 11px;color:#fff;background:rgba(255,255,255,.06);font-size:9px;font-weight:900}.vueweGreenLayerSwitch{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}.vueweGreenLayerSwitch button{min-height:42px;border:1px solid rgba(255,255,255,.08);border-radius:13px;color:rgba(255,255,255,.48);background:rgba(0,0,0,.16);font-weight:900}.vueweGreenLayerSwitch button.active{color:#05110b;border-color:transparent;background:#51efb9}.vueweGreenSliders{display:grid;gap:10px}.vueweGreenSliders label{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:10px}.vueweGreenSliders label span{color:rgba(255,255,255,.62);font-size:9px;font-weight:850}.vueweGreenSliders input{width:100%;accent-color:#25e77a}.vueweGreenDragHint{margin:11px 0 0;color:rgba(255,255,255,.34);font-size:9px;line-height:1.4}
         .vueweGreenDraftBar{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:7px;margin-top:13px;padding:10px 12px;border:1px solid rgba(80,242,188,.12);border-radius:17px;background:rgba(80,242,188,.045)}.vueweGreenDraftBar>div{display:grid;gap:3px}.vueweGreenDraftBar strong{font-size:11px}.vueweGreenDraftBar button{border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:7px 9px;color:#fff;background:rgba(255,255,255,.04);font-size:8px;font-weight:900}
         .vueweGreenCaption{width:100%;min-height:90px;margin-top:13px;padding:13px;resize:vertical;box-sizing:border-box;border:1px solid rgba(255,255,255,.08);border-radius:17px;outline:0;color:#fff;background:rgba(255,255,255,.035);font:inherit}.vueweGreenCaption:focus{border-color:rgba(80,242,188,.38)}.vueweGreenPost{width:100%;min-height:54px;margin-top:9px;border:0;border-radius:17px;color:#06110d;background:linear-gradient(135deg,#24e86e,#16dce4,#6690ff);font-size:13px;font-weight:1000}.vueweGreenPost:disabled{opacity:.36}.vueweGreenNotice,.vueweGreenError{margin-top:9px;padding:10px 12px;border-radius:14px;font-size:10px;line-height:1.4}.vueweGreenNotice{color:#dffff1;background:rgba(80,242,188,.07)}.vueweGreenError{color:#ffd5dc;background:rgba(255,70,98,.09)}
-        @media(max-width:520px){.vueweGreenStudio{margin-left:0;margin-right:0;padding:16px;border-radius:24px}.vueweGreenStudioHead h2{font-size:29px}.vueweGreenStudioHead p{font-size:11px}.vueweGreenSavedBadge{display:none}.vueweGreenSliders label{grid-template-columns:105px 1fr}.vueweGreenDraftBar{grid-template-columns:1fr 1fr 1fr}.vueweGreenDraftBar>div{grid-column:1/-1}.vueweGreenDraftBar button{width:100%}}
+        .vueweGreenEditorActions{display:flex;align-items:center;gap:6px}
+        .vueweGreenEditorActions button{border:0;border-radius:999px;padding:8px 11px;color:#fff;background:rgba(255,255,255,.06);font-size:9px;font-weight:950}
+        .vueweGreenEditorActions .autoFit{color:#06110d;background:linear-gradient(135deg,#51efb9,#16dce4)}
+        .vueweSegmentationLine{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 11px;border:1px solid rgba(255,255,255,.06);border-radius:14px;background:rgba(0,0,0,.16)}
+        .vueweSegmentationLine small{color:rgba(255,255,255,.38);font-size:8px;text-align:right}
+        .vueweSegmentationStatus{font-size:8px;font-weight:1000;letter-spacing:.07em;white-space:nowrap}
+        .vueweSegmentationStatus.ready{color:#51efb9}.vueweSegmentationStatus.loading{color:#9bbaff}.vueweSegmentationStatus.fallback{color:#ffb867}
+        .vueweGreenGestureCard{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:11px;border:1px solid rgba(80,242,188,.11);border-radius:16px;background:linear-gradient(145deg,rgba(80,242,188,.055),rgba(36,104,242,.035))}
+        .vueweGreenGestureCard>span{min-height:40px;display:grid;place-items:center;border-radius:12px;color:#eafff5;background:rgba(255,255,255,.045);font-size:10px;font-weight:950}
+        .vueweGreenGestureCard>small{grid-column:1/-1;color:rgba(255,255,255,.42);font-size:8px;text-align:center}
+        .vueweFineTuneToggle{width:100%;margin-top:9px;min-height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;color:rgba(255,255,255,.65);background:rgba(255,255,255,.025);font-size:9px;font-weight:950}
+        .vueweFineTuneToggle span{font-size:17px;color:#51efb9}
+        .vueweGreenSliders{margin-top:11px}
+        .vueweGreenDraftBar{grid-template-columns:1fr repeat(4,auto)}
+        .vueweGreenDraftBar button.danger{color:#ff8b9c;border-color:rgba(255,76,103,.18);background:rgba(255,76,103,.07)}
+        .vueweGreenCanvas{touch-action:none!important;-webkit-user-select:none;user-select:none}
+
+        @media(max-width:520px){
+          .vueweGreenDraftBar{grid-template-columns:1fr 1fr!important}
+          .vueweGreenDraftBar>div{grid-column:1/-1}
+          .vueweGreenDraftBar button{min-height:38px}
+          .vueweSegmentationLine{align-items:flex-start;flex-direction:column}
+          .vueweSegmentationLine small{text-align:left}
+          .vueweGreenEditorActions{flex-wrap:wrap;justify-content:flex-end}.vueweGreenStudio{margin-left:0;margin-right:0;padding:16px;border-radius:24px}.vueweGreenStudioHead h2{font-size:29px}.vueweGreenStudioHead p{font-size:11px}.vueweGreenSavedBadge{display:none}.vueweGreenSliders label{grid-template-columns:105px 1fr}.vueweGreenDraftBar{grid-template-columns:1fr 1fr 1fr}.vueweGreenDraftBar>div{grid-column:1/-1}.vueweGreenDraftBar button{width:100%}}
       `}</style>
     </>,
     host
