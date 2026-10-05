@@ -8,12 +8,14 @@ export async function sendUTVPush({
   url,
   callId,
   roomId,
+  status,
 }: {
   recipientEmail: string;
   event: UTVPushEvent;
   url: string;
   callId?: string;
   roomId?: string;
+  status?: string;
 }) {
   try {
     const {
@@ -36,6 +38,7 @@ export async function sendUTVPush({
         url,
         callId,
         roomId,
+        status,
       }),
     });
 
