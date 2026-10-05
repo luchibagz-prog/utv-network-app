@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
 
-const VERSION = "oct-2026-launch-pack-1";
+const VERSION = "oct-2026-launch-pack-2";
 const STORAGE_KEY = `vuewe-upgrade-pulse:${VERSION}`;
 
 export default function VUEWEUpgradePulse() {
@@ -43,9 +43,9 @@ export default function VUEWEUpgradePulse() {
       <aside className="vueweUpgradePulse" aria-label="New VUEWE upgrades">
         <div className="vueweUpgradePulseIcon"><Sparkles size={19} /></div>
         <div className="vueweUpgradePulseText">
-          <small>NEW IN VUEWE</small>
-          <strong>VUEWE just leveled up.</strong>
-          <span>See the latest creator, connection and business upgrades.</span>
+          <small>NEW VUEWE LAUNCH PACK</small>
+          <strong>Faster. Cleaner. More connected.</strong>
+          <span>See Green Screen, Create, calls, Walkie, bookings, gifts, Wallet and the new Creator Business upgrades.</span>
         </div>
         <button className="vueweUpgradePulseOpen" type="button" onClick={openUpgrades}>See upgrades</button>
         <button className="vueweUpgradePulseClose" type="button" aria-label="Dismiss upgrades" onClick={dismiss}><X size={16} /></button>
