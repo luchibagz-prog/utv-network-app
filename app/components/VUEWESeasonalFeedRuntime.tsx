@@ -34,7 +34,9 @@ export default function VUEWESeasonalFeedRuntime() {
     const mountInline = () => {
       if (stopped) return;
 
-      const main = document.querySelector('main.feedPage, main[data-utv-skin="feed"]') as HTMLElement | null;
+      const main = document.querySelector(
+        'main.feedPage, main[data-utv-skin="feed"]'
+      ) as HTMLElement | null;
       const stories = main?.querySelector(".stories") as HTMLElement | null;
 
       if (!main || !stories) {
@@ -67,70 +69,101 @@ export default function VUEWESeasonalFeedRuntime() {
 
   return createPortal(
     <>
-      <div className={`vueweFeedSeasonInline vueweFeedSeasonInline-${season}`} aria-hidden="true">
+      <div className={"vueweFeedSeasonInline vueweFeedSeasonInline-" + season} aria-hidden="true">
         {season === "halloween" && (
           <>
-            <span className="vsiMiniPumpkin left"><i /></span>
-            <div className="vsiPill"><span>🎃</span><b>VUEWE SPOOKY SEASON</b></div>
-            <span className="vsiMiniSpider">🕷️</span>
-            <span className="vsiMiniPumpkin right"><i /></span>
+            <span className="vsiWeb left" />
+            <span className="vsiWeb right" />
+            <span className="vsiPumpkin left"><i /></span>
+            <div className="vsiPill">
+              <small>VUEWE</small>
+              <b>SPOOKY SEASON</b>
+            </div>
+            <span className="vsiSpider">🕷</span>
+            <span className="vsiPumpkin right"><i /></span>
           </>
         )}
-        {season === "thanksgiving" && <div className="vsiPill"><span>🍂</span><b>VUEWE THANKFUL SEASON</b></div>}
-        {season === "christmas" && <div className="vsiPill"><span>🎄</span><b>VUEWE HOLIDAY MODE</b></div>}
-        {season === "newyear" && <div className="vsiPill"><span>🎆</span><b>VUEWE NEW YEAR MODE</b></div>}
+        {season === "thanksgiving" && <div className="vsiPill"><small>VUEWE</small><b>THANKFUL SEASON</b></div>}
+        {season === "christmas" && <div className="vsiPill"><small>VUEWE</small><b>HOLIDAY MODE</b></div>}
+        {season === "newyear" && <div className="vsiPill"><small>VUEWE</small><b>NEW YEAR MODE</b></div>}
       </div>
 
       <style jsx global>{`
         .vueweSeasonalFeedSlot{
           position:relative!important;
           z-index:3!important;
-          height:42px!important;
-          margin:0 0 4px!important;
+          height:48px!important;
+          margin:0 0 5px!important;
           overflow:hidden!important;
           pointer-events:none!important;
         }
         .vueweFeedSeasonInline{
           position:relative!important;
           width:100%!important;
-          height:42px!important;
+          height:48px!important;
           display:flex!important;
           align-items:center!important;
           justify-content:center!important;
           overflow:hidden!important;
-          pointer-events:none!important;
-          background:linear-gradient(90deg,transparent,rgba(102,62,151,.05),transparent)!important;
+          border-top:1px solid rgba(255,255,255,.035)!important;
+          border-bottom:1px solid rgba(255,255,255,.045)!important;
+          background:
+            radial-gradient(circle at 50% 30%,rgba(255,126,42,.07),transparent 34%),
+            linear-gradient(90deg,rgba(20,9,28,.12),rgba(8,11,16,.36),rgba(20,9,28,.12))!important;
+          box-shadow:inset 0 -12px 24px rgba(0,0,0,.08)!important;
         }
         .vsiPill{
-          height:29px!important;
-          display:inline-flex!important;
+          position:relative!important;
+          z-index:3!important;
+          height:28px!important;
+          display:flex!important;
           align-items:center!important;
           gap:7px!important;
-          padding:0 13px 0 7px!important;
-          border:1px solid rgba(255,139,64,.26)!important;
+          padding:0 12px!important;
+          border:1px solid rgba(255,155,83,.18)!important;
           border-radius:999px!important;
-          color:#ffe8d8!important;
-          background:linear-gradient(135deg,rgba(27,14,9,.94),rgba(20,11,31,.94))!important;
-          box-shadow:0 5px 16px rgba(0,0,0,.18),0 0 12px rgba(255,104,28,.08)!important;
-          white-space:nowrap!important;
+          color:#fff!important;
+          background:rgba(8,10,14,.72)!important;
+          box-shadow:0 5px 18px rgba(0,0,0,.22),0 0 18px rgba(255,116,35,.07)!important;
+          backdrop-filter:blur(12px)!important;
+          -webkit-backdrop-filter:blur(12px)!important;
         }
-        .vsiPill span{
-          width:20px!important;height:20px!important;display:grid!important;place-items:center!important;
-          border-radius:50%!important;background:rgba(255,132,44,.13)!important;font-size:12px!important;
+        .vsiPill small{color:#ffb06d!important;font-size:6px!important;font-weight:1000!important;letter-spacing:.18em!important}
+        .vsiPill b{font-size:7px!important;font-weight:1000!important;letter-spacing:.16em!important}
+        .vsiWeb{
+          position:absolute!important;
+          top:-28px!important;
+          width:86px!important;
+          height:86px!important;
+          opacity:.12!important;
+          background:
+            repeating-radial-gradient(circle at 0 0,transparent 0 12px,rgba(232,226,239,.55) 13px 14px,transparent 15px 25px),
+            repeating-conic-gradient(from 0deg at 0 0,rgba(232,226,239,.42) 0deg 1deg,transparent 1deg 24deg)!important;
         }
-        .vsiPill b{font-size:6.7px!important;letter-spacing:.15em!important;font-weight:1000!important}
-        .vsiMiniSpider{position:absolute!important;right:18px!important;top:9px!important;font-size:15px!important;opacity:.54!important;filter:grayscale(1) brightness(.4)!important}
-        .vsiMiniPumpkin{
-          position:absolute!important;top:11px!important;width:22px!important;height:18px!important;border-radius:46% 46% 43% 43%!important;
-          background:linear-gradient(90deg,rgba(116,48,5,.5) 0 8%,transparent 9% 28%,rgba(111,44,3,.35) 29% 36%,transparent 37% 63%,rgba(111,44,3,.35) 64% 71%,transparent 72% 91%,rgba(116,48,5,.5) 92%),radial-gradient(ellipse at 50% 42%,#ffb64d 0 22%,#f07a16 56%,#a64008 100%)!important;
-          box-shadow:0 2px 8px rgba(0,0,0,.18),0 0 8px rgba(255,121,28,.16)!important;opacity:.78!important;
+        .vsiWeb.left{left:-16px!important}
+        .vsiWeb.right{right:-16px!important;transform:scaleX(-1)!important}
+        .vsiPumpkin{
+          position:absolute!important;
+          z-index:2!important;
+          top:14px!important;
+          width:19px!important;
+          height:17px!important;
+          border-radius:46% 46% 44% 44%!important;
+          opacity:.68!important;
+          background:
+            linear-gradient(90deg,rgba(107,39,5,.46) 0 9%,transparent 10% 30%,rgba(107,39,5,.34) 31% 38%,transparent 39% 62%,rgba(107,39,5,.34) 63% 70%,transparent 71% 90%,rgba(107,39,5,.46) 91%),
+            radial-gradient(ellipse at 50% 42%,#ffc064 0 18%,#f47e1b 56%,#a83f08 100%)!important;
+          box-shadow:0 0 12px rgba(255,113,27,.16)!important;
         }
-        .vsiMiniPumpkin::before{content:"";position:absolute;left:8px;top:-5px;width:5px;height:7px;border-radius:3px 3px 1px 1px;background:linear-gradient(#4e6b25,#253815)}
-        .vsiMiniPumpkin.left{left:18px!important}.vsiMiniPumpkin.right{right:46px!important}
+        .vsiPumpkin::before{content:"";position:absolute;left:7px;top:-5px;width:4px;height:7px;border-radius:3px 3px 1px 1px;background:linear-gradient(#62752c,#253815)}
+        .vsiPumpkin.left{left:18px!important}
+        .vsiPumpkin.right{right:38px!important}
+        .vsiSpider{position:absolute!important;right:13px!important;top:15px!important;font-size:11px!important;opacity:.36!important;filter:grayscale(1) brightness(.7)!important}
         @media(max-width:430px){
-          .vueweSeasonalFeedSlot,.vueweFeedSeasonInline{height:40px!important}
-          .vsiPill{height:27px!important;padding-right:11px!important}.vsiPill b{font-size:6.3px!important}
-          .vsiMiniPumpkin.left{left:12px!important}.vsiMiniPumpkin.right{right:40px!important}.vsiMiniSpider{right:12px!important}
+          .vueweSeasonalFeedSlot,.vueweFeedSeasonInline{height:44px!important}
+          .vsiPill{height:26px!important;padding:0 10px!important}
+          .vsiPill b{font-size:6.4px!important}
+          .vsiPumpkin.left{left:11px!important}.vsiPumpkin.right{right:31px!important}.vsiSpider{right:9px!important}
         }
       `}</style>
     </>,

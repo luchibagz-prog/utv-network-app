@@ -22,10 +22,38 @@ export default function VUEWERouteTransitionRuntime() {
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pendingRef = useRef(false);
+  const showTimerRef = useRef<number | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
+
+    const clearTimers = () => {
+      if (showTimerRef.current !== null) window.clearTimeout(showTimerRef.current);
+      if (hideTimerRef.current !== null) window.clearTimeout(hideTimerRef.current);
+      showTimerRef.current = null;
+      hideTimerRef.current = null;
+    };
+
+    const queueRealLoadVeil = () => {
+      pendingRef.current = true;
+      clearTimers();
+
+      // Do not flash a fake loading treatment for fast client navigation.
+      // Only show the veil if the route is still transitioning after 140ms.
+      showTimerRef.current = window.setTimeout(() => {
+        if (!pendingRef.current) return;
+        document.documentElement.dataset.vueweNavigating = "true";
+        setVisible(true);
+      }, 140);
+
+      // Safety fallback if navigation is interrupted.
+      hideTimerRef.current = window.setTimeout(() => {
+        pendingRef.current = false;
+        setVisible(false);
+        delete document.documentElement.dataset.vueweNavigating;
+      }, 2600);
+    };
 
     const begin = (event: PointerEvent) => {
       if (event.button !== 0) return;
@@ -45,49 +73,38 @@ export default function VUEWERouteTransitionRuntime() {
         return;
       }
 
-      pendingRef.current = true;
-      document.documentElement.dataset.vueweNavigating = "true";
-      setVisible(true);
-    };
-
-    const historyBegin = () => {
-      pendingRef.current = true;
-      document.documentElement.dataset.vueweNavigating = "true";
-      setVisible(true);
+      queueRealLoadVeil();
     };
 
     document.addEventListener("pointerdown", begin, true);
-    window.addEventListener("popstate", historyBegin);
+    window.addEventListener("popstate", queueRealLoadVeil);
 
     return () => {
       document.removeEventListener("pointerdown", begin, true);
-      window.removeEventListener("popstate", historyBegin);
-      if (hideTimerRef.current !== null) {
-        window.clearTimeout(hideTimerRef.current);
-      }
+      window.removeEventListener("popstate", queueRealLoadVeil);
+      clearTimers();
+      pendingRef.current = false;
+      setVisible(false);
       delete document.documentElement.dataset.vueweNavigating;
     };
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !pendingRef.current) return;
 
-    // Route has changed. Keep the VUEWE veil up just long enough for
-    // client-side data shells to settle, preventing legacy skeleton flashes.
-    if (!pendingRef.current) {
-      setVisible(true);
-      document.documentElement.dataset.vueweNavigating = "true";
+    // A real requested route finished. Kill any delayed loader immediately.
+    if (showTimerRef.current !== null) {
+      window.clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
     }
-
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
     }
 
-    hideTimerRef.current = window.setTimeout(() => {
-      pendingRef.current = false;
-      setVisible(false);
-      delete document.documentElement.dataset.vueweNavigating;
-    }, 360);
+    pendingRef.current = false;
+    setVisible(false);
+    delete document.documentElement.dataset.vueweNavigating;
   }, [pathname, mounted]);
 
   if (!mounted) return null;
@@ -97,7 +114,6 @@ export default function VUEWERouteTransitionRuntime() {
       className={visible ? "vueweRouteVeil isVisible" : "vueweRouteVeil"}
       aria-hidden="true"
     >
-      <span className="vueweRouteProgress" />
       <div className="vueweRouteMark">
         <span className="vueweRouteEye"><i /></span>
         <strong>VUEWE</strong>
