@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import { supabase } from "../../lib/supabaseClient";
+import { sendUTVPush } from "../../lib/sendUTVPush";
 
 type Person = {
   email: string;
@@ -285,6 +286,17 @@ export default function TopCrewPage() {
     setSaving(true);
 
     try {
+      const { data: previousRows } = await supabase
+        .from("top_crew")
+        .select("member_email")
+        .eq("owner_email", email);
+
+      const previousMembers = new Set(
+        (previousRows || [])
+          .map((row: any) => String(row.member_email || "").toLowerCase())
+          .filter(Boolean)
+      );
+
       const rows: {
         owner_email: string;
         member_email: string;
@@ -325,6 +337,45 @@ export default function TopCrewPage() {
         if (insertError) {
           throw insertError;
         }
+      }
+
+      const newlyAdded = rows
+        .map((row) => row.member_email.toLowerCase())
+        .filter((memberEmail) => !previousMembers.has(memberEmail));
+
+      for (const memberEmail of newlyAdded) {
+        if (!memberEmail || memberEmail === email.toLowerCase()) continue;
+
+        const link = `/u/${encodeURIComponent(email)}`;
+
+        const { data: existingTop8Notice } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("user_email", memberEmail)
+          .eq("actor_email", email)
+          .eq("type", "top8")
+          .eq("link", link)
+          .maybeSingle();
+
+        if (!existingTop8Notice?.id) {
+          await supabase
+            .from("notifications")
+            .insert({
+              user_email: memberEmail,
+              actor_email: email,
+              type: "top8",
+              title: "⭐ Added to Top 8",
+              message: "A VUEWE creator added you to their Top 8.",
+              link,
+              is_read: false,
+            });
+        }
+
+        void sendUTVPush({
+          recipientEmail: memberEmail,
+          event: "top8",
+          url: link,
+        });
       }
 
       setNotice(

@@ -72,6 +72,44 @@ export default function AdminPage() {
     setBusyId("");
   }
 
+  async function setWatchHero(id: string, active: boolean) {
+    setBusyId(id);
+
+    try {
+      if (!active) {
+        await supabase
+          .from("uploads")
+          .update({ watch_hero: false })
+          .eq("watch_hero", true);
+
+        const { error } = await supabase
+          .from("uploads")
+          .update({
+            watch_hero: true,
+            featured: true,
+            approved: true,
+          })
+          .eq("id", id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("uploads")
+          .update({ watch_hero: false })
+          .eq("id", id);
+
+        if (error) throw error;
+      }
+
+      setMessage(active ? "Removed from Watch header." : "Watch header updated.");
+      await loadUploads();
+    } catch (error: any) {
+      setMessage(error?.message || "Could not update the Watch header.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function deleteUpload(id: string) {
     if (!confirm("Delete this from VUEWE?")) return;
     setBusyId(id);
@@ -247,7 +285,7 @@ export default function AdminPage() {
                 <article className="adminContentCard" key={item.id}>
                   <div className="adminPoster">
                     {image ? <img src={image} alt="" /> : <span>V</span>}
-                    {item.featured && <b>FEATURED</b>}
+                    {item.watch_hero ? <b>WATCH HERO</b> : item.featured && <b>FEATURED</b>}
                   </div>
 
                   <div className="adminContentCopy">
@@ -274,6 +312,14 @@ export default function AdminPage() {
 
                     <button disabled={working} onClick={() => void toggleFeature(item.id, item.featured)}>
                       {item.featured ? "Unfeature" : "Feature"}
+                    </button>
+
+                    <button
+                      disabled={working}
+                      className={item.watch_hero ? "approve" : ""}
+                      onClick={() => void setWatchHero(String(item.id), Boolean(item.watch_hero))}
+                    >
+                      {item.watch_hero ? "Remove Hero" : "Set Watch Hero"}
                     </button>
 
                     <Link href={`/watch/${item.id}`}>View</Link>

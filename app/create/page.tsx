@@ -36,6 +36,7 @@ const moreActions: CreateAction[] = [
   { title: "Quick Post", copy: "Text or photo fast", href: "/quick-post", accent: "green", icon: "image" },
   { title: "Events", copy: "Promote a moment", href: "/events/new", accent: "purple", glyph: "◷" },
   { title: "Casting", copy: "Find talent", href: "/casting/new", accent: "cyan", glyph: "◎" },
+  { title: "VUEWE Tap", copy: "Connect in person", href: "/tap", accent: "green", glyph: "⚡" },
 ];
 
 function ActionIcon({ item }: { item: CreateAction }) {

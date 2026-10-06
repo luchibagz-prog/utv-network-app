@@ -73,6 +73,8 @@ export async function POST(request: Request) {
       "booking",
       "booking_update",
       "like",
+      "post_reaction",
+      "top8",
       "comment",
       "reply",
       "comment_reply",
@@ -164,6 +166,18 @@ export async function POST(request: Request) {
       title = "❤️ New VUEWE Like";
       notificationBody = `${senderName} liked your post.`;
       tag = `vuewe-like-${senderEmail}`;
+    }
+
+    if (event === "post_reaction") {
+      title = "🔥 New VUEWE Reaction";
+      notificationBody = `${senderName} reacted to your post.`;
+      tag = `vuewe-post-reaction-${senderEmail}`;
+    }
+
+    if (event === "top8") {
+      title = "⭐ You made their Top 8";
+      notificationBody = `${senderName} added you to their VUEWE Top 8.`;
+      tag = `vuewe-top8-${senderEmail}`;
     }
 
     if (event === "comment") {
