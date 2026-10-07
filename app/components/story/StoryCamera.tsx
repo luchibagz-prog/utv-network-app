@@ -38,7 +38,7 @@ export default function StoryCamera({
   onPhotoCapture,
 }: StoryCameraProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const progressTimerRef = useRef<number | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
   const pressStartedAtRef = useRef<number | null>(null);
   const lastPreviewTapRef = useRef(0);
@@ -91,16 +91,15 @@ export default function StoryCamera({
   }, [stream]);
 
   useEffect(() => {
+    if (progressTimerRef.current !== null) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
     if (!recording) {
       recordingStartedAtRef.current = null;
       setRecordingProgress(0);
       setRecordingSeconds(0);
-
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-
       return;
     }
 
@@ -108,39 +107,30 @@ export default function StoryCamera({
 
     const updateRecordingProgress = () => {
       const startedAt = recordingStartedAtRef.current;
-
       if (startedAt === null) return;
 
-      const elapsedMilliseconds = performance.now() - startedAt;
-      const elapsedSeconds = elapsedMilliseconds / 1000;
-      const progress = Math.min(
-        elapsedSeconds / MAX_RECORDING_SECONDS,
-        1
-      );
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+      const progress = Math.min(elapsedSeconds / MAX_RECORDING_SECONDS, 1);
 
       setRecordingProgress(progress);
       setRecordingSeconds(
-        Math.min(
-          Math.floor(elapsedSeconds),
-          MAX_RECORDING_SECONDS
-        )
+        Math.min(Math.floor(elapsedSeconds), MAX_RECORDING_SECONDS)
       );
-
-      if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(
-          updateRecordingProgress
-        );
-      }
     };
 
-    animationFrameRef.current = requestAnimationFrame(
-      updateRecordingProgress
+    updateRecordingProgress();
+
+    // Ten UI updates per second is visually smooth without forcing a
+    // full React render on every camera frame.
+    progressTimerRef.current = window.setInterval(
+      updateRecordingProgress,
+      100
     );
 
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (progressTimerRef.current !== null) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
       }
     };
   }, [recording]);
@@ -160,11 +150,35 @@ export default function StoryCamera({
     lastPreviewTapRef.current = now;
   };
 
-  const captureLocalPhoto = () => {
+  const captureLocalPhoto = async () => {
     const video = videoRef.current;
 
     if (!video || !cameraReady || !video.videoWidth || !video.videoHeight) {
       return false;
+    }
+
+    // Chrome/Android can capture a full-resolution still from the camera
+    // track while the live preview stays lightweight and smooth.
+    try {
+      const track = stream?.getVideoTracks?.()[0];
+      const ImageCaptureCtor = (window as any).ImageCapture;
+
+      if (track && ImageCaptureCtor) {
+        const imageCapture = new ImageCaptureCtor(track);
+        const blob = await imageCapture.takePhoto();
+
+        if (blob?.size) {
+          const file = new File(
+            [blob],
+            `vuewe-story-${Date.now()}.jpg`,
+            { type: blob.type || "image/jpeg" }
+          );
+          onPhotoCapture?.(file);
+          return true;
+        }
+      }
+    } catch {
+      // Fall through to the universally supported video-frame capture.
     }
 
     const canvas = document.createElement("canvas");
@@ -174,9 +188,6 @@ export default function StoryCamera({
     const context = canvas.getContext("2d", { alpha: false });
     if (!context) return false;
 
-    // Keep the live selfie preview mirrored like a native camera,
-    // but save the actual camera frame without baking that mirror
-    // into the uploaded image.
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(
@@ -185,14 +196,14 @@ export default function StoryCamera({
 
         const file = new File(
           [blob],
-          `utv-story-${Date.now()}.jpg`,
+          `vuewe-story-${Date.now()}.jpg`,
           { type: "image/jpeg" }
         );
 
         onPhotoCapture?.(file);
       },
       "image/jpeg",
-      0.98
+      0.97
     );
 
     return true;
@@ -218,12 +229,14 @@ export default function StoryCamera({
     if (heldFor < 320 && !recording) {
       onCaptureCancel?.();
 
-      if (!captureLocalPhoto()) {
+      void captureLocalPhoto().then((captured) => {
+        if (captured) return;
+
         // A very fast first tap can land before metadata is ready.
         window.setTimeout(() => {
-          captureLocalPhoto();
+          void captureLocalPhoto();
         }, 120);
-      }
+      });
 
       return;
     }
