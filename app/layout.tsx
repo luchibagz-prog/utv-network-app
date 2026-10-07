@@ -99,8 +99,26 @@ const launchScript = `
 (function () {
   try {
     var current = new URL(window.location.href);
+    var path = current.pathname;
+    var route = "other";
+
+    if (path === "/feed") route = "feed";
+    else if (path === "/world" || path.indexOf("/world/") === 0) route = "world";
+    else if (path === "/submit") route = "create";
+    else if (path === "/live-room" || path.indexOf("/live/") === 0) route = "live";
+    else if (path === "/walkie" || path.indexOf("/walkie/") === 0) route = "walkie";
+    else if (path === "/bookings") route = "bookings";
+    else if (path === "/profile-edit") route = "profileEdit";
+    else if (path === "/messages") route = "messages";
+    else if (path.indexOf("/messages/") === 0) route = "chat";
+    else if (path.indexOf("/u/") === 0 || path === "/profile-pro-v12") route = "profile";
+
+    document.documentElement.dataset.vueweRoute = route;
+    document.documentElement.dataset.vueweFidelityRoute = route;
+    document.documentElement.dataset.vueweBoot = "v37";
+
     if (
-      current.pathname === "/watch" &&
+      path === "/watch" &&
       current.searchParams.get("launch") !== "watch"
     ) {
       window.location.replace("/feed?launch=app");
