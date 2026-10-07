@@ -6,6 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 
 const ACTIONS = [
   { icon: "✦", title: "Profile Power", sub: "Links, birthday & countdown", url: "/profile-moments", featured: true },
+  { icon: "◉", title: "Analytics", sub: "Private views, follows & growth", url: "/creator/analytics" },
+  { icon: "◎", title: "Highlights", sub: "Pin Story collections", url: "/highlights" },
   { icon: "＋", title: "Create", sub: "Post, story, reel & tools", url: "/create-tools" },
   { icon: "✎", title: "Edit Profile", sub: "Photo, bio, music & look", url: "/profile-edit" },
   { icon: "🎬", title: "Creator Studio", sub: "Manage your content", url: "/studio" },

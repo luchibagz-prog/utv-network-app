@@ -34,6 +34,7 @@ const primaryActions: CreateAction[] = [
 ];
 
 const moreActions: CreateAction[] = [
+  { title: "Pass the VUEWE", copy: "Start or answer a chain", href: "/pass-the-vuewe", accent: "purple", glyph: "↗" },
   { title: "Quick Post", copy: "Text or photo fast", href: "/quick-post", accent: "green", icon: "image" },
   { title: "Events", copy: "Promote a moment", href: "/events/new", accent: "purple", glyph: "◷" },
   { title: "Casting", copy: "Find talent", href: "/casting/new", accent: "cyan", glyph: "◎" },

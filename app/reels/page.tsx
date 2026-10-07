@@ -153,6 +153,8 @@ export default function ReelsPage() {
   const observerRef =
     useRef<IntersectionObserver | null>(null);
 
+  const interactionBusyRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     void loadReels();
 
@@ -721,150 +723,78 @@ export default function ReelsPage() {
     message: string;
     link: string;
   }) {
-    if (
-      !recipientEmail ||
-      !actorEmail ||
-      recipientEmail === actorEmail
-    ) {
+    if (!recipientEmail || !actorEmail || recipientEmail === actorEmail) {
       return;
     }
 
-    const { data: existing } =
-      await supabase
-        .from("notifications")
-        .select("id")
-        .eq(
-          "user_email",
-          recipientEmail
-        )
-        .eq(
-          "actor_email",
-          actorEmail
-        )
-        .eq("type", type)
-        .eq("link", link)
-        .maybeSingle();
-
-    if (existing) return;
-
-    const { error } =
-      await supabase
-        .from("notifications")
-        .insert({
-          user_email:
-            recipientEmail,
-          actor_email:
-            actorEmail,
-          type,
-          title,
-          message,
-          link,
-          is_read: false,
-        });
+    const { error } = await supabase.rpc("vuewe_create_notification", {
+      p_recipient_email: recipientEmail,
+      p_type: type,
+      p_title: title,
+      p_message: message,
+      p_link: link,
+    });
 
     if (error) {
-      console.error(
-        "Reel notification error:",
-        error.message
-      );
+      console.error("Reel notification error:", error.message);
     }
   }
 
   async function likePost(
     reel: Reel
   ) {
-    const id =
-      String(reel.id);
+    const id = String(reel.id);
 
-    const { data: auth } =
-      await supabase.auth.getUser();
-
-    const userEmail =
-      auth.user?.email;
+    const { data: auth } = await supabase.auth.getUser();
+    const userEmail = auth.user?.email;
 
     if (!userEmail) {
       router.push("/login");
       return;
     }
 
-    const currentlyLiked =
-      likedPosts[id];
+    const busyKey = `like:${id}`;
+    if (interactionBusyRef.current.has(busyKey)) return;
+    interactionBusyRef.current.add(busyKey);
 
-    setLikedPosts(
-      (current) => ({
-        ...current,
-        [id]: !currentlyLiked,
-      })
-    );
-
-    setLikes((current) => ({
-      ...current,
-      [id]: Math.max(
-        0,
-        (current[id] || 0) +
-          (
-            currentlyLiked
-              ? -1
-              : 1
-          )
-      ),
-    }));
-
-    if (currentlyLiked) {
-      const { error } =
-        await supabase
-          .from("feed_likes")
-          .delete()
-          .eq(
-            "upload_id",
-            id
-          )
-          .eq(
-            "user_email",
-            userEmail
-          );
-
-      if (error) {
-        await loadLikes(
-          id,
-          userEmail
-        );
-      }
-
-      return;
-    }
-
-    const { error } =
-      await supabase
-        .from("feed_likes")
-        .insert({
-          upload_id: id,
-          user_email:
-            userEmail,
-        });
-
-    if (error) {
-      await loadLikes(
-        id,
-        userEmail
+    try {
+      const { data, error } = await supabase.rpc(
+        "vuewe_toggle_feed_like",
+        { p_upload_id: id }
       );
 
-      return;
-    }
+      if (error) {
+        showNotice(error.message);
+        await loadLikes(id, userEmail);
+        return;
+      }
 
-    await createNotification({
-      recipientEmail:
-        reel.creator_email,
-      actorEmail: userEmail,
-      type: "like",
-      title: "New Like",
-      message:
-        `${profileNameForEmail(
-          userEmail
-        )} liked your reel.`,
-      link:
-        `/reels#reel-${id}`,
-    });
+      const liked = Boolean((data as any)?.liked);
+      const count = Number((data as any)?.like_count || 0);
+
+      setLikedPosts((current) => ({
+        ...current,
+        [id]: liked,
+      }));
+
+      setLikes((current) => ({
+        ...current,
+        [id]: count,
+      }));
+
+      if (!liked) return;
+
+      await createNotification({
+        recipientEmail: reel.creator_email,
+        actorEmail: userEmail,
+        type: "like",
+        title: "New Like",
+        message: `${profileNameForEmail(userEmail)} liked your reel.`,
+        link: `/reels#reel-${id}`,
+      });
+    } finally {
+      interactionBusyRef.current.delete(busyKey);
+    }
   }
 
   function openComments(
@@ -906,25 +836,30 @@ export default function ReelsPage() {
 
     setCommentSending(true);
 
+    const busyKey = `comment:${id}`;
+
+    if (interactionBusyRef.current.has(busyKey)) {
+      setCommentSending(false);
+      return;
+    }
+
+    interactionBusyRef.current.add(busyKey);
+
     const { error } =
-      await supabase
-        .from("feed_comments")
-        .insert({
-          upload_id: id,
-          user_email:
-            userEmail,
-          comment: value,
-          parent_comment_id:
-            null,
-        });
+      await supabase.rpc(
+        "vuewe_add_feed_comment",
+        {
+          p_upload_id: id,
+          p_comment: value,
+          p_parent_comment_id: null,
+        }
+      );
+
+    interactionBusyRef.current.delete(busyKey);
 
     if (error) {
       setCommentSending(false);
-
-      showNotice(
-        error.message
-      );
-
+      showNotice(error.message);
       return;
     }
 

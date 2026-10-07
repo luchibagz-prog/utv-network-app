@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
+import VUEWESeasonalFeedRuntime from "../components/VUEWESeasonalFeedRuntime";
 import { supabase } from "../../lib/supabaseClient";
 import { sendUTVPush } from "../../lib/sendUTVPush";
 
@@ -172,6 +173,7 @@ export default function FeedPage() {
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const lastTapRef = useRef<Record<string, number>>({});
+  const interactionBusyRef = useRef<Set<string>>(new Set());
 
   const refreshCycleRef = useRef(0);
   const newestPostTimeRef = useRef("");
@@ -1304,16 +1306,78 @@ export default function FeedPage() {
     setItems(displayItems);
 
     /*
-      Repopulate the comment state after every Feed load.
-      Existing comments stay in Supabase; this only reads them.
+      Restore authoritative social state after every Feed load.
+      Likes, comments and the current viewer's liked state all come
+      back from Supabase so refresh cannot visually "forget" them.
     */
-    void loadFeedComments(displayItems);
+    void Promise.all([
+      loadFeedLikes(displayItems, currentEmail),
+      loadFeedComments(displayItems),
+    ]);
 
     await loadProfiles(
       displayItems
         .map((item) => item.creator_email)
         .filter(Boolean)
     );
+  }
+
+  async function loadFeedLikes(
+    feedRows: any[],
+    email = viewerEmail,
+  ) {
+    const uploadIds = Array.from(
+      new Set(
+        feedRows
+          .map((item) => String(item?.id || ""))
+          .filter(Boolean)
+      )
+    );
+
+    if (!uploadIds.length) return;
+
+    const { data, error } = await supabase
+      .from("feed_likes")
+      .select("upload_id,user_email")
+      .in("upload_id", uploadIds);
+
+    if (error) {
+      console.error("Feed like restore error:", error);
+      return;
+    }
+
+    const nextCounts: Record<string, number> = {};
+    const nextLiked: Record<string, boolean> = {};
+    const normalizedViewer = String(email || "").trim().toLowerCase();
+
+    uploadIds.forEach((id) => {
+      nextCounts[id] = 0;
+      nextLiked[id] = false;
+    });
+
+    (data || []).forEach((row: any) => {
+      const uploadId = String(row.upload_id || "");
+      if (!uploadId || !(uploadId in nextCounts)) return;
+
+      nextCounts[uploadId] += 1;
+
+      if (
+        normalizedViewer &&
+        String(row.user_email || "").trim().toLowerCase() === normalizedViewer
+      ) {
+        nextLiked[uploadId] = true;
+      }
+    });
+
+    setLikes((current) => ({
+      ...current,
+      ...nextCounts,
+    }));
+
+    setLikedPosts((current) => ({
+      ...current,
+      ...nextLiked,
+    }));
   }
 
   async function loadLikes(id: string, email = viewerEmail) {
@@ -1548,27 +1612,12 @@ export default function FeedPage() {
       return;
     }
 
-    const { data: existing } = await supabase
-      .from("notifications")
-      .select("id")
-      .eq("user_email", recipientEmail)
-      .eq("actor_email", actorEmail)
-      .eq("type", type)
-      .eq("link", link)
-      .maybeSingle();
-
-    if (existing) {
-      return;
-    }
-
-    const { error } = await supabase.from("notifications").insert({
-      user_email: recipientEmail,
-      actor_email: actorEmail,
-      type,
-      title,
-      message,
-      link,
-      is_read: false,
+    const { error } = await supabase.rpc("vuewe_create_notification", {
+      p_recipient_email: recipientEmail,
+      p_type: type,
+      p_title: title,
+      p_message: message,
+      p_link: link,
     });
 
     if (error) {
@@ -1947,7 +1996,6 @@ export default function FeedPage() {
 
   async function likePost(id: string, creatorEmail?: string) {
     const { data: auth } = await supabase.auth.getUser();
-
     const userEmail = auth.user?.email;
 
     if (!userEmail) {
@@ -1955,60 +2003,61 @@ export default function FeedPage() {
       return;
     }
 
-    const currentlyLiked = likedPosts[id];
+    const busyKey = `like:${id}`;
+    if (interactionBusyRef.current.has(busyKey)) return;
+    interactionBusyRef.current.add(busyKey);
 
-    setLikedPosts((current) => ({
-      ...current,
-      [id]: !currentlyLiked,
-    }));
+    try {
+      const { data, error } = await supabase.rpc(
+        "vuewe_toggle_feed_like",
+        { p_upload_id: id }
+      );
 
-    setLikes((current) => ({
-      ...current,
-      [id]: Math.max(0, (current[id] || 0) + (currentlyLiked ? -1 : 1)),
-    }));
+      if (error) {
+        showFeedMessage(error.message);
+        await loadLikes(id, userEmail);
+        return;
+      }
 
-    if (currentlyLiked) {
-      await supabase
-        .from("feed_likes")
-        .delete()
-        .eq("upload_id", id)
-        .eq("user_email", userEmail);
+      const liked = Boolean((data as any)?.liked);
+      const likeCount = Number((data as any)?.like_count || 0);
 
-      return;
-    }
+      setLikedPosts((current) => ({
+        ...current,
+        [id]: liked,
+      }));
 
-    const { error } = await supabase.from("feed_likes").insert({
-      upload_id: id,
-      user_email: userEmail,
-    });
+      setLikes((current) => ({
+        ...current,
+        [id]: likeCount,
+      }));
 
-    if (error) {
-      await loadLikes(id, userEmail);
+      if (!liked) return;
 
-      return;
-    }
-
-    await createNotification({
-      recipientEmail: creatorEmail,
-      actorEmail: userEmail,
-      type: "like",
-      title: "New Like",
-      message: `${profileName(userEmail)} liked your post.`,
-      link: `/feed#post-${id}`,
-    });
-
-    const likePushRecipient =
-      creatorEmail?.trim().toLowerCase();
-
-    if (
-      likePushRecipient &&
-      likePushRecipient !== userEmail.toLowerCase()
-    ) {
-      void sendUTVPush({
-        recipientEmail: likePushRecipient,
-        event: "like",
-        url: `/feed#post-${id}`,
+      await createNotification({
+        recipientEmail: creatorEmail,
+        actorEmail: userEmail,
+        type: "like",
+        title: "New Like",
+        message: `${profileName(userEmail)} liked your post.`,
+        link: `/feed#post-${id}`,
       });
+
+      const likePushRecipient =
+        creatorEmail?.trim().toLowerCase();
+
+      if (
+        likePushRecipient &&
+        likePushRecipient !== userEmail.toLowerCase()
+      ) {
+        void sendUTVPush({
+          recipientEmail: likePushRecipient,
+          event: "like",
+          url: `/feed#post-${id}`,
+        });
+      }
+    } finally {
+      interactionBusyRef.current.delete(busyKey);
     }
   }
 
@@ -2025,12 +2074,20 @@ export default function FeedPage() {
 
     const target = replyTargets[id];
 
-    const { error } = await supabase.from("feed_comments").insert({
-      upload_id: id,
-      user_email: userEmail,
-      comment: value,
-      parent_comment_id: target?.id ? String(target.id) : null,
-    });
+    const busyKey = `comment:${id}`;
+    if (interactionBusyRef.current.has(busyKey)) return;
+    interactionBusyRef.current.add(busyKey);
+
+    const { error } = await supabase.rpc(
+      "vuewe_add_feed_comment",
+      {
+        p_upload_id: id,
+        p_comment: value,
+        p_parent_comment_id: target?.id ? String(target.id) : null,
+      }
+    );
+
+    interactionBusyRef.current.delete(busyKey);
 
     if (error) {
       showFeedMessage(error.message);
@@ -2075,64 +2132,72 @@ export default function FeedPage() {
     }
   }
 
-  async function reactToComment(uploadId: string, comment: any, emoji: string) {
+  async function reactToComment(
+    uploadId: string,
+    comment: any,
+    emoji: string
+  ) {
     const { data: auth } = await supabase.auth.getUser();
     const userEmail = auth.user?.email;
+
     if (!userEmail) {
       router.push("/login");
       return;
     }
 
-    const commentId = String(comment.id);
-    const { data: existing } = await supabase
-      .from("feed_comment_reactions")
-      .select("id")
-      .eq("comment_id", commentId)
-      .eq("user_email", userEmail)
-      .eq("reaction", emoji)
-      .maybeSingle();
+    const commentId = String(comment.id || "");
+    const busyKey = `reaction:${commentId}:${emoji}`;
 
-    if (existing?.id) {
-      await supabase.from("feed_comment_reactions").delete().eq("id", existing.id);
-    } else {
-      const { error } = await supabase.from("feed_comment_reactions").insert({
-        comment_id: commentId,
-        user_email: userEmail,
-        reaction: emoji,
-      });
+    if (!commentId || interactionBusyRef.current.has(busyKey)) return;
+    interactionBusyRef.current.add(busyKey);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "vuewe_toggle_feed_comment_reaction",
+        {
+          p_comment_id: commentId,
+          p_reaction: emoji,
+        }
+      );
 
       if (error) {
         showFeedMessage(error.message);
         return;
       }
 
-      await createNotification({
-        recipientEmail: comment.user_email,
-        actorEmail: userEmail,
-        type: "comment_reaction",
-        title: `${emoji} Comment Reaction`,
-        message: `${profileName(userEmail)} reacted to your comment.`,
-        link: `/feed#post-${uploadId}`,
-      });
+      const active = Boolean((data as any)?.active);
 
-      const reactionPushRecipient =
-        String(comment.user_email || "")
-          .trim()
-          .toLowerCase();
-
-      if (
-        reactionPushRecipient &&
-        reactionPushRecipient !== userEmail.toLowerCase()
-      ) {
-        void sendUTVPush({
-          recipientEmail: reactionPushRecipient,
-          event: "comment_reaction",
-          url: `/feed#post-${uploadId}`,
+      if (active) {
+        await createNotification({
+          recipientEmail: comment.user_email,
+          actorEmail: userEmail,
+          type: "comment_reaction",
+          title: `${emoji} Comment Reaction`,
+          message: `${profileName(userEmail)} reacted to your comment.`,
+          link: `/feed#post-${uploadId}`,
         });
-      }
-    }
 
-    await loadComments(uploadId);
+        const reactionPushRecipient =
+          String(comment.user_email || "")
+            .trim()
+            .toLowerCase();
+
+        if (
+          reactionPushRecipient &&
+          reactionPushRecipient !== userEmail.toLowerCase()
+        ) {
+          void sendUTVPush({
+            recipientEmail: reactionPushRecipient,
+            event: "comment_reaction",
+            url: `/feed#post-${uploadId}`,
+          });
+        }
+      }
+
+      await loadComments(uploadId);
+    } finally {
+      interactionBusyRef.current.delete(busyKey);
+    }
   }
 
   // UTV SOCIAL SHARE SHEET V1
@@ -3633,11 +3698,7 @@ export default function FeedPage() {
         </section>
       )}
 
-      <div
-        id="vuewe-seasonal-feed-slot"
-        className="vueweSeasonalFeedSlot"
-        aria-hidden="true"
-      />
+      <VUEWESeasonalFeedRuntime />
 
       <section className="stories">
         <div className="storyWrap">

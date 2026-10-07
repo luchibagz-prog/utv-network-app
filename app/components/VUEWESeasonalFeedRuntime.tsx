@@ -1,55 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 import { getVueweSeason } from "../../lib/vueweSeason";
 
 export default function VUEWESeasonalFeedRuntime() {
-  const pathname = usePathname();
   const season = useMemo(() => getVueweSeason(), []);
-  const onFeed = pathname === "/feed";
-  const [host, setHost] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (!onFeed || !season) {
-      setHost(null);
-      return;
-    }
-
-    let stopped = false;
-    let timer = 0;
-
-    const bindStableHost = () => {
-      if (stopped) return;
-
-      const slot = document.getElementById(
-        "vuewe-seasonal-feed-slot"
-      ) as HTMLElement | null;
-
-      if (!slot) {
-        timer = window.setTimeout(bindStableHost, 80);
-        return;
-      }
-
-      setHost(slot);
-    };
-
-    bindStableHost();
-
-    return () => {
-      stopped = true;
-      window.clearTimeout(timer);
-      setHost(null);
-    };
-  }, [onFeed, season]);
-
-  if (!season || !onFeed || !host) return null;
+  if (!season) return null;
 
   const key = season.key;
   const patriotic = key === "memorial" || key === "fourth";
 
-  return createPortal(
+  return (
     <>
       <div className={"vueweFeedSeasonInline season-" + key} aria-hidden="true">
         <span className="seasonAura auraLeft" />
@@ -259,7 +221,6 @@ export default function VUEWESeasonalFeedRuntime() {
           .vueweFeedSeasonInline *{animation:none!important}
         }
       `}</style>
-    </>,
-    host
+    </>
   );
 }

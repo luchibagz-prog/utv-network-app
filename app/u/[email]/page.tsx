@@ -11,6 +11,7 @@ import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
 import { sendUTVPush } from "../../../lib/sendUTVPush";
 import ProfileSocialFeatured from "../../components/ProfileSocialFeatured";
+import VUEWEProfileHighlights from "../../components/VUEWEProfileHighlights";
 
 type Tab = "posts" | "featured" | "crew" | "about";
 
@@ -519,6 +520,13 @@ export default function PublicProfile() {
   useEffect(() => {
     void load();
   }, [email]);
+
+  useEffect(() => {
+    const requested = searchParams.get("tab");
+    if (requested === "featured" || requested === "posts" || requested === "about") {
+      setTab(requested as Tab);
+    }
+  }, [searchParams]);
 
   async function toggleProfileFollow() {
     if (
@@ -1977,6 +1985,8 @@ export default function PublicProfile() {
         {/* UTV FEATURED CONTENT CLEANUP 1A2B */}
         {tab === "featured" && (
           <>
+            <VUEWEProfileHighlights creatorEmail={email} />
+
             <section className="featuredContentSection">
               <div className="heading">
                 <div>

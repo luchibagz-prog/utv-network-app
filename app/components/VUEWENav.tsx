@@ -200,6 +200,15 @@ export default function VUEWENav() {
                 </div>
                 <em>TAP</em>
               </button>
+
+              <button className="vueweExplorePass" onClick={() => go("/pass-the-vuewe")}>
+                <span className="vueweExploreIcon"><Sparkles size={24} /></span>
+                <div>
+                  <b>Pass the VUEWE</b>
+                  <small>Answer a prompt, pass it to 2–3 people, watch the chain move.</small>
+                </div>
+                <em>PASS</em>
+              </button>
             </div>
 
             <div className="vueweMenuSectionTitle">
@@ -326,6 +335,7 @@ export default function VUEWENav() {
         .vueweExploreWorld { background:linear-gradient(120deg,rgba(36,232,110,.14),rgba(22,220,228,.07),rgba(255,255,255,.035))!important; }
         .vueweExploreWatch { background:linear-gradient(120deg,rgba(36,104,242,.13),rgba(255,255,255,.035))!important; }
         .vueweExploreTap { background:linear-gradient(120deg,rgba(80,242,188,.18),rgba(62,139,255,.10),rgba(255,255,255,.035))!important; }
+        .vueweExplorePass { background:linear-gradient(120deg,rgba(123,97,255,.18),rgba(82,247,200,.11),rgba(255,255,255,.035))!important; }
         .vueweExploreIcon { width:48px;height:48px;display:grid;place-items:center;border-radius:15px;color:#06110b;background:linear-gradient(145deg,#24e86e,#68ef99,#76a7ff); }
         .vueweMenuFeatured button div{min-width:0;display:grid;gap:3px}.vueweMenuFeatured button b{font-size:14px}.vueweMenuFeatured button small{color:rgba(255,255,255,.55);font-size:9px;line-height:1.35}.vueweMenuFeatured button em{padding:6px 8px;border-radius:999px;color:#07110b;background:#24e86e;font-size:7px;font-style:normal;font-weight:1000;letter-spacing:.09em}
 
