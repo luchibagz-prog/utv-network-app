@@ -165,6 +165,19 @@ const textColors = [
   "#ff5f57",
 ];
 
+const storyFilters = [
+  { id: "original", label: "Original", css: "none" },
+  { id: "clean", label: "Clean", css: "brightness(1.04) contrast(1.04) saturate(1.04)" },
+  { id: "warm", label: "Warm", css: "brightness(1.03) contrast(1.03) saturate(1.12) sepia(.10)" },
+  { id: "cool", label: "Cool", css: "brightness(1.02) contrast(1.06) saturate(1.08) hue-rotate(8deg)" },
+  { id: "rich", label: "Rich", css: "contrast(1.10) saturate(1.18)" },
+  { id: "noir", label: "Noir", css: "grayscale(1) contrast(1.18) brightness(.96)" },
+] as const;
+
+function storyFilterCss(id: string) {
+  return storyFilters.find((filter) => filter.id === id)?.css || "none";
+}
+
 function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()
     .toString(36)
@@ -232,7 +245,7 @@ export default function SubmitPage() {
   const [cameraStream, setCameraStream] =
   useState<MediaStream | null>(null);
   const [storyPanel, setStoryPanel] = useState<
-    "none" | "text" | "music" | "sticker" | "draw"
+    "none" | "text" | "music" | "sticker" | "draw" | "filter"
   >("none");
   const [textDraft, setTextDraft] = useState("");
   const [textColor, setTextColor] = useState("#ffffff");
@@ -242,6 +255,7 @@ export default function SubmitPage() {
     "pen" | "marker" | "neon" | "eraser"
   >("pen");
   const [drawVersion, setDrawVersion] = useState(0);
+  const [storyFilter, setStoryFilter] = useState("original");
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
@@ -439,6 +453,7 @@ const selectedSticker = stickers.find(
     setTextDraft("");
     setEditingTextId("");
     setDrawVersion(0);
+    setStoryFilter("original");
     drawHistoryRef.current = [];
     if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
     if (recordStopTimerRef.current) clearTimeout(recordStopTimerRef.current);
@@ -499,24 +514,19 @@ const selectedSticker = stickers.find(
       }
 
       let stream: MediaStream;
+      const mobileCapture = window.matchMedia("(max-width: 760px)").matches;
+      const targetWidth = mobileCapture ? 1280 : 1920;
+      const targetHeight = mobileCapture ? 720 : 1080;
 
       try {
-        // First attempt: premium mobile capture.
+        // Keep the live preview fluid on phones. StoryCamera uses
+        // ImageCapture for a higher-resolution still when supported.
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: {
-              ideal: facing,
-            },
-            width: {
-              ideal: 1920,
-            },
-            height: {
-              ideal: 1080,
-            },
-            frameRate: {
-              ideal: 30,
-              max: 30,
-            },
+            facingMode: { ideal: facing },
+            width: { ideal: targetWidth },
+            height: { ideal: targetHeight },
+            frameRate: { ideal: 30, max: 30 },
           },
           audio: {
             echoCancellation: true,
@@ -556,6 +566,12 @@ const selectedSticker = stickers.find(
           audio: true,
         });
       }
+
+      stream.getVideoTracks().forEach((track) => {
+        try {
+          if ("contentHint" in track) track.contentHint = "motion";
+        } catch {}
+      });
 
       streamRef.current = stream;
       setCameraStream(stream);
@@ -2742,12 +2758,13 @@ const selectedSticker = stickers.find(
             text_overlay: textLayers,
             stickers,
             drawing_data: drawingData,
+            filter_name: storyFilter,
             duration_seconds: storyDurationSeconds,
             expires_at: new Date(
               Date.now() + 24 * 60 * 60 * 1000
             ).toISOString(),
           })
-          .select("id, music_url, music_title, duration_seconds")
+          .select("id, music_url, music_title, filter_name, duration_seconds")
           .single();
 
       if (storyError) {
@@ -3839,6 +3856,7 @@ if (mode === "camera") {
                 playsInline
                 style={{
                   transform: mediaTransform,
+                  filter: storyFilterCss(storyFilter),
                 }}
               />
             ) : (
@@ -3847,6 +3865,7 @@ if (mode === "camera") {
                 alt="Story preview"
                 style={{
                   transform: mediaTransform,
+                  filter: storyFilterCss(storyFilter),
                 }}
               />
             )}
@@ -3941,7 +3960,10 @@ if (mode === "camera") {
                 muted
                 playsInline
                 disablePictureInPicture
-                style={{ transform: mediaTransform }}
+                style={{
+                  transform: mediaTransform,
+                  filter: storyFilterCss(storyFilter),
+                }}
               />
             ) : (
               <img
@@ -4035,6 +4057,7 @@ if (mode === "camera") {
           </header>
 
           <aside className="storyFloatingTools" aria-label="Story tools">
+            <button type="button" onClick={() => setStoryPanel("filter")} aria-label="Story filters"><span>◐</span><small>Filter</small></button>
             <button type="button" onClick={() => openTextComposer()} aria-label="Add text"><strong>Aa</strong><small>Text</small></button>
             <button type="button" className="storyMusicTool" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
             <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker"><span>☺</span><small>Sticker</small></button>
@@ -4104,6 +4127,34 @@ if (mode === "camera") {
                 }}
                 aria-label="Delete selected layer"
               >🗑</button>
+            </div>
+          )}
+
+          {storyPanel === "filter" && (
+            <div className="storyFilterTray" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+              <div className="storyFilterHeader">
+                <strong>Story Filters</strong>
+                <button type="button" onClick={() => setStoryPanel("none")}>Done</button>
+              </div>
+              <div className="storyFilterRow">
+                {storyFilters.map((filter) => (
+                  <button
+                    type="button"
+                    key={filter.id}
+                    className={storyFilter === filter.id ? "storyFilterChoice active" : "storyFilterChoice"}
+                    onClick={() => setStoryFilter(filter.id)}
+                  >
+                    <span style={{ filter: filter.css }}>
+                      {previewIsVideo ? (
+                        <video src={previewUrl} muted playsInline preload="metadata" />
+                      ) : (
+                        <img src={previewUrl} alt="" draggable={false} />
+                      )}
+                    </span>
+                    <small>{filter.label}</small>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -6163,6 +6214,84 @@ const styles = `
     transform: translateX(-50%);
     border-radius: 50%;
     font-size: 22px;
+  }
+
+  .storyFilterTray {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 118;
+    padding: 12px 12px max(18px, env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    background: rgba(8,9,12,.94);
+    box-shadow: 0 -18px 48px rgba(0,0,0,.36);
+  }
+
+  .storyFilterHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 10px;
+  }
+
+  .storyFilterHeader strong { font-size: 14px; }
+  .storyFilterHeader button {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 999px;
+    color: #07120e;
+    background: #62f7a5;
+    font-size: 10px;
+    font-weight: 950;
+  }
+
+  .storyFilterRow {
+    display: flex;
+    gap: 9px;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    scrollbar-width: none;
+  }
+  .storyFilterRow::-webkit-scrollbar { display: none; }
+
+  .storyFilterChoice {
+    flex: 0 0 68px;
+    display: grid;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    color: rgba(255,255,255,.7);
+    background: transparent;
+    text-align: center;
+  }
+
+  .storyFilterChoice > span {
+    width: 64px;
+    height: 84px;
+    display: block;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    background: #111;
+  }
+
+  .storyFilterChoice.active > span {
+    border-color: #62f7a5;
+    box-shadow: 0 0 0 2px rgba(98,247,165,.16);
+  }
+
+  .storyFilterChoice img,
+  .storyFilterChoice video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .storyFilterChoice small {
+    font-size: 8px;
+    font-weight: 850;
   }
 
   .storyTextComposer {

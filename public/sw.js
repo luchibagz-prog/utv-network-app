@@ -1,4 +1,4 @@
-const CACHE_NAME = "vuewe-push-v5";
+const CACHE_NAME = "vuewe-push-v6";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

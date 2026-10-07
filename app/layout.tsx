@@ -39,6 +39,7 @@ import "./vuewe-first-run-v31.css";
 import "./vuewe-profile-identity-v32.css";
 import "./vuewe-profile-v24.css";
 import "./vuewe-seasonal-v34.css";
+import "./vuewe-performance-v36.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";
 import UTVRealtimeBridge from "./components/UTVRealtimeBridge";
@@ -54,7 +55,6 @@ import VUEWEFidelityRuntime from "./components/VUEWEFidelityRuntime";
 import VUEWEInteractionRuntime from "./components/VUEWEInteractionRuntime";
 import VUEWEContentRuntime from "./components/VUEWEContentRuntime";
 import VUEWEInstallBrandRuntime from "./components/VUEWEInstallBrandRuntime";
-import VUEWERouteTransitionRuntime from "./components/VUEWERouteTransitionRuntime";
 import VUEWELiveQualityRuntime from "./components/VUEWELiveQualityRuntime";
 import VUEWELiveBrandRuntime from "./components/VUEWELiveBrandRuntime";
 import VUEWERealtimeQualityRuntime from "./components/VUEWERealtimeQualityRuntime";
@@ -76,6 +76,7 @@ import VUEWESeasonalPageAccentRuntime from "./components/VUEWESeasonalPageAccent
 import VUEWEProfileMomentsRuntime from "./components/VUEWEProfileMomentsRuntime";
 import VUEWECreatorDashRuntime from "./components/VUEWECreatorDashRuntime";
 import VUEWEProfileIdentityDockRuntime from "./components/VUEWEProfileIdentityDockRuntime";
+import VUEWEAppUpdateRuntime from "./components/VUEWEAppUpdateRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -119,6 +120,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: launchScript }} />
       </head>
       <body>
+        <VUEWEAppUpdateRuntime />
         <VUEWEFirstRunSetup />
         <UTVLiveTruthSync />
         <UTVAppShell />
@@ -135,7 +137,6 @@ export default function RootLayout({
         <VUEWEFidelityRuntime />
         <VUEWEInteractionRuntime />
         <VUEWEContentRuntime />
-        <VUEWERouteTransitionRuntime />
         <VUEWELiveQualityRuntime />
         <VUEWELiveBrandRuntime />
         <VUEWERealtimeQualityRuntime />

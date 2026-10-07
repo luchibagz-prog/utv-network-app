@@ -23,6 +23,7 @@ type StoryItem = {
   expires_at?: string;
   music_url?: string;
   music_title?: string;
+  filter_name?: string;
   text_overlay?: unknown;
   stickers?: unknown;
   drawing_data?: string;
@@ -53,6 +54,17 @@ function safeArray(value: unknown): any[] {
   }
 
   return [];
+}
+
+function storyFilterCss(id?: string) {
+  switch (id) {
+    case "clean": return "brightness(1.04) contrast(1.04) saturate(1.04)";
+    case "warm": return "brightness(1.03) contrast(1.03) saturate(1.12) sepia(.10)";
+    case "cool": return "brightness(1.02) contrast(1.06) saturate(1.08) hue-rotate(8deg)";
+    case "rich": return "contrast(1.10) saturate(1.18)";
+    case "noir": return "grayscale(1) contrast(1.18) brightness(.96)";
+    default: return "none";
+  }
 }
 
 function formatAge(value?: string) {
@@ -1198,6 +1210,7 @@ export default function StoryViewerPage() {
               controls={false}
               disablePictureInPicture
               className="storyVideo"
+              style={{ filter: storyFilterCss(story.filter_name) }}
               onLoadedMetadata={(event) => {
                 const duration =
                   event.currentTarget.duration;
@@ -1218,6 +1231,7 @@ export default function StoryViewerPage() {
               key={story.id}
               src={story.media_url}
               className="storyImage"
+              style={{ filter: storyFilterCss(story.filter_name) }}
               alt={`${creatorName} Story`}
               draggable={false}
             />
