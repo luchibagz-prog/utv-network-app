@@ -12,6 +12,11 @@ import { useRouter } from "next/navigation";
 import UTVNav from "../components/UTVNav";
 import StoryCamera from "../components/story/StoryCamera";
 import { supabase } from "../../lib/supabaseClient";
+import {
+  STORY_FILTERS,
+  getStoryFilterCss,
+  type StoryFilterKey,
+} from "../../lib/storyFilters";
 
 type Mode = "hub" | "camera" | "editor" | "share" | "link";
 type CameraFacing = "user" | "environment";
@@ -232,8 +237,10 @@ export default function SubmitPage() {
   const [cameraStream, setCameraStream] =
   useState<MediaStream | null>(null);
   const [storyPanel, setStoryPanel] = useState<
-    "none" | "text" | "music" | "sticker" | "draw"
+    "none" | "text" | "music" | "sticker" | "draw" | "filter"
   >("none");
+  const [storyFilter, setStoryFilter] =
+    useState<StoryFilterKey>("original");
   const [textDraft, setTextDraft] = useState("");
   const [textColor, setTextColor] = useState("#ffffff");
   const [editingTextId, setEditingTextId] = useState("");
@@ -436,6 +443,7 @@ const selectedSticker = stickers.find(
     setMessage("");
     setPosting(false);
     setStoryPanel("none");
+    setStoryFilter("original");
     setTextDraft("");
     setEditingTextId("");
     setDrawVersion(0);
@@ -508,14 +516,19 @@ const selectedSticker = stickers.find(
               ideal: facing,
             },
             width: {
-              ideal: 1920,
+              ideal: 1080,
+              max: 2160,
             },
             height: {
-              ideal: 1080,
+              ideal: 1920,
+              max: 3840,
+            },
+            aspectRatio: {
+              ideal: 9 / 16,
             },
             frameRate: {
               ideal: 30,
-              max: 30,
+              max: 60,
             },
           },
           audio: {
@@ -653,10 +666,47 @@ const selectedSticker = stickers.find(
   }
 
   async function flipCamera() {
+    if (recording) return;
+
     const nextFacing =
       cameraFacing === "user" ? "environment" : "user";
 
-    await startCamera(nextFacing);
+    const currentStream = streamRef.current;
+    const liveAudioTracks =
+      currentStream
+        ?.getAudioTracks()
+        .filter((track) => track.readyState === "live") || [];
+
+    try {
+      setMessage("");
+
+      // Recycle only the lens. Keeping the microphone track alive avoids
+      // a second permission/audio startup cycle and makes flipping feel faster.
+      currentStream?.getVideoTracks().forEach((track) => track.stop());
+
+      const videoOnly = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: nextFacing },
+          width: { ideal: 1080, max: 2160 },
+          height: { ideal: 1920, max: 3840 },
+          aspectRatio: { ideal: 9 / 16 },
+          frameRate: { ideal: 30, max: 60 },
+        },
+        audio: false,
+      });
+
+      const nextStream = new MediaStream([
+        ...videoOnly.getVideoTracks(),
+        ...liveAudioTracks,
+      ]);
+
+      streamRef.current = nextStream;
+      setCameraStream(nextStream);
+      setCameraFacing(nextFacing);
+    } catch (error) {
+      console.info("VUEWE quick lens switch fallback:", error);
+      await startCamera(nextFacing);
+    }
   }
 
   function pickFile(
@@ -833,8 +883,13 @@ const selectedSticker = stickers.find(
         preferredType
           ? {
               mimeType: preferredType,
+              videoBitsPerSecond: isStory ? 6000000 : 5000000,
+              audioBitsPerSecond: 128000,
             }
-          : undefined
+          : {
+              videoBitsPerSecond: isStory ? 6000000 : 5000000,
+              audioBitsPerSecond: 128000,
+            }
       );
 
       recorderRef.current = recorder;
@@ -2742,6 +2797,7 @@ const selectedSticker = stickers.find(
             text_overlay: textLayers,
             stickers,
             drawing_data: drawingData,
+            story_filter: storyFilter,
             duration_seconds: storyDurationSeconds,
             expires_at: new Date(
               Date.now() + 24 * 60 * 60 * 1000
@@ -3839,6 +3895,7 @@ if (mode === "camera") {
                 playsInline
                 style={{
                   transform: mediaTransform,
+                  filter: getStoryFilterCss(storyFilter),
                 }}
               />
             ) : (
@@ -3847,6 +3904,7 @@ if (mode === "camera") {
                 alt="Story preview"
                 style={{
                   transform: mediaTransform,
+                  filter: getStoryFilterCss(storyFilter),
                 }}
               />
             )}
@@ -3941,7 +3999,10 @@ if (mode === "camera") {
                 muted
                 playsInline
                 disablePictureInPicture
-                style={{ transform: mediaTransform }}
+                style={{
+                  transform: mediaTransform,
+                  filter: isStory ? getStoryFilterCss(storyFilter) : "none",
+                }}
               />
             ) : (
               <img
@@ -3949,7 +4010,10 @@ if (mode === "camera") {
                 className="storyMedia"
                 alt="Story preview"
                 draggable={false}
-                style={{ transform: mediaTransform }}
+                style={{
+                  transform: mediaTransform,
+                  filter: isStory ? getStoryFilterCss(storyFilter) : "none",
+                }}
               />
             )}
           </div>
@@ -4039,6 +4103,7 @@ if (mode === "camera") {
             <button type="button" className="storyMusicTool" onClick={() => setStoryPanel("music")} aria-label="Add music"><span>♫</span><small>Music</small></button>
             <button type="button" onClick={() => setStoryPanel("sticker")} aria-label="Add sticker"><span>☺</span><small>Sticker</small></button>
             <button type="button" onClick={openDrawPanel} aria-label="Draw"><span>✎</span><small>Draw</small></button>
+            <button type="button" className="storyFilterTool" onClick={() => setStoryPanel("filter")} aria-label="Add filter"><span>✦</span><small>Filter</small></button>
           </aside>
 
           {storyPanel === "none" && (
@@ -4104,6 +4169,37 @@ if (mode === "camera") {
                 }}
                 aria-label="Delete selected layer"
               >🗑</button>
+            </div>
+          )}
+
+          {storyPanel === "filter" && (
+            <div className="storyFilterSheet" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="storyFilterSheetHead">
+                <div>
+                  <small>VUEWE LOOKS</small>
+                  <strong>Choose a Story filter</strong>
+                </div>
+                <button type="button" onClick={() => setStoryPanel("none")}>Done</button>
+              </div>
+              <div className="storyFilterRail">
+                {STORY_FILTERS.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={storyFilter === item.key ? "storyFilterOption active" : "storyFilterOption"}
+                    onClick={() => setStoryFilter(item.key)}
+                  >
+                    <span className="storyFilterPreview" style={{ filter: item.css }}>
+                      {previewIsVideo ? (
+                        <video src={previewUrl} muted playsInline preload="metadata" />
+                      ) : (
+                        <img src={previewUrl} alt="" />
+                      )}
+                    </span>
+                    <small>{item.label}</small>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -6015,6 +6111,120 @@ const styles = `
     transform-origin: center;
     user-select: none;
     pointer-events: none;
+  }
+
+  .storyFilterTool {
+    border-color: rgba(101, 238, 220, .32) !important;
+    background: rgba(5, 24, 22, .70) !important;
+  }
+
+  .storyFilterSheet {
+    position: absolute;
+    z-index: 110;
+    right: 12px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: 12px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 24px;
+    background:
+      linear-gradient(180deg, rgba(17,20,25,.94), rgba(5,8,11,.96));
+    box-shadow: 0 20px 60px rgba(0,0,0,.42);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+  }
+
+  .storyFilterSheetHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .storyFilterSheetHead > div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .storyFilterSheetHead small {
+    color: #5af0ce;
+    font-size: 7px;
+    font-weight: 1000;
+    letter-spacing: .14em;
+  }
+
+  .storyFilterSheetHead strong {
+    font-size: 14px;
+  }
+
+  .storyFilterSheetHead button {
+    min-height: 34px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 999px;
+    color: #06110d;
+    background: #60efc8;
+    font-size: 9px;
+    font-weight: 1000;
+  }
+
+  .storyFilterRail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 72px;
+    gap: 9px;
+    overflow-x: auto;
+    padding: 2px 1px 5px;
+    scrollbar-width: none;
+  }
+
+  .storyFilterRail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .storyFilterOption {
+    display: grid;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    color: rgba(255,255,255,.60);
+    background: transparent;
+    text-align: center;
+  }
+
+  .storyFilterPreview {
+    width: 70px;
+    height: 92px;
+    display: block;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 15px;
+    background: #111;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+
+  .storyFilterPreview img,
+  .storyFilterPreview video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .storyFilterOption.active {
+    color: #fff;
+  }
+
+  .storyFilterOption.active .storyFilterPreview {
+    transform: translateY(-2px);
+    border-color: #62efca;
+    box-shadow: 0 0 0 2px rgba(98,239,202,.14);
+  }
+
+  .storyFilterOption small {
+    font-size: 8px;
+    font-weight: 850;
   }
 
   .storyTopBar {

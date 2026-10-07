@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
+import { getStoryFilterCss } from "../../../lib/storyFilters";
 import { sendUTVPush } from "../../../lib/sendUTVPush";
 
 type StoryItem = {
@@ -25,6 +26,7 @@ type StoryItem = {
   music_title?: string;
   text_overlay?: unknown;
   stickers?: unknown;
+  story_filter?: string;
   drawing_data?: string;
   duration_seconds?: number;
 };
@@ -1198,6 +1200,7 @@ export default function StoryViewerPage() {
               controls={false}
               disablePictureInPicture
               className="storyVideo"
+              style={{ filter: getStoryFilterCss(story.story_filter) }}
               onLoadedMetadata={(event) => {
                 const duration =
                   event.currentTarget.duration;
@@ -1218,6 +1221,7 @@ export default function StoryViewerPage() {
               key={story.id}
               src={story.media_url}
               className="storyImage"
+              style={{ filter: getStoryFilterCss(story.story_filter) }}
               alt={`${creatorName} Story`}
               draggable={false}
             />

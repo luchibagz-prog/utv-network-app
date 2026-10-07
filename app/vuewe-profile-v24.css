@@ -1,57 +1,56 @@
 /* =========================================================
-   VUEWE PROFILE DEPTH V24
-   Keep the approved identity layout, move the entire profile
-   identity/control stack lower by giving the media hero more
-   real photo/video depth.
+   VUEWE PROFILE DEPTH V24.1
+   Keep the approved identity/avatar/badge/action layout.
+   Only return the photo/video hero to a normal mobile height.
    ========================================================= */
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero,
 main[data-utv-page="profile"] .hero {
-  min-height: 720px !important;
-  padding-bottom: 18px !important;
+  min-height: 500px !important;
+  padding-bottom: 16px !important;
 }
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .profileCoverStage,
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime,
 main[data-utv-page="profile"] .profileCoverStage,
 main[data-utv-page="profile"] .vueweProfileVideoRuntime {
-  height: 700px !important;
-  min-height: 700px !important;
-  border-radius: 0 0 40px 40px !important;
+  height: 485px !important;
+  min-height: 485px !important;
+  border-radius: 0 0 36px 36px !important;
   -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    #000 78%,
-    rgba(0,0,0,.98) 85%,
-    rgba(0,0,0,.78) 92%,
-    rgba(0,0,0,.28) 97%,
+    #000 72%,
+    rgba(0,0,0,.98) 82%,
+    rgba(0,0,0,.74) 91%,
+    rgba(0,0,0,.24) 97%,
     transparent 100%
   ) !important;
   mask-image: linear-gradient(
     to bottom,
     #000 0%,
-    #000 78%,
-    rgba(0,0,0,.98) 85%,
-    rgba(0,0,0,.78) 92%,
-    rgba(0,0,0,.28) 97%,
+    #000 72%,
+    rgba(0,0,0,.98) 82%,
+    rgba(0,0,0,.74) 91%,
+    rgba(0,0,0,.24) 97%,
     transparent 100%
   ) !important;
 }
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileIdentityDock,
 main[data-utv-page="profile"] .vueweProfileIdentityDock {
-  bottom: 16px !important;
+  bottom: 14px !important;
 }
 
 html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileIdentityDock.isVisitor,
 main[data-utv-page="profile"] .vueweProfileIdentityDock.isVisitor {
-  bottom: 66px !important;
+  bottom: 64px !important;
 }
 
 @media (max-width: 600px) {
   html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .hero,
   main[data-utv-page="profile"] .hero {
-    min-height: 690px !important;
+    min-height: 475px !important;
     padding-bottom: 14px !important;
   }
 
@@ -59,9 +58,9 @@ main[data-utv-page="profile"] .vueweProfileIdentityDock.isVisitor {
   html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileVideoRuntime,
   main[data-utv-page="profile"] .profileCoverStage,
   main[data-utv-page="profile"] .vueweProfileVideoRuntime {
-    height: 675px !important;
-    min-height: 675px !important;
-    border-radius: 0 0 34px 34px !important;
+    height: 460px !important;
+    min-height: 460px !important;
+    border-radius: 0 0 32px 32px !important;
   }
 
   html[data-vuewe-fidelity-route="profile"] main[data-utv-page="profile"] .vueweProfileIdentityDock,

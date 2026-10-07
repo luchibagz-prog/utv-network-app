@@ -76,6 +76,7 @@ import VUEWESeasonalPageAccentRuntime from "./components/VUEWESeasonalPageAccent
 import VUEWEProfileMomentsRuntime from "./components/VUEWEProfileMomentsRuntime";
 import VUEWECreatorDashRuntime from "./components/VUEWECreatorDashRuntime";
 import VUEWEProfileIdentityDockRuntime from "./components/VUEWEProfileIdentityDockRuntime";
+import VUEWEAppUpdateRuntime from "./components/VUEWEAppUpdateRuntime";
 
 export const metadata = {
   title: "VUEWE - Your View. Our World.",
@@ -119,6 +120,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: launchScript }} />
       </head>
       <body>
+        <VUEWEAppUpdateRuntime />
         <VUEWEFirstRunSetup />
         <UTVLiveTruthSync />
         <UTVAppShell />

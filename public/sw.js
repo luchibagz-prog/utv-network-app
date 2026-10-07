@@ -1,4 +1,4 @@
-const CACHE_NAME = "vuewe-push-v5";
+const CACHE_NAME = "vuewe-push-v6";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -6,20 +6,31 @@ self.addEventListener("install", () => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    Promise.all([
-      self.clients.claim(),
-      caches.keys().then((keys) =>
-        Promise.all(
-          keys
-            .filter(
-              (key) =>
-                key.startsWith("vuewe-push-") &&
-                key !== CACHE_NAME
-            )
-            .map((key) => caches.delete(key))
-        )
-      ),
-    ])
+    (async () => {
+      await self.clients.claim();
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter(
+            (key) =>
+              key.startsWith("vuewe-push-") &&
+              key !== CACHE_NAME
+          )
+          .map((key) => caches.delete(key))
+      );
+
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+
+      windows.forEach((client) => {
+        client.postMessage?.({
+          type: "VUEWE_SW_ACTIVATED",
+          cache: CACHE_NAME,
+        });
+      });
+    })()
   );
 });
 
