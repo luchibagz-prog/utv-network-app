@@ -1,18 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
-
-const PREFETCH_ROUTES = [
-  "/feed",
-  "/world",
-  "/submit",
-  "/messages",
-  "/profile",
-  "/live",
-  "/live-room",
-  "/watch",
-];
+import { usePathname } from "next/navigation";
 
 function isTypingTarget(target: Element | null) {
   if (!target) return false;
@@ -56,42 +45,7 @@ function findCameraEnableButton() {
 
 export default function VUEWEMobilePolishRuntime() {
   const pathname = usePathname();
-  const router = useRouter();
   const lastLiveTileTapRef = useRef(0);
-
-  /* Warm the main VUEWE routes after the current screen settles.
-     This keeps tab switching feeling app-like without blocking first paint. */
-  useEffect(() => {
-    const run = () => {
-      PREFETCH_ROUTES.forEach((route) => {
-        try {
-          router.prefetch(route);
-        } catch {}
-      });
-    };
-
-    const idle = (window as any).requestIdleCallback as
-      | ((callback: () => void, options?: { timeout?: number }) => number)
-      | undefined;
-
-    const cancelIdle = (window as any).cancelIdleCallback as
-      | ((id: number) => void)
-      | undefined;
-
-    let idleId: number | null = null;
-    let timerId: number | null = null;
-
-    if (idle) {
-      idleId = idle(run, { timeout: 1200 });
-    } else {
-      timerId = window.setTimeout(run, 500);
-    }
-
-    return () => {
-      if (idleId !== null && cancelIdle) cancelIdle(idleId);
-      if (timerId !== null) window.clearTimeout(timerId);
-    };
-  }, [router]);
 
   /* Keep fixed composers attached to the *visible* phone viewport.
      Android Chrome can keep the layout viewport taller than the keyboard area,

@@ -71,14 +71,34 @@ export default function VUEWEFidelityRuntime() {
 
     inspect();
 
-    const observer = new MutationObserver(inspect);
-    observer.observe(document.body, {
+    const needsObserver =
+      pathname === "/submit" ||
+      pathname.startsWith("/live/");
+
+    if (!needsObserver) {
+      return () => {
+        delete document.documentElement.dataset.vueweFidelityRoute;
+      };
+    }
+
+    let frame = 0;
+    const queueInspect = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        inspect();
+      });
+    };
+
+    const observer = new MutationObserver(queueInspect);
+    observer.observe(document.querySelector("main") || document.body, {
       childList: true,
       subtree: true,
     });
 
     return () => {
       observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
       delete document.documentElement.dataset.vueweFidelityRoute;
     };
   }, [pathname, route]);

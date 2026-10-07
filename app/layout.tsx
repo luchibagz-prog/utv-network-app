@@ -63,7 +63,6 @@ import VUEWEMobilePolishRuntime from "./components/VUEWEMobilePolishRuntime";
 import VUEWELiveGiftRuntime from "./components/VUEWELiveGiftRuntime";
 import VUEWEMonetizationRuntime from "./components/VUEWEMonetizationRuntime";
 import VUEWEFirstRunSetup from "./components/VUEWEFirstRunSetup";
-import VUEWEGreenScreenStudioV4 from "./components/VUEWEGreenScreenStudioV4";
 import VUEWEUpgradePulse from "./components/VUEWEUpgradePulse";
 import VUEWECreateLauncherRuntime from "./components/VUEWECreateLauncherRuntime";
 import VUEWEIncomingCallRuntime from "./components/VUEWEIncomingCallRuntime";
@@ -135,6 +134,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {process.env.NEXT_PUBLIC_SUPABASE_URL ? (
+          <>
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        ) : null}
         <script dangerouslySetInnerHTML={{ __html: launchScript }} />
       </head>
       <body>
@@ -172,7 +177,6 @@ export default function RootLayout({
         <VUEWEProfileIdentityDockRuntime />
         <VUEWEProfileAnalyticsRuntime />
         {children}
-        <VUEWEGreenScreenStudioV4 />
         <VUEWEUpgradePulse />
         <VUEWECreateLauncherRuntime />
         <UTVNotificationBootstrap />

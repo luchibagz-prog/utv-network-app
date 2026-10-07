@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 /*
  * UTV LIVE TRUTH CLIENT V2
@@ -406,18 +407,14 @@ function applyTruth(
 
 
 export default function UTVLiveTruthSync() {
-  useEffect(() => {
-    const path =
-      window.location
-        .pathname;
+  const pathname = usePathname();
 
+  useEffect(() => {
     const enabled =
-      path === "/feed" ||
-      path === "/discover" ||
-      path === "/live" ||
-      path.startsWith(
-        "/world"
-      );
+      pathname === "/feed" ||
+      pathname === "/discover" ||
+      pathname === "/live" ||
+      pathname.startsWith("/world");
 
     if (!enabled) {
       return;
@@ -526,17 +523,16 @@ export default function UTVLiveTruthSync() {
         }
       );
 
+    const observerRoot =
+      document.querySelector("main") ||
+      document.body;
+
     observer.observe(
-      document.body,
+      observerRoot,
       {
-        childList:
-          true,
-
-        subtree:
-          true,
-
-        characterData:
-          true,
+        childList: true,
+        subtree: true,
+        characterData: false,
       }
     );
 
@@ -549,7 +545,7 @@ export default function UTVLiveTruthSync() {
         () => {
           void check();
         },
-        8000
+        20000
       );
 
 
@@ -592,7 +588,7 @@ export default function UTVLiveTruthSync() {
         visible
       );
     };
-  }, []);
+  }, [pathname]);
 
 
   return null;

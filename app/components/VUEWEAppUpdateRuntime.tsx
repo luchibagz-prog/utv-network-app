@@ -8,6 +8,8 @@ export default function VUEWEAppUpdateRuntime() {
   useEffect(() => {
     let cancelled = false;
     let checking = false;
+    let lastCheckedAt = 0;
+    const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
     const reloadOnce = () => {
       try {
@@ -17,8 +19,13 @@ export default function VUEWEAppUpdateRuntime() {
       window.location.reload();
     };
 
-    const checkRelease = async () => {
+    const checkRelease = async (force = false) => {
       if (cancelled || checking) return;
+
+      const now = Date.now();
+      if (!force && now - lastCheckedAt < CHECK_INTERVAL_MS) return;
+
+      lastCheckedAt = now;
       checking = true;
 
       try {
@@ -70,12 +77,12 @@ export default function VUEWEAppUpdateRuntime() {
       } catch {}
     };
 
-    void registerWorker().then(checkRelease);
+    void registerWorker().then(() => checkRelease(true));
 
     const onVisible = () => {
       if (document.visibilityState === "visible") {
         try { sessionStorage.removeItem("vuewe-release-reload"); } catch {}
-        void checkRelease();
+        void checkRelease(false);
       }
     };
 
@@ -83,13 +90,17 @@ export default function VUEWEAppUpdateRuntime() {
       if (!cancelled) reloadOnce();
     };
 
-    window.addEventListener("pageshow", checkRelease);
+    const onPageShow = () => {
+      void checkRelease(false);
+    };
+
+    window.addEventListener("pageshow", onPageShow);
     document.addEventListener("visibilitychange", onVisible);
     navigator.serviceWorker?.addEventListener("controllerchange", onControllerChange);
 
     return () => {
       cancelled = true;
-      window.removeEventListener("pageshow", checkRelease);
+      window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("visibilitychange", onVisible);
       navigator.serviceWorker?.removeEventListener("controllerchange", onControllerChange);
     };

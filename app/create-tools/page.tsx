@@ -7,7 +7,13 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { supabase } from "../../lib/supabaseClient";
+
+const VUEWEGreenScreenStudioV4 = dynamic(
+  () => import("../components/VUEWEGreenScreenStudioV4"),
+  { ssr: false, loading: () => null }
+);
 
 type ToolName = "ai" | "templates" | "green-screen";
 type CameraFacing = "user" | "environment";
@@ -566,6 +572,8 @@ export default function CreateToolsPage() {
 
         {notice && <div className="toolNotice">{notice}</div>}
       </div>
+
+      {tool === "green-screen" && <VUEWEGreenScreenStudioV4 />}
 
       <style jsx>{`
         *{box-sizing:border-box}

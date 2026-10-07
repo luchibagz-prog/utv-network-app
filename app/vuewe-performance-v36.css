@@ -293,3 +293,30 @@ html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].pag
     font-size:18px!important;
   }
 }
+
+
+/* =========================================================
+   VUEWE PERFORMANCE V39 — FEED RENDER BUDGET
+   ========================================================= */
+
+/* Let Chromium skip layout/paint work for posts well outside the viewport.
+   The intrinsic size keeps scroll position stable while the post is skipped. */
+@supports (content-visibility: auto) {
+  .feedPage [id^="post-"] {
+    content-visibility: auto !important;
+    contain-intrinsic-size: 760px !important;
+  }
+}
+
+.feedPage .postMedia {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (max-width: 600px) {
+  @supports (content-visibility: auto) {
+    .feedPage [id^="post-"] {
+      contain-intrinsic-size: 680px !important;
+    }
+  }
+}

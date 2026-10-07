@@ -93,47 +93,13 @@ function markStoryWatched(id: string, email = "") {
 
 
 function FeedTaggedPeople({
-  uploadId,
+  people,
   router,
 }: {
-  uploadId: string;
+  people: any[];
   router: any;
 }) {
-  const [people, setPeople] =
-    useState<any[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-
-    async function loadTags() {
-      const { data, error } =
-        await supabase.rpc(
-          "utv_get_content_tags",
-          {
-            p_content_kind: "upload",
-            p_content_id:
-              String(uploadId),
-          }
-        );
-
-      if (
-        !error &&
-        alive
-      ) {
-        setPeople(data || []);
-      }
-    }
-
-    void loadTags();
-
-    return () => {
-      alive = false;
-    };
-  }, [uploadId]);
-
-  if (!people.length) {
-    return null;
-  }
+  if (!people.length) return null;
 
   return (
     <div className="utvTaggedPeople">
@@ -144,17 +110,11 @@ function FeedTaggedPeople({
           key={person.username}
           type="button"
           onClick={() => {
-            const username =
-              String(
-                person.username || ""
-              );
-
+            const username = String(person.username || "");
             if (!username) return;
 
             router.push(
-              `/search?q=${encodeURIComponent(
-                `@${username}`
-              )}`
+              `/search?q=${encodeURIComponent(`@${username}`)}`
             );
           }}
         >
@@ -205,6 +165,8 @@ export default function FeedPage() {
     useState<Record<string, number>>({});
 
   const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [tagsByUpload, setTagsByUpload] =
+    useState<Record<string, any[]>>({});
 
   const [likes, setLikes] = useState<Record<string, number>>({});
 
@@ -232,8 +194,6 @@ export default function FeedPage() {
   const [fullscreenPost, setFullscreenPost] = useState<any | null>(null);
 
   const [search, setSearch] = useState("");
-
-  const [heroIndex, setHeroIndex] = useState(0);
 
   const [loading, setLoading] = useState(true);
 
@@ -285,29 +245,6 @@ export default function FeedPage() {
   useEffect(() => {
     loadEverything(true, true);
 
-    const heroTimer = window.setInterval(() => {
-      setHeroIndex((current) => {
-        return (current + 1) % heroHeaders.length;
-      });
-    }, 4200);
-
-    const liveTimer = window.setInterval(() => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      /*
-        At the top of Feed we can safely rotate.
-        While the user is scrolling, only check for
-        new content so posts do not jump underneath them.
-      */
-      if (window.scrollY <= 24) {
-        void loadEverything(false, true);
-      } else {
-        void checkForFreshPosts();
-      }
-    }, 15000);
-
     const freshnessTimer = window.setInterval(() => {
       if (document.visibilityState === "visible") {
         checkForFreshPosts();
@@ -327,9 +264,7 @@ export default function FeedPage() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(heroTimer);
       window.clearInterval(freshnessTimer);
-      window.clearInterval(liveTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       observerRef.current?.disconnect();
     };
@@ -364,12 +299,15 @@ export default function FeedPage() {
           "";
 
         if (uploadId) {
-          void loadComments(String(uploadId));
-          void loadLikes(String(uploadId), viewerEmail);
+          if (table === "feed_likes") {
+            void loadLikes(String(uploadId), viewerEmail);
+          } else {
+            void loadComments(String(uploadId));
+          }
           return;
         }
 
-        void loadEverything(false, false);
+        void checkForFreshPosts();
       }, 120);
     }
 
@@ -1313,6 +1251,7 @@ export default function FeedPage() {
     void Promise.all([
       loadFeedLikes(displayItems, currentEmail),
       loadFeedComments(displayItems),
+      loadFeedTags(displayItems),
     ]);
 
     await loadProfiles(
@@ -1320,6 +1259,48 @@ export default function FeedPage() {
         .map((item) => item.creator_email)
         .filter(Boolean)
     );
+  }
+
+  async function loadFeedTags(feedRows: any[]) {
+    const uploadIds = Array.from(
+      new Set(
+        feedRows
+          .map((item) => String(item?.id || ""))
+          .filter(Boolean)
+      )
+    );
+
+    if (!uploadIds.length) {
+      setTagsByUpload({});
+      return;
+    }
+
+    const { data, error } = await supabase.rpc(
+      "utv_get_content_tags_batch",
+      {
+        p_content_kind: "upload",
+        p_content_ids: uploadIds,
+      }
+    );
+
+    if (error) {
+      console.info("Feed tags skipped:", error.message);
+      return;
+    }
+
+    const grouped: Record<string, any[]> = {};
+    uploadIds.forEach((id) => {
+      grouped[id] = [];
+    });
+
+    (data || []).forEach((row: any) => {
+      const id = String(row.content_id || "");
+      if (!id) return;
+      if (!grouped[id]) grouped[id] = [];
+      grouped[id].push(row);
+    });
+
+    setTagsByUpload(grouped);
   }
 
   async function loadFeedLikes(
@@ -4069,7 +4050,6 @@ export default function FeedPage() {
                         }}
                         poster={image || undefined}
                         muted={isMuted}
-                        autoPlay
                         playsInline
                         loop
                         preload="metadata"
@@ -4412,7 +4392,7 @@ export default function FeedPage() {
                   </p>
 
                   <FeedTaggedPeople
-                    uploadId={String(item.id)}
+                    people={tagsByUpload[String(item.id)] || []}
                     router={router}
                   />
 

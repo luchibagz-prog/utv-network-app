@@ -41,6 +41,14 @@ export default function VUEWESocialVisualPolishRuntime() {
 
     document.body.dataset.vueweVisual = route;
 
+    // Feed and Profile are high-churn surfaces. Their premium look is CSS-owned;
+    // skip reveal observers there so scrolling, likes and comments stay smooth.
+    if (route === "feed" || route === "profile") {
+      return () => {
+        delete document.body.dataset.vueweVisual;
+      };
+    }
+
     const seen = new WeakSet<Element>();
     const observer = new IntersectionObserver(
       (entries) => {

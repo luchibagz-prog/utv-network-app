@@ -336,7 +336,16 @@ export default function VUEWEMockRuntime() {
 
     apply();
 
-    const observer = new MutationObserver(() => apply());
+    let frame = 0;
+    const queueApply = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        apply();
+      });
+    };
+
+    const observer = new MutationObserver(queueApply);
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -345,6 +354,7 @@ export default function VUEWEMockRuntime() {
 
     return () => {
       observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
       delete document.documentElement.dataset.vueweRoute;
       delete document.documentElement.dataset.vueweFullscreenCreate;
     };
