@@ -37,6 +37,7 @@ import "./vuewe-mobile-v29.css";
 import "./vuewe-relaunch-v30.css";
 import "./vuewe-first-run-v31.css";
 import "./vuewe-profile-identity-v32.css";
+import "./vuewe-profile-v24.css";
 import "./vuewe-seasonal-v34.css";
 import UTVLiveTruthSync from "./components/UTVLiveTruthSync";
 import UTVNotificationBootstrap from "./components/UTVNotificationBootstrap";

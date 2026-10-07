@@ -3,22 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-
-type Season = "halloween" | "thanksgiving" | "christmas" | "newyear" | null;
-
-function seasonFor(date = new Date()): Season {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  if (month === 10) return "halloween";
-  if (month === 11 && day >= 15) return "thanksgiving";
-  if (month === 12 && day <= 26) return "christmas";
-  if ((month === 12 && day >= 27) || (month === 1 && day <= 2)) return "newyear";
-  return null;
-}
+import { getVueweSeason } from "../../lib/vueweSeason";
 
 export default function VUEWESeasonalPageAccentRuntime() {
   const pathname = usePathname();
-  const season = useMemo(() => seasonFor(), []);
+  const season = useMemo(() => getVueweSeason(), []);
   const active = pathname === "/world" || pathname.startsWith("/world/");
   const [host, setHost] = useState<HTMLElement | null>(null);
 
@@ -54,81 +43,46 @@ export default function VUEWESeasonalPageAccentRuntime() {
 
   return createPortal(
     <>
-      <div className={"vuewePageSeasonAccent vuewePageSeasonAccent-" + season} aria-hidden="true">
-        {season === "halloween" && (
+      <div className={"vueweWorldSeasonAccent season-" + season.key} aria-hidden="true">
+        <span className="worldSeasonGlow left" />
+        <span className="worldSeasonGlow right" />
+        {season.key === "halloween" && (
           <>
-            <span className="vpaWeb left" />
-            <span className="vpaWeb right" />
-            <span className="vpaPumpkin"><i /></span>
-            <span className="vpaSpider">🕷</span>
-            <span className="vpaGlow" />
+            <span className="worldWeb left" />
+            <span className="worldWeb right" />
+            <span className="worldPumpkin"><i /></span>
+            <span className="worldBat one"><i /></span>
+            <span className="worldBat two"><i /></span>
+            <span className="worldSpider"><i /></span>
           </>
         )}
-        {season === "thanksgiving" && <span className="vpaQuietMark">🍂</span>}
-        {season === "christmas" && <span className="vpaQuietMark">❄</span>}
-        {season === "newyear" && <span className="vpaQuietMark">✦</span>}
+        {season.key === "christmas" && <span className="worldLights">{Array.from({ length: 8 }).map((_, i) => <i key={i} />)}</span>}
+        {season.key === "newyear" && <><span className="worldFirework one" /><span className="worldFirework two" /></>}
+        {season.key === "valentine" && <><span className="worldSymbol one">♥</span><span className="worldSymbol two">♥</span></>}
+        {season.key === "stpatrick" && <><span className="worldSymbol one">♣</span><span className="worldSymbol two">♣</span></>}
+        {season.key === "easter" && <><span className="worldEgg one" /><span className="worldEgg two" /></>}
+        {(season.key === "memorial" || season.key === "fourth" || season.key === "juneteenth") && <span className="worldRibbon" />}
+        {season.key === "thanksgiving" && <><span className="worldLeaf one" /><span className="worldLeaf two" /></>}
       </div>
 
       <style jsx global>{`
-        .vuewePageSeasonAccent{
-          position:absolute!important;
-          z-index:3!important;
-          top:0!important;
-          left:0!important;
-          right:0!important;
-          height:116px!important;
-          overflow:hidden!important;
-          pointer-events:none!important;
-        }
-        .vuewePageSeasonAccent-halloween{
-          background:linear-gradient(180deg,rgba(28,11,40,.075),transparent 82%)!important;
-        }
-        .vpaGlow{
-          position:absolute!important;
-          left:50%!important;
-          top:-54px!important;
-          width:220px!important;
-          height:120px!important;
-          transform:translateX(-50%)!important;
-          border-radius:50%!important;
-          opacity:.2!important;
-          background:radial-gradient(ellipse,rgba(255,120,35,.22),rgba(117,76,255,.07) 48%,transparent 72%)!important;
-          filter:blur(18px)!important;
-        }
-        .vpaWeb{
-          position:absolute!important;
-          top:-31px!important;
-          width:98px!important;
-          height:98px!important;
-          opacity:.12!important;
-          background:
-            repeating-radial-gradient(circle at 0 0,transparent 0 14px,rgba(230,225,239,.55) 15px 16px,transparent 17px 29px),
-            repeating-conic-gradient(from 0deg at 0 0,rgba(230,225,239,.42) 0deg 1deg,transparent 1deg 23deg)!important;
-        }
-        .vpaWeb.left{left:-18px!important}
-        .vpaWeb.right{right:-18px!important;transform:scaleX(-1)!important}
-        .vpaPumpkin{
-          position:absolute!important;
-          right:22px!important;
-          top:48px!important;
-          width:23px!important;
-          height:20px!important;
-          border-radius:46% 46% 43% 43%!important;
-          opacity:.62!important;
-          background:
-            linear-gradient(90deg,rgba(116,48,5,.5) 0 8%,transparent 9% 28%,rgba(111,44,3,.35) 29% 36%,transparent 37% 63%,rgba(111,44,3,.35) 64% 71%,transparent 72% 91%,rgba(116,48,5,.5) 92%),
-            radial-gradient(ellipse at 50% 42%,#ffb64d 0 22%,#f07a16 56%,#a64008 100%)!important;
-          filter:drop-shadow(0 3px 7px rgba(0,0,0,.2)) drop-shadow(0 0 9px rgba(255,116,35,.12))!important;
-        }
-        .vpaPumpkin::before{content:"";position:absolute;left:8px;top:-6px;width:5px;height:8px;border-radius:3px 3px 1px 1px;background:linear-gradient(#4e6b25,#253815)}
-        .vpaSpider{position:absolute!important;left:22px!important;top:50px!important;font-size:11px!important;opacity:.3!important;filter:grayscale(1) brightness(.62)!important}
-        .vpaQuietMark{position:absolute!important;right:18px!important;top:28px!important;font-size:16px!important;opacity:.22!important}
-        @media(max-width:430px){
-          .vuewePageSeasonAccent{height:104px!important}
-          .vpaWeb{width:84px!important;height:84px!important}
-          .vpaPumpkin{top:43px!important;right:13px!important}
-          .vpaSpider{top:45px!important;left:13px!important}
-        }
+        .vueweWorldSeasonAccent{position:absolute!important;z-index:3!important;inset:0 0 auto!important;height:150px!important;overflow:hidden!important;pointer-events:none!important;isolation:isolate!important}
+        .worldSeasonGlow{position:absolute!important;width:220px!important;height:120px!important;border-radius:50%!important;filter:blur(36px)!important;opacity:.18!important;animation:worldGlow 6s ease-in-out infinite alternate!important}.worldSeasonGlow.left{left:-70px!important;top:-30px!important}.worldSeasonGlow.right{right:-70px!important;top:10px!important;animation-delay:1.4s!important}
+        .vueweWorldSeasonAccent.season-halloween{background:linear-gradient(180deg,rgba(24,9,31,.18),transparent 84%)!important}.season-halloween .worldSeasonGlow.left{background:#ff711d!important}.season-halloween .worldSeasonGlow.right{background:#7d4fff!important}
+        .worldWeb{position:absolute!important;top:-33px!important;width:115px!important;height:115px!important;opacity:.16!important;background:repeating-radial-gradient(circle at 0 0,transparent 0 15px,rgba(235,230,244,.64) 16px 17px,transparent 18px 30px),repeating-conic-gradient(from 0deg at 0 0,rgba(235,230,244,.48) 0deg 1deg,transparent 1deg 22deg)!important}.worldWeb.left{left:-18px!important}.worldWeb.right{right:-18px!important;transform:scaleX(-1)!important}
+        .worldPumpkin{position:absolute!important;right:28px!important;top:58px!important;width:29px!important;height:25px!important;border-radius:47% 47% 44% 44%!important;background:linear-gradient(90deg,rgba(102,32,2,.54) 0 11%,transparent 12% 31%,rgba(91,27,1,.35) 32% 39%,transparent 40% 61%,rgba(91,27,1,.35) 62% 69%,transparent 70% 89%,rgba(102,32,2,.54) 90%),radial-gradient(ellipse at 50% 42%,#ffc46b 0 15%,#f27616 54%,#9c3406 100%)!important;box-shadow:0 0 19px rgba(255,106,22,.22)!important;animation:worldFloat 4s ease-in-out infinite!important}.worldPumpkin::before{content:"";position:absolute!important;left:12px!important;top:-8px!important;width:6px!important;height:10px!important;border-radius:3px!important;background:linear-gradient(#60772e,#243312)!important}
+        .worldBat{position:absolute!important;width:15px!important;height:5px!important;border-radius:60% 60% 30% 30%!important;background:#17131c!important;opacity:.34!important;animation:worldBat 8s linear infinite!important}.worldBat i::before,.worldBat i::after{content:"";position:absolute!important;top:-2px!important;width:10px!important;height:8px!important;background:#17131c!important;border-radius:80% 20% 70% 20%!important}.worldBat i::before{left:-7px!important;transform:rotate(-22deg)!important}.worldBat i::after{right:-7px!important;transform:scaleX(-1) rotate(-22deg)!important}.worldBat.one{left:25%!important;top:34px!important}.worldBat.two{left:62%!important;top:73px!important;animation-delay:3s!important;transform:scale(.75)!important}
+        .worldSpider{position:absolute!important;left:25px!important;top:-2px!important;width:1px!important;height:66px!important;background:linear-gradient(180deg,rgba(255,255,255,.44),rgba(255,255,255,.04))!important;animation:worldSway 4s ease-in-out infinite!important}.worldSpider i{position:absolute!important;left:-4px!important;bottom:-8px!important;width:9px!important;height:9px!important;border-radius:50%!important;background:#17131a!important;box-shadow:0 -5px 0 -2px #17131a!important}
+        .season-thanksgiving .worldSeasonGlow.left{background:#dc792b!important}.season-thanksgiving .worldSeasonGlow.right{background:#8e3d24!important}.worldLeaf{position:absolute!important;width:22px!important;height:12px!important;border-radius:100% 0 100% 0!important;background:linear-gradient(135deg,#ffc25b,#a34a19)!important;opacity:.44!important;animation:worldFloat 4.8s ease-in-out infinite!important}.worldLeaf.one{left:14%!important;top:45px!important}.worldLeaf.two{right:15%!important;top:75px!important;animation-delay:1.4s!important}
+        .season-christmas .worldSeasonGlow.left{background:#27d984!important}.season-christmas .worldSeasonGlow.right{background:#c63a58!important}.worldLights{position:absolute!important;left:0!important;right:0!important;top:8px!important;height:1px!important;background:rgba(255,255,255,.14)!important;display:flex!important;justify-content:space-around!important}.worldLights i{width:6px!important;height:9px!important;border-radius:50%!important;background:#78ffc9!important;box-shadow:0 0 10px currentColor!important;animation:worldBulb 2s ease-in-out infinite alternate!important}.worldLights i:nth-child(3n+1){background:#ff6f82!important}.worldLights i:nth-child(3n+2){background:#ffd76b!important}.worldLights i:nth-child(2n){animation-delay:.7s!important}
+        .season-newyear .worldSeasonGlow.left{background:#4cc4ff!important}.season-newyear .worldSeasonGlow.right{background:#a953ff!important}.worldFirework{position:absolute!important;width:5px!important;height:5px!important;border-radius:50%!important;box-shadow:0 -22px 0 #67eaff,16px -16px 0 #d574ff,22px 0 0 #ffe475,16px 16px 0 #67eaff,0 22px 0 #d574ff,-16px 16px 0 #ffe475,-22px 0 0 #67eaff,-16px -16px 0 #d574ff!important;opacity:.34!important;animation:worldBurst 3.2s ease-out infinite!important}.worldFirework.one{left:16%!important;top:62px!important}.worldFirework.two{right:18%!important;top:47px!important;animation-delay:1.5s!important}
+        .season-valentine .worldSeasonGlow.left{background:#ff4c84!important}.season-valentine .worldSeasonGlow.right{background:#ae4aff!important}.season-stpatrick .worldSeasonGlow.left{background:#28d969!important}.season-stpatrick .worldSeasonGlow.right{background:#d1ad37!important}.worldSymbol{position:absolute!important;font-size:21px!important;opacity:.38!important;animation:worldFloat 4s ease-in-out infinite!important}.worldSymbol.one{left:14%!important;top:48px!important}.worldSymbol.two{right:15%!important;top:79px!important;animation-delay:1.3s!important}.season-valentine .worldSymbol{color:#ff6a9c!important}.season-stpatrick .worldSymbol{color:#52dd84!important}
+        .season-easter .worldSeasonGlow.left{background:#79dfff!important}.season-easter .worldSeasonGlow.right{background:#ff9bd3!important}.worldEgg{position:absolute!important;width:21px!important;height:29px!important;border-radius:50% 50% 46% 46%!important;opacity:.42!important;animation:worldFloat 4.4s ease-in-out infinite!important}.worldEgg.one{left:14%!important;top:50px!important;background:linear-gradient(160deg,#b8f2ff,#7fc8ff 47%,#9d89ff)!important}.worldEgg.two{right:15%!important;top:72px!important;background:linear-gradient(160deg,#ffd0e7,#ff8fc2 47%,#b486ff)!important;animation-delay:1.2s!important}
+        .season-memorial .worldSeasonGlow.left,.season-fourth .worldSeasonGlow.left{background:#ff4f60!important}.season-memorial .worldSeasonGlow.right,.season-fourth .worldSeasonGlow.right{background:#5077ff!important}.season-juneteenth .worldSeasonGlow.left{background:#d84e4e!important}.season-juneteenth .worldSeasonGlow.right{background:#36a66c!important}.worldRibbon{position:absolute!important;left:-5%!important;right:-5%!important;top:17px!important;height:3px!important;opacity:.24!important;background:linear-gradient(90deg,#ff5364 0 33%,#f8f8f8 33% 66%,#5a82ff 66%)!important;transform:rotate(-2deg)!important}.season-juneteenth .worldRibbon{background:linear-gradient(90deg,#d94d4d 0 33%,#f1c96d 33% 66%,#36a66c 66%)!important}
+        .season-labor .worldSeasonGlow.left{background:#47e7d2!important}.season-labor .worldSeasonGlow.right{background:#5a70ff!important}
+        @keyframes worldGlow{to{transform:translateX(25px) scale(1.12);opacity:.3}}@keyframes worldFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(5deg)}}@keyframes worldBat{0%{transform:translate(-20px,0)}100%{transform:translate(70px,10px);opacity:.08}}@keyframes worldSway{0%,100%{transform:rotate(-3deg);transform-origin:top}50%{transform:rotate(5deg);transform-origin:top}}@keyframes worldBulb{to{filter:brightness(1.55);opacity:.6}}@keyframes worldBurst{0%{transform:scale(.2);opacity:0}35%{opacity:.45}100%{transform:scale(1.25);opacity:0}}
+        @media(max-width:430px){.vueweWorldSeasonAccent{height:128px!important}.worldWeb{width:95px!important;height:95px!important}.worldPumpkin{right:14px!important;top:51px!important}.worldSpider{left:15px!important}}
+        @media(prefers-reduced-motion:reduce){.vueweWorldSeasonAccent *{animation:none!important}}
       `}</style>
     </>,
     host

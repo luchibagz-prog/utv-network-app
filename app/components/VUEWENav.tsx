@@ -23,6 +23,7 @@ import {
   UserRound,
   WalletCards,
   X,
+  Zap,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -110,6 +111,18 @@ export default function VUEWENav() {
 
           <div className="vueweTopActions">
             <Link
+              href="/tap"
+              className="vueweTapShortcut"
+              aria-label="Open VUEWE Tap"
+              title="VUEWE Tap"
+              onPointerDown={() => {
+                try { router.prefetch("/tap"); } catch {}
+              }}
+            >
+              <Zap size={19} strokeWidth={2.5} />
+            </Link>
+
+            <Link
               href="/watch?launch=watch"
               className="vueweWatchShortcut"
               aria-label="Open VUEWE Watch"
@@ -177,6 +190,15 @@ export default function VUEWENav() {
                   <small>Movies, shows and creator entertainment.</small>
                 </div>
                 <em>WATCH</em>
+              </button>
+
+              <button className="vueweExploreTap" onClick={() => go("/tap")}>
+                <span className="vueweExploreIcon"><Zap size={24} /></span>
+                <div>
+                  <b>VUEWE Tap</b>
+                  <small>Connect in person. Both people accept.</small>
+                </div>
+                <em>TAP</em>
               </button>
             </div>
 
@@ -303,6 +325,7 @@ export default function VUEWENav() {
         .vueweMenuFeatured > button:active,.vueweAccountGrid button:active{transform:scale(.985)}
         .vueweExploreWorld { background:linear-gradient(120deg,rgba(36,232,110,.14),rgba(22,220,228,.07),rgba(255,255,255,.035))!important; }
         .vueweExploreWatch { background:linear-gradient(120deg,rgba(36,104,242,.13),rgba(255,255,255,.035))!important; }
+        .vueweExploreTap { background:linear-gradient(120deg,rgba(80,242,188,.18),rgba(62,139,255,.10),rgba(255,255,255,.035))!important; }
         .vueweExploreIcon { width:48px;height:48px;display:grid;place-items:center;border-radius:15px;color:#06110b;background:linear-gradient(145deg,#24e86e,#68ef99,#76a7ff); }
         .vueweMenuFeatured button div{min-width:0;display:grid;gap:3px}.vueweMenuFeatured button b{font-size:14px}.vueweMenuFeatured button small{color:rgba(255,255,255,.55);font-size:9px;line-height:1.35}.vueweMenuFeatured button em{padding:6px 8px;border-radius:999px;color:#07110b;background:#24e86e;font-size:7px;font-style:normal;font-weight:1000;letter-spacing:.09em}
 
@@ -311,6 +334,10 @@ export default function VUEWENav() {
         .vueweAccountGrid button{min-height:74px;display:grid;grid-template-columns:38px 1fr;align-items:center;gap:9px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:16px;color:#fff;background:rgba(255,255,255,.035);text-align:left}
         .vueweAccountGrid button>span{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;color:#50f2bc;background:rgba(80,242,188,.08)}
         .vueweAccountGrid button div{min-width:0;display:grid;gap:2px}.vueweAccountGrid strong{font-size:11px}.vueweAccountGrid small{color:rgba(255,255,255,.42);font-size:8px;line-height:1.25}
+        .vueweTopActions{display:flex!important;align-items:center!important;gap:5px!important}
+        .vueweTapShortcut{width:36px!important;height:36px!important;display:grid!important;place-items:center!important;border:1px solid rgba(80,242,188,.24)!important;border-radius:13px!important;color:#07110d!important;background:linear-gradient(145deg,#59f5cf,#5ab6ff)!important;box-shadow:0 5px 16px rgba(63,221,188,.17),inset 0 1px 0 rgba(255,255,255,.36)!important;text-decoration:none!important;animation:vueweTapShortcutPulse 3.8s ease-in-out infinite!important}
+        .vueweTapShortcut:active{transform:scale(.94)!important}
+        @keyframes vueweTapShortcutPulse{0%,100%{box-shadow:0 5px 16px rgba(63,221,188,.15),0 0 0 0 rgba(80,242,188,.12)}50%{box-shadow:0 6px 18px rgba(63,221,188,.23),0 0 0 4px rgba(80,242,188,.035)}}
         .vueweSignOut{width:100%;min-height:47px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;border:1px solid rgba(255,96,120,.20);border-radius:15px;color:#ff8296;background:rgba(255,60,90,.06);font-weight:900}
         .vueweSignOut:disabled{opacity:.55}
 

@@ -24,6 +24,7 @@ const primaryActions: CreateAction[] = [
   { title: "Video", copy: "Capture a clip", href: "/submit?type=feed&mode=video", accent: "cyan", icon: "video" },
   { title: "Photo", copy: "Take a photo", href: "/submit?type=feed&mode=photo", accent: "cyan", icon: "photo" },
   { title: "Live", copy: "Go live now", href: "/live-room", accent: "pink", icon: "live" },
+  { title: "VUEWE Tap", copy: "Connect face-to-face", href: "/tap", accent: "green", glyph: "⚡" },
   { title: "Story", copy: "Share for 24h", href: "/submit?type=story", accent: "cyan", icon: "story" },
   { title: "AI Assist", copy: "Ideas & captions", href: "/create-tools?tool=ai", accent: "green", icon: "spark" },
   { title: "Collab", copy: "Create together", href: "/collabs/new", accent: "cyan", glyph: "↯" },
@@ -36,7 +37,6 @@ const moreActions: CreateAction[] = [
   { title: "Quick Post", copy: "Text or photo fast", href: "/quick-post", accent: "green", icon: "image" },
   { title: "Events", copy: "Promote a moment", href: "/events/new", accent: "purple", glyph: "◷" },
   { title: "Casting", copy: "Find talent", href: "/casting/new", accent: "cyan", glyph: "◎" },
-  { title: "VUEWE Tap", copy: "Connect in person", href: "/tap", accent: "green", glyph: "⚡" },
 ];
 
 function ActionIcon({ item }: { item: CreateAction }) {
@@ -73,6 +73,16 @@ export default function CreatePage() {
           <i className="eyeOuter"><i className="eyeMid"><i className="eyeCore" /></i></i>
         </div>
       </header>
+
+      <button type="button" className="vueweTapSignature" onClick={() => router.push("/tap")}>
+        <span className="vueweTapSignatureIcon">⚡</span>
+        <div>
+          <small>VUEWE SIGNATURE</small>
+          <strong>Tap to connect in person</strong>
+          <p>Both profiles pop up. Both people choose Accept or Deny.</p>
+        </div>
+        <b>TAP</b>
+      </button>
 
       <section className="vueweCreateGrid" aria-label="Create on VUEWE">
         {primaryActions.map((item) => (
@@ -146,6 +156,10 @@ export default function CreatePage() {
         .vueweCreateEye .eyeMid{width:43px;height:43px;background:#03131a;box-shadow:0 0 0 4px rgba(255,255,255,.34)}
         .vueweCreateEye .eyeCore{width:24px;height:24px;background:radial-gradient(circle at 35% 30%,#dfffff 0 12%,#44f0ff 22%,#3e8bff 56%,#523dff 100%);box-shadow:0 0 14px rgba(68,235,255,.85)}
 
+        .vueweTapSignature{position:relative;z-index:2;width:min(720px,100%);min-height:88px;margin:0 auto 14px;display:grid;grid-template-columns:54px minmax(0,1fr) auto;align-items:center;gap:13px;padding:13px 14px;border:1px solid rgba(80,242,188,.22);border-radius:22px;color:#fff;text-align:left;background:radial-gradient(circle at 8% 0%,rgba(80,242,188,.18),transparent 35%),radial-gradient(circle at 100% 100%,rgba(80,145,255,.16),transparent 38%),linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,.025));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 15px 34px rgba(0,0,0,.22)}
+        .vueweTapSignature:active{transform:scale(.985)}
+        .vueweTapSignatureIcon{width:54px;height:54px;display:grid;place-items:center;border-radius:17px;color:#05120d;background:linear-gradient(145deg,#5cf4cf,#58b9ff);font-size:26px;font-weight:1000;box-shadow:0 0 22px rgba(80,242,188,.17)}
+        .vueweTapSignature>div{min-width:0;display:grid;gap:2px}.vueweTapSignature small{color:#68f3d0;font-size:7px;font-weight:1000;letter-spacing:.14em}.vueweTapSignature strong{font-size:15px;letter-spacing:-.02em}.vueweTapSignature p{margin:0;color:rgba(255,255,255,.45);font-size:8px;line-height:1.3}.vueweTapSignature>b{padding:7px 9px;border-radius:999px;color:#06120d;background:#5cf1ca;font-size:8px;letter-spacing:.1em}
         .vueweCreateGrid{position:relative;z-index:2;max-width:720px;margin:0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
         .vueweCreateTile{
           position:relative;isolation:isolate;min-height:190px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -184,6 +198,7 @@ export default function CreatePage() {
           .vueweCreateClose{width:60px;height:60px}.vueweCreateClose svg{width:26px;height:26px}
           .vueweCreateHeroCopy small{font-size:9px}.vueweCreateHeroCopy h1{font-size:45px}.vueweCreateHeroCopy p{margin-top:18px;font-size:12px}
           .vueweCreateEye{width:70px;height:70px}.vueweCreateEye .eyeOuter{width:68px;height:48px}.vueweCreateEye .eyeMid{width:35px;height:35px}.vueweCreateEye .eyeCore{width:20px;height:20px}
+          .vueweTapSignature{grid-template-columns:48px minmax(0,1fr) auto;min-height:80px;padding:11px 12px;border-radius:19px}.vueweTapSignatureIcon{width:48px;height:48px;border-radius:15px}.vueweTapSignature strong{font-size:13px}.vueweTapSignature p{font-size:7px}
           .vueweCreateGrid{gap:10px}.vueweCreateTile{min-height:160px;border-radius:23px;padding:15px 7px}.vueweCreateTileIcon{width:56px;height:56px;border-radius:18px;margin-bottom:12px}.vueweCreateTile strong{font-size:15px}.vueweCreateTile small{font-size:8px;margin-top:7px}
           .vueweCreateMoreGrid{gap:8px}.vueweCreateMini{min-height:84px;padding:9px;border-radius:18px}.vueweCreateMiniIcon{width:36px;height:36px;flex-basis:36px;border-radius:12px}.vueweCreateMini strong{font-size:9px}.vueweCreateMini small{font-size:7px}
         }
