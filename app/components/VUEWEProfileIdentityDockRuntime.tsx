@@ -34,9 +34,22 @@ export default function VUEWEProfileIdentityDockRuntime() {
       const avatar = identity?.querySelector(".avatar") as HTMLElement | null;
       const text = identity?.querySelector(".identityText") as HTMLElement | null;
       const originalActions = hero?.querySelector(".socialActions") as HTMLElement | null;
-      const stats = root?.querySelector(".stats.socialStats") as HTMLElement | null;
+      const identityHost = hero?.querySelector(
+        "#vuewe-profile-identity-dock-host"
+      ) as HTMLElement | null;
+      const controlHost = root?.querySelector(
+        "#vuewe-profile-control-deck-host"
+      ) as HTMLElement | null;
 
-      if (!root || !hero || !identity || !avatar || !text) return;
+      if (
+        !root ||
+        !hero ||
+        !identity ||
+        !avatar ||
+        !text ||
+        !identityHost ||
+        !controlHost
+      ) return;
 
       const isOwner = Boolean(hero.querySelector(".ownerSocialActions"));
       const targetEmail = targetEmailFromPath(pathname);
@@ -64,7 +77,7 @@ export default function VUEWEProfileIdentityDockRuntime() {
 
       hero.style.setProperty("position", "relative", "important");
 
-      let dock = hero.querySelector(
+      let dock = identityHost.querySelector(
         "#vuewe-profile-identity-dock"
       ) as HTMLElement | null;
 
@@ -72,7 +85,9 @@ export default function VUEWEProfileIdentityDockRuntime() {
         dock = document.createElement("section");
         dock.id = "vuewe-profile-identity-dock";
         dock.className = "vueweProfileIdentityDock";
-        hero.appendChild(dock);
+        identityHost.appendChild(dock);
+      } else if (dock.parentElement !== identityHost) {
+        identityHost.appendChild(dock);
       }
 
       const identitySignature = [
@@ -143,8 +158,8 @@ export default function VUEWEProfileIdentityDockRuntime() {
         dock.append(avatarWrap, copy);
       }
 
-      if (stats) {
-        let controls = root.querySelector(
+      {
+        let controls = controlHost.querySelector(
           "#vuewe-profile-control-deck"
         ) as HTMLElement | null;
 
@@ -225,8 +240,8 @@ export default function VUEWEProfileIdentityDockRuntime() {
           controls.appendChild(actions);
         }
 
-        if (stats.nextElementSibling !== controls) {
-          stats.insertAdjacentElement("afterend", controls);
+        if (controls.parentElement !== controlHost) {
+          controlHost.appendChild(controls);
         }
       }
 
@@ -297,6 +312,16 @@ export default function VUEWEProfileIdentityDockRuntime() {
 
   return (
     <style jsx global>{`
+      .vueweProfileIdentityDockHost{
+        display:contents!important;
+      }
+      .vueweProfileControlDeckHost{
+        position:relative!important;
+        z-index:28!important;
+        display:block!important;
+        width:100%!important;
+        min-height:0!important;
+      }
       .vueweProfileIdentityDock{
         position:absolute!important;
         z-index:45!important;

@@ -204,3 +204,92 @@ html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"] .vu
     font-size:7.5px!important;
   }
 }
+
+
+/* =========================================================
+   VUEWE V38 — stable profile stack after React refresh
+   The profile root is a flex column in the legacy v9 layer,
+   so every permanent section needs an explicit order.
+   ========================================================= */
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .hero,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .hero{
+  order:1!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats{
+  order:2!important;
+  min-height:48px!important;
+  margin:6px auto 3px!important;
+  padding:1px 3px!important;
+  border-radius:16px!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button{
+  min-height:44px!important;
+  padding:1px!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button:not(:last-child)::after,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button:not(:last-child)::after{
+  top:10px!important;
+  height:23px!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats strong,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats strong{
+  font-size:19px!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats span,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats span{
+  margin-top:1px!important;
+  font-size:7px!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .vueweProfileControlDeckHost,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .vueweProfileControlDeckHost{
+  order:3!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .profileMusicBar,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .profileMusicBar{
+  order:4!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .top8Spotlight,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .top8Spotlight{
+  order:5!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .tabs,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .tabs{
+  order:6!important;
+}
+
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .content,
+html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > .swipeContent,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .content,
+html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > .swipeContent{
+  order:7!important;
+}
+
+@media(max-width:600px){
+  html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats,
+  html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats{
+    min-height:46px!important;
+    border-radius:15px!important;
+  }
+
+  html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button,
+  html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats > button{
+    min-height:42px!important;
+  }
+
+  html[data-vuewe-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats strong,
+  html[data-vuewe-fidelity-route="profile"] body main[data-utv-page="profile"].page > section.stats.socialStats strong{
+    font-size:18px!important;
+  }
+}

@@ -3633,6 +3633,12 @@ export default function FeedPage() {
         </section>
       )}
 
+      <div
+        id="vuewe-seasonal-feed-slot"
+        className="vueweSeasonalFeedSlot"
+        aria-hidden="true"
+      />
+
       <section className="stories">
         <div className="storyWrap">
           <button

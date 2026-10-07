@@ -20,37 +20,27 @@ export default function VUEWESeasonalFeedRuntime() {
     let stopped = false;
     let timer = 0;
 
-    const mountInline = () => {
+    const bindStableHost = () => {
       if (stopped) return;
 
-      const main = document.querySelector(
-        'main.feedPage, main[data-utv-skin="feed"]'
+      const slot = document.getElementById(
+        "vuewe-seasonal-feed-slot"
       ) as HTMLElement | null;
-      const stories = main?.querySelector(".stories") as HTMLElement | null;
 
-      if (!main || !stories) {
-        timer = window.setTimeout(mountInline, 120);
-        return;
-      }
-
-      let slot = main.querySelector("#vuewe-seasonal-feed-slot") as HTMLElement | null;
       if (!slot) {
-        slot = document.createElement("div");
-        slot.id = "vuewe-seasonal-feed-slot";
-        slot.className = "vueweSeasonalFeedSlot";
-        stories.parentElement?.insertBefore(slot, stories);
+        timer = window.setTimeout(bindStableHost, 80);
+        return;
       }
 
       setHost(slot);
     };
 
-    mountInline();
+    bindStableHost();
 
     return () => {
       stopped = true;
       window.clearTimeout(timer);
       setHost(null);
-      document.getElementById("vuewe-seasonal-feed-slot")?.remove();
     };
   }, [onFeed, season]);
 

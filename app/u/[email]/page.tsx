@@ -1388,6 +1388,12 @@ export default function PublicProfile() {
         />
 
         <div
+          id="vuewe-profile-identity-dock-host"
+          className="vueweProfileIdentityDockHost"
+          aria-hidden="false"
+        />
+
+        <div
           className="identity"
           style={{
             display: "flex",
@@ -1907,6 +1913,11 @@ export default function PublicProfile() {
         </button>
       </section>
 
+
+      <div
+        id="vuewe-profile-control-deck-host"
+        className="vueweProfileControlDeckHost"
+      />
 
       <section className="top8Spotlight">
         <div className="top8Heading">

@@ -1,4 +1,4 @@
-const CACHE_NAME = "vuewe-push-v6";
+const CACHE_NAME = "vuewe-push-v7";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -10,13 +10,7 @@ self.addEventListener("activate", (event) => {
       await self.clients.claim();
       const keys = await caches.keys();
       await Promise.all(
-        keys
-          .filter(
-            (key) =>
-              key.startsWith("vuewe-push-") &&
-              key !== CACHE_NAME
-          )
-          .map((key) => caches.delete(key))
+        keys.map((key) => caches.delete(key))
       );
 
       const windows = await self.clients.matchAll({
@@ -32,6 +26,21 @@ self.addEventListener("activate", (event) => {
       });
     })()
   );
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+
+  if (
+    request.mode === "navigate" ||
+    request.destination === "document"
+  ) {
+    event.respondWith(
+      fetch(request, {
+        cache: "no-store",
+      })
+    );
+  }
 });
 
 self.addEventListener("message", (event) => {
