@@ -218,6 +218,8 @@ export default function SubmitPage() {
   const chunksRef = useRef<Blob[]>([]);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const holdRecordedRef = useRef(false);
+  const captureHoldActiveRef = useRef(false);
+  const cameraOpeningRef = useRef(false);
   const recordStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drawCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawHistoryRef = useRef<ImageData[]>([]);
@@ -491,14 +493,24 @@ const selectedSticker = stickers.find(
 
     setMode("camera");
 
-    // Start immediately. Mobile browsers already handle the permission
-    // prompt asynchronously, so delaying this only makes Story feel slower.
-    void startCamera();
+    // Story opens straight to a natural selfie preview.
+    // Feed keeps the last-selected lens.
+    const initialFacing: CameraFacing =
+      type === "story" ? "user" : cameraFacing;
+
+    setCameraFacing(initialFacing);
+
+    // Start immediately. Camera preview is video-only for fast opening;
+    // microphone permission is requested only when recording actually starts.
+    void startCamera(initialFacing);
   }
 
   async function startCamera(
     facing: CameraFacing = cameraFacing
   ) {
+    if (cameraOpeningRef.current) return;
+    cameraOpeningRef.current = true;
+
     try {
       stopCamera();
 
@@ -509,38 +521,30 @@ const selectedSticker = stickers.find(
       let stream: MediaStream;
 
       try {
-        // First attempt: premium mobile capture.
+        /*
+         * VUEWE FAST CAMERA
+         *
+         * 720x1280/30 is fast enough to open immediately on phones,
+         * keeps a true portrait track for Story/Feed video, and avoids
+         * the stretched/over-processed selfie look caused by asking a
+         * mobile browser to synthesize 4K/60 before preview.
+         *
+         * StoryCamera still uses ImageCapture for full sensor-quality
+         * photos when the browser supports it.
+         */
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: {
-              ideal: facing,
-            },
-            width: {
-              ideal: 1080,
-              max: 2160,
-            },
-            height: {
-              ideal: 1920,
-              max: 3840,
-            },
-            aspectRatio: {
-              ideal: 9 / 16,
-            },
-            frameRate: {
-              ideal: 30,
-              max: 60,
-            },
+            facingMode: { ideal: facing },
+            width: { ideal: 720, max: 1080 },
+            height: { ideal: 1280, max: 1920 },
+            aspectRatio: { ideal: 9 / 16 },
+            frameRate: { ideal: 30, max: 30 },
           },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: false,
         });
       } catch (firstError: any) {
         const firstName = String(firstError?.name || "");
 
-        // Permission errors should not be silently retried.
         if (
           firstName === "NotAllowedError" ||
           firstName === "PermissionDeniedError"
@@ -548,26 +552,25 @@ const selectedSticker = stickers.find(
           throw firstError;
         }
 
-        console.warn(
-          "UTV premium camera attempt failed, retrying relaxed mode:",
-          firstName,
-          firstError
+        console.info(
+          "VUEWE premium camera fallback:",
+          firstName
         );
 
-        // Give mobile hardware a moment to release the previous lens.
-        await new Promise((resolve) =>
-          window.setTimeout(resolve, 180)
-        );
-
-        // Recovery attempt: let the phone/browser choose safe settings.
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: {
-              ideal: facing,
-            },
+            facingMode: { ideal: facing },
+            frameRate: { ideal: 30, max: 30 },
           },
-          audio: true,
+          audio: false,
         });
+      }
+
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        try {
+          videoTrack.contentHint = "motion";
+        } catch {}
       }
 
       streamRef.current = stream;
@@ -575,7 +578,7 @@ const selectedSticker = stickers.find(
       setCameraFacing(facing);
       setMessage("");
     } catch (error: any) {
-      console.error("UTV camera error:", error);
+      console.error("VUEWE camera error:", error);
 
       const errorName = String(error?.name || "");
 
@@ -584,21 +587,21 @@ const selectedSticker = stickers.find(
         errorName === "PermissionDeniedError"
       ) {
         setMessage(
-          "Camera and microphone access is blocked. Tap Enable Camera & Mic, or allow UTV in your browser site settings."
+          "Camera access is blocked. Tap Enable Camera, or allow VUEWE in your browser site settings."
         );
       } else if (
         errorName === "NotFoundError" ||
         errorName === "DevicesNotFoundError"
       ) {
         setMessage(
-          "UTV could not find a camera or microphone on this device."
+          "VUEWE could not find a camera on this device."
         );
       } else if (
         errorName === "NotReadableError" ||
         errorName === "TrackStartError"
       ) {
         setMessage(
-          "Your camera is busy. Close another camera app, then tap the flip button to retry."
+          "Your camera is busy. Close another camera app, then retry."
         );
       } else if (errorName === "OverconstrainedError") {
         setMessage(
@@ -606,12 +609,49 @@ const selectedSticker = stickers.find(
         );
       } else {
         setMessage(
-          `UTV could not open the camera${
+          `VUEWE could not open the camera${
             errorName ? ` (${errorName})` : ""
           }. Try again or choose from Gallery.`
         );
       }
+    } finally {
+      cameraOpeningRef.current = false;
     }
+  }
+
+  async function ensureCaptureMicrophone() {
+    const current = streamRef.current;
+
+    if (!current) {
+      throw new Error("Camera is not ready.");
+    }
+
+    const existing = current
+      .getAudioTracks()
+      .find((track) => track.readyState === "live");
+
+    if (existing) {
+      existing.enabled = true;
+      return existing;
+    }
+
+    const micStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+
+    const micTrack = micStream.getAudioTracks()[0];
+
+    if (!micTrack) {
+      throw new Error("Microphone audio is not available.");
+    }
+
+    current.addTrack(micTrack);
+    return micTrack;
   }
 
   function stopCamera() {
@@ -687,10 +727,10 @@ const selectedSticker = stickers.find(
       const videoOnly = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: nextFacing },
-          width: { ideal: 1080, max: 2160 },
-          height: { ideal: 1920, max: 3840 },
+          width: { ideal: 720, max: 1080 },
+          height: { ideal: 1280, max: 1920 },
           aspectRatio: { ideal: 9 / 16 },
-          frameRate: { ideal: 30, max: 60 },
+          frameRate: { ideal: 30, max: 30 },
         },
         audio: false,
       });
@@ -824,7 +864,7 @@ const selectedSticker = stickers.find(
     setMode("editor");
   }
 
-  function startRecording() {
+  async function startRecording() {
     if (!streamRef.current) {
       setMessage("Camera is not ready.");
       return;
@@ -835,32 +875,39 @@ const selectedSticker = stickers.find(
     // Never create a camera recording unless
     // BOTH the camera and microphone tracks
     // actually made it into the capture stream.
-    const sourceStream =
-      streamRef.current;
+    const sourceStream = streamRef.current;
 
-    const videoTracks =
-      sourceStream.getVideoTracks();
-
-    const audioTracks =
-      sourceStream.getAudioTracks();
+    const videoTracks = sourceStream.getVideoTracks();
 
     if (!videoTracks.length) {
       setMessage(
-        "UTV could not find the camera track. Reopen the camera and try again."
+        "VUEWE could not find the camera track. Reopen the camera and try again."
       );
       return;
     }
 
-    if (!audioTracks.length) {
+    try {
+      await ensureCaptureMicrophone();
+    } catch (error: any) {
       setMessage(
-        "Microphone audio is not available. Allow Camera & Microphone access, then try recording again."
+        error?.name === "NotAllowedError"
+          ? "Allow microphone access to record video with sound."
+          : error?.message || "Microphone audio is not available."
       );
       return;
     }
 
-    audioTracks.forEach((track) => {
-      track.enabled = true;
-    });
+    /*
+     * A Story hold can be released while the browser is showing the
+     * microphone permission prompt. Do not start recording after release.
+     */
+    if (isStory && !captureHoldActiveRef.current) {
+      return;
+    }
+
+    const audioTracks = sourceStream
+      .getAudioTracks()
+      .filter((track) => track.readyState === "live");
 
     const recordingStream =
       new MediaStream([
@@ -937,7 +984,7 @@ const selectedSticker = stickers.find(
       }, maxRecordingMs);
     } catch (error) {
       console.error(error);
-      setMessage("Video recording could not start.");
+      setMessage("VUEWE video recording could not start.");
     }
   }
 
@@ -957,14 +1004,18 @@ const selectedSticker = stickers.find(
 
   function beginStoryCapture() {
     if (recording) return;
+    captureHoldActiveRef.current = true;
     holdRecordedRef.current = false;
+
     holdTimerRef.current = setTimeout(() => {
       holdRecordedRef.current = true;
-      startRecording();
+      void startRecording();
     }, 320);
   }
 
   function endStoryCapture() {
+    captureHoldActiveRef.current = false;
+
     if (holdTimerRef.current) {
       clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
@@ -979,6 +1030,8 @@ const selectedSticker = stickers.find(
   }
 
   function cancelStoryCapture() {
+    captureHoldActiveRef.current = false;
+
     if (holdTimerRef.current) {
       clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
@@ -3677,7 +3730,7 @@ if (mode === "camera") {
                   void startCamera();
                 }}
               >
-                Enable Camera & Mic
+                Enable Camera
               </button>
 
               <button
@@ -3822,7 +3875,7 @@ if (mode === "camera") {
             onClick={
               recording
                 ? stopRecording
-                : startRecording
+                : () => void startRecording()
             }
           >
             <span>{recording ? "⏹️" : "🎥"}</span>
@@ -5336,7 +5389,8 @@ const styles = `
     min-height: 100dvh;
     display: block;
     object-fit: cover;
-    object-position: center;
+    object-position: 50% 50%;
+    transform-origin: 50% 50%;
     background: #000;
   }
 
@@ -6760,7 +6814,9 @@ const styles = `
   .cameraPreview {
     image-rendering: auto;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     will-change: transform;
+    filter: none;
   }
 
   .cameraShade {

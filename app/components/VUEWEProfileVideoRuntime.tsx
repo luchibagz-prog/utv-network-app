@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
+import { getVueweProfile } from "../../lib/vueweProfileCache";
 
 function looksLikeVideo(value = "") {
   if (!value) return false;
@@ -77,18 +77,15 @@ export default function VUEWEProfileVideoRuntime() {
 
       if (!email) return;
 
-      const { data, error } = await supabase
-        .from("creator_profiles")
-        .select("*")
-        .eq("email", email)
-        .maybeSingle();
+      const data = await getVueweProfile(email).catch((error) => {
+        console.info(
+          "VUEWE profile background load skipped:",
+          error instanceof Error ? error.message : String(error)
+        );
+        return null;
+      });
 
       if (!active) return;
-
-      if (error) {
-        console.info("VUEWE profile background load skipped:", error.message);
-        return;
-      }
 
       const background = String(
         data?.profile_background_url ||

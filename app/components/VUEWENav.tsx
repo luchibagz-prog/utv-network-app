@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   CalendarCheck,
@@ -60,6 +60,38 @@ export default function VUEWENav() {
   const router = useRouter();
   const [exploreOpen, setExploreOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [profileHref, setProfileHref] =
+    useState("/profile-pro-v12");
+
+  useEffect(() => {
+    let active = true;
+
+    const applySession = (email?: string | null) => {
+      if (!active) return;
+
+      const clean = String(email || "").trim();
+
+      setProfileHref(
+        clean
+          ? `/u/${encodeURIComponent(clean)}`
+          : "/profile-pro-v12"
+      );
+    };
+
+    void supabase.auth.getSession().then(({ data }) => {
+      applySession(data.session?.user?.email);
+    });
+
+    const { data: listener } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        applySession(session?.user?.email);
+      });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const hidden = hiddenPrefixes.some((prefix) => pathname.startsWith(prefix));
   if (hidden) return null;
@@ -248,15 +280,20 @@ export default function VUEWENav() {
         <nav className="vueweBottomNav" aria-label="VUEWE primary navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
+            const href =
+              item.label === "You"
+                ? profileHref
+                : item.href;
+
             const active =
-              pathname === item.href ||
-              pathname.startsWith(`${item.href}/`) ||
+              pathname === href ||
+              pathname.startsWith(`${href}/`) ||
               (item.label === "You" && pathname.startsWith("/u/"));
 
             return (
               <Link
                 key={item.label}
-                href={item.href}
+                href={href}
                 className={[
                   "vueweNavItem",
                   active ? "isActive" : "",
@@ -266,7 +303,7 @@ export default function VUEWENav() {
                   .join(" ")}
                 aria-label={item.label}
                 onPointerDown={() => {
-                  try { router.prefetch(item.href); } catch {}
+                  try { router.prefetch(href); } catch {}
                 }}
               >
                 <span className="vueweNavIcon">

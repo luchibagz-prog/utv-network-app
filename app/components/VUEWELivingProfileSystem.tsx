@@ -10,6 +10,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { Camera, Image as ImageIcon, Music2, Play, Save, Upload, Video, X } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import { getVueweProfile, invalidateVueweProfile } from "../../lib/vueweProfileCache";
 
 type EditForm = {
   email: string;
@@ -106,11 +107,7 @@ export default function VUEWELivingProfileSystem() {
 
       setPublicProfileLoading(true);
 
-      const { data } = await supabase
-        .from("creator_profiles")
-        .select("profile_background_url,profile_background,cover_url")
-        .eq("email", publicEmail)
-        .maybeSingle();
+      const data = await getVueweProfile(publicEmail).catch(() => null);
 
       if (!active) return;
 
@@ -168,11 +165,7 @@ export default function VUEWELivingProfileSystem() {
       return;
     }
 
-    const { data: profile } = await supabase
-      .from("creator_profiles")
-      .select("*")
-      .eq("email", user.email)
-      .maybeSingle();
+    const profile = await getVueweProfile(user.email).catch(() => null);
 
     const next: EditForm = {
       email: user.email,
@@ -401,6 +394,7 @@ export default function VUEWELivingProfileSystem() {
 
       if (error) throw new Error(error.message);
 
+      invalidateVueweProfile(form.email);
       setNotice("VUEWE profile saved.");
       setStage("");
 

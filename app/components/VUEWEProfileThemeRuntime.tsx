@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { getVueweProfile } from "../../lib/vueweProfileCache";
 
 function profileEmailFromPath(pathname: string) {
   if (!pathname.startsWith("/u/")) return "";
@@ -41,11 +42,7 @@ export default function VUEWEProfileThemeRuntime() {
 
       if (!email || !active) return;
 
-      const { data } = await supabase
-        .from("creator_profiles")
-        .select("theme_color,accent_color")
-        .eq("email", email)
-        .maybeSingle();
+      const data = await getVueweProfile(email).catch(() => null);
 
       if (!active) return;
 

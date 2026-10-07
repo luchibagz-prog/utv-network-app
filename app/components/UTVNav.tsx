@@ -283,7 +283,37 @@ export default function UTVNav() {
   const [walkieBusy, setWalkieBusy] =
     useState(false);
 
-  const profileHref = "/profile-pro-v12";
+  const [profileHref, setProfileHref] =
+    useState("/profile-pro-v12");
+
+  useEffect(() => {
+    let active = true;
+
+    const applySession = (email?: string | null) => {
+      if (!active) return;
+
+      const clean = String(email || "").trim();
+      setProfileHref(
+        clean
+          ? `/u/${encodeURIComponent(clean)}`
+          : "/profile-pro-v12"
+      );
+    };
+
+    void supabase.auth.getSession().then(({ data }) => {
+      applySession(data.session?.user?.email);
+    });
+
+    const { data: authListener } =
+      supabase.auth.onAuthStateChange((_event, session) => {
+        applySession(session?.user?.email);
+      });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   // UTV FAST MODE: warm the main routes after nav mounts.
   useEffect(() => {
@@ -296,8 +326,6 @@ export default function UTVNav() {
       "/activity",
       "/messages",
       "/settings",
-      "/profile-v10",
-      "/profile",
       profileHref,
     ];
 

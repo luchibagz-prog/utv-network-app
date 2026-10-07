@@ -534,12 +534,16 @@ const styles = `
     height: 100%;
     display: block;
     object-fit: cover;
-    object-position: center;
+    object-position: 50% 50%;
     image-rendering: auto;
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    filter: none;
   }
 
   .mirroredVideo {
-    transform: scaleX(-1);
+    transform: scaleX(-1) translateZ(0);
   }
 
   .cameraPlaceholder {

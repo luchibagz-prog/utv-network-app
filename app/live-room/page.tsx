@@ -618,14 +618,6 @@ export default function LiveRoomPage() {
   async function prepareLocalMedia(
     facing: CameraFacing = cameraFacing
   ) {
-    /*
-      UTV LIVE CAMERA PARITY
-
-      Video starts independently from microphone.
-      Camera flip reuses the existing mic.
-      1080p is preferred with a 720p fallback.
-    */
-
     setErrorMessage("");
     setStatus("Starting camera...");
 
@@ -636,43 +628,50 @@ export default function LiveRoomPage() {
       let videoTrack;
 
       try {
-        videoTrack =
-          await createLocalVideoTrack({
-            facingMode: facing,
-            resolution: {
-              width: 1920,
-              height: 1080,
-              frameRate: 30,
-            },
-          });
-      } catch (primaryVideoError) {
+        /*
+         * VUEWE LIVE FAST CAMERA
+         *
+         * Social Live is portrait-first. Start at a stable 720x1280/30
+         * instead of blocking the preview on a 1080p acquisition attempt.
+         * 720p at 30fps is high-quality mobile Live while keeping heat,
+         * startup time and dropped frames under control.
+         */
+        videoTrack = await createLocalVideoTrack({
+          facingMode: facing,
+          resolution: {
+            width: 720,
+            height: 1280,
+            frameRate: 30,
+          },
+        });
+      } catch (portraitError) {
         console.info(
-          "1080p Live camera fallback:",
-          primaryVideoError
+          "Portrait Live camera fallback:",
+          portraitError
         );
 
-        videoTrack =
-          await createLocalVideoTrack({
-            facingMode: facing,
-            resolution: {
-              width: 1280,
-              height: 720,
-              frameRate: 30,
-            },
-          });
+        videoTrack = await createLocalVideoTrack({
+          facingMode: facing,
+          resolution: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+          },
+        });
       }
 
-      videoTrackRef.current =
-        videoTrack;
+      videoTrackRef.current = videoTrack;
+
+      try {
+        videoTrack.mediaStreamTrack.contentHint = "motion";
+      } catch {}
 
       if (!cameraEnabled) {
         await videoTrack.mute();
       }
 
       if (videoRef.current) {
-        videoTrack.attach(
-          videoRef.current
-        );
+        videoTrack.attach(videoRef.current);
 
         await videoRef.current
           .play()
@@ -680,10 +679,13 @@ export default function LiveRoomPage() {
       }
 
       /*
-        Keep an existing microphone track when
-        flipping the camera. This removes an
-        unnecessary permission/restart cycle.
-      */
+       * Show a responsive camera preview immediately.
+       * Microphone setup continues after the picture is already visible.
+       */
+      setCameraFacing(facing);
+      setIsCameraOn(true);
+      setStatus("Camera ready • starting mic…");
+
       if (!audioTrackRef.current) {
         try {
           const audioTrack =
@@ -693,8 +695,7 @@ export default function LiveRoomPage() {
               autoGainControl: true,
             });
 
-          audioTrackRef.current =
-            audioTrack;
+          audioTrackRef.current = audioTrack;
 
           if (!micEnabled) {
             await audioTrack.mute();
@@ -710,9 +711,6 @@ export default function LiveRoomPage() {
         }
       }
 
-      setCameraFacing(facing);
-      setIsCameraOn(true);
-
       setStatus(
         audioTrackRef.current
           ? "Camera ready"
@@ -725,9 +723,7 @@ export default function LiveRoomPage() {
       );
 
       setIsCameraOn(false);
-      setStatus(
-        "Camera unavailable"
-      );
+      setStatus("Camera unavailable");
 
       setErrorMessage(
         "Allow camera access, then try again."
@@ -789,8 +785,8 @@ export default function LiveRoomPage() {
         facingMode: next,
 
         resolution: {
-          width: 1280,
-          height: 720,
+          width: 720,
+          height: 1280,
           frameRate: 30,
         },
       });
@@ -858,11 +854,15 @@ export default function LiveRoomPage() {
                 },
 
                 width: {
-                  ideal: 1280,
+                  ideal: 720,
                 },
 
                 height: {
-                  ideal: 720,
+                  ideal: 1280,
+                },
+
+                aspectRatio: {
+                  ideal: 9 / 16,
                 },
 
                 frameRate: {
@@ -3502,7 +3502,7 @@ export default function LiveRoomPage() {
 const styles = `
   *{box-sizing:border-box}html,body{background:#000}button,input,textarea{font:inherit}button{cursor:pointer}
   .livePage,.replayPage{min-height:100dvh;color:#fff;background:#000}.cameraStage{position:relative;min-height:100dvh;overflow:hidden;background:#050505}
-  .livePage:not(.active) .cameraStage{min-height:calc(100dvh - 82px)}.cameraVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.mirrored{transform:scaleX(-1)}
+  .livePage:not(.active) .cameraStage{min-height:calc(100dvh - 82px)}.cameraVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;transform-origin:50% 50%;backface-visibility:hidden;-webkit-backface-visibility:hidden}.mirrored{transform:scaleX(-1) translateZ(0)}
   .cameraStage.hasGuest .cameraVideo{height:50%;bottom:auto}.guestPanel{position:absolute;left:0;right:0;bottom:0;height:50%;z-index:3;overflow:hidden;border-top:2px solid rgba(82,247,200,.55);background:#080808}.guestVideo{width:100%;height:100%;object-fit:cover;background:#090909}.guestAudioTracks{position:absolute;width:1px;height:1px;overflow:hidden}.guestLabel{position:absolute;left:12px;bottom:88px;display:grid;gap:1px;padding:7px 10px;border-radius:12px;background:rgba(0,0,0,.5);backdrop-filter:blur(12px)}.guestLabel span{color:#52f7c8;font-size:8px;font-weight:950;letter-spacing:1.3px}.guestLabel strong{font-size:11px}.removeGuestButton{position:absolute;right:12px;bottom:88px;min-height:34px;padding:0 11px;color:#fff;border:1px solid rgba(255,90,110,.26);border-radius:999px;background:rgba(255,45,85,.72);font-size:9px;font-weight:950}
   .cameraOff{position:absolute;inset:0;z-index:8;display:grid;place-items:center;align-content:center;gap:8px;background:#070707}.cameraOff span{font-size:42px}
   .topShade,.bottomShade{position:absolute;left:0;right:0;z-index:9;pointer-events:none}.topShade{top:0;height:210px;background:linear-gradient(180deg,rgba(0,0,0,.75),transparent)}.bottomShade{bottom:0;height:390px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}

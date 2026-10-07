@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import UTVNav from "../../components/UTVNav";
 import { supabase } from "../../../lib/supabaseClient";
+import { getVueweProfile, primeVueweProfile } from "../../../lib/vueweProfileCache";
 import { sendUTVPush } from "../../../lib/sendUTVPush";
 import ProfileSocialFeatured from "../../components/ProfileSocialFeatured";
 import VUEWEProfileHighlights from "../../components/VUEWEProfileHighlights";
@@ -681,13 +682,47 @@ export default function PublicProfile() {
     setLoading(true);
 
     try {
-      const { data: auth } = await supabase.auth.getUser();
+      const targetEmail = email.toLowerCase();
+
+      /*
+       * Start every independent request immediately.
+       * The hero can render as soon as auth + profile data arrive;
+       * stats, posts, badges and crew continue in parallel.
+       */
+      const authPromise = supabase.auth.getSession();
+      const profilePromise = getVueweProfile(email);
+      const postsPromise = supabase
+        .from("uploads")
+        .select("*")
+        .eq("creator_email", email)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      const topCrewPromise = supabase
+        .from("top_crew")
+        .select("member_email,position")
+        .eq("owner_email", email)
+        .order("position", { ascending: true })
+        .limit(8);
+      const followerPromise = supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("following_email", email);
+      const followingPromise = supabase
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("follower_email", email);
+      const badgePromise = supabase.rpc("get_utv_badge", {
+        target_email: email,
+      });
+      const ogRemainingPromise = supabase.rpc("get_utv_og_spots_remaining");
+
+      const [authResult, profileData] = await Promise.all([
+        authPromise,
+        profilePromise,
+      ]);
 
       const viewer =
-        auth.user?.email?.toLowerCase() || "";
-
-      const targetEmail =
-        email.toLowerCase();
+        authResult.data.session?.user?.email?.toLowerCase() || "";
 
       const owner =
         !!viewer &&
@@ -695,89 +730,62 @@ export default function PublicProfile() {
 
       setViewerEmail(viewer);
       setIsOwner(owner);
+      setProfile(profileData || {});
+      primeVueweProfile(email, profileData || {});
 
-      if (viewer && !owner) {
-        const [
-          followRelationship,
-          blockRelationship,
-        ] = await Promise.all([
-          supabase
-            .from("follows")
-            .select("follower_email,following_email")
-            .eq("follower_email", viewer)
-            .eq("following_email", targetEmail)
-            .maybeSingle(),
+      /*
+       * Release the skeleton as soon as the identity/hero is ready.
+       * The rest of the profile fills in without blocking the first paint.
+       */
+      setLoading(false);
 
-          supabase
-            .from("blocks")
-            .select("blocker_email,blocked_email")
-            .eq("blocker_email", viewer)
-            .eq("blocked_email", targetEmail)
-            .maybeSingle(),
-        ]);
-
-        setIsFollowingProfile(
-          Boolean(followRelationship.data)
-        );
-
-        setIsBlocked(
-          Boolean(blockRelationship.data)
-        );
-      } else {
-        setIsFollowingProfile(false);
-        setIsBlocked(false);
-      }
+      const relationshipPromise =
+        viewer && !owner
+          ? Promise.all([
+              supabase
+                .from("follows")
+                .select("follower_email,following_email")
+                .eq("follower_email", viewer)
+                .eq("following_email", targetEmail)
+                .maybeSingle(),
+              supabase
+                .from("blocks")
+                .select("blocker_email,blocked_email")
+                .eq("blocker_email", viewer)
+                .eq("blocked_email", targetEmail)
+                .maybeSingle(),
+            ])
+          : Promise.resolve(null);
 
       const [
-        profileResult,
         postsResult,
         topCrewResult,
         followerResult,
         followingResult,
         badgeResult,
         ogRemainingResult,
+        relationshipResult,
       ] = await Promise.all([
-        supabase
-          .from("creator_profiles")
-          .select("*")
-          .eq("email", email)
-          .maybeSingle(),
-
-        supabase
-          .from("uploads")
-          .select("*")
-          .eq("creator_email", email)
-          .order("created_at", { ascending: false })
-          .limit(30),
-
-        supabase
-          .from("top_crew")
-          .select("member_email,position")
-          .eq("owner_email", email)
-          .order("position", { ascending: true })
-          .limit(8),
-
-        supabase
-          .from("follows")
-          .select("*", { count: "exact", head: true })
-          .eq("following_email", email),
-
-        supabase
-          .from("follows")
-          .select("*", { count: "exact", head: true })
-          .eq("follower_email", email),
-
-        supabase.rpc("get_utv_badge", {
-          target_email: email,
-        }),
-
-        supabase.rpc("get_utv_og_spots_remaining"),
+        postsPromise,
+        topCrewPromise,
+        followerPromise,
+        followingPromise,
+        badgePromise,
+        ogRemainingPromise,
+        relationshipPromise,
       ]);
 
-      setProfile(profileResult.data || {});
       setPosts(postsResult.data || []);
       setFollowers(followerResult.count || 0);
       setFollowing(followingResult.count || 0);
+
+      if (relationshipResult) {
+        setIsFollowingProfile(Boolean(relationshipResult[0].data));
+        setIsBlocked(Boolean(relationshipResult[1].data));
+      } else {
+        setIsFollowingProfile(false);
+        setIsBlocked(false);
+      }
 
       const badgeRows = Array.isArray(badgeResult.data)
         ? badgeResult.data
@@ -837,23 +845,12 @@ export default function PublicProfile() {
 
         return {
           email: crewEmail,
-
           name: pick(
             member,
-            [
-              "display_name",
-              "creator_name",
-              "username",
-            ],
+            ["display_name","creator_name","username"],
             "UTV Creator"
           ),
-
-          username: pick(
-            member,
-            ["username"],
-            "creator"
-          ),
-
+          username: pick(member, ["username"], "creator"),
           avatar: pick(member, [
             "avatar_url",
             "creator_avatar",
@@ -867,7 +864,6 @@ export default function PublicProfile() {
     } catch (error: any) {
       console.error(error);
       setNotice(error?.message || "Could not load profile.");
-    } finally {
       setLoading(false);
     }
   }
@@ -1012,7 +1008,7 @@ export default function PublicProfile() {
 
     const timer = window.setTimeout(() => {
       void attemptProfileAutoplay();
-    }, 300);
+    }, 900);
 
     return () => {
       window.clearTimeout(timer);
