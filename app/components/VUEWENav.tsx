@@ -15,6 +15,7 @@ import {
   MessageCircle,
   Mic2,
   Phone,
+  QrCode,
   Plus,
   Search,
   Settings,
@@ -52,6 +53,7 @@ const accountLinks = [
   { href: "/calls", label: "Calls", hint: "Audio & video calls", icon: Phone },
   { href: "/walkie", label: "Walkie", hint: "VUEWE push-to-talk", icon: Mic2 },
   { href: "/wallet", label: "Wallet", hint: "Gifts & creator money", icon: WalletCards },
+  { href: "/share-vuewe", label: "Share VUEWE", hint: "Invite friends with your QR code", icon: QrCode },
   { href: "/install", label: "Install VUEWE", hint: "Phone app & device check", icon: Download },
 ] as const;
 
