@@ -1,0 +1,39 @@
+.vueweInvitePage{
+  position:relative;isolation:isolate;min-height:100svh;padding:32px 18px 130px;
+  color:#fff;overflow:hidden;
+  background:radial-gradient(circle at 10% 0%,rgba(81,239,194,.15),transparent 43%),
+    radial-gradient(circle at 95% 18%,rgba(130,88,255,.18),transparent 48%),#071019;
+}
+.vueweInviteGlow{
+  position:absolute;z-index:-1;inset:120px -60% auto;height:540px;
+  background:radial-gradient(ellipse,rgba(68,241,184,.11),transparent 67%);pointer-events:none;
+}
+.vueweInviteWrap{width:min(100%,520px);margin:0 auto;text-align:center;}
+.vueweInviteEyebrow{display:flex;justify-content:center;align-items:center;gap:8px;font-size:11px;font-weight:900;letter-spacing:.22em;color:#60efb8;}
+.vueweInviteWrap h1{font-size:clamp(30px,8vw,47px);line-height:1.08;letter-spacing:-.05em;margin:14px 0 9px;font-weight:950;}
+.vueweInviteWrap h1 span{color:#75ebbe;}
+.vueweInviteIntro{max-width:370px;margin:0 auto 26px;color:rgba(255,255,255,.66);font-size:14px;line-height:1.6;}
+.vueweInvitePanel{
+  margin:0 auto;padding:22px 22px 20px;border:1px solid rgba(255,255,255,.15);
+  border-radius:27px;background:linear-gradient(160deg,rgba(30,38,52,.9),rgba(10,15,25,.98));
+  box-shadow:0 25px 75px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.vueweInviteBrand{display:flex;align-items:center;justify-content:center;gap:11px;font-size:35px;font-weight:1000;letter-spacing:.015em;}
+.vueweInviteEye{display:grid;place-items:center;width:37px;height:37px;color:#04271d;background:linear-gradient(135deg,#59f4b3,#8d81ff);border-radius:50%;font-size:30px;}
+.vueweInviteQR{background:white;border:12px solid #fff;border-radius:23px;overflow:hidden;width:min(100%,340px);aspect-ratio:1;margin:19px auto 14px;}
+.vueweInviteQR img{display:block;width:100%;height:100%;object-fit:contain;image-rendering:pixelated;}
+.vueweInviteScanLabel{display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:950;letter-spacing:.1em;}
+.vueweInvitePanel p{font-size:12px;color:rgba(255,255,255,.6);line-height:1.5;margin:7px 0 0;}
+.vueweInviteActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:19px;}
+.vueweInviteActions button{display:flex;align-items:center;justify-content:center;gap:8px;padding:15px 11px;min-height:51px;border-radius:16px;font-size:14px;font-weight:900;cursor:pointer;}
+.vueweInvitePrimary{border:0;background:linear-gradient(115deg,#5af0b5,#79baff);color:#071518;}
+.vueweInviteSecondary{border:1px solid rgba(255,255,255,.21);background:rgba(255,255,255,.065);color:white;}
+.vueweInviteActions button:active{transform:scale(.985);}
+.vueweInviteDownload{display:flex;gap:8px;align-items:center;justify-content:center;padding:19px 10px;text-decoration:none;color:#6cefbe;font-size:13px;font-weight:800;}
+.vueweInviteLinkLabel{display:block;text-align:left;margin:13px 2px 8px;font-size:10px;font-weight:900;letter-spacing:.16em;color:rgba(255,255,255,.48);}
+.vueweInviteLink{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:13px;color:#dee8ed;background:#101c29;padding:13px 14px;font-size:12px;outline:none;}
+.vueweInviteLink:focus{border-color:#70eab6;}
+.vueweInviteNotice{min-height:22px;color:#6cefbe;font-size:12px;margin:9px 0;}
+.vueweInviteFoot{color:rgba(255,255,255,.52);font-size:12px;line-height:1.6;margin:10px 0 0;}
+.vueweInviteFoot strong{color:#fff;}
+@media(max-width:360px){.vueweInvitePanel{padding:18px 15px}.vueweInviteActions{grid-template-columns:1fr}.vueweInviteBrand{font-size:30px}}
